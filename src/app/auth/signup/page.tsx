@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,17 +63,31 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-2xl">
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 360 }}
+            transition={{ duration: 0.5 }}
+            className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-2xl"
+          >
             R
-          </div>
+          </motion.div>
           <span className="text-3xl font-bold text-gray-900">ResaDog</span>
         </Link>
 
         {/* Formulaire */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="bg-white rounded-2xl shadow-lg p-8"
+        >
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Créer un compte
           </h1>
@@ -185,18 +200,23 @@ export default function SignUpPage() {
               Se connecter
             </Link>
           </div>
-        </div>
+        </motion.div>
 
         {/* Retour à l'accueil */}
-        <div className="mt-6 text-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-6 text-center"
+        >
           <Link
             href="/"
             className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
           >
             ← Retour à l'accueil
           </Link>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
