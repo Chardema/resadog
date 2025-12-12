@@ -1,65 +1,180 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
+      {/* Navigation */}
+      <nav className="container mx-auto px-6 py-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold text-xl">
+              R
+            </div>
+            <span className="text-2xl font-bold text-gray-900">ResaDog</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/auth/signin"
+              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+            >
+              Connexion
+            </Link>
+            <Link
+              href="/auth/signup"
+              className="bg-primary-500 text-white px-6 py-2.5 rounded-full hover:bg-primary-600 font-medium transition-colors shadow-sm"
+            >
+              S'inscrire
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="container mx-auto px-6 pt-20 pb-32">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            Votre compagnon en de{" "}
+            <span className="text-primary-600">bonnes mains</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+            Service professionnel de garde de chiens avec suivi en temps réel,
+            photos quotidiennes et communication directe. Réservez facilement en
+            ligne et restez connecté pendant toute la garde.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/calendar"
+              className="bg-primary-500 text-white px-8 py-4 rounded-full hover:bg-primary-600 font-semibold text-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Voir le calendrier
+            </Link>
+            <Link
+              href="/booking"
+              className="bg-white text-primary-600 px-8 py-4 rounded-full hover:bg-primary-50 font-semibold text-lg transition-all border-2 border-primary-200"
             >
-              Learning
-            </a>{" "}
-            center.
+              Réserver maintenant
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="container mx-auto px-6 pb-24">
+        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {/* Feature 1 */}
+          <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+            <div className="w-14 h-14 bg-accent-100 rounded-full flex items-center justify-center mb-6">
+              <svg
+                className="w-7 h-7 text-accent-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Réservation Facile
+            </h3>
+            <p className="text-gray-600 leading-relaxed">
+              Consultez mes disponibilités en temps réel et réservez en
+              quelques clics. Confirmation instantanée et paiement sécurisé.
+            </p>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+            <div className="w-14 h-14 bg-secondary-100 rounded-full flex items-center justify-center mb-6">
+              <svg
+                className="w-7 h-7 text-secondary-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Journal Quotidien
+            </h3>
+            <p className="text-gray-600 leading-relaxed">
+              Recevez des photos et des mises à jour quotidiennes sur les
+              activités de votre chien : repas, promenades, moments de jeu.
+            </p>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+            <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mb-6">
+              <svg
+                className="w-7 h-7 text-primary-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Chat en Temps Réel
+            </h3>
+            <p className="text-gray-600 leading-relaxed">
+              Restez en contact direct avec moi pendant toute la durée de la
+              garde. Posez vos questions et recevez des réponses rapides.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="bg-primary-600 py-20">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            Prêt à offrir le meilleur à votre compagnon ?
+          </h2>
+          <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
+            Créez votre compte gratuitement et découvrez un service de garde
+            professionnel et attentionné.
+          </p>
+          <Link
+            href="/auth/signup"
+            className="inline-block bg-white text-primary-600 px-8 py-4 rounded-full hover:bg-primary-50 font-semibold text-lg transition-all shadow-lg"
+          >
+            Commencer maintenant
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-50 py-12">
+        <div className="container mx-auto px-6 text-center text-gray-600">
+          <p>
+            &copy; 2025 ResaDog. Tous droits réservés. Service professionnel de
+            garde de chiens.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </footer>
     </div>
   );
 }

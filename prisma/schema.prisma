@@ -1,0 +1,305 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// USER & AUTHENTICATION MODELS
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  phone         String?
+  role          Role      @default(CLIENT)
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  pets          Pet[]
+  bookings      Booking[]
+  messages      Message[]
+  notifications Notification[]
+
+  @@index([email])
+}
+
+enum Role {
+  CLIENT
+  SITTER
+  ADMIN
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// PET MODELS
+// ============================================
+
+model Pet {
+  id              String   @id @default(cuid())
+  name            String
+  breed           String?
+  age             Int?
+  weight          Float?
+  gender          Gender?
+  spayedNeutered  Boolean?
+  imageUrl        String?
+  medicalInfo     String?  @db.Text
+  behaviorNotes   String?  @db.Text
+  feedingSchedule String?  @db.Text
+  medications     String?  @db.Text
+  vetInfo         String?  @db.Text
+  emergencyContact String? @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  ownerId      String
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bookings     Booking[]
+  journalEntries JournalEntry[]
+
+  @@index([ownerId])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+// ============================================
+// BOOKING MODELS
+// ============================================
+
+model Booking {
+  id              String        @id @default(cuid())
+  startDate       DateTime
+  endDate         DateTime
+  status          BookingStatus @default(PENDING)
+  serviceType     ServiceType
+  totalPrice      Float
+  depositPaid     Boolean       @default(false)
+  depositAmount   Float?
+  notes           String?       @db.Text
+  cancellationReason String?    @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  clientId     String
+  client       User          @relation(fields: [clientId], references: [id])
+  petId        String
+  pet          Pet           @relation(fields: [petId], references: [id])
+  payment      Payment?
+  journalEntries JournalEntry[]
+  messages     Message[]
+
+  @@index([clientId])
+  @@index([petId])
+  @@index([startDate, endDate])
+  @@index([status])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ServiceType {
+  BOARDING        // Pension complète
+  DAY_CARE        // Visite de jour
+  DROP_IN         // Visite rapide
+  DOG_WALKING     // Promenade uniquement
+}
+
+// ============================================
+// PAYMENT MODELS
+// ============================================
+
+model Payment {
+  id                String        @id @default(cuid())
+  amount            Float
+  currency          String        @default("eur")
+  status            PaymentStatus @default(PENDING)
+  stripePaymentId   String?       @unique
+  stripeCustomerId  String?
+  paymentMethod     String?
+  paidAt            DateTime?
+  refundedAt        DateTime?
+  refundAmount      Float?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([stripePaymentId])
+  @@index([status])
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+// ============================================
+// JOURNAL MODELS
+// ============================================
+
+model JournalEntry {
+  id          String         @id @default(cuid())
+  entryType   JournalType
+  title       String
+  content     String         @db.Text
+  timestamp   DateTime       @default(now())
+  mediaUrls   String[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  bookingId   String
+  booking     Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  petId       String
+  pet         Pet            @relation(fields: [petId], references: [id])
+
+  @@index([bookingId])
+  @@index([petId])
+  @@index([timestamp])
+}
+
+enum JournalType {
+  FEEDING      // Repas
+  WALK         // Promenade
+  PLAYTIME     // Temps de jeu
+  BATHROOM     // Pipi/Caca
+  MEDICATION   // Médicaments
+  NAP          // Sieste
+  PHOTO        // Photo
+  VIDEO        // Vidéo
+  NOTE         // Note générale
+  VET_VISIT    // Visite vétérinaire
+}
+
+// ============================================
+// MESSAGING MODELS
+// ============================================
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  mediaUrl  String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+// ============================================
+// NOTIFICATION MODELS
+// ============================================
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  read      Boolean          @default(false)
+  sentVia   String[]
+  metadata  String?          @db.Text
+  createdAt DateTime         @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  BOOKING_REMINDER
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  NEW_MESSAGE
+  JOURNAL_UPDATE
+  BOOKING_REQUEST
+}
+
+// ============================================
+// AVAILABILITY MODELS
+// ============================================
+
+model Availability {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  available Boolean  @default(true)
+  maxSlots  Int      @default(1)
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+}
