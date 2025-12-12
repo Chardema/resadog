@@ -2,12 +2,12 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Navigation */}
       <nav className="container mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold text-xl">
+            <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xl">
               R
             </div>
             <span className="text-2xl font-bold text-gray-900">ResaDog</span>
@@ -15,13 +15,13 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <Link
               href="/auth/signin"
-              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+              className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
             >
               Connexion
             </Link>
             <Link
               href="/auth/signup"
-              className="bg-primary-500 text-white px-6 py-2.5 rounded-full hover:bg-primary-600 font-medium transition-colors shadow-sm"
+              className="bg-blue-500 text-white px-6 py-2.5 rounded-full hover:bg-blue-600 font-medium transition-colors shadow-sm"
             >
               S'inscrire
             </Link>
@@ -34,7 +34,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
             Votre compagnon en de{" "}
-            <span className="text-primary-600">bonnes mains</span>
+            <span className="text-blue-600">bonnes mains</span>
           </h1>
           <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
             Service professionnel de garde de chiens avec suivi en temps réel,
@@ -44,13 +44,13 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/calendar"
-              className="bg-primary-500 text-white px-8 py-4 rounded-full hover:bg-primary-600 font-semibold text-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="bg-blue-500 text-white px-8 py-4 rounded-full hover:bg-blue-600 font-semibold text-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
               Voir le calendrier
             </Link>
             <Link
               href="/booking"
-              className="bg-white text-primary-600 px-8 py-4 rounded-full hover:bg-primary-50 font-semibold text-lg transition-all border-2 border-primary-200"
+              className="bg-white text-blue-600 px-8 py-4 rounded-full hover:bg-blue-50 font-semibold text-lg transition-all border-2 border-blue-200"
             >
               Réserver maintenant
             </Link>
@@ -63,9 +63,9 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {/* Feature 1 */}
           <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
-            <div className="w-14 h-14 bg-accent-100 rounded-full flex items-center justify-center mb-6">
+            <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-6">
               <svg
-                className="w-7 h-7 text-accent-600"
+                className="w-7 h-7 text-green-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -89,9 +89,9 @@ export default function Home() {
 
           {/* Feature 2 */}
           <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
-            <div className="w-14 h-14 bg-secondary-100 rounded-full flex items-center justify-center mb-6">
+            <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mb-6">
               <svg
-                className="w-7 h-7 text-secondary-600"
+                className="w-7 h-7 text-orange-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -121,9 +121,9 @@ export default function Home() {
 
           {/* Feature 3 */}
           <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
-            <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mb-6">
+            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-6">
               <svg
-                className="w-7 h-7 text-primary-600"
+                className="w-7 h-7 text-blue-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -148,18 +148,18 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-primary-600 py-20">
+      <section className="bg-blue-600 py-20">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
             Prêt à offrir le meilleur à votre compagnon ?
           </h2>
-          <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
             Créez votre compte gratuitement et découvrez un service de garde
             professionnel et attentionné.
           </p>
           <Link
             href="/auth/signup"
-            className="inline-block bg-white text-primary-600 px-8 py-4 rounded-full hover:bg-primary-50 font-semibold text-lg transition-all shadow-lg"
+            className="inline-block bg-white text-blue-600 px-8 py-4 rounded-full hover:bg-blue-50 font-semibold text-lg transition-all shadow-lg"
           >
             Commencer maintenant
           </Link>
