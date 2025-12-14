@@ -286,11 +286,12 @@ export default function AdminBookingsPage() {
                       
                       {booking.status === "CONFIRMED" && (
                         <Button
-                          variant="outline"
-                          className="w-full border-gray-200 text-gray-500 hover:bg-gray-50"
-                          disabled
+                          onClick={() => handleStatusChange(booking.id, "CANCELLED")}
+                          disabled={actionLoading === booking.id}
+                          variant="destructive"
+                          className="w-full bg-red-100 text-red-700 hover:bg-red-200 border border-red-200"
                         >
-                          Réservation validée
+                          Annuler & Rembourser
                         </Button>
                       )}
 
