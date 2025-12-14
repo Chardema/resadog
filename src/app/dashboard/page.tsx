@@ -1,193 +1,219 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { DashboardNav } from "@/components/dashboard/DashboardNav";
+import { AvailabilityCalendar } from "@/components/dashboard/AvailabilityCalendar";
 
-export default async function DashboardPage() {
-  const session = await auth();
+export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-  if (!session?.user) {
-    redirect("/auth/signin");
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+    }
+    // Rediriger les admins/gardiens vers leur dashboard spécifique
+    if (session?.user?.role === "ADMIN" || session?.user?.role === "SITTER") {
+      router.push("/admin/dashboard");
+    }
+  }, [session, status, router]);
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4 animate-bounce">🐾</div>
+          <p className="text-gray-700 font-semibold">Chargement...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
       {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                R
-              </div>
-              <span className="text-xl font-bold text-gray-900">ResaDog</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
-                Bonjour, {session.user.name}
-              </span>
-              <form action="/api/auth/signout" method="POST">
-                <button className="text-sm text-gray-600 hover:text-gray-900">
-                  Déconnexion
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <DashboardNav />
 
       {/* Contenu principal */}
       <div className="container mx-auto px-6 py-12">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Tableau de bord
-          </h1>
-          <p className="text-gray-600 mb-8">
-            Bienvenue sur votre espace personnel ResaDog
-          </p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-10"
+          >
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent mb-2">
+              Tableau de bord 🐾
+            </h1>
+            <p className="text-gray-700 text-lg">
+              Bienvenue sur votre espace personnel <span className="font-semibold text-orange-600">La Patte Dorée</span>
+            </p>
+          </motion.div>
 
-          {/* Cartes de statistiques */}
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow-sm p-6">
+          {/* Cartes de statistiques avec animations 3D */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: {},
+              visible: {
+                transition: {
+                  staggerChildren: 0.1,
+                },
+              },
+            }}
+            className="grid md:grid-cols-3 gap-6 mb-10"
+          >
+            {/* Card 1 - Réservations */}
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 30, rotateX: -15 },
+                visible: { opacity: 1, y: 0, rotateX: 0 },
+              }}
+              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
+              transition={{ duration: 0.3 }}
+              className="bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 transform-gpu"
+            >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">
+                <h3 className="text-sm font-semibold text-gray-700">
                   Réservations à venir
                 </h3>
-                <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
+                <motion.div
+                  whileHover={{ rotate: 360, scale: 1.2 }}
+                  transition={{ duration: 0.5 }}
+                  className="h-12 w-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg"
+                >
+                  <span className="text-2xl">📅</span>
+                </motion.div>
               </div>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-              <p className="text-sm text-gray-500 mt-1">Aucune réservation</p>
-            </div>
+              <p className="text-4xl font-bold text-gray-900 mb-1">0</p>
+              <p className="text-sm text-gray-600">Aucune réservation</p>
+            </motion.div>
 
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            {/* Card 2 - Mes animaux */}
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 30, rotateX: -15 },
+                visible: { opacity: 1, y: 0, rotateX: 0 },
+              }}
+              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
+              transition={{ duration: 0.3 }}
+              className="bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 transform-gpu"
+            >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">
+                <h3 className="text-sm font-semibold text-gray-700">
                   Mes animaux
                 </h3>
-                <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
+                <motion.div
+                  whileHover={{ rotate: 360, scale: 1.2 }}
+                  transition={{ duration: 0.5 }}
+                  className="h-12 w-12 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg"
+                >
+                  <span className="text-2xl">🐕</span>
+                </motion.div>
               </div>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-              <p className="text-sm text-gray-500 mt-1">Aucun profil créé</p>
-            </div>
+              <p className="text-4xl font-bold text-gray-900 mb-1">0</p>
+              <p className="text-sm text-gray-600">Aucun profil créé</p>
+            </motion.div>
 
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            {/* Card 3 - Messages */}
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 30, rotateX: -15 },
+                visible: { opacity: 1, y: 0, rotateX: 0 },
+              }}
+              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
+              transition={{ duration: 0.3 }}
+              className="bg-gradient-to-br from-white to-orange-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 transform-gpu"
+            >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">
+                <h3 className="text-sm font-semibold text-gray-700">
                   Messages
                 </h3>
-                <div className="h-10 w-10 bg-orange-100 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-orange-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                    />
-                  </svg>
-                </div>
+                <motion.div
+                  whileHover={{ rotate: 360, scale: 1.2 }}
+                  transition={{ duration: 0.5 }}
+                  className="h-12 w-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg"
+                >
+                  <span className="text-2xl">💬</span>
+                </motion.div>
               </div>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-              <p className="text-sm text-gray-500 mt-1">Aucun message</p>
-            </div>
-          </div>
+              <p className="text-4xl font-bold text-gray-900 mb-1">0</p>
+              <p className="text-sm text-gray-600">Aucun message</p>
+            </motion.div>
+          </motion.div>
+
+          {/* Calendrier des disponibilités */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mb-10"
+          >
+            <AvailabilityCalendar />
+          </motion.div>
 
           {/* Actions rapides */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Actions rapides
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="bg-white rounded-2xl shadow-xl p-8"
+          >
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Actions rapides ⚡
             </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <Link
-                href="/booking"
-                className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            <div className="grid md:grid-cols-2 gap-6">
+              <motion.div
+                whileHover={{ x: 5, scale: 1.02 }}
+                transition={{ duration: 0.2 }}
               >
-                <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">
-                    Nouvelle réservation
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Réserver une garde pour votre chien
-                  </p>
-                </div>
-              </Link>
+                <Link
+                  href="/booking"
+                  className="flex items-center gap-4 p-6 border-2 border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-orange-50 hover:to-yellow-50 hover:border-orange-300 transition-all group"
+                >
+                  <div className="h-14 w-14 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <span className="text-3xl">⭐</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-lg">
+                      Nouvelle réservation
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Réserver une garde premium pour votre chien
+                    </p>
+                  </div>
+                </Link>
+              </motion.div>
 
-              <Link
-                href="/pets/new"
-                className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              <motion.div
+                whileHover={{ x: 5, scale: 1.02 }}
+                transition={{ duration: 0.2 }}
               >
-                <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">
-                    Ajouter un animal
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Créer le profil de votre compagnon
-                  </p>
-                </div>
-              </Link>
+                <Link
+                  href="/pets/new"
+                  className="flex items-center gap-4 p-6 border-2 border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-300 transition-all group"
+                >
+                  <div className="h-14 w-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <span className="text-3xl">🐶</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-lg">
+                      Ajouter un animal
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Créer le profil de votre compagnon
+                    </p>
+                  </div>
+                </Link>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </div>

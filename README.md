@@ -1,4 +1,4 @@
-# ResaDog - Plateforme de Garde de Chiens
+# La Patte Dorée - Plateforme de Garde de Chiens
 
 Plateforme professionnelle de réservation de garde de chiens avec suivi en temps réel, photos quotidiennes et communication directe.
 

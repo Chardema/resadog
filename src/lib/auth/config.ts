@@ -13,11 +13,13 @@ const loginSchema = z.object({
 export const authConfig = {
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 jours
   },
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
+  trustHost: true, // Important pour Vercel et les environnements de production
   providers: [
     CredentialsProvider({
       name: "credentials",

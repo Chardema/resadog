@@ -24,7 +24,6 @@ export default function SignUpPage() {
     e.preventDefault();
     setError("");
 
-    // Vérifier que les mots de passe correspondent
     if (formData.password !== formData.confirmPassword) {
       setError("Les mots de passe ne correspondent pas");
       return;
@@ -52,7 +51,6 @@ export default function SignUpPage() {
         throw new Error(data.error || "Une erreur est survenue");
       }
 
-      // Compte créé avec succès, rediriger vers la page de connexion
       router.push("/auth/signin?registered=true");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
@@ -62,48 +60,66 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Décorations de fond */}
+      <div className="absolute top-20 left-10 text-6xl opacity-10 animate-bounce">🐕</div>
+      <div className="absolute bottom-20 right-10 text-6xl opacity-10 animate-bounce" style={{ animationDelay: "0.5s" }}>🦴</div>
+
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-md relative z-10"
       >
         {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-2 mb-8">
+        <Link href="/" className="flex items-center justify-center gap-3 mb-10">
           <motion.div
-            whileHover={{ scale: 1.1, rotate: 360 }}
+            whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 0] }}
             transition={{ duration: 0.5 }}
-            className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-2xl"
+            className="relative"
           >
-            R
+            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg transform rotate-12">
+              🐾
+            </div>
+            <div className="absolute -top-1 -right-1 text-yellow-400 text-xl animate-pulse">
+              ✨
+            </div>
           </motion.div>
-          <span className="text-3xl font-bold text-gray-900">ResaDog</span>
+          <div>
+            <span className="text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent">
+              La Patte Dorée
+            </span>
+            <p className="text-xs text-orange-600 font-medium text-center">Garde de chiens de luxe</p>
+          </div>
         </Link>
 
         {/* Formulaire */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white rounded-2xl shadow-lg p-8"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-orange-200"
         >
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Créer un compte
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent mb-2">
+            Créer un compte 👋
           </h1>
-          <p className="text-gray-600 mb-6">
-            Rejoignez ResaDog pour réserver vos gardes de chiens
+          <p className="text-gray-600 mb-6 text-lg">
+            Rejoignez <span className="font-bold text-orange-600">La Patte Dorée</span> pour réserver vos gardes 🐶
           </p>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              {error}
-            </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-red-50 border-2 border-red-300 text-red-700 px-4 py-3 rounded-xl mb-6 font-medium"
+            >
+              ❌ {error}
+            </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="name">Nom complet</Label>
+              <Label htmlFor="name" className="text-gray-700 font-semibold">Nom complet</Label>
               <Input
                 id="name"
                 type="text"
@@ -114,12 +130,12 @@ export default function SignUpPage() {
                 }
                 required
                 disabled={isLoading}
-                className="mt-1"
+                className="mt-2 border-2 border-orange-200 focus:border-orange-400 rounded-xl"
               />
             </div>
 
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-gray-700 font-semibold">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -130,12 +146,12 @@ export default function SignUpPage() {
                 }
                 required
                 disabled={isLoading}
-                className="mt-1"
+                className="mt-2 border-2 border-orange-200 focus:border-orange-400 rounded-xl"
               />
             </div>
 
             <div>
-              <Label htmlFor="phone">Téléphone (optionnel)</Label>
+              <Label htmlFor="phone" className="text-gray-700 font-semibold">Téléphone (optionnel)</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -145,12 +161,12 @@ export default function SignUpPage() {
                   setFormData({ ...formData, phone: e.target.value })
                 }
                 disabled={isLoading}
-                className="mt-1"
+                className="mt-2 border-2 border-orange-200 focus:border-orange-400 rounded-xl"
               />
             </div>
 
             <div>
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password" className="text-gray-700 font-semibold">Mot de passe</Label>
               <Input
                 id="password"
                 type="password"
@@ -161,12 +177,12 @@ export default function SignUpPage() {
                 }
                 required
                 disabled={isLoading}
-                className="mt-1"
+                className="mt-2 border-2 border-orange-200 focus:border-orange-400 rounded-xl"
               />
             </div>
 
             <div>
-              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+              <Label htmlFor="confirmPassword" className="text-gray-700 font-semibold">Confirmer le mot de passe</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -177,27 +193,33 @@ export default function SignUpPage() {
                 }
                 required
                 disabled={isLoading}
-                className="mt-1"
+                className="mt-2 border-2 border-orange-200 focus:border-orange-400 rounded-xl"
               />
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-              size="lg"
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="pt-2"
             >
-              {isLoading ? "Création en cours..." : "Créer mon compte"}
-            </Button>
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                disabled={isLoading}
+                size="lg"
+              >
+                {isLoading ? "Création en cours..." : "Créer mon compte ✨"}
+              </Button>
+            </motion.div>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
+          <div className="mt-8 text-center text-sm text-gray-600">
             Vous avez déjà un compte ?{" "}
             <Link
               href="/auth/signin"
-              className="text-blue-600 hover:underline font-medium"
+              className="text-orange-600 hover:text-orange-700 font-bold hover:underline transition-colors"
             >
-              Se connecter
+              Se connecter 🔐
             </Link>
           </div>
         </motion.div>
@@ -211,9 +233,9 @@ export default function SignUpPage() {
         >
           <Link
             href="/"
-            className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
+            className="text-gray-700 hover:text-orange-600 text-sm font-medium transition-colors inline-flex items-center gap-2"
           >
-            ← Retour à l'accueil
+            <span>←</span> Retour à l'accueil
           </Link>
         </motion.div>
       </motion.div>

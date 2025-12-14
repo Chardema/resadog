@@ -25,6 +25,15 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Code promo automatique (pour clients VIP)
+  autoApplyCouponId String? // Coupon appliqué automatiquement
+
+  // Stripe (système "Uber" avec carte enregistrée)
+  stripeCustomerId   String? @unique // ID du Customer dans Stripe
+  paymentMethodId    String?         // ID du moyen de paiement par défaut
+  cardLast4          String?         // 4 derniers chiffres de la carte
+  cardBrand          String?         // Marque de la carte (Visa, Mastercard, etc.)
+
   // Relations
   accounts      Account[]
   sessions      Session[]
@@ -32,8 +41,11 @@ model User {
   bookings      Booking[]
   messages      Message[]
   notifications Notification[]
+  autoApplyCoupon Coupon? @relation("UserAutoApplyCoupon", fields: [autoApplyCouponId], references: [id], onDelete: SetNull)
 
   @@index([email])
+  @@index([autoApplyCouponId])
+  @@index([stripeCustomerId])
 }
 
 enum Role {
@@ -124,12 +136,15 @@ model Booking {
   id              String        @id @default(cuid())
   startDate       DateTime
   endDate         DateTime
+  startTime       String?       // Heure de dépôt (format HH:mm)
+  endTime         String?       // Heure de récupération (format HH:mm)
   status          BookingStatus @default(PENDING)
   serviceType     ServiceType
   totalPrice      Float
   depositPaid     Boolean       @default(false)
   depositAmount   Float?
   notes           String?       @db.Text
+  specialRequests String?       @db.Text
   cancellationReason String?    @db.Text
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -139,6 +154,7 @@ model Booking {
   petId        String
   pet          Pet           @relation(fields: [petId], references: [id])
   payment      Payment?
+  additionalCharges AdditionalCharge[]
   journalEntries JournalEntry[]
   messages     Message[]
 
@@ -185,6 +201,25 @@ model Payment {
   booking   Booking @relation(fields: [bookingId], references: [id])
 
   @@index([stripePaymentId])
+  @@index([status])
+}
+
+// Suppléments facturés après la réservation (retards, extras, etc.)
+model AdditionalCharge {
+  id               String              @id @default(cuid())
+  amount           Float                // Montant du supplément
+  reason           String               // Raison (ex: "Retard de 4h", "Médicaments urgents")
+  description      String?       @db.Text // Description détaillée
+  status           PaymentStatus        @default(PENDING)
+  stripePaymentId  String?       @unique // ID du PaymentIntent Stripe
+  chargedAt        DateTime?            // Date de débit réussi
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
   @@index([status])
 }
 
@@ -293,13 +328,51 @@ enum NotificationType {
 // ============================================
 
 model Availability {
-  id        String   @id @default(cuid())
-  date      DateTime @unique
-  available Boolean  @default(true)
-  maxSlots  Int      @default(1)
-  notes     String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String        @id @default(cuid())
+  date         DateTime
+  serviceType  ServiceType   // Type de service concerné
+  available    Boolean       @default(true)
+  maxSlots     Int           @default(1)
+  notes        String?       @db.Text
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
+  @@unique([date, serviceType]) // Une date peut avoir plusieurs disponibilités (une par type de service)
   @@index([date])
+  @@index([serviceType])
+}
+
+// ============================================
+// COUPON / PROMO CODE SYSTEM
+// ============================================
+
+model Coupon {
+  id              String       @id @default(cuid())
+  code            String       @unique  // Code promo (ex: LANCEMENT, VIP23)
+  description     String?                // Description pour l'admin
+  discountType    DiscountType           // PERCENTAGE ou FIXED_AMOUNT
+  discountValue   Float                  // Valeur de la réduction (% ou €)
+  isActive        Boolean      @default(true)
+
+  // Restrictions
+  minAmount       Float?                 // Montant minimum pour utiliser le code
+  maxUses         Int?                   // Nombre max d'utilisations (null = illimité)
+  currentUses     Int          @default(0)
+  validFrom       DateTime?              // Date de début de validité
+  validUntil      DateTime?              // Date de fin de validité
+  restrictedTo    String[]               // Emails autorisés (vide = tout le monde)
+
+  // Relations
+  usersAutoApply  User[]       @relation("UserAutoApplyCoupon") // Users qui ont ce coupon en auto
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+}
+
+enum DiscountType {
+  PERCENTAGE    // Réduction en pourcentage (ex: 20%)
+  FIXED_AMOUNT  // Réduction fixe (ex: 7€)
 }
