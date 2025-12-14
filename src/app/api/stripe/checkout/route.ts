@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           userId: booking.client.id,
         },
       },
-      success_url: `${process.env.NEXTAUTH_URL}/bookings/${booking.id}?payment=success`,
+      success_url: `${process.env.NEXTAUTH_URL}/booking/success?bookingId=${booking.id}`,
       cancel_url: `${process.env.NEXTAUTH_URL}/bookings/${booking.id}?payment=cancelled`,
       metadata: {
         bookingId: booking.id,
