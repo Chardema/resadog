@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
+import { sendBookingRequestEmail } from "@/lib/email";
 import Stripe from "stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -119,5 +120,19 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  console.log(`✅ Session Checkout complétée pour la réservation ${bookingId}`);
+  // Récupérer les infos pour l'email
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { client: true, pet: true }
+  });
+
+  if (booking) {
+    await sendBookingRequestEmail(
+      booking.client.email,
+      booking.client.name || "Client",
+      booking.pet.name
+    );
+  }
+
+  console.log(`✅ Session Checkout complétée pour la réservation ${bookingId} (Email envoyé)`);
 }

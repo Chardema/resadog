@@ -1,0 +1,75 @@
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export const sendBookingConfirmationEmail = async (
+  email: string,
+  userName: string,
+  bookingDetails: {
+    petName: string;
+    startDate: string;
+    endDate: string;
+    totalPrice: number;
+  }
+) => {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("⚠️ RESEND_API_KEY manquante. Email non envoyé.");
+    return;
+  }
+
+  try {
+    await resend.emails.send({
+      from: 'La Patte Dorée <onboarding@resend.dev>', // Ou ton domaine personnalisé si configuré
+      to: email,
+      subject: '✅ Votre réservation est confirmée !',
+      html: `
+        <div style="font-family: sans-serif; color: #333;">
+          <h1>Bonjour ${userName} ! 👋</h1>
+          <p>Bonne nouvelle : la garde de <strong>${bookingDetails.petName}</strong> est officiellement confirmée.</p>
+          
+          <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Détails du séjour :</h3>
+            <p>📅 <strong>Du :</strong> ${bookingDetails.startDate}</p>
+            <p>📅 <strong>Au :</strong> ${bookingDetails.endDate}</p>
+            <p>💰 <strong>Total :</strong> ${bookingDetails.totalPrice}€ (Réglé)</p>
+          </div>
+
+          <p>📞 <strong>Prochaine étape :</strong></p>
+          <p>Je vous contacterai très rapidement par téléphone pour faire le point sur les habitudes de ${bookingDetails.petName} et organiser l'arrivée.</p>
+
+          <p>À très vite !<br>L'équipe La Patte Dorée 🐾</p>
+        </div>
+      `,
+    });
+    console.log(`📧 Email de confirmation envoyé à ${email}`);
+  } catch (error) {
+    console.error("Erreur envoi email:", error);
+  }
+};
+
+export const sendBookingRequestEmail = async (
+  email: string,
+  userName: string,
+  petName: string
+) => {
+  if (!process.env.RESEND_API_KEY) return;
+
+  try {
+    await resend.emails.send({
+      from: 'La Patte Dorée <onboarding@resend.dev>',
+      to: email,
+      subject: '⏳ Demande de réservation reçue',
+      html: `
+        <div style="font-family: sans-serif; color: #333;">
+          <h1>Bonjour ${userName},</h1>
+          <p>Nous avons bien reçu votre demande pour la garde de <strong>${petName}</strong>.</p>
+          <p>Votre paiement est <strong>en attente de validation</strong> (une empreinte bancaire a été réalisée, vous n'êtes pas encore débité).</p>
+          <p>Nous allons examiner votre demande et vous recevrez une confirmation très prochainement.</p>
+          <p>Merci de votre confiance ! 🐾</p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Erreur envoi email:", error);
+  }
+};

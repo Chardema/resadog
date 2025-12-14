@@ -97,8 +97,9 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      // 🔑 LA CLEF MAGIQUE : setup_future_usage
+      // 🔑 Empreinte bancaire uniquement (pas de débit immédiat)
       payment_intent_data: {
+        capture_method: "manual", // L'argent est bloqué mais pas prélevé
         setup_future_usage: "off_session",
         metadata: {
           bookingId: booking.id,

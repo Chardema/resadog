@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
+import { sendBookingConfirmationEmail } from "@/lib/email";
 
 export async function PATCH(
   request: NextRequest,
@@ -31,7 +32,11 @@ export async function PATCH(
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { payment: true },
+      include: { 
+        payment: true,
+        client: true,
+        pet: true
+      },
     });
 
     if (!booking) {
@@ -41,27 +46,66 @@ export async function PATCH(
       );
     }
 
-    // Gestion de l'annulation et du remboursement
-    if (status === "CANCELLED" && booking.payment?.stripePaymentId && booking.payment.status === "SUCCEEDED") {
+    // Gestion de la CONFIRMATION (Capture de l'argent)
+    if (status === "CONFIRMED" && booking.payment?.stripePaymentId) {
       try {
-        // Rembourser via Stripe
-        const refund = await stripe.refunds.create({
-          payment_intent: booking.payment.stripePaymentId,
-        });
+        const paymentIntent = await stripe.paymentIntents.retrieve(booking.payment.stripePaymentId);
+        
+        if (paymentIntent.status === 'requires_capture') {
+          console.log(`💰 Capture du paiement ${booking.payment.stripePaymentId}...`);
+          await stripe.paymentIntents.capture(booking.payment.stripePaymentId);
+          
+          await prisma.payment.update({
+            where: { id: booking.payment.id },
+            data: { status: "SUCCEEDED", paidAt: new Date() }
+          });
 
-        // Mettre à jour le statut du paiement
-        await prisma.payment.update({
-          where: { id: booking.payment.id },
-          data: {
-            status: "REFUNDED",
-            refundedAt: new Date(),
-            refundAmount: booking.payment.amount,
-          },
-        });
+          // Envoyer email de confirmation
+          await sendBookingConfirmationEmail(
+            booking.client.email,
+            booking.client.name || "Client",
+            {
+              petName: booking.pet.name,
+              startDate: new Date(booking.startDate).toLocaleDateString("fr-FR"),
+              endDate: new Date(booking.endDate).toLocaleDateString("fr-FR"),
+              totalPrice: booking.totalPrice
+            }
+          );
+        }
+      } catch (err) {
+        console.error("Erreur capture Stripe:", err);
+        return NextResponse.json({ error: "Impossible de capturer le paiement" }, { status: 400 });
+      }
+    }
+
+    // Gestion de l'annulation et du remboursement (ou libération empreinte)
+    if (status === "CANCELLED" && booking.payment?.stripePaymentId) {
+      try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(booking.payment.stripePaymentId);
+
+        if (paymentIntent.status === 'requires_capture') {
+           // Annuler l'empreinte (Le client n'est pas débité)
+           console.log(`🔓 Libération de l'empreinte ${booking.payment.stripePaymentId}...`);
+           await stripe.paymentIntents.cancel(booking.payment.stripePaymentId);
+        } else if (paymentIntent.status === 'succeeded') {
+           // Rembourser via Stripe
+           console.log(`💸 Remboursement ${booking.payment.stripePaymentId}...`);
+           const refund = await stripe.refunds.create({
+             payment_intent: booking.payment.stripePaymentId,
+           });
+   
+           // Mettre à jour le statut du paiement
+           await prisma.payment.update({
+             where: { id: booking.payment.id },
+             data: {
+               status: "REFUNDED",
+               refundedAt: new Date(),
+               refundAmount: booking.payment.amount,
+             },
+           });
+        }
       } catch (stripeError) {
         console.error("Erreur remboursement Stripe:", stripeError);
-        // On continue même si le remboursement échoue (on pourra le faire manuellement)
-        // Mais on pourrait vouloir retourner une erreur ici selon la logique métier
       }
     }
 
