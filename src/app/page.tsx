@@ -1,399 +1,343 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { useRef } from "react";
 
 export default function Home() {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Navigation */}
+    <div className="min-h-screen bg-[#FDFbf7] selection:bg-orange-200 overflow-x-hidden font-sans">
+      {/* Background Elements (Ambiance) */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-orange-300/30 rounded-full blur-[100px] animate-pulse" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-yellow-200/30 rounded-full blur-[120px]" />
+      </div>
+
+      {/* Navigation Flottante */}
       <motion.nav
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="container mx-auto px-6 py-6 relative z-10"
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", stiffness: 100 }}
+        className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4"
       >
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <motion.div
-              whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 0] }}
-              transition={{ duration: 0.5 }}
-              className="relative"
-            >
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg transform rotate-12">
-                🐾
-              </div>
-              <div className="absolute -top-1 -right-1 text-yellow-400 text-xl animate-pulse">
-                ✨
-              </div>
-            </motion.div>
-            <div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent">
-                La Patte Dorée
-              </span>
-              <p className="text-xs text-orange-600 font-medium">Garde de chiens de luxe</p>
+        <div className="bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg shadow-orange-900/5 rounded-full px-6 py-3 flex items-center gap-6 max-w-4xl w-full justify-between">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="bg-gradient-to-br from-orange-400 to-amber-600 text-white w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-md group-hover:rotate-12 transition-transform">
+              🐕
             </div>
+            <span className="font-bold text-gray-800 tracking-tight">La Patte Dorée</span>
           </Link>
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-3">
             {isLoading ? (
-              <div className="h-10 w-32 bg-orange-200/50 rounded-full animate-pulse"></div>
+              <div className="w-24 h-8 bg-gray-100 rounded-full animate-pulse" />
             ) : session?.user ? (
               <>
-                <span className="text-sm font-medium text-gray-700">
-                  Bonjour, <span className="font-semibold text-orange-700">{session.user.name}</span>
-                </span>
-                <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
-                  <Link
-                    href="/dashboard"
-                    className="inline-block bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-2.5 rounded-full hover:shadow-lg font-semibold transition-all shadow-md"
-                  >
-                    Mon Dashboard
-                  </Link>
-                </motion.div>
+                <Link 
+                  href="/dashboard" 
+                  className="hidden md:block text-sm font-semibold text-gray-600 hover:text-orange-600 transition-colors"
+                >
+                  Mon Espace
+                </Link>
+                <div className="h-4 w-px bg-gray-300 hidden md:block" />
                 <SignOutButton />
               </>
             ) : (
               <>
-                <Link
-                  href="/auth/signin"
-                  className="text-gray-700 hover:text-orange-600 font-medium transition-colors"
-                >
+                <Link href="/auth/signin" className="text-sm font-semibold text-gray-600 hover:text-orange-600 transition-colors">
                   Connexion
                 </Link>
-                <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
-                  <Link
-                    href="/auth/signup"
-                    className="inline-block bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-2.5 rounded-full hover:shadow-lg font-semibold transition-all shadow-md"
-                  >
-                    S'inscrire
-                  </Link>
-                </motion.div>
+                <Link
+                  href="/auth/signup"
+                  className="bg-gray-900 text-white px-5 py-2 rounded-full text-sm font-bold hover:bg-orange-600 transition-colors shadow-lg hover:shadow-orange-500/30"
+                >
+                  S'inscrire
+                </Link>
               </>
             )}
           </div>
         </div>
       </motion.nav>
 
-      {/* Hero Section avec effet 3D */}
-      <section className="container mx-auto px-6 pt-20 pb-32 relative">
-        {/* Décorations de fond */}
-        <div className="absolute top-20 left-10 text-6xl opacity-10 animate-bounce">🐕</div>
-        <div className="absolute bottom-20 right-10 text-6xl opacity-10 animate-bounce" style={{ animationDelay: "0.5s" }}>🦴</div>
-
-        <div className="max-w-5xl mx-auto text-center relative z-10">
+      {/* Hero Section */}
+      <main className="relative z-10 pt-32 pb-20 container mx-auto px-6" ref={ref}>
+        <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="mb-8"
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="mb-6 inline-flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-full px-4 py-1.5 text-orange-700 text-sm font-medium shadow-sm"
           >
-            <div className="inline-block p-8 bg-white/70 backdrop-blur-sm rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-300">
-              <div className="text-8xl mb-4 animate-pulse">🐾✨</div>
-              <h1 className="text-6xl md:text-7xl font-bold mb-4 leading-tight">
-                <span className="bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent">
-                  La Patte Dorée
-                </span>
-              </h1>
-              <p className="text-xl text-orange-700 font-semibold">
-                Garde de chiens premium • Suivi VIP • Tranquillité garantie
-              </p>
-            </div>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            </span>
+            Disponibilités ouvertes pour 2025
           </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-xl text-gray-700 mb-12 max-w-3xl mx-auto leading-relaxed"
+          <motion.h1
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="text-5xl md:text-7xl font-extrabold text-gray-900 leading-[1.1] mb-6 tracking-tight"
           >
-            🌟 Service <span className="font-bold text-orange-600">haut de gamme</span> de garde de chiens avec suivi en temps réel,
-            photos quotidiennes et communication directe. Offrez à votre compagnon
-            l'attention qu'il mérite.
+            La meilleure colo <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 relative">
+              pour votre chien.
+              <svg className="absolute w-full h-3 -bottom-1 left-0 text-orange-200 -z-10" viewBox="0 0 100 10" preserveAspectRatio="none">
+                <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
+              </svg>
+            </span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-xl text-gray-600 mb-10 max-w-2xl leading-relaxed"
+          >
+            Une garde familiale, sans box ni cage. Juste de l'amour, des promenades
+            et un canapé confortable. Partez l'esprit tranquille.
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
-            className="flex flex-col sm:flex-row gap-6 justify-center"
-          >
-            <motion.div
-              whileHover={{ scale: 1.08, y: -5, rotateY: -5 }}
-              whileTap={{ scale: 0.95 }}
-              className="perspective-1000"
-            >
-              <Link
-                href="/booking"
-                className="inline-block bg-white text-orange-600 px-10 py-5 rounded-2xl hover:shadow-2xl font-bold text-lg transition-all border-3 border-orange-300 shadow-lg transform hover:-rotate-1"
-              >
-                ⭐ Réserver maintenant
-              </Link>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Features Section avec cartes 3D */}
-      <section className="container mx-auto px-6 pb-24">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={{
-            hidden: {},
-            visible: {
-              transition: {
-                staggerChildren: 0.15,
-              },
-            },
-          }}
-          className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto"
-        >
-          {/* Feature 1 */}
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, y: 50, rotateX: -15 },
-              visible: { opacity: 1, y: 0, rotateX: 0 },
-            }}
-            whileHover={{ y: -10, scale: 1.05, rotateY: 5, z: 50 }}
-            transition={{ duration: 0.4 }}
-            className="group relative bg-gradient-to-br from-white to-orange-50 rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all transform-gpu"
-            style={{ transformStyle: "preserve-3d" }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="relative z-10">
-              <motion.div
-                whileHover={{ rotate: 360, scale: 1.2 }}
-                transition={{ duration: 0.5 }}
-                className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg"
-              >
-                <span className="text-3xl">📅</span>
-              </motion.div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Réservation VIP
-              </h3>
-              <p className="text-gray-700 leading-relaxed">
-                Consultez mes disponibilités en temps réel et réservez en
-                quelques clics. <span className="font-semibold text-orange-600">Confirmation instantanée</span> et paiement sécurisé ✨
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Feature 2 */}
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, y: 50, rotateX: -15 },
-              visible: { opacity: 1, y: 0, rotateX: 0 },
-            }}
-            whileHover={{ y: -10, scale: 1.05, rotateY: 5, z: 50 }}
-            transition={{ duration: 0.4 }}
-            className="group relative bg-gradient-to-br from-white to-orange-50 rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all transform-gpu"
-            style={{ transformStyle: "preserve-3d" }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="relative z-10">
-              <motion.div
-                whileHover={{ rotate: 360, scale: 1.2 }}
-                transition={{ duration: 0.5 }}
-                className="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg"
-              >
-                <span className="text-3xl">📸</span>
-              </motion.div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Journal Exclusif
-              </h3>
-              <p className="text-gray-700 leading-relaxed">
-                Recevez des <span className="font-semibold text-orange-600">photos quotidiennes</span> et des mises à jour sur les
-                activités : repas 🍖, promenades 🦮, moments de jeu 🎾
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Feature 3 */}
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, y: 50, rotateX: -15 },
-              visible: { opacity: 1, y: 0, rotateX: 0 },
-            }}
-            whileHover={{ y: -10, scale: 1.05, rotateY: 5, z: 50 }}
-            transition={{ duration: 0.4 }}
-            className="group relative bg-gradient-to-br from-white to-orange-50 rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all transform-gpu"
-            style={{ transformStyle: "preserve-3d" }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="relative z-10">
-              <motion.div
-                whileHover={{ rotate: 360, scale: 1.2 }}
-                transition={{ duration: 0.5 }}
-                className="w-16 h-16 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg"
-              >
-                <span className="text-3xl">💬</span>
-              </motion.div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Chat Premium
-              </h3>
-              <p className="text-gray-700 leading-relaxed">
-                <span className="font-semibold text-orange-600">Contact direct</span> avec moi pendant toute la durée de la
-                garde. Posez vos questions et recevez des réponses rapides 💨
-              </p>
-            </div>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* Avis Clients Section */}
-      <section className="container mx-auto px-6 pb-24">
-        <div className="text-center mb-16">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-4xl font-bold text-gray-900 mb-4"
-          >
-            Ils nous font confiance ❤️
-          </motion.h2>
-          <p className="text-xl text-gray-600">
-            Retrouvez les avis vérifiés de mes clients sur mes plateformes partenaires
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Carte Rover */}
-          <motion.a
-            href="https://www.rover.com" // À remplacer par le vrai lien
-            target="_blank"
-            rel="noopener noreferrer"
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            whileHover={{ scale: 1.05, rotateY: 5 }}
-            transition={{ duration: 0.5 }}
-            className="group relative bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all border-2 border-green-100 overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <span className="text-9xl">🐾</span>
-            </div>
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-3xl mb-4 shadow-lg">
-                R
-              </div>
-              <h3 className="text-2xl font-bold text-green-700 mb-2">Rover</h3>
-              <div className="flex gap-1 text-yellow-400 text-2xl mb-4">
-                ★★★★★
-              </div>
-              <p className="text-gray-600 italic mb-6">
-                "Super expérience ! Mon chien a été chouchouté comme un roi. Je recommande vivement pour la tranquillité d'esprit."
-              </p>
-              <span className="text-green-600 font-semibold group-hover:underline">
-                Voir mon profil Rover →
-              </span>
-            </div>
-          </motion.a>
-
-          {/* Carte AlloVoisins */}
-          <motion.a
-            href="https://www.allovoisins.com" // À remplacer par le vrai lien
-            target="_blank"
-            rel="noopener noreferrer"
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            whileHover={{ scale: 1.05, rotateY: -5 }}
-            transition={{ duration: 0.5 }}
-            className="group relative bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all border-2 border-blue-100 overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <span className="text-9xl">🏘️</span>
-            </div>
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-3xl mb-4 shadow-lg">
-                AV
-              </div>
-              <h3 className="text-2xl font-bold text-blue-700 mb-2">AlloVoisins</h3>
-              <div className="flex gap-1 text-yellow-400 text-2xl mb-4">
-                ★★★★★
-              </div>
-              <p className="text-gray-600 italic mb-6">
-                "Très professionnel et arrangeant. Des nouvelles régulières et un vrai amour des animaux. Merci encore !"
-              </p>
-              <span className="text-blue-600 font-semibold group-hover:underline">
-                Voir mon profil AlloVoisins →
-              </span>
-            </div>
-          </motion.a>
-        </div>
-      </section>
-
-      {/* CTA Section avec effet glassmorphism */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8 }}
-        className="relative py-24 overflow-hidden"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-600"></div>
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMSIgb3BhY2l0eT0iMC4xIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20"></div>
-
-        <div className="container mx-auto px-6 text-center relative z-10">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-4xl md:text-5xl font-bold text-white mb-6"
-          >
-            Prêt à offrir le meilleur à votre compagnon ? 🐾✨
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-xl text-orange-100 mb-10 max-w-2xl mx-auto"
-          >
-            Créez votre compte gratuitement et découvrez un service de garde
-            <span className="font-bold text-white"> premium et attentionné</span>.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            whileHover={{ scale: 1.08, y: -5 }}
-            whileTap={{ scale: 0.95 }}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
           >
             <Link
-              href={session?.user ? "/dashboard" : "/auth/signup"}
-              className="inline-block bg-white text-orange-600 px-10 py-5 rounded-2xl hover:bg-orange-50 font-bold text-lg transition-all shadow-2xl"
+              href="/booking"
+              className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-105 hover:-rotate-1 transition-all flex items-center justify-center gap-2"
             >
-              🌟 Commencer maintenant
+              <span>🐶</span> Réserver un séjour
+            </Link>
+            <Link
+              href={session?.user ? "/dashboard" : "/auth/signup"}
+              className="px-8 py-4 bg-white text-gray-700 border-2 border-gray-100 rounded-2xl font-bold text-lg hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 hover:scale-105 transition-all flex items-center justify-center"
+            >
+              Créer un compte
             </Link>
           </motion.div>
         </div>
-      </motion.section>
 
-      {/* Footer */}
-      <footer className="bg-gradient-to-r from-amber-100 to-orange-100 py-12">
-        <div className="container mx-auto px-6 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <span className="text-3xl">🐾</span>
-            <span className="text-xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-              La Patte Dorée
-            </span>
-            <span className="text-3xl">✨</span>
+        {/* 3D Floating Elements (Decorative) */}
+        <motion.div style={{ y }} className="absolute top-40 left-10 md:left-20 hidden lg:block pointer-events-none">
+          <motion.div 
+            animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }} 
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            className="text-8xl filter drop-shadow-2xl opacity-80"
+          >
+            🎾
+          </motion.div>
+        </motion.div>
+        <motion.div style={{ y }} className="absolute top-60 right-10 md:right-20 hidden lg:block pointer-events-none">
+          <motion.div 
+            animate={{ y: [0, 20, 0], rotate: [0, -5, 0] }} 
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="text-8xl filter drop-shadow-2xl opacity-80"
+          >
+            🦴
+          </motion.div>
+        </motion.div>
+      </main>
+
+      {/* Bento Grid Services Section */}
+      <section className="container mx-auto px-6 py-24">
+        <div className="mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Services sur-mesure</h2>
+          <p className="text-gray-500 text-lg">Tout ce qu'il faut pour son bonheur.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1: Hébergement (Large) */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="md:col-span-2 bg-white rounded-[2rem] p-8 border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-100 to-transparent rounded-full blur-3xl opacity-50 -mr-10 -mt-10" />
+            <div className="flex-1 relative z-10">
+              <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-3xl mb-4">🏠</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Hébergement Familial</h3>
+              <p className="text-gray-600 leading-relaxed mb-6">
+                Votre chien vit avec nous, dans la maison. Pas de box, accès jardin illimité et
+                séances de câlins sur le canapé. C'est comme chez vous, en mieux.
+              </p>
+              <ul className="space-y-2">
+                {["Vie de famille 24/7", "Promenades incluses", "Photos tous les jours"].map(item => (
+                  <li key={item} className="flex items-center gap-2 text-sm text-gray-700">
+                    <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="w-full md:w-1/3 aspect-square bg-orange-50 rounded-2xl flex items-center justify-center text-[8rem] shadow-inner relative group">
+              <motion.div 
+                animate={{ rotate: [0, 5, 0] }} 
+                transition={{ duration: 4, repeat: Infinity }}
+                className="filter drop-shadow-2xl"
+              >
+                🐕
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Card 2: Promenade (Tall) */}
+          <motion.div
+            whileHover={{ y: -5 }}
+            className="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-[2rem] p-8 shadow-xl flex flex-col justify-between relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+            <div>
+              <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-3xl mb-4 backdrop-blur-sm">🦮</div>
+              <h3 className="text-2xl font-bold mb-2">Promenades</h3>
+              <p className="text-gray-300 text-sm">
+                Besoin de se dépenser ? Je viens chercher votre compagnon pour une balade active.
+              </p>
+            </div>
+            <div className="mt-8 pt-8 border-t border-white/10">
+              <p className="text-3xl font-bold">dès 15€</p>
+              <p className="text-gray-400 text-sm">la balade</p>
+            </div>
+          </motion.div>
+
+          {/* Card 3: Visite (Small) */}
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            className="bg-orange-50 rounded-[2rem] p-8 border border-orange-100 flex flex-col justify-center items-center text-center"
+          >
+            <div className="text-5xl mb-4 filter drop-shadow-lg">🐱</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Visites à domicile</h3>
+            <p className="text-gray-600 text-sm">Pour les chats et les chiens indépendants.</p>
+          </motion.div>
+
+          {/* Card 4: Garde Jour (Wide) */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="md:col-span-2 bg-white rounded-[2rem] p-8 border border-gray-100 shadow-xl shadow-gray-200/50 relative overflow-hidden"
+          >
+             <div className="flex items-center gap-6">
+                <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center text-4xl flex-shrink-0">☀️</div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-1">Garderie de Jour</h3>
+                  <p className="text-gray-600">
+                    Déposez-le le matin, récupérez-le le soir. Idéal pour vos journées de travail.
+                    Socialisation et jeux garantis.
+                  </p>
+                </div>
+             </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Reviews Section - Floating Glass Cards */}
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gray-50 skew-y-3 transform origin-top-left z-0" />
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Ils valident (et leurs maîtres aussi)</h2>
+            <p className="text-gray-500">Avis vérifiés sur nos plateformes partenaires</p>
           </div>
-          <p className="text-gray-700">
-            &copy; 2025 La Patte Dorée. Tous droits réservés.
-          </p>
-          <p className="text-sm text-gray-600 mt-2">
-            Service premium de garde de chiens • Made with ❤️
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Rover Card */}
+            <motion.a
+              href="https://www.rover.com"
+              target="_blank"
+              initial={{ x: -50, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -10, rotateZ: -1 }}
+              className="bg-white rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col relative group"
+            >
+              <div className="absolute top-6 right-6 text-gray-200 text-6xl opacity-20 font-serif">"</div>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-[#00A86B] rounded-full flex items-center justify-center text-white font-bold text-xl">R</div>
+                <div>
+                  <h4 className="font-bold text-gray-900">Rover</h4>
+                  <div className="flex text-yellow-400 text-sm">★★★★★</div>
+                </div>
+              </div>
+              <p className="text-gray-600 italic flex-1">
+                "Super expérience ! Mon chien a été chouchouté comme un roi. Je recommande vivement pour la tranquillité d'esprit. Des nouvelles tous les jours !"
+              </p>
+              <div className="mt-6 text-sm font-semibold text-[#00A86B] group-hover:underline">
+                Voir mon profil Rover →
+              </div>
+            </motion.a>
+
+            {/* AlloVoisins Card */}
+            <motion.a
+              href="https://www.allovoisins.com"
+              target="_blank"
+              initial={{ x: 50, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -10, rotateZ: 1 }}
+              className="bg-white rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col relative group"
+            >
+              <div className="absolute top-6 right-6 text-gray-200 text-6xl opacity-20 font-serif">"</div>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-[#2864FF] rounded-full flex items-center justify-center text-white font-bold text-xs">AV</div>
+                <div>
+                  <h4 className="font-bold text-gray-900">AlloVoisins</h4>
+                  <div className="flex text-yellow-400 text-sm">★★★★★</div>
+                </div>
+              </div>
+              <p className="text-gray-600 italic flex-1">
+                "Très professionnel et arrangeant. Des nouvelles régulières et un vrai amour des animaux. Merci encore pour cette garde !"
+              </p>
+              <div className="mt-6 text-sm font-semibold text-[#2864FF] group-hover:underline">
+                Voir mon profil AlloVoisins →
+              </div>
+            </motion.a>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="container mx-auto px-6 pb-32">
+        <div className="bg-gray-900 rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden">
+          <div className="absolute inset-0 opacity-20">
+             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-700 via-gray-900 to-gray-900" />
+          </div>
+          
+          <div className="relative z-10 max-w-2xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
+              Rejoignez la famille.
+            </h2>
+            <p className="text-gray-400 text-xl mb-10">
+              Créez votre compte gratuitement et réservez votre première garde en moins de 2 minutes.
+            </p>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link
+                href={session?.user ? "/dashboard" : "/auth/signup"}
+                className="inline-block bg-orange-500 text-white px-10 py-5 rounded-full font-bold text-lg shadow-lg hover:bg-orange-400 transition-all"
+              >
+                {session?.user ? "Accéder à mon espace" : "Créer mon compte"}
+              </Link>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer Minimaliste */}
+      <footer className="border-t border-gray-200 bg-white py-12">
+        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🐾</span>
+            <span className="font-bold text-gray-900">La Patte Dorée</span>
+          </div>
+          <p className="text-gray-500 text-sm">
+            © 2025 - Fait avec ❤️ pour les chiens.
           </p>
         </div>
       </footer>
