@@ -19,14 +19,8 @@ export async function GET(request: NextRequest) {
     
     let whereClause: any = {};
 
-    // IMPORTANT: On ne montre que les réservations payées via Stripe (status SUCCEEDED)
-    // On retire la vérification depositPaid pour éviter les faux positifs des tests
-    
-    whereClause = {
-      payment: {
-        status: "SUCCEEDED"
-      }
-    };
+    // Par défaut, on montre tout, sauf si un filtre est appliqué.
+    whereClause = {};
 
     if (filter === "pending") {
       whereClause.status = "PENDING";

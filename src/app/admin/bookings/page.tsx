@@ -67,6 +67,17 @@ export default function AdminBookingsPage() {
     }
   }, [session, filter]);
 
+  const handleDelete = async (bookingId: string) => {
+    if (!confirm("Supprimer DÉFINITIVEMENT cette réservation ? (Irréversible)")) return;
+    setActionLoading(bookingId);
+    try {
+      const res = await fetch(`/api/admin/bookings/${bookingId}/status`, { method: "DELETE" });
+      if (res.ok) fetchBookings();
+      else alert("Erreur suppression");
+    } catch (e) { alert("Erreur"); }
+    setActionLoading(null);
+  };
+
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     if (!confirm(newStatus === "CONFIRMED" ? "Confirmer cette réservation ?" : "Refuser cette réservation et rembourser le client ?")) {
       return;
@@ -282,6 +293,15 @@ export default function AdminBookingsPage() {
                           Réservation validée
                         </Button>
                       )}
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(booking.id)}
+                        className="text-red-400 hover:text-red-600 hover:bg-red-50 text-xs"
+                      >
+                        🗑️ Supprimer
+                      </Button>
                     </div>
                   </div>
                 </motion.div>

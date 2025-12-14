@@ -83,3 +83,23 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ bookingId: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "SITTER")) {
+      return NextResponse.json({ error: "Interdit" }, { status: 403 });
+    }
+    const { bookingId } = await params;
+    
+    await prisma.booking.delete({ where: { id: bookingId } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Erreur suppression:", error);
+    return NextResponse.json({ error: "Erreur" }, { status: 500 });
+  }
+}
