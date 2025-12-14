@@ -40,7 +40,7 @@ export const sendBookingConfirmationEmail = async (
           <p>À très vite !<br>L'équipe La Patte Dorée 🐾</p>
         </div>
       `,
-      reply_to: 'meganemelique36@gmail.com',
+      replyTo: 'meganemelique36@gmail.com',
     });
     console.log(`📧 Email de confirmation envoyé à ${email}`);
   } catch (error) {
@@ -69,7 +69,7 @@ export const sendBookingRequestEmail = async (
           <p>Merci de votre confiance ! 🐾</p>
         </div>
       `,
-      reply_to: 'meganemelique36@gmail.com',
+      replyTo: 'meganemelique36@gmail.com',
     });
   } catch (error) {
     console.error("Erreur envoi email:", error);
