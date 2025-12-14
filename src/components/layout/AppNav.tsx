@@ -2,85 +2,84 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { cn } from "@/lib/utils";
 
 interface AppNavProps {
   userName?: string | null;
-  showAuth?: boolean;
 }
 
-export function AppNav({ userName, showAuth = true }: AppNavProps) {
+export function AppNav({ userName }: AppNavProps) {
   const pathname = usePathname();
 
   const navLinks = [
-    { href: "/dashboard", label: "Tableau de bord" },
-    { href: "/pets", label: "Mes animaux" },
-    { href: "/booking", label: "Réservations" },
-    { href: "/profile", label: "Mon profil" },
+    { href: "/dashboard", label: "Dashboard", icon: "📊" },
+    { href: "/booking", label: "Réserver", icon: "📅" },
+    { href: "/pets", label: "Mes Animaux", icon: "🐕" },
+    { href: "/profile", label: "Profil", icon: "👤" },
   ];
 
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-bold text-lg shadow-md">
-              R
-            </div>
-            <span className="text-2xl font-bold text-gray-900">ResaDog</span>
-          </Link>
+    <motion.div
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none"
+    >
+      <div className="bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg shadow-orange-900/5 rounded-full px-2 py-2 flex items-center gap-2 pointer-events-auto">
+        {/* Logo Home */}
+        <Link href="/" className="flex items-center gap-2 px-4 py-2 hover:bg-white/50 rounded-full transition-colors group">
+          <div className="bg-gradient-to-br from-orange-400 to-amber-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-md group-hover:rotate-12 transition-transform">
+            🐾
+          </div>
+          <span className="font-bold text-gray-800 tracking-tight hidden md:block">La Patte Dorée</span>
+        </Link>
 
-          {/* Navigation Links */}
-          {showAuth && userName && (
-            <div className="hidden md:flex items-center gap-6">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "text-sm font-medium transition-colors hover:text-blue-600",
-                    pathname === link.href
-                      ? "text-blue-600"
-                      : "text-gray-600"
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          )}
+        {/* Separator */}
+        <div className="h-6 w-px bg-gray-200 mx-1 hidden md:block" />
 
-          {/* User Section */}
-          {showAuth && userName ? (
-            <div className="flex items-center gap-4">
+        {/* Links */}
+        <div className="flex items-center bg-gray-100/50 rounded-full p-1">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
               <Link
-                href="/profile"
-                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "relative px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2",
+                  isActive
+                    ? "text-orange-700 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                )}
               >
-                Bonjour, <span className="font-semibold">{userName}</span>
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-pill"
+                    className="absolute inset-0 bg-white rounded-full shadow-sm"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className="relative z-10 text-lg">{link.icon}</span>
+                <span className="relative z-10 hidden sm:block">{link.label}</span>
               </Link>
-              <SignOutButton />
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <Link
-                href="/auth/signin"
-                className="text-sm font-medium text-gray-700 hover:text-gray-900"
-              >
-                Connexion
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Inscription
-              </Link>
-            </div>
-          )}
+            );
+          })}
+        </div>
+
+        {/* User & Logout */}
+        <div className="flex items-center gap-2 pl-2">
+          <div className="hidden lg:block text-xs font-medium text-gray-500 text-right leading-tight">
+            <div>Bonjour</div>
+            <div className="text-gray-900 font-bold truncate max-w-[100px]">{userName?.split(' ')[0]}</div>
+          </div>
+          <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-xs border-2 border-white shadow-sm">
+            {userName?.charAt(0).toUpperCase()}
+          </div>
+          <SignOutButton />
         </div>
       </div>
-    </nav>
+    </motion.div>
   );
 }

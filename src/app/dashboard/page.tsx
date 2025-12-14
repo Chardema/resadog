@@ -1,221 +1,212 @@
 "use client";
 
-import { useEffect } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { AvailabilityCalendar } from "@/components/dashboard/AvailabilityCalendar";
+import { AppNav } from "@/components/layout/AppNav";
+
+interface Booking {
+  id: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  pet: {
+    name: string;
+    imageUrl?: string | null;
+  };
+  totalPrice: number;
+}
+
+interface DashboardData {
+  upcomingBookings: Booking[];
+  stats: {
+    totalBookings: number;
+    totalSpent: number;
+  };
+}
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/signin");
+    } else if (status === "authenticated") {
+      fetchDashboardData();
     }
-    // Rediriger les admins/gardiens vers leur dashboard spécifique
-    if (session?.user?.role === "ADMIN" || session?.user?.role === "SITTER") {
-      router.push("/admin/dashboard");
-    }
-  }, [session, status, router]);
+  }, [status, router]);
 
-  if (status === "loading") {
+  const fetchDashboardData = async () => {
+    try {
+      // Simuler chargement (à remplacer par vrai fetch API)
+      // const response = await fetch("/api/user/dashboard");
+      // const jsonData = await response.json();
+      
+      // Mock data pour le design
+      setTimeout(() => {
+        setData({
+          upcomingBookings: [],
+          stats: { totalBookings: 12, totalSpent: 450 },
+        });
+        setIsLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error(error);
+      setIsLoading(false);
+    }
+  };
+
+  if (status === "loading" || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4 animate-bounce">🐾</div>
-          <p className="text-gray-700 font-semibold">Chargement...</p>
+      <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-6xl animate-bounce">🐕</div>
+          <p className="text-gray-500 font-medium animate-pulse">Chargement de votre espace...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Navigation */}
-      <DashboardNav />
+    <div className="min-h-screen bg-[#FDFbf7] pb-20">
+      <AppNav userName={session?.user?.name} />
 
-      {/* Contenu principal */}
-      <div className="container mx-auto px-6 py-12">
-        <div className="max-w-6xl mx-auto">
+      {/* Decorative Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-orange-200/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-200/20 rounded-full blur-[100px]" />
+      </div>
+
+      <main className="container mx-auto px-6 pt-32 relative z-10">
+        {/* Header */}
+        <div className="mb-10">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2"
+          >
+            Bon retour, <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-600">{session?.user?.name?.split(' ')[0]}</span> 👋
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-xl text-gray-500"
+          >
+            Voici ce qui se passe aujourd'hui.
+          </motion.p>
+        </div>
+
+        {/* Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Card 1: Nouvelle Réservation (Call to Action) */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            whileHover={{ scale: 1.02, y: -5 }}
+            className="md:col-span-2 bg-gradient-to-br from-gray-900 to-gray-800 rounded-[2rem] p-8 text-white shadow-xl shadow-gray-900/20 relative overflow-hidden group cursor-pointer"
+            onClick={() => router.push('/booking')}
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-150" />
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              <div>
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl mb-4">
+                  📅
+                </div>
+                <h2 className="text-3xl font-bold mb-2">Planifier une garde</h2>
+                <p className="text-gray-300 max-w-md">
+                  Besoin de partir quelques jours ? Réservez un séjour ou une promenade en quelques clics.
+                </p>
+              </div>
+              <div className="mt-8 flex items-center gap-3">
+                <span className="bg-white text-gray-900 px-6 py-3 rounded-full font-bold text-sm group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                  Commencer →
+                </span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Card 2: Mes Animaux (Stats) */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            whileHover={{ scale: 1.02 }}
+            className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-lg shadow-orange-100/50 flex flex-col items-center justify-center text-center relative overflow-hidden group cursor-pointer"
+            onClick={() => router.push('/pets')}
+          >
+            <div className="absolute inset-0 bg-orange-50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative z-10">
+              <div className="text-6xl mb-4 transform group-hover:scale-110 transition-transform">🐕</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-1">Mes Animaux</h3>
+              <p className="text-gray-500 text-sm">Gérer les profils</p>
+            </div>
+          </motion.div>
+
+          {/* Card 3: Prochaine Réservation (Status) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-10"
+            transition={{ delay: 0.4 }}
+            className="md:row-span-2 bg-white rounded-[2rem] p-8 border border-gray-100 shadow-lg shadow-blue-100/50 flex flex-col relative overflow-hidden"
           >
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent mb-2">
-              Tableau de bord 🐾
-            </h1>
-            <p className="text-gray-700 text-lg">
-              Bienvenue sur votre espace personnel <span className="font-semibold text-orange-600">La Patte Dorée</span>
-            </p>
-          </motion.div>
-
-          {/* Cartes de statistiques avec animations 3D */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: {},
-              visible: {
-                transition: {
-                  staggerChildren: 0.1,
-                },
-              },
-            }}
-            className="grid md:grid-cols-3 gap-6 mb-10"
-          >
-            {/* Card 1 - Réservations */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 30, rotateX: -15 },
-                visible: { opacity: 1, y: 0, rotateX: 0 },
-              }}
-              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
-              transition={{ duration: 0.3 }}
-              className="bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 transform-gpu"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Réservations à venir
-                </h3>
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.5 }}
-                  className="h-12 w-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg"
-                >
-                  <span className="text-2xl">📅</span>
-                </motion.div>
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              À venir
+            </h3>
+            
+            {data?.upcomingBookings.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-60">
+                <div className="text-6xl mb-4 grayscale">💤</div>
+                <p className="text-gray-500 font-medium">Aucune réservation prévue</p>
+                <p className="text-sm text-gray-400 mt-2">Profitez du calme !</p>
               </div>
-              <p className="text-4xl font-bold text-gray-900 mb-1">0</p>
-              <p className="text-sm text-gray-600">Aucune réservation</p>
-            </motion.div>
-
-            {/* Card 2 - Mes animaux */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 30, rotateX: -15 },
-                visible: { opacity: 1, y: 0, rotateX: 0 },
-              }}
-              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
-              transition={{ duration: 0.3 }}
-              className="bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 transform-gpu"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Mes animaux
-                </h3>
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.5 }}
-                  className="h-12 w-12 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg"
-                >
-                  <span className="text-2xl">🐕</span>
-                </motion.div>
-              </div>
-              <p className="text-4xl font-bold text-gray-900 mb-1">0</p>
-              <p className="text-sm text-gray-600">Aucun profil créé</p>
-            </motion.div>
-
-            {/* Card 3 - Messages */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 30, rotateX: -15 },
-                visible: { opacity: 1, y: 0, rotateX: 0 },
-              }}
-              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
-              transition={{ duration: 0.3 }}
-              className="bg-gradient-to-br from-white to-orange-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 transform-gpu"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Messages
-                </h3>
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.5 }}
-                  className="h-12 w-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg"
-                >
-                  <span className="text-2xl">💬</span>
-                </motion.div>
-              </div>
-              <p className="text-4xl font-bold text-gray-900 mb-1">0</p>
-              <p className="text-sm text-gray-600">Aucun message</p>
-            </motion.div>
-          </motion.div>
-
-          {/* Calendrier des disponibilités */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="mb-10"
-          >
-            <AvailabilityCalendar />
-          </motion.div>
-
-          {/* Actions rapides */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white rounded-2xl shadow-xl p-8"
-          >
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Actions rapides ⚡
-            </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <motion.div
-                whileHover={{ x: 5, scale: 1.02 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Link
-                  href="/booking"
-                  className="flex items-center gap-4 p-6 border-2 border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-orange-50 hover:to-yellow-50 hover:border-orange-300 transition-all group"
-                >
-                  <div className="h-14 w-14 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <span className="text-3xl">⭐</span>
-                  </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Exemple de booking card */}
+                <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl">🗓️</div>
                   <div>
-                    <h3 className="font-bold text-gray-900 text-lg">
-                      Nouvelle réservation
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Réserver une garde premium pour votre chien
-                    </p>
+                    <p className="font-bold text-gray-900">Garde de Médor</p>
+                    <p className="text-xs text-gray-500">14 Déc - 16 Déc</p>
                   </div>
-                </Link>
-              </motion.div>
+                </div>
+              </div>
+            )}
+          </motion.div>
 
-              <motion.div
-                whileHover={{ x: 5, scale: 1.02 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Link
-                  href="/pets/new"
-                  className="flex items-center gap-4 p-6 border-2 border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-300 transition-all group"
-                >
-                  <div className="h-14 w-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <span className="text-3xl">🐶</span>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-lg">
-                      Ajouter un animal
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Créer le profil de votre compagnon
-                    </p>
-                  </div>
-                </Link>
-              </motion.div>
+          {/* Card 4: Historique / Factures (Link) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            whileHover={{ scale: 1.02 }}
+            className="md:col-span-2 bg-orange-100 rounded-[2rem] p-8 flex items-center justify-between cursor-pointer group"
+            onClick={() => router.push('/booking')} // Ou page historique
+          >
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm">
+                📂
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-orange-900">Historique & Factures</h3>
+                <p className="text-orange-700/80 text-sm">Retrouvez toutes vos anciennes gardes</p>
+              </div>
+            </div>
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-orange-600 font-bold shadow-sm group-hover:translate-x-2 transition-transform">
+              →
             </div>
           </motion.div>
+
         </div>
-      </div>
+      </main>
     </div>
   );
 }
