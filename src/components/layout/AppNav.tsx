@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,10 @@ interface AppNavProps {
 
 export function AppNav({ userName }: AppNavProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  
+  const finalUserName = userName || session?.user?.name;
+  const userRole = session?.user?.role;
 
   const navLinks = [
     { href: "/dashboard", label: "Dashboard", icon: "📊" },
@@ -19,6 +24,10 @@ export function AppNav({ userName }: AppNavProps) {
     { href: "/pets", label: "Mes Animaux", icon: "🐕" },
     { href: "/profile", label: "Profil", icon: "👤" },
   ];
+
+  if (userRole === "ADMIN" || userRole === "SITTER") {
+    navLinks.push({ href: "/admin/dashboard", label: "Admin", icon: "⚡" });
+  }
 
   return (
     <motion.div
@@ -72,10 +81,10 @@ export function AppNav({ userName }: AppNavProps) {
         <div className="flex items-center gap-2 pl-2">
           <div className="hidden lg:block text-xs font-medium text-gray-500 text-right leading-tight">
             <div>Bonjour</div>
-            <div className="text-gray-900 font-bold truncate max-w-[100px]">{userName?.split(' ')[0]}</div>
+            <div className="text-gray-900 font-bold truncate max-w-[100px]">{finalUserName?.split(' ')[0]}</div>
           </div>
           <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-xs border-2 border-white shadow-sm">
-            {userName?.charAt(0).toUpperCase()}
+            {finalUserName?.charAt(0).toUpperCase()}
           </div>
           <SignOutButton />
         </div>
