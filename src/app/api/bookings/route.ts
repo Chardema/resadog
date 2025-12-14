@@ -139,90 +139,101 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier les conflits avec d'autres réservations pour le même animal
-    const conflictingBookings = await prisma.booking.findMany({
+    // Vérifier s'il existe une réservation PENDING existante pour ce client/animal/dates
+    // (Cas du retour arrière ou panier abandonné)
+    const pendingBooking = await prisma.booking.findFirst({
       where: {
         petId,
-        status: {
-          in: ["PENDING", "CONFIRMED", "IN_PROGRESS"],
-        },
+        clientId: session.user.id,
+        status: "PENDING",
         OR: [
           {
-            AND: [
-              { startDate: { lte: start } },
-              { endDate: { gte: start } },
-            ],
+            AND: [{ startDate: { lte: start } }, { endDate: { gte: start } }],
           },
           {
-            AND: [
-              { startDate: { lte: end } },
-              { endDate: { gte: end } },
-            ],
+            AND: [{ startDate: { lte: end } }, { endDate: { gte: end } }],
           },
           {
-            AND: [
-              { startDate: { gte: start } },
-              { endDate: { lte: end } },
-            ],
+            AND: [{ startDate: { gte: start } }, { endDate: { lte: end } }],
           },
         ],
       },
     });
 
-    if (conflictingBookings.length > 0) {
-      return NextResponse.json(
-        {
-          error:
-            "Une réservation existe déjà pour cet animal sur cette période",
+    let booking;
+
+    if (pendingBooking) {
+      // Mettre à jour la réservation existante
+      booking = await prisma.booking.update({
+        where: { id: pendingBooking.id },
+        data: {
+          startDate: start,
+          endDate: end,
+          startTime: startTime || null,
+          endTime: endTime || null,
+          serviceType,
+          totalPrice,
+          depositAmount,
+          specialRequests: notes || null,
+          notes: paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
         },
-        { status: 400 }
-      );
-    }
+        include: {
+          pet: { select: { name: true, breed: true } },
+          client: { select: { name: true, email: true } },
+        },
+      });
+    } else {
+      // Vérifier les conflits réels (réservations CONFIRMED ou IN_PROGRESS)
+      const conflictingBookings = await prisma.booking.findMany({
+        where: {
+          petId,
+          status: { in: ["CONFIRMED", "IN_PROGRESS"] },
+          OR: [
+            {
+              AND: [{ startDate: { lte: start } }, { endDate: { gte: start } }],
+            },
+            {
+              AND: [{ startDate: { lte: end } }, { endDate: { gte: end } }],
+            },
+            {
+              AND: [{ startDate: { gte: start } }, { endDate: { lte: end } }],
+            },
+          ],
+        },
+      });
 
-    // Gérer le code promo si présent
-    let finalPrice = totalPrice;
-    let discount = 0;
-    let appliedPromoCode = null;
-
-    if (promoCode) {
-      // TODO: Implémenter la logique des codes promo
-      // Pour l'instant, on accepte le code mais on ne l'applique pas
-      appliedPromoCode = promoCode;
-    }
-
-    // Créer la réservation
-    const booking = await prisma.booking.create({
-      data: {
-        startDate: start,
-        endDate: end,
-        startTime: startTime || null,
-        endTime: endTime || null,
-        status: "PENDING",
-        serviceType,
-        totalPrice: finalPrice,
-        depositPaid: false,
-        depositAmount,
-        specialRequests: notes || null,
-        notes: paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
-        clientId: session.user.id,
-        petId,
-        // TODO: Ajouter le code promo quand le modèle sera mis à jour
-      },
-      include: {
-        pet: {
-          select: {
-            name: true,
-            breed: true,
+      if (conflictingBookings.length > 0) {
+        return NextResponse.json(
+          {
+            error: "Une réservation confirmée existe déjà pour cet animal sur cette période",
           },
+          { status: 400 }
+        );
+      }
+
+      // Créer une nouvelle réservation
+      booking = await prisma.booking.create({
+        data: {
+          startDate: start,
+          endDate: end,
+          startTime: startTime || null,
+          endTime: endTime || null,
+          status: "PENDING",
+          serviceType,
+          totalPrice,
+          depositPaid: false,
+          depositAmount,
+          specialRequests: notes || null,
+          notes: paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
+          clientId: session.user.id,
+          petId,
         },
-        client: {
-          select: {
-            name: true,
-            email: true,
-          },
+        include: {
+          pet: { select: { name: true, breed: true } },
+          client: { select: { name: true, email: true } },
         },
-      },
-    });
+      });
+    }
 
     return NextResponse.json({
       success: true,
