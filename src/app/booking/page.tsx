@@ -366,6 +366,9 @@ export default function BookingPage() {
     } catch (e: any) { setError(e.message); setIsLoading(false); }
   };
 
+  // Get today's date for min attribute
+  const today = new Date().toISOString().split("T")[0];
+
   // --- RENDER ---
   if (status === "loading") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐕</div>;
 
