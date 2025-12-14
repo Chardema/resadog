@@ -246,6 +246,90 @@ export default function Home() {
         </motion.div>
       </section>
 
+      {/* Avis Clients Section */}
+      <section className="container mx-auto px-6 pb-24">
+        <div className="text-center mb-16">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl font-bold text-gray-900 mb-4"
+          >
+            Ils nous font confiance ❤️
+          </motion.h2>
+          <p className="text-xl text-gray-600">
+            Retrouvez les avis vérifiés de mes clients sur mes plateformes partenaires
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Carte Rover */}
+          <motion.a
+            href="https://www.rover.com" // À remplacer par le vrai lien
+            target="_blank"
+            rel="noopener noreferrer"
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            whileHover={{ scale: 1.05, rotateY: 5 }}
+            transition={{ duration: 0.5 }}
+            className="group relative bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all border-2 border-green-100 overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <span className="text-9xl">🐾</span>
+            </div>
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-3xl mb-4 shadow-lg">
+                R
+              </div>
+              <h3 className="text-2xl font-bold text-green-700 mb-2">Rover</h3>
+              <div className="flex gap-1 text-yellow-400 text-2xl mb-4">
+                ★★★★★
+              </div>
+              <p className="text-gray-600 italic mb-6">
+                "Super expérience ! Mon chien a été chouchouté comme un roi. Je recommande vivement pour la tranquillité d'esprit."
+              </p>
+              <span className="text-green-600 font-semibold group-hover:underline">
+                Voir mon profil Rover →
+              </span>
+            </div>
+          </motion.a>
+
+          {/* Carte AlloVoisins */}
+          <motion.a
+            href="https://www.allovoisins.com" // À remplacer par le vrai lien
+            target="_blank"
+            rel="noopener noreferrer"
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            whileHover={{ scale: 1.05, rotateY: -5 }}
+            transition={{ duration: 0.5 }}
+            className="group relative bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all border-2 border-blue-100 overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <span className="text-9xl">🏘️</span>
+            </div>
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-3xl mb-4 shadow-lg">
+                AV
+              </div>
+              <h3 className="text-2xl font-bold text-blue-700 mb-2">AlloVoisins</h3>
+              <div className="flex gap-1 text-yellow-400 text-2xl mb-4">
+                ★★★★★
+              </div>
+              <p className="text-gray-600 italic mb-6">
+                "Très professionnel et arrangeant. Des nouvelles régulières et un vrai amour des animaux. Merci encore !"
+              </p>
+              <span className="text-blue-600 font-semibold group-hover:underline">
+                Voir mon profil AlloVoisins →
+              </span>
+            </div>
+          </motion.a>
+        </div>
+      </section>
+
       {/* CTA Section avec effet glassmorphism */}
       <motion.section
         initial={{ opacity: 0 }}
