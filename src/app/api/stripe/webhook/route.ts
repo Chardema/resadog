@@ -87,11 +87,11 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     });
   }
 
-  // Marquer la réservation comme confirmée
+  // Marquer la réservation comme payée mais en attente de validation admin
   await prisma.booking.update({
     where: { id: bookingId },
     data: {
-      status: "CONFIRMED",
+      status: "PENDING", // Reste en attente de validation manuelle
       depositPaid: true,
     },
   });
