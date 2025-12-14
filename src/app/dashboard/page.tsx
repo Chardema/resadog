@@ -43,20 +43,29 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      // Simuler chargement (à remplacer par vrai fetch API)
-      // const response = await fetch("/api/user/dashboard");
-      // const jsonData = await response.json();
-      
-      // Mock data pour le design
-      setTimeout(() => {
+      const response = await fetch("/api/bookings");
+      if (response.ok) {
+        const jsonData = await response.json();
+        const bookings = jsonData.bookings || [];
+        
+        const now = new Date();
+        // Filtrer les réservations futures ou en cours
+        const upcoming = bookings.filter((b: any) => new Date(b.endDate) >= now);
+        
+        // Calculer les stats
+        const totalSpent = bookings.reduce((acc: number, b: any) => acc + (b.totalPrice || 0), 0);
+
         setData({
-          upcomingBookings: [],
-          stats: { totalBookings: 12, totalSpent: 450 },
+          upcomingBookings: upcoming,
+          stats: {
+            totalBookings: bookings.length,
+            totalSpent: totalSpent,
+          },
         });
-        setIsLoading(false);
-      }, 1000);
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Erreur chargement dashboard:", error);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -170,14 +179,27 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Exemple de booking card */}
-                <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl">🗓️</div>
-                  <div>
-                    <p className="font-bold text-gray-900">Garde de Médor</p>
-                    <p className="text-xs text-gray-500">14 Déc - 16 Déc</p>
+                {data?.upcomingBookings.slice(0, 2).map((booking) => (
+                  <div key={booking.id} className="bg-gray-50 rounded-2xl p-4 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl">
+                      {booking.pet.imageUrl ? (
+                        <img src={booking.pet.imageUrl} alt="" className="w-full h-full object-cover rounded-xl" />
+                      ) : "🐕"}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">{booking.pet.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(booking.startDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} - {new Date(booking.endDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                      </p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full mt-1 inline-block ${
+                        booking.status === "PENDING" ? "bg-orange-100 text-orange-700" :
+                        booking.status === "CONFIRMED" ? "bg-green-100 text-green-700" : "bg-gray-200"
+                      }`}>
+                        {booking.status === "PENDING" ? "En attente" : "Confirmée"}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             )}
           </motion.div>
