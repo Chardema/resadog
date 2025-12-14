@@ -40,6 +40,7 @@ export const sendBookingConfirmationEmail = async (
           <p>À très vite !<br>L'équipe La Patte Dorée 🐾</p>
         </div>
       `,
+      reply_to: 'meganemelique36@gmail.com',
     });
     console.log(`📧 Email de confirmation envoyé à ${email}`);
   } catch (error) {
@@ -68,8 +69,41 @@ export const sendBookingRequestEmail = async (
           <p>Merci de votre confiance ! 🐾</p>
         </div>
       `,
+      reply_to: 'meganemelique36@gmail.com',
     });
   } catch (error) {
     console.error("Erreur envoi email:", error);
+  }
+};
+
+export const sendAdminNotification = async (
+  petName: string,
+  userName: string,
+  startDate: string,
+  endDate: string,
+  totalPrice: number
+) => {
+  if (!process.env.RESEND_API_KEY) return;
+
+  try {
+    await resend.emails.send({
+      from: 'La Patte Dorée <onboarding@resend.dev>',
+      to: 'meganemelique36@gmail.com',
+      subject: '🐶 Nouvelle demande de réservation !',
+      html: `
+        <div style="font-family: sans-serif; color: #333;">
+          <h1>Nouvelle demande reçue !</h1>
+          <p><strong>${userName}</strong> souhaite faire garder <strong>${petName}</strong>.</p>
+          <div style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
+            <p>📅 Du : ${startDate}</p>
+            <p>📅 Au : ${endDate}</p>
+            <p>💰 Montant : ${totalPrice}€</p>
+          </div>
+          <p><a href="https://resadog.vercel.app/admin/bookings">Accéder au Dashboard pour valider</a></p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Erreur email admin:", error);
   }
 };

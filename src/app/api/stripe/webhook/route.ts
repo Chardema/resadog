@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
-import { sendBookingRequestEmail } from "@/lib/email";
+import { sendBookingRequestEmail, sendAdminNotification } from "@/lib/email";
 import Stripe from "stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -131,6 +131,14 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       booking.client.email,
       booking.client.name || "Client",
       booking.pet.name
+    );
+
+    await sendAdminNotification(
+      booking.pet.name,
+      booking.client.name || "Client",
+      new Date(booking.startDate).toLocaleDateString("fr-FR"),
+      new Date(booking.endDate).toLocaleDateString("fr-FR"),
+      booking.totalPrice
     );
   }
 
