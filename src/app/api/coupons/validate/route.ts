@@ -23,14 +23,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier la compatibilité avec le service
-    if (serviceType === "DROP_IN" || serviceType === "DOG_WALKING") {
-      return NextResponse.json(
-        { error: "Les codes promo ne sont pas valables pour les promenades et visites" },
-        { status: 400 }
-      );
-    }
-
     // Chercher le coupon
     const coupon = await prisma.coupon.findUnique({
       where: { code: code.toUpperCase() },
@@ -40,6 +32,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Code promo invalide" },
         { status: 404 }
+      );
+    }
+
+    // Vérifier les services applicables
+    if (coupon.applicableServices.length > 0 && serviceType && !coupon.applicableServices.includes(serviceType)) {
+      return NextResponse.json(
+        { error: "Ce code promo n'est pas valide pour ce type de service" },
+        { status: 400 }
       );
     }
 

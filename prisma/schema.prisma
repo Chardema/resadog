@@ -361,6 +361,7 @@ model Coupon {
   validFrom       DateTime?              // Date de début de validité
   validUntil      DateTime?              // Date de fin de validité
   restrictedTo    String[]               // Emails autorisés (vide = tout le monde)
+  applicableServices ServiceType[]       // Services autorisés (vide = tous)
 
   // Relations
   usersAutoApply  User[]       @relation("UserAutoApplyCoupon") // Users qui ont ce coupon en auto
