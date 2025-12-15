@@ -53,7 +53,11 @@ export const sendBookingRequestEmail = async (
   userName: string,
   petName: string
 ) => {
-  if (!process.env.RESEND_API_KEY) return;
+  console.log("📧 Tentative envoi email demande à:", email);
+  if (!process.env.RESEND_API_KEY) {
+    console.error("❌ RESEND_API_KEY manquante !");
+    return;
+  }
 
   try {
     await resend.emails.send({
@@ -83,7 +87,11 @@ export const sendAdminNotification = async (
   endDate: string,
   totalPrice: number
 ) => {
-  if (!process.env.RESEND_API_KEY) return;
+  console.log("📧 Tentative envoi email admin");
+  if (!process.env.RESEND_API_KEY) {
+    console.error("❌ RESEND_API_KEY manquante !");
+    return;
+  }
 
   try {
     await resend.emails.send({

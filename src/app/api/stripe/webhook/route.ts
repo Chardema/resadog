@@ -120,6 +120,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
+  console.log(`🔎 Recherche réservation ${bookingId} pour envoi emails...`);
   // Récupérer les infos pour l'email
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -127,6 +128,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   });
 
   if (booking) {
+    console.log(`✅ Réservation trouvée. Envoi des emails à ${booking.client.email} et Admin...`);
     await sendBookingRequestEmail(
       booking.client.email,
       booking.client.name || "Client",
@@ -140,6 +142,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       new Date(booking.endDate).toLocaleDateString("fr-FR"),
       booking.totalPrice
     );
+  } else {
+    console.error(`❌ Réservation ${bookingId} introuvable en base !`);
   }
 
   console.log(`✅ Session Checkout complétée pour la réservation ${bookingId} (Email envoyé)`);
