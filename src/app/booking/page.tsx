@@ -343,6 +343,19 @@ export default function BookingPage() {
   const calculatePrice = () => calculatePriceBreakdown().totalPrice || 0;
   const calculateDays = () => 1; // Simplified for this context
 
+  const formatPrice = (value: number | undefined | null) => {
+    if (value === undefined || value === null || isNaN(value)) return "0";
+    return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
+  };
+
+  const getDiscountedPrice = (originalPrice: number) => {
+    if (!couponStatus.applied || !couponStatus.data) return originalPrice;
+    if (couponStatus.data.discountType === "PERCENTAGE") {
+      return originalPrice * (1 - couponStatus.data.discountValue / 100);
+    }
+    return Math.max(0, originalPrice - couponStatus.data.discountValue);
+  };
+
   // API Calls
   const fetchAutoCoupon = async () => {
     try {
