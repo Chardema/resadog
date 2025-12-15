@@ -510,7 +510,7 @@ export default function BookingPage() {
                           <div className="text-right">
                             <div className="text-xs text-gray-400 line-through">{s.price}€</div>
                             <div className="font-bold text-green-600">
-                              {(couponStatus.data.discountType === "PERCENTAGE" ? s.price * (1 - couponStatus.data.discountValue/100) : Math.max(0, s.price - couponStatus.data.discountValue)).toFixed(0)}€
+                              {formatPrice(getDiscountedPrice(s.price))}€
                             </div>
                           </div>
                         ) : (
@@ -565,7 +565,7 @@ export default function BookingPage() {
                     <div>
                       <p className="text-gray-400 text-sm">Total estimé</p>
                       <p className="text-3xl font-bold">
-                        {couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount.toFixed(2) : calculatePrice().toFixed(2)}€
+                        {formatPrice(couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculatePrice())}€
                       </p>
                     </div>
                     {/* Promo Code Input (Mini) */}
@@ -600,7 +600,7 @@ export default function BookingPage() {
                     <div className="flex justify-between"><span>Service</span> <strong>{getSelectedService()?.name}</strong></div>
                     <div className="flex justify-between border-t border-orange-200 pt-2 mt-2">
                       <span>Total à payer</span>
-                      <strong className="text-xl text-orange-700">{couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount.toFixed(2) : calculatePrice().toFixed(2)}€</strong>
+                      <strong className="text-xl text-orange-700">{formatPrice(couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculatePrice())}€</strong>
                     </div>
                   </div>
                 </div>
