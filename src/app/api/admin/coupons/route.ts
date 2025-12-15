@@ -67,18 +67,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Erreur lors de la création du coupon:", error);
 
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: "Données invalides",
-          details: error.issues.map((e) => e.message),
-        },
-        { status: 400 }
-      );
-    }
-
     return NextResponse.json(
-      { error: "Une erreur est survenue" },
+      { error: error instanceof Error ? error.message : "Une erreur est survenue" },
       { status: 500 }
     );
   }

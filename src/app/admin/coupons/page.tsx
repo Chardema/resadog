@@ -71,12 +71,13 @@ export default function AdminCouponsPage() {
           minAmount: formData.minAmount || undefined,
         }),
       });
+      const data = await res.json();
       if (res.ok) {
         fetchCoupons();
         setShowForm(false);
         setFormData({ code: "", description: "", discountType: "FIXED_AMOUNT", discountValue: 0, minAmount: 0, applicableServices: [] });
       } else {
-        alert("Erreur création");
+        alert("Erreur: " + (data.error || "Création impossible"));
       }
     } catch (e) { alert("Erreur serveur"); }
     setIsLoading(false);
