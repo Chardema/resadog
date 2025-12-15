@@ -25,7 +25,7 @@ const serviceTypes = [
   {
     value: "DAY_CARE",
     name: "Garderie Jour",
-    price: 30,
+    price: 25,
     unit: "jour",
     description: "Déposez-le le matin, récupérez-le le soir.",
     icon: "☀️",

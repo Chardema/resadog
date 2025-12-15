@@ -13,6 +13,7 @@ const couponSchema = z.object({
   validFrom: z.string().optional(),
   validUntil: z.string().optional(),
   restrictedTo: z.array(z.string().email()).optional(),
+  applicableServices: z.array(z.enum(["BOARDING", "DAY_CARE", "DROP_IN", "DOG_WALKING"])).optional(),
 });
 
 // Créer un nouveau coupon
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
         validFrom: validatedData.validFrom ? new Date(validatedData.validFrom) : null,
         validUntil: validatedData.validUntil ? new Date(validatedData.validUntil) : null,
         restrictedTo: validatedData.restrictedTo || [],
+        applicableServices: validatedData.applicableServices || [],
       },
     });
 
