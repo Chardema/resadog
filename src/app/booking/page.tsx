@@ -583,13 +583,22 @@ export default function BookingPage() {
                     </div>
                     {/* Promo Code Input (Mini) */}
                     {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
                         <Input 
                           placeholder="CODE PROMO" 
-                          className="bg-white/10 border-none text-white placeholder:text-gray-500 w-32 uppercase"
+                          className="bg-white/10 border-none text-white placeholder:text-gray-500 w-28 uppercase text-sm h-10"
                           value={formData.promoCode}
                           onChange={(e) => setFormData({...formData, promoCode: e.target.value.toUpperCase()})} 
                         />
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          onClick={validateCoupon}
+                          disabled={!formData.promoCode || couponStatus.loading}
+                          className={`h-10 px-3 rounded-lg transition-all ${couponStatus.applied ? "bg-green-500 hover:bg-green-600" : "bg-white/20 hover:bg-white/30"}`}
+                        >
+                          {couponStatus.loading ? "..." : couponStatus.applied ? "✓" : "OK"}
+                        </Button>
                       </div>
                     )}
                   </div>
