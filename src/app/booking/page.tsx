@@ -15,7 +15,7 @@ const serviceTypes = [
   {
     value: "BOARDING",
     name: "Hébergement",
-    price: 50,
+    price: 22,
     unit: "jour",
     description: "Votre chien vit avec nous, accès canapé et jardin inclus.",
     icon: "🏠",
@@ -237,11 +237,11 @@ export default function BookingPage() {
   const getSelectedService = () => serviceTypes.find(s => s.value === formData.serviceType);
   
   const calculatePriceBreakdown = () => {
-    // (Logic identical to previous file, simplified for brevity in this response but keeping logic intact)
-    // ... Copying logic is safer for `calculatePrice` ...
-    if (!formData.startDate || !formData.endDate) return { totalPrice: 0 };
+    const defaultResult = { baseNights: 0, extraHours: 0, surchargeType: null as any, basePrice: 0, surchargePrice: 0, puppySurcharge: 0, totalPrice: 0, detail: "" };
+
+    if (!formData.startDate || !formData.endDate) return defaultResult;
     const service = getSelectedService();
-    if (!service) return { totalPrice: 0 };
+    if (!service) return defaultResult;
 
     const selectedPet = pets.find(p => p.id === formData.petId);
     const isPuppy = selectedPet && selectedPet.age !== undefined && selectedPet.age !== null && selectedPet.age < 1;
@@ -250,45 +250,94 @@ export default function BookingPage() {
     if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
       const validDates = individualDates.filter(d => d.date !== "");
       const days = validDates.length;
-      let total = 0;
+      let totalBasePrice = 0;
+      let totalSurcharge = 0;
+
       validDates.forEach(item => {
-        total += service.price;
-        const extra = item.duration - (service.baseDuration || 0);
-        if (extra > 0) {
-          const inc = Math.ceil(extra / (service.durationIncrement || 1));
-          total += inc * (service.extraDurationRate || 0);
+        totalBasePrice += service.price;
+        const extraDuration = item.duration - (service.baseDuration || 0);
+        if (extraDuration > 0) {
+          const increment = service.durationIncrement || 1;
+          const extraIncrements = Math.ceil(extraDuration / increment);
+          totalSurcharge += extraIncrements * (service.extraDurationRate || 0);
         }
       });
-      if (isPuppy) total += days * puppyDailyRate;
-      return { totalPrice: total };
+
+      const puppySurcharge = isPuppy ? days * puppyDailyRate : 0;
+      const total = totalBasePrice + totalSurcharge + puppySurcharge;
+
+      return {
+        ...defaultResult,
+        baseNights: days,
+        basePrice: totalBasePrice,
+        surchargePrice: totalSurcharge,
+        puppySurcharge,
+        totalPrice: total,
+      };
     }
 
-    const start = new Date(`${formData.startDate}T${formData.startTime}`);
-    const end = new Date(`${formData.endDate}T${formData.endTime}`);
-    const hours = (end.getTime() - start.getTime()) / 3600000;
-    
+    const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
+    const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
+    const totalHours = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60);
+
+    // Boarding logic
     if (formData.serviceType === "BOARDING") {
-      const nights = Math.floor(hours / 24);
-      const extra = hours % 24;
-      let price = nights * service.price;
-      if (extra > 8) price += service.price;
-      else if (extra > 2) price += service.price * 0.5;
-      if (isPuppy) price += nights * puppyDailyRate;
-      return { totalPrice: price };
+      const baseNights = Math.floor(totalHours / 24);
+      const extraHours = totalHours % 24;
+      const basePrice = baseNights * service.price;
+      
+      let surchargePrice = 0;
+      let surchargeType = null;
+
+      if (extraHours > 8) {
+        surchargePrice = service.price;
+        surchargeType = "plein";
+      } else if (extraHours > 2) {
+        surchargePrice = service.price * 0.5;
+        surchargeType = "demi";
+      }
+
+      const puppySurcharge = isPuppy ? baseNights * puppyDailyRate : 0;
+      const total = basePrice + surchargePrice + puppySurcharge;
+
+      return {
+        baseNights,
+        extraHours,
+        surchargeType,
+        basePrice,
+        surchargePrice,
+        puppySurcharge,
+        totalPrice: total,
+        detail: "",
+      };
     }
 
+    // Day Care logic
     if (formData.serviceType === "DAY_CARE") {
-      const dStart = new Date(formData.startDate);
-      const dEnd = new Date(formData.endDate);
-      const days = Math.ceil((dEnd.getTime() - dStart.getTime()) / 86400000) + 1;
-      let price = days * service.price;
-      if (days === 1 && hours > (service.maxHours || 10)) {
-        price += (hours - (service.maxHours || 10)) * (service.extraHourlyRate || 0);
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      let basePrice = days * service.price;
+      let surchargePrice = 0;
+      
+      if (days === 1 && totalHours > (service.maxHours || 10)) {
+        surchargePrice = (totalHours - (service.maxHours || 10)) * (service.extraHourlyRate || 0);
       }
-      if (isPuppy) price += days * puppyDailyRate;
-      return { totalPrice: price };
+      
+      const puppySurcharge = isPuppy ? days * puppyDailyRate : 0;
+      
+      return {
+        ...defaultResult,
+        baseNights: days,
+        basePrice,
+        surchargePrice,
+        puppySurcharge,
+        totalPrice: basePrice + surchargePrice + puppySurcharge,
+      };
     }
-    return { totalPrice: 0 };
+
+    return defaultResult;
   };
 
   const calculatePrice = () => calculatePriceBreakdown().totalPrice || 0;
