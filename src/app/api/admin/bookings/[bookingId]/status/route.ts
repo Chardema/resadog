@@ -139,6 +139,11 @@ export async function DELETE(
     }
     const { bookingId } = await params;
     
+    // Supprimer d'abord les paiements liés et charges additionnelles
+    await prisma.payment.deleteMany({ where: { bookingId } });
+    await prisma.additionalCharge.deleteMany({ where: { bookingId } });
+
+    // Puis supprimer la réservation
     await prisma.booking.delete({ where: { id: bookingId } });
 
     return NextResponse.json({ success: true });
