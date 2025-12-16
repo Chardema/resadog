@@ -377,7 +377,11 @@ export default function BookingPage() {
 
   const validateCoupon = async () => {
     const price = calculatePrice();
-    if (!formData.promoCode || price === 0) return;
+    if (!formData.promoCode) return;
+    if (price === 0) {
+      setCouponStatus(p => ({ ...p, error: "Sélectionnez d'abord les dates" }));
+      return;
+    }
     setCouponStatus(p => ({ ...p, loading: true, error: "" }));
     try {
       const res = await fetch("/api/coupons/validate", {
@@ -474,7 +478,15 @@ export default function BookingPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-8 md:p-12"
         >
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form 
+            onSubmit={handleSubmit} 
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+              }
+            }}
+            className="space-y-8"
+          >
             
             {/* STEP 1: PET */}
             {step === 1 && (
