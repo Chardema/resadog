@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper to extract booking IDs
-function getBookingIds(metadata: Stripe.Metadata | undefined): string[] {
+function getBookingIds(metadata: Stripe.Metadata | null | undefined): string[] {
     if (!metadata) return [];
     if (metadata.bookingIds) return metadata.bookingIds.split(",");
     if (metadata.bookingId) return [metadata.bookingId];
