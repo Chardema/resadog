@@ -15,7 +15,7 @@ const serviceTypes = [
   {
     value: "BOARDING",
     name: "Hébergement",
-    price: 22,
+    price: 20,
     unit: "jour",
     description: "Votre chien vit avec nous, accès canapé et jardin inclus.",
     icon: "🏠",
@@ -247,7 +247,7 @@ export default function BookingPage() {
 
     const selectedPet = pets.find(p => p.id === formData.petId);
     const isPuppy = selectedPet && selectedPet.age !== undefined && selectedPet.age !== null && selectedPet.age < 1;
-    const puppyDailyRate = 10;
+    const puppyDailyRate = 2;
 
     if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
       const validDates = individualDates.filter(d => d.date !== "");
