@@ -589,9 +589,22 @@ export default function BookingPage() {
                   <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6 rounded-3xl flex justify-between items-center shadow-lg">
                     <div>
                       <p className="text-gray-400 text-sm">Total estimé</p>
-                      <p className="text-3xl font-bold">
-                        {formatPrice(couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculatePrice())}€
-                      </p>
+                      <div className="flex items-baseline gap-3">
+                        {couponStatus.applied && couponStatus.data ? (
+                          <>
+                            <span className="text-lg text-gray-500 line-through decoration-red-500/50 decoration-2">
+                              {formatPrice(calculatePrice())}€
+                            </span>
+                            <span className="text-3xl font-bold text-green-400">
+                              {formatPrice(couponStatus.data.finalAmount)}€
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-3xl font-bold">
+                            {formatPrice(calculatePrice())}€
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {/* Promo Code Input (Mini) */}
                     {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
@@ -618,6 +631,11 @@ export default function BookingPage() {
                             {couponStatus.error}
                           </p>
                         )}
+                        {couponStatus.applied && couponStatus.data && (
+                           <p className="text-green-400 text-xs font-bold mt-1 text-right">
+                             {couponStatus.data.discountType === "PERCENTAGE" ? `-${couponStatus.data.discountValue}%` : `-${couponStatus.data.discountValue}€`} économisés !
+                           </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -639,10 +657,28 @@ export default function BookingPage() {
                   <div className="space-y-2 text-sm text-gray-700">
                     <div className="flex justify-between"><span>Compagnon</span> <strong>{currentPetName}</strong></div>
                     <div className="flex justify-between"><span>Service</span> <strong>{getSelectedService()?.name}</strong></div>
-                    <div className="flex justify-between border-t border-orange-200 pt-2 mt-2">
-                      <span>Total à payer</span>
-                      <strong className="text-xl text-orange-700">{formatPrice(couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculatePrice())}€</strong>
-                    </div>
+                    
+                    {couponStatus.applied && couponStatus.data ? (
+                      <>
+                        <div className="flex justify-between pt-2 mt-2 border-t border-orange-200/50">
+                          <span>Sous-total</span> 
+                          <span className="text-gray-500 line-through">{formatPrice(calculatePrice())}€</span>
+                        </div>
+                        <div className="flex justify-between text-green-600 font-bold">
+                          <span>Réduction ({couponStatus.data.code})</span> 
+                          <span>-{formatPrice(calculatePrice() - couponStatus.data.finalAmount)}€</span>
+                        </div>
+                        <div className="flex justify-between border-t border-orange-200 pt-2 mt-2">
+                          <span className="font-bold text-gray-900">Total à payer</span>
+                          <strong className="text-xl text-green-600">{formatPrice(couponStatus.data.finalAmount)}€</strong>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between border-t border-orange-200 pt-2 mt-2">
+                        <span>Total à payer</span>
+                        <strong className="text-xl text-orange-700">{formatPrice(calculatePrice())}€</strong>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
