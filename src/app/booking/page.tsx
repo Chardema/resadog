@@ -209,9 +209,6 @@ export default function BookingPage() {
   // Check Availability
   useEffect(() => {
     const check = async () => {
-      // If separate dates, complex check needed. For now, simplistic global check based on active config.
-      // We will check availability for EACH pet config and aggregate results.
-      
       const configsToCheck: {petIds: string[], config: DateConfig}[] = [];
       
       if (useSameDates) {
@@ -252,18 +249,16 @@ export default function BookingPage() {
               }
           }
 
-          // Perform Check (Simplified: Check each date range)
-          // Note: In real world we should batch this or debounce
           try {
              let datesToCheck: string[] = [];
              if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
                  datesToCheck = config.individualDates.filter(d => d.date !== "").map(d => d.date);
              } else {
-                 datesToCheck = [config.startDate, config.endDate]; // Backend checks range
+                 datesToCheck = [config.startDate, config.endDate];
              }
 
-             // We only check start/end for range to save calls, backend interpolates
-             // For simplicity in this complex UI, we check the main range
+             if (datesToCheck.length === 0) continue;
+
              const start = formData.serviceType === "DROP_IN" ? datesToCheck[0] : config.startDate;
              const end = formData.serviceType === "DROP_IN" ? datesToCheck[datesToCheck.length-1] : config.endDate;
 
@@ -273,7 +268,7 @@ export default function BookingPage() {
                  if (!data.available) {
                      allAvailable = false;
                      allUnavailableDates.push(...data.unavailableDates);
-                     globalMessage = "Dates indisponibles pour certains animaux";
+                     globalMessage = "Dates indisponibles";
                  }
              }
           } catch(e) { allAvailable = false; }
@@ -286,17 +281,14 @@ export default function BookingPage() {
       }
     };
 
-    // Debounce check
     const timer = setTimeout(check, 800);
     return () => clearTimeout(timer);
   }, [formData, individualDates, petConfigs, useSameDates]);
 
   const resetAvailability = () => setAvailabilityStatus({ checking: false, available: true, message: "", unavailableDates: [] });
 
-  // Helpers
   const getSelectedService = () => serviceTypes.find(s => s.value === formData.serviceType);
   
-  // Calculate price for ONE config/pet set
   const calculatePriceForConfig = (config: DateConfig, petList: Pet[]) => {
       const service = getSelectedService();
       if (!service) return 0;
@@ -329,7 +321,6 @@ export default function BookingPage() {
           });
 
       } else {
-          // Boarding / Day Care
           if (!config.startDate || !config.endDate) return 0;
           const start = new Date(`${config.startDate}T${config.startTime}`);
           const end = new Date(`${config.endDate}T${config.endTime}`);
@@ -352,10 +343,8 @@ export default function BookingPage() {
               });
 
           } else {
-             // Day Care
              const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
              let base = days * service.price;
-             // Simple surcharge logic for daycare
              if (days === 1 && totalHours > (service.maxHours || 10)) {
                  base += ((totalHours - (service.maxHours || 10)) * (service.extraHourlyRate || 0));
              }
@@ -394,6 +383,29 @@ export default function BookingPage() {
       }
   };
 
+  // Helper pour calculer la durée (pour les coupons)
+  const calculateMaxDuration = () => {
+      if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+          return useSameDates 
+            ? individualDates.filter(d => d.date).length 
+            : Math.max(...Object.values(petConfigs).map(c => c.individualDates.filter(d => d.date).length));
+      }
+      
+      // Boarding/Daycare: Calculate nights/days
+      const config = useSameDates 
+        ? { startDate: formData.startDate, endDate: formData.endDate }
+        : Object.values(petConfigs)[0]; // Take first as approx if varying
+
+      if (!config?.startDate || !config?.endDate) return 1;
+      
+      const start = new Date(config.startDate);
+      const end = new Date(config.endDate);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      
+      return diffDays || 1;
+  };
+
   const formatPrice = (value: number | undefined | null) => {
     if (value === undefined || value === null || isNaN(value)) return "0";
     return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
@@ -409,14 +421,12 @@ export default function BookingPage() {
       });
   };
 
-  // Simplified coupon validation for total price (naive approach for MVP)
   const validateCoupon = async () => {
       const price = calculateTotalPrice();
       if (!formData.promoCode || price === 0) return;
       
       setCouponStatus(p => ({ ...p, loading: true }));
-      // Calculate duration approx
-      const duration = 1; // Simplify for now
+      const duration = calculateMaxDuration();
 
       try {
         const res = await fetch("/api/coupons/validate", {
@@ -438,11 +448,9 @@ export default function BookingPage() {
     setIsLoading(true);
     setError("");
 
-    // Prepare bookings list
     let bookingsToCreate = [];
 
     if (useSameDates) {
-        // Single booking with all pets
         const price = couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice();
         
         let startDate = formData.startDate;
@@ -464,15 +472,6 @@ export default function BookingPage() {
             notes: formData.notes
         });
     } else {
-        // Multiple bookings (one per pet)
-        // Note: Coupon logic becomes tricky here (applied to total or each?). 
-        // Current simplified logic: Pro-rate coupon or re-calculate. 
-        // CRITICAL SIMPLIFICATION: We calculate raw price per pet, and if coupon exists, we don't apply it or apply it to total later?
-        // STRIPE accepts total. So we just need correct total price in bookings.
-        
-        // Let's calculate price per pet without coupon, then apply discount proportionally if needed?
-        // Or simpler: Just save raw price, Stripe handles payment.
-        
         const totalRaw = calculateTotalPrice();
         const discountRatio = (couponStatus.applied && couponStatus.data) ? (couponStatus.data.finalAmount / totalRaw) : 1;
 
@@ -506,7 +505,6 @@ export default function BookingPage() {
     }
 
     try {
-        // 1. Create Bookings
         const createdBookingIds = [];
         for (const bookingData of bookingsToCreate) {
              const res = await fetch("/api/bookings", {
@@ -519,7 +517,6 @@ export default function BookingPage() {
              createdBookingIds.push(data.booking.id);
         }
 
-        // 2. Checkout with all IDs
         const resCheckout = await fetch("/api/stripe/checkout", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -533,7 +530,6 @@ export default function BookingPage() {
     } catch (e: any) { setError(e.message); setIsLoading(false); }
   };
 
-  // Get today's date for min attribute
   const today = new Date().toISOString().split("T")[0];
 
   const DateSelector = ({ config, onChange }: { config: DateConfig, onChange: (c: DateConfig) => void }) => {
@@ -575,7 +571,6 @@ export default function BookingPage() {
       );
   };
 
-  // --- RENDER ---
   if (status === "loading") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐕</div>;
   
   const selectedPetsList = pets.filter(p => formData.petIds.includes(p.id));
@@ -586,7 +581,6 @@ export default function BookingPage() {
       <AppNav userName={session?.user?.name} />
       
       <div className="container mx-auto px-6 pt-32 max-w-4xl">
-        {/* Steps */}
         <div className="flex justify-center mb-12">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
@@ -607,11 +601,9 @@ export default function BookingPage() {
           </div>
         )}
 
-        {/* Card Form */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-8 md:p-12">
           <form onSubmit={handleSubmit} className="space-y-8">
             
-            {/* STEP 1: PET & SERVICE */}
             {step === 1 && (
               <div className="space-y-8">
                 <div>
@@ -659,7 +651,6 @@ export default function BookingPage() {
               </div>
             )}
 
-            {/* STEP 2: DATES */}
             {step === 2 && (
               <div className="space-y-8">
                  <div className="flex justify-between items-center">
@@ -704,7 +695,6 @@ export default function BookingPage() {
                       )}
                  </div>
 
-                 {/* Total Price Bar */}
                  {calculateTotalPrice() > 0 && (
                      <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6 rounded-3xl flex justify-between items-center">
                          <div>
@@ -727,7 +717,6 @@ export default function BookingPage() {
               </div>
             )}
 
-            {/* STEP 3: SUMMARY */}
             {step === 3 && (
                 <div className="space-y-6">
                     <h2 className="text-2xl font-bold text-gray-900">Derniers détails 📝</h2>
