@@ -5,8 +5,9 @@ import { z } from "zod";
 
 const updatePetSchema = z.object({
   name: z.string().min(1).optional(),
+  species: z.enum(["DOG", "CAT"]).optional(),
   breed: z.string().optional(),
-  age: z.number().int().min(0).max(30).optional(),
+  age: z.number().min(0).max(30).optional(),
   weight: z.number().positive().optional(),
   gender: z.enum(["MALE", "FEMALE", "UNKNOWN"]).optional(),
   spayedNeutered: z.boolean().optional(),

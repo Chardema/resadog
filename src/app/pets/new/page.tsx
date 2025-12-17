@@ -14,10 +14,14 @@ export default function NewPetPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  // States
+  const [ageUnit, setAgeUnit] = useState<"YEARS" | "MONTHS">("YEARS");
   const [formData, setFormData] = useState({
     name: "",
+    species: "DOG" as "DOG" | "CAT",
     breed: "",
-    age: "",
+    age: "", // Input value as string
     weight: "",
     gender: "UNKNOWN" as "MALE" | "FEMALE" | "UNKNOWN",
     spayedNeutered: false,
@@ -36,18 +40,21 @@ export default function NewPetPage() {
     setIsLoading(true);
 
     try {
-      // Préparer les données (convertir les strings en nombres si nécessaire)
+      // Conversion de l'âge
+      let finalAge = formData.age ? parseFloat(formData.age) : undefined;
+      if (finalAge && ageUnit === "MONTHS") {
+        finalAge = parseFloat((finalAge / 12).toFixed(2)); // Convertir mois en années
+      }
+
       const petData = {
         ...formData,
-        age: formData.age ? parseInt(formData.age) : undefined,
+        age: finalAge,
         weight: formData.weight ? parseFloat(formData.weight) : undefined,
       };
 
       const response = await fetch("/api/pets", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(petData),
       });
 
@@ -55,394 +62,264 @@ export default function NewPetPage() {
 
       if (!response.ok) {
         setError(data.error || "Une erreur est survenue");
-        console.error("Erreur API:", data);
         return;
       }
 
-      // Succès! Rediriger vers la page des animaux
-      console.log("Animal créé avec succès:", data);
       router.push("/pets");
       router.refresh();
     } catch (err) {
-      console.error("Erreur lors de la création:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Une erreur est survenue lors de l'ajout de l'animal"
-      );
+      setError("Une erreur est survenue lors de l'ajout");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50 pb-20">
       {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
+      <nav className="bg-white/80 backdrop-blur-md border-b border-orange-100 sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                R
+            <Link href="/dashboard" className="flex items-center gap-2 group">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center text-white font-bold text-xl shadow-lg transform group-hover:rotate-12 transition-transform">
+                🐾
               </div>
-              <span className="text-xl font-bold text-gray-900">La Patte Dorée</span>
+              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-yellow-600">La Patte Dorée</span>
             </Link>
-            <Link
-              href="/pets"
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              ← Retour à mes animaux
+            <Link href="/pets" className="text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors">
+              ← Annuler
             </Link>
           </div>
         </div>
       </nav>
 
       {/* Contenu */}
-      <div className="container mx-auto px-6 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-2xl mx-auto"
-        >
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Ajouter un animal 🐶
-            </h1>
-            <p className="text-gray-600">
-              Créez le profil de votre compagnon pour faciliter les réservations
-            </p>
+      <div className="container mx-auto px-6 py-12 max-w-3xl">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-3">Nouveau Compagnon ✨</h1>
+          <p className="text-gray-500 text-lg">Dites-nous tout sur votre ami à quatre pattes.</p>
+        </motion.div>
+
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-lg mb-8 shadow-sm">
+            <p className="font-bold">Oups !</p>
+            <p>{error}</p>
           </div>
+        )}
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6"
-            >
-              {error}
-            </motion.div>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-8">
+          
+          {/* 1. Espèce */}
+          <section>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+              C'est un...
+            </h2>
+            <div className="grid grid-cols-2 gap-6">
+              <div 
+                onClick={() => setFormData({...formData, species: "DOG"})}
+                className={`cursor-pointer rounded-2xl p-6 border-2 transition-all flex flex-col items-center gap-3 ${formData.species === "DOG" ? "border-orange-500 bg-orange-50 shadow-lg scale-105" : "border-gray-200 hover:border-orange-200 bg-white"}`}
+              >
+                <span className="text-5xl">🐕</span>
+                <span className={`font-bold text-lg ${formData.species === "DOG" ? "text-orange-700" : "text-gray-600"}`}>Chien</span>
+              </div>
+              <div 
+                onClick={() => setFormData({...formData, species: "CAT"})}
+                className={`cursor-pointer rounded-2xl p-6 border-2 transition-all flex flex-col items-center gap-3 ${formData.species === "CAT" ? "border-orange-500 bg-orange-50 shadow-lg scale-105" : "border-gray-200 hover:border-orange-200 bg-white"}`}
+              >
+                <span className="text-5xl">🐈</span>
+                <span className={`font-bold text-lg ${formData.species === "CAT" ? "text-orange-700" : "text-gray-600"}`}>Chat</span>
+              </div>
+            </div>
+          </section>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-white rounded-2xl shadow-sm p-8"
-          >
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Photo de l'animal */}
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold text-gray-900">
-                  Photo de profil 📸
-                </h2>
-                <div className="flex items-center gap-6">
+          {/* 2. Photo & Identité */}
+          <section className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <span className="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
+              Identité
+            </h2>
+            
+            <div className="flex flex-col md:flex-row gap-8 items-start">
+              {/* Photo Upload */}
+              <div className="flex-shrink-0 flex flex-col items-center gap-3">
+                <div className="relative w-32 h-32">
                   {formData.imageUrl ? (
-                    <div className="relative">
-                      <img
-                        src={formData.imageUrl}
-                        alt="Photo de profil"
-                        className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFormData({ ...formData, imageUrl: "" })
-                        }
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors font-bold"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                    <>
+                      <img src={formData.imageUrl} alt="Aperçu" className="w-full h-full rounded-full object-cover border-4 border-white shadow-lg" />
+                      <button type="button" onClick={() => setFormData({...formData, imageUrl: ""})} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-600 shadow-md">✕</button>
+                    </>
                   ) : (
-                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center">
-                      <span className="text-5xl">
-                        {formData.gender === "MALE"
-                          ? "🐕"
-                          : formData.gender === "FEMALE"
-                          ? "🐩"
-                          : "🐶"}
-                      </span>
+                    <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300 text-4xl text-gray-300">
+                      📷
                     </div>
                   )}
-                  <div>
-                    <UploadButton<OurFileRouter, "petImage">
-                      endpoint="petImage"
-                      onClientUploadComplete={(res) => {
-                        if (res?.[0]?.url) {
-                          setFormData({ ...formData, imageUrl: res[0].url });
-                        }
-                      }}
-                      onUploadError={(error: Error) => {
-                        console.error("Erreur upload:", error);
-                        alert(
-                          `Erreur d'upload: ${error.message}\n\nVous devez configurer Uploadthing. Consultez UPLOADTHING_SETUP.md`
-                        );
-                      }}
-                      appearance={{
-                        button:
-                          "bg-blue-600 text-white font-semibold hover:bg-blue-700 px-4 py-2 rounded-md text-sm transition-colors ut-ready:bg-blue-600 ut-uploading:bg-blue-700",
-                        allowedContent: "text-gray-600 text-sm",
-                      }}
-                    />
-                    <p className="text-xs text-gray-500 mt-2">
-                      Format: JPG, PNG (max 4MB)
-                    </p>
-                    <p className="text-xs text-orange-600 mt-1 font-medium">
-                      ⚠️ La photo est optionnelle - vous pouvez créer l'animal sans photo
-                    </p>
-                  </div>
                 </div>
+                <UploadButton<OurFileRouter, "petImage">
+                  endpoint="petImage"
+                  onClientUploadComplete={(res) => res?.[0] && setFormData({...formData, imageUrl: res[0].url})}
+                  onUploadError={() => alert("Erreur upload")}
+                  appearance={{
+                    button: "bg-orange-100 text-orange-700 hover:bg-orange-200 text-xs px-3 py-2 h-auto rounded-full font-bold",
+                    allowedContent: "hidden"
+                  }}
+                  content={{ button: "Ajouter photo" }}
+                />
               </div>
 
-              {/* Informations de base */}
-              <div className="space-y-4 pt-6 border-t border-gray-200">
-                <h2 className="text-xl font-bold text-gray-900">
-                  Informations de base ✨
-                </h2>
-
-                <div>
-                  <Label htmlFor="name">
-                    Nom <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Ex: Max, Luna, Charlie..."
+              {/* Champs */}
+              <div className="flex-grow grid md:grid-cols-2 gap-5 w-full">
+                <div className="col-span-2">
+                  <Label className="text-gray-600">Son petit nom <span className="text-red-400">*</span></Label>
+                  <Input 
+                    placeholder="Ex: Rex, Luna..." 
+                    className="bg-gray-50 border-gray-200 h-12 rounded-xl focus:ring-orange-500 focus:border-orange-500" 
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
-                    disabled={isLoading}
-                    className="mt-1"
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-gray-600">Race</Label>
+                  <Input 
+                    placeholder={formData.species === "DOG" ? "Golden Retriever" : "Siamois"} 
+                    className="bg-gray-50 border-gray-200 h-12 rounded-xl"
+                    value={formData.breed}
+                    onChange={(e) => setFormData({...formData, breed: e.target.value})}
                   />
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="breed">Race</Label>
-                    <Input
-                      id="breed"
-                      type="text"
-                      placeholder="Ex: Labrador, Berger Allemand..."
-                      value={formData.breed}
-                      onChange={(e) =>
-                        setFormData({ ...formData, breed: e.target.value })
-                      }
-                      disabled={isLoading}
-                      className="mt-1"
-                    />
-                  </div>
+                <div>
+                  <Label className="text-gray-600">Genre</Label>
+                  <select 
+                    className="w-full bg-gray-50 border border-gray-200 h-12 rounded-xl px-3 outline-none focus:ring-2 focus:ring-orange-500"
+                    value={formData.gender}
+                    onChange={(e) => setFormData({...formData, gender: e.target.value as any})}
+                  >
+                    <option value="UNKNOWN">Je ne sais pas</option>
+                    <option value="MALE">Mâle ♂️</option>
+                    <option value="FEMALE">Femelle ♀️</option>
+                  </select>
+                </div>
 
-                  <div>
-                    <Label htmlFor="age">Âge (en années)</Label>
-                    <Input
-                      id="age"
-                      type="number"
-                      placeholder="Ex: 3"
-                      min="0"
-                      max="30"
+                <div className="col-span-2 md:col-span-1">
+                  <Label className="text-gray-600">Âge</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      type="number" 
+                      placeholder="Ex: 2" 
+                      className="bg-gray-50 border-gray-200 h-12 rounded-xl"
                       value={formData.age}
-                      onChange={(e) =>
-                        setFormData({ ...formData, age: e.target.value })
-                      }
-                      disabled={isLoading}
-                      className="mt-1"
+                      onChange={(e) => setFormData({...formData, age: e.target.value})}
                     />
+                    <div className="flex bg-gray-100 rounded-xl p-1 h-12">
+                      <button 
+                        type="button"
+                        onClick={() => setAgeUnit("YEARS")}
+                        className={`px-3 rounded-lg text-sm font-medium transition-all ${ageUnit === "YEARS" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                      >
+                        Ans
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setAgeUnit("MONTHS")}
+                        className={`px-3 rounded-lg text-sm font-medium transition-all ${ageUnit === "MONTHS" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                      >
+                        Mois
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="weight">Poids (en kg)</Label>
-                    <Input
-                      id="weight"
-                      type="number"
-                      placeholder="Ex: 25"
-                      min="0"
-                      step="0.1"
-                      value={formData.weight}
-                      onChange={(e) =>
-                        setFormData({ ...formData, weight: e.target.value })
-                      }
-                      disabled={isLoading}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="gender">Genre</Label>
-                    <select
-                      id="gender"
-                      value={formData.gender}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          gender: e.target.value as "MALE" | "FEMALE" | "UNKNOWN",
-                        })
-                      }
-                      disabled={isLoading}
-                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="UNKNOWN">Non spécifié</option>
-                      <option value="MALE">Mâle 🐕</option>
-                      <option value="FEMALE">Femelle 🐩</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    id="spayedNeutered"
-                    type="checkbox"
-                    checked={formData.spayedNeutered}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        spayedNeutered: e.target.checked,
-                      })
-                    }
-                    disabled={isLoading}
-                    className="rounded border-gray-300"
+                <div>
+                  <Label className="text-gray-600">Poids (kg)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="Ex: 12.5" 
+                    className="bg-gray-50 border-gray-200 h-12 rounded-xl"
+                    value={formData.weight}
+                    onChange={(e) => setFormData({...formData, weight: e.target.value})}
                   />
-                  <Label htmlFor="spayedNeutered" className="cursor-pointer">
-                    Stérilisé(e)
-                  </Label>
+                </div>
+                
+                <div className="col-span-2 pt-2">
+                  <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      className="w-5 h-5 rounded text-orange-600 focus:ring-orange-500"
+                      checked={formData.spayedNeutered}
+                      onChange={(e) => setFormData({...formData, spayedNeutered: e.target.checked})}
+                    />
+                    <span className="text-gray-700 font-medium">Stérilisé / Castré</span>
+                  </label>
                 </div>
               </div>
+            </div>
+          </section>
 
-              {/* Informations médicales et comportementales */}
-              <div className="space-y-4 pt-6 border-t border-gray-200">
-                <h2 className="text-xl font-bold text-gray-900">
-                  Informations complémentaires 📋
-                </h2>
+          {/* 3. Détails & Santé */}
+          <section className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <span className="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
+              Santé & Habitudes
+            </h2>
+            
+            <div className="space-y-6">
+              <div>
+                <Label className="text-gray-600">Informations médicales</Label>
+                <textarea 
+                  className="w-full p-4 bg-gray-50 border-gray-200 rounded-2xl min-h-[100px] mt-2 focus:ring-orange-500 outline-none"
+                  placeholder="Allergies, maladies chroniques, vaccins..."
+                  value={formData.medicalInfo}
+                  onChange={(e) => setFormData({...formData, medicalInfo: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <Label className="text-gray-600">Comportement</Label>
+                <textarea 
+                  className="w-full p-4 bg-gray-50 border-gray-200 rounded-2xl min-h-[100px] mt-2 focus:ring-orange-500 outline-none"
+                  placeholder="S'entend-il avec les autres animaux ? Avec les enfants ? Peureux ?"
+                  value={formData.behaviorNotes}
+                  onChange={(e) => setFormData({...formData, behaviorNotes: e.target.value})}
+                />
+              </div>
 
+              <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="medicalInfo">Informations médicales</Label>
-                  <textarea
-                    id="medicalInfo"
-                    placeholder="Allergies, conditions médicales, vaccinations..."
-                    value={formData.medicalInfo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, medicalInfo: e.target.value })
-                    }
-                    disabled={isLoading}
+                  <Label className="text-gray-600">Vétérinaire</Label>
+                  <textarea 
+                    className="w-full p-4 bg-gray-50 border-gray-200 rounded-2xl mt-2 focus:ring-orange-500 outline-none"
                     rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="behaviorNotes">Notes comportementales</Label>
-                  <textarea
-                    id="behaviorNotes"
-                    placeholder="Tempérament, comportement avec d'autres animaux, enfants..."
-                    value={formData.behaviorNotes}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        behaviorNotes: e.target.value,
-                      })
-                    }
-                    disabled={isLoading}
-                    rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="feedingSchedule">
-                    Horaires et habitudes alimentaires
-                  </Label>
-                  <textarea
-                    id="feedingSchedule"
-                    placeholder="Ex: 2 repas par jour (8h et 18h), croquettes sans céréales..."
-                    value={formData.feedingSchedule}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        feedingSchedule: e.target.value,
-                      })
-                    }
-                    disabled={isLoading}
-                    rows={2}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="medications">Médicaments</Label>
-                  <textarea
-                    id="medications"
-                    placeholder="Médicaments réguliers, dosages, horaires..."
-                    value={formData.medications}
-                    onChange={(e) =>
-                      setFormData({ ...formData, medications: e.target.value })
-                    }
-                    disabled={isLoading}
-                    rows={2}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="vetInfo">Informations vétérinaire</Label>
-                  <textarea
-                    id="vetInfo"
-                    placeholder="Nom, adresse et téléphone du vétérinaire..."
+                    placeholder="Nom et téléphone du vétérinaire"
                     value={formData.vetInfo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, vetInfo: e.target.value })
-                    }
-                    disabled={isLoading}
-                    rows={2}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setFormData({...formData, vetInfo: e.target.value})}
                   />
                 </div>
-
                 <div>
-                  <Label htmlFor="emergencyContact">Contact d'urgence</Label>
-                  <Input
-                    id="emergencyContact"
-                    type="text"
-                    placeholder="Nom et téléphone en cas d'urgence..."
+                  <Label className="text-gray-600">Contact d'urgence</Label>
+                  <textarea 
+                    className="w-full p-4 bg-gray-50 border-gray-200 rounded-2xl mt-2 focus:ring-orange-500 outline-none"
+                    rows={3}
+                    placeholder="Personne à contacter en cas d'urgence"
                     value={formData.emergencyContact}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        emergencyContact: e.target.value,
-                      })
-                    }
-                    disabled={isLoading}
-                    className="mt-1"
+                    onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
                   />
                 </div>
               </div>
+            </div>
+          </section>
 
-              {/* Boutons */}
-              <div className="flex gap-4 pt-6">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  Annuler
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1"
-                  size="lg"
-                >
-                  {isLoading ? "Ajout en cours..." : "Ajouter l'animal"}
-                </Button>
-              </div>
-            </form>
-          </motion.div>
-        </motion.div>
+          <div className="pt-4 flex gap-4">
+            <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1 h-14 rounded-xl text-lg border-gray-300">
+              Annuler
+            </Button>
+            <Button type="submit" disabled={isLoading} className="flex-1 h-14 rounded-xl text-lg bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700 text-white shadow-lg hover:shadow-xl transition-all">
+              {isLoading ? "Création..." : "Créer le profil ✨"}
+            </Button>
+          </div>
+
+        </form>
       </div>
     </div>
   );

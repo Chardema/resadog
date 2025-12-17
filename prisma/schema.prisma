@@ -99,8 +99,9 @@ model VerificationToken {
 model Pet {
   id              String   @id @default(cuid())
   name            String
+  species         Species  @default(DOG)
   breed           String?
-  age             Int?
+  age             Float?
   weight          Float?
   gender          Gender?
   spayedNeutered  Boolean?
@@ -121,6 +122,11 @@ model Pet {
   journalEntries JournalEntry[]
 
   @@index([ownerId])
+}
+
+enum Species {
+  DOG
+  CAT
 }
 
 enum Gender {
