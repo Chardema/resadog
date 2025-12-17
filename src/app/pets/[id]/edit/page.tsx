@@ -280,7 +280,7 @@ export default function EditPetPage() {
                       type="number" 
                       placeholder="Ex: 2" 
                       step="0.1"
-                      className="bg-gray-50 border-gray-200 h-12 rounded-xl"
+                      className="flex-1 bg-gray-50 border-gray-200 h-12 rounded-xl focus:ring-orange-500"
                       value={formData.age}
                       onChange={(e) => setFormData({...formData, age: e.target.value})}
                     />
