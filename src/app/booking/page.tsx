@@ -8,7 +8,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch"; // Assuming component exists or use checkbox
 import { AppNav } from "@/components/layout/AppNav";
 
 // On reprend les mêmes types de service
