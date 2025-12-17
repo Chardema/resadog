@@ -676,6 +676,20 @@ export default function BookingPage() {
                     <div className="flex justify-between"><span>Compagnon</span> <strong>{currentPetName}</strong></div>
                     <div className="flex justify-between"><span>Service</span> <strong>{getSelectedService()?.name}</strong></div>
                     
+                    {/* Affichage du supplément chiot si applicable */}
+                    {(() => {
+                      const breakdown = calculatePriceBreakdown();
+                      if (breakdown.puppySurcharge > 0) {
+                        return (
+                          <div className="flex justify-between text-orange-600">
+                            <span>Supplément Chiot (-1 an)</span>
+                            <strong>+{formatPrice(breakdown.puppySurcharge)}€</strong>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
                     {couponStatus.applied && couponStatus.data ? (
                       <>
                         <div className="flex justify-between pt-2 mt-2 border-t border-orange-200/50">
