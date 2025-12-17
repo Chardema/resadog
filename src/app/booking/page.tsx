@@ -76,6 +76,47 @@ type DateConfig = {
   individualDates: { date: string; duration: number }[];
 };
 
+// --- COMPOSANT DATE SELECTOR EXTRAIT ---
+const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, onChange: (c: DateConfig) => void, serviceType: string }) => {
+    const isHourly = serviceType === "DROP_IN" || serviceType === "DOG_WALKING";
+    const today = new Date().toISOString().split("T")[0];
+
+    if (isHourly) {
+        return (
+           <div className="space-y-2">
+               {config.individualDates.map((item, idx) => (
+                  <div key={idx} className="flex gap-2">
+                      <Input type="date" className="bg-white" value={item.date} onChange={(e) => {
+                          const n = [...config.individualDates]; n[idx].date = e.target.value;
+                          onChange({ ...config, individualDates: n });
+                      }} />
+                      <Button type="button" variant="outline" onClick={() => {
+                           const n = [...config.individualDates]; n.splice(idx, 1);
+                           onChange({ ...config, individualDates: n });
+                      }}>×</Button>
+                  </div>
+               ))}
+               <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...config, individualDates: [...config.individualDates, { date: "", duration: 30 }] })}>+ Date</Button>
+           </div>
+        );
+    }
+
+    return (
+       <div className="grid md:grid-cols-2 gap-4">
+           <div>
+               <Label>Début</Label>
+               <Input type="date" className="bg-white" value={config.startDate} onChange={(e) => onChange({...config, startDate: e.target.value})} min={today} />
+               <Input type="time" className="bg-white mt-2" value={config.startTime} onChange={(e) => onChange({...config, startTime: e.target.value})} />
+           </div>
+           <div>
+               <Label>Fin</Label>
+               <Input type="date" className="bg-white" value={config.endDate} onChange={(e) => onChange({...config, endDate: e.target.value})} min={config.startDate || today} />
+               <Input type="time" className="bg-white mt-2" value={config.endTime} onChange={(e) => onChange({...config, endTime: e.target.value})} />
+           </div>
+       </div>
+    );
+};
+
 export default function BookingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -532,45 +573,6 @@ export default function BookingPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const DateSelector = ({ config, onChange }: { config: DateConfig, onChange: (c: DateConfig) => void }) => {
-      const isHourly = formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING";
-
-      if (isHourly) {
-          return (
-             <div className="space-y-2">
-                 {config.individualDates.map((item, idx) => (
-                    <div key={idx} className="flex gap-2">
-                        <Input type="date" className="bg-white" value={item.date} onChange={(e) => {
-                            const n = [...config.individualDates]; n[idx].date = e.target.value;
-                            onChange({ ...config, individualDates: n });
-                        }} />
-                        <Button type="button" variant="outline" onClick={() => {
-                             const n = [...config.individualDates]; n.splice(idx, 1);
-                             onChange({ ...config, individualDates: n });
-                        }}>×</Button>
-                    </div>
-                 ))}
-                 <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...config, individualDates: [...config.individualDates, { date: "", duration: 30 }] })}>+ Date</Button>
-             </div>
-          );
-      }
-
-      return (
-         <div className="grid md:grid-cols-2 gap-4">
-             <div>
-                 <Label>Début</Label>
-                 <Input type="date" className="bg-white" value={config.startDate} onChange={(e) => onChange({...config, startDate: e.target.value})} min={today} />
-                 <Input type="time" className="bg-white mt-2" value={config.startTime} onChange={(e) => onChange({...config, startTime: e.target.value})} />
-             </div>
-             <div>
-                 <Label>Fin</Label>
-                 <Input type="date" className="bg-white" value={config.endDate} onChange={(e) => onChange({...config, endDate: e.target.value})} min={config.startDate || today} />
-                 <Input type="time" className="bg-white mt-2" value={config.endTime} onChange={(e) => onChange({...config, endTime: e.target.value})} />
-             </div>
-         </div>
-      );
-  };
-
   if (status === "loading") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐕</div>;
   
   const selectedPetsList = pets.filter(p => formData.petIds.includes(p.id));
@@ -671,6 +673,7 @@ export default function BookingPage() {
                                 setFormData(p => ({ ...p, startDate: c.startDate, endDate: c.endDate, startTime: c.startTime, endTime: c.endTime }));
                                 setIndividualDates(c.individualDates);
                             }} 
+                            serviceType={formData.serviceType}
                          />
                      ) : (
                          <div className="space-y-6">
@@ -681,7 +684,11 @@ export default function BookingPage() {
                                  return (
                                      <div key={id} className="bg-white p-4 rounded-2xl border border-gray-200">
                                          <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">🐕 Dates pour {pet.name}</h4>
-                                         <DateSelector config={config} onChange={(c) => setPetConfigs(p => ({...p, [id]: c}))} />
+                                         <DateSelector 
+                                            config={config} 
+                                            onChange={(c) => setPetConfigs(p => ({...p, [id]: c}))} 
+                                            serviceType={formData.serviceType}
+                                         />
                                      </div>
                                  );
                              })}
@@ -703,8 +710,14 @@ export default function BookingPage() {
                          </div>
                          {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
                              <div className="flex gap-2">
-                                 <Input placeholder="PROMO" className="w-24 bg-white/10 border-none text-white placeholder:text-gray-500 uppercase" value={formData.promoCode} onChange={(e) => setFormData({...formData, promoCode: e.target.value.toUpperCase()})} />
-                                 <Button size="sm" onClick={validateCoupon} className="bg-white/20 text-white hover:bg-white/30">OK</Button>
+                                 <Input 
+                                    placeholder="PROMO" 
+                                    className="w-24 bg-white/10 border-none text-white placeholder:text-gray-500 uppercase" 
+                                    value={formData.promoCode} 
+                                    onChange={(e) => setFormData({...formData, promoCode: e.target.value.toUpperCase()})}
+                                    onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); validateCoupon(); } }} 
+                                 />
+                                 <Button type="button" size="sm" onClick={validateCoupon} className="bg-white/20 text-white hover:bg-white/30">OK</Button>
                              </div>
                          )}
                      </div>
