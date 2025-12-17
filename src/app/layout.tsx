@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   description: "Réservez une garde de chien en ligne avec suivi en temps réel et journal d'activités",
 };
 
+import { Footer } from "@/components/layout/Footer";
+
+// ... (imports existants)
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,9 +30,14 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <div className="flex-1">
+            {children}
+          </div>
+          <Footer />
+        </SessionProvider>
       </body>
     </html>
   );
