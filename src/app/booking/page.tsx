@@ -341,19 +341,24 @@ export default function BookingPage() {
   };
 
   const calculatePrice = () => calculatePriceBreakdown().totalPrice || 0;
-  const calculateDays = () => 1; // Simplified for this context
+
+  const calculateDays = () => {
+    if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+      return individualDates.filter(d => d.date !== "").length;
+    }
+    if (!formData.startDate || !formData.endDate) return 1;
+    
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    
+    return diffDays || 1;
+  };
 
   const formatPrice = (value: number | undefined | null) => {
     if (value === undefined || value === null || isNaN(value)) return "0";
     return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
-  };
-
-  const getDiscountedPrice = (originalPrice: number) => {
-    if (!couponStatus.applied || !couponStatus.data) return originalPrice;
-    if (couponStatus.data.discountType === "PERCENTAGE") {
-      return originalPrice * (1 - couponStatus.data.discountValue / 100);
-    }
-    return Math.max(0, originalPrice - couponStatus.data.discountValue);
   };
 
   // API Calls
@@ -535,16 +540,7 @@ export default function BookingPage() {
                       <div className="text-3xl mb-2">{s.icon}</div>
                       <div className="flex justify-between items-center mb-1">
                         <h3 className="font-bold text-gray-900">{s.name}</h3>
-                        {couponStatus.applied && couponStatus.data && s.value !== "DROP_IN" && s.value !== "DOG_WALKING" ? (
-                          <div className="text-right">
-                            <div className="text-xs text-gray-400 line-through">{s.price}€</div>
-                            <div className="font-bold text-green-600">
-                              {formatPrice(getDiscountedPrice(s.price))}€
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="font-bold text-orange-600">{s.price}€</div>
-                        )}
+                        <div className="font-bold text-orange-600">{s.price}€</div>
                       </div>
                       <p className="text-xs text-gray-500">{s.description.replace("Votre chien", currentPetName)}</p>
                     </div>
