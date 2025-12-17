@@ -130,6 +130,9 @@ export default function BookingPage() {
   // Configuration dates
   const [useSameDates, setUseSameDates] = useState(true);
   
+  // Validation légale
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  
   // Disponibilités (Global status)
   const [availabilityStatus, setAvailabilityStatus] = useState<{
     checking: boolean;
@@ -845,6 +848,20 @@ export default function BookingPage() {
                         </div>
                     </div>
 
+                    {/* Validation légale */}
+                    <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                        <input 
+                            type="checkbox" 
+                            id="legal-checkbox" 
+                            checked={legalAccepted} 
+                            onChange={(e) => setLegalAccepted(e.target.checked)}
+                            className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
+                        />
+                        <label htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
+                            J'accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions Générales de Vente</Link> et la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de Confidentialité</Link>. Je reconnais que l'annulation est gratuite jusqu'à 48h avant le début de la garde.
+                        </label>
+                    </div>
+
                     <div>
                       <Label>Instructions spéciales</Label>
                       <textarea className="w-full p-4 bg-gray-50 border-gray-200 rounded-2xl h-32 mt-2" placeholder="Allergies, habitudes..." value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
@@ -852,7 +869,7 @@ export default function BookingPage() {
 
                     <div className="flex gap-4">
                       <Button type="button" variant="outline" onClick={() => setStep(2)} className="flex-1 h-14 rounded-xl">Retour</Button>
-                      <Button type="submit" disabled={isLoading} className="flex-1 h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg">
+                      <Button type="submit" disabled={isLoading || !legalAccepted} className="flex-1 h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg">
                           {isLoading ? "Chargement..." : "Payer et Confirmer 💳"}
                       </Button>
                     </div>
