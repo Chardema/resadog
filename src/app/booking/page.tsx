@@ -633,7 +633,7 @@ export default function BookingPage() {
                         )}
                         {couponStatus.applied && couponStatus.data && (
                            <p className="text-green-400 text-xs font-bold mt-1 text-right">
-                             {couponStatus.data.discountType === "PERCENTAGE" ? `-${couponStatus.data.discountValue}%` : `-${couponStatus.data.discountValue}€`} économisés !
+                             {couponStatus.data.coupon.discountType === "PERCENTAGE" ? `-${couponStatus.data.coupon.discountValue}%` : `-${couponStatus.data.coupon.discountValue}€`} économisés !
                            </p>
                         )}
                       </div>

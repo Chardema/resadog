@@ -58,49 +58,70 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Récupérer les réservations confirmées qui chevauchent la période
+    // Pour simplifier, on considère qu'une réservation confirmée bloque le service pour la journée
+    const existingBookings = await prisma.booking.findMany({
+      where: {
+        status: { in: ["CONFIRMED", "IN_PROGRESS"] },
+        // serviceType: serviceType as any, // Optionnel: décommenter si on peut avoir plusieurs types de services en parallèle
+        OR: [
+          {
+            AND: [
+              { startDate: { lte: end } },
+              { endDate: { gte: start } }
+            ]
+          }
+        ]
+      }
+    });
+
     console.log("📅 Dates à vérifier:", daysToCheck.map(d => d.toISOString().split("T")[0]));
     console.log("🔍 Service type:", serviceType);
-    console.log("🗄️ Disponibilités en BDD:", availabilities.map(a => ({
-      date: a.date.toISOString().split("T")[0],
-      serviceType: a.serviceType,
-      available: a.available
-    })));
+    console.log("🗄️ Disponibilités admin:", availabilities.length);
+    console.log("🔒 Réservations existantes:", existingBookings.length);
 
     // Vérifier quelles dates sont disponibles ou non
-    // PAR DÉFAUT: toutes les dates sont disponibles
-    // L'admin marque uniquement les indisponibilités
     const dateStatuses = daysToCheck.map((date) => {
       const dateKey = date.toISOString().split("T")[0];
+      const checkDate = new Date(dateKey); // Date normalisée minuit UTC
 
-      // Chercher la disponibilité en comparant les dates normalisées
-      const availability = availabilities.find((a) => {
+      // 1. Vérifier la table Availability (Priorité Admin)
+      const adminAvailability = availabilities.find((a) => {
         const aDateKey = a.date.toISOString().split("T")[0];
         return aDateKey === dateKey;
       });
 
-      const status = {
+      if (adminAvailability && !adminAvailability.available) {
+        return { date: dateKey, available: false, reason: "Bloqué par admin" };
+      }
+
+      // 2. Vérifier les réservations existantes
+      const hasBooking = existingBookings.some(booking => {
+        const bStart = new Date(booking.startDate.toISOString().split("T")[0]);
+        const bEnd = new Date(booking.endDate.toISOString().split("T")[0]);
+        const cDate = new Date(dateKey);
+        return cDate >= bStart && cDate <= bEnd;
+      });
+
+      if (hasBooking) {
+        return { date: dateKey, available: false, reason: "Déjà réservé" };
+      }
+
+      // 3. Sinon disponible
+      return {
         date: dateKey,
-        // Si pas défini dans la BDD = disponible par défaut
-        // Sinon, on prend la valeur de la BDD
-        available: availability ? availability.available : true,
-        defined: !!availability,
+        available: true,
       };
-
-      console.log(`✅ ${dateKey}: ${status.available ? "DISPONIBLE" : "INDISPONIBLE"} (défini: ${status.defined})`);
-
-      return status;
     });
 
     // Trouver les dates non disponibles
     const unavailableDates = dateStatuses.filter((d) => !d.available);
-    const undefinedDates = dateStatuses.filter((d) => !d.defined);
 
     return NextResponse.json({
       available: unavailableDates.length === 0,
       totalDays: daysToCheck.length,
       availableDays: dateStatuses.filter((d) => d.available).length,
       unavailableDates: unavailableDates.map((d) => d.date),
-      undefinedDates: undefinedDates.map((d) => d.date),
       message:
         unavailableDates.length === 0
           ? "Toutes les dates sont disponibles ✅"
