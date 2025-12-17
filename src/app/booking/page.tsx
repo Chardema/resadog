@@ -345,13 +345,15 @@ export default function BookingPage() {
   // Retourne le détail du prix pour UN animal donné
   const calculatePriceDetailForPet = (config: DateConfig, pet: Pet) => {
       const service = getSelectedService();
-      if (!service) return { total: 0, breakdown: "Service inconnu", isPuppy: false, surcharge: 0 };
+      if (!service) return { total: 0, breakdown: "Service inconnu", isPuppy: false, surchargeTotal: 0, quantity: 0, unitPrice: 0 };
       
       const puppyDailyRate = 2;
       const isPuppy = pet.age !== undefined && pet.age !== null && pet.age < 1;
       let total = 0;
       let breakdown = "";
-      let surcharge = 0;
+      let surchargeTotal = 0;
+      let quantity = 0;
+      let unitPrice = service.price;
 
       if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
           const validDates = config.individualDates.filter(d => d.date !== "");
@@ -368,20 +370,21 @@ export default function BookingPage() {
               }
           });
           
-          if (isPuppy) surcharge = visits * puppyDailyRate;
-          total = subTotal + surcharge;
-          breakdown = `${visits} visite(s)`;
+          if (isPuppy) surchargeTotal = visits * puppyDailyRate;
+          total = subTotal + surchargeTotal;
+          breakdown = "visites";
+          quantity = visits;
 
       } else {
-          if (!config.startDate || !config.endDate) return { total: 0, breakdown: "", isPuppy, surcharge: 0 };
+          if (!config.startDate || !config.endDate) return { total: 0, breakdown: "", isPuppy, surchargeTotal: 0, quantity: 0, unitPrice: 0 };
           
           const start = new Date(`${config.startDate}T${config.startTime}`);
           const end = new Date(`${config.endDate}T${config.endTime}`);
           
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) return { total: 0, breakdown: "", isPuppy, surcharge: 0 };
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return { total: 0, breakdown: "", isPuppy, surchargeTotal: 0, quantity: 0, unitPrice: 0 };
 
           const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-          if (totalHours <= 0) return { total: 0, breakdown: "", isPuppy, surcharge: 0 };
+          if (totalHours <= 0) return { total: 0, breakdown: "", isPuppy, surchargeTotal: 0, quantity: 0, unitPrice: 0 };
 
           if (formData.serviceType === "BOARDING") {
               const baseNights = Math.floor(totalHours / 24);
@@ -390,9 +393,10 @@ export default function BookingPage() {
               if (extraHours > 8) base += service.price;
               else if (extraHours > 2) base += (service.price * 0.5);
               
-              if (isPuppy) surcharge = baseNights * puppyDailyRate;
-              total = base + surcharge;
-              breakdown = `${baseNights} nuit(s)`;
+              if (isPuppy) surchargeTotal = baseNights * puppyDailyRate;
+              total = base + surchargeTotal;
+              breakdown = "nuits";
+              quantity = baseNights; // Simplified, extra hours might confuse "quantity" display but good for "nights" context
 
           } else {
              const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -401,12 +405,13 @@ export default function BookingPage() {
                  base += ((totalHours - (service.maxHours || 10)) * (service.extraHourlyRate || 0));
              }
              
-             if (isPuppy) surcharge = days * puppyDailyRate;
-             total = base + surcharge;
-             breakdown = `${days} jour(s)`;
+             if (isPuppy) surchargeTotal = days * puppyDailyRate;
+             total = base + surchargeTotal;
+             breakdown = "jours";
+             quantity = days;
           }
       }
-      return { total, breakdown, isPuppy, surcharge };
+      return { total, breakdown, isPuppy, surchargeTotal, quantity, unitPrice };
   };
 
   const calculateTotalPrice = () => {
@@ -533,7 +538,6 @@ export default function BookingPage() {
             const pet = pets.find(p => p.id === petId);
             if (!pet || !config) continue;
 
-            // Recalculate per pet price
             const details = calculatePriceDetailForPet(config, pet);
             const finalPrice = details.total * discountRatio;
 
@@ -790,14 +794,30 @@ export default function BookingPage() {
 
                                 return (
                                     <div key={id} className="border-b border-orange-200 pb-2">
-                                        <div className="flex justify-between items-center">
+                                        <div className="flex justify-between items-center mb-1">
                                             <div className="font-bold text-gray-900">🐕 {pet.name}</div>
                                             <div className="font-bold text-gray-900">{formatPrice(details.total)}€</div>
                                         </div>
-                                        <div className="text-xs text-gray-500 flex justify-between">
-                                            <span>{details.breakdown}</span>
-                                            {details.isPuppy && <span className="text-orange-600 font-bold">+ Supplément Chiot</span>}
+                                        
+                                        {/* Détail calcul */}
+                                        <div className="text-xs text-gray-500 flex justify-between items-center">
+                                            <span>{details.quantity} {details.breakdown} à {formatPrice(details.unitPrice)}€</span>
+                                            <span>{formatPrice(details.unitPrice * details.quantity)}€</span>
                                         </div>
+
+                                        {/* Supplément Chiot */}
+                                        {details.isPuppy && (
+                                            <div className="text-xs text-orange-600 flex justify-between items-center mt-1">
+                                                <div className="flex items-center gap-1 group relative cursor-help">
+                                                    <span>Supplément Chiot (+2€/{details.breakdown})</span>
+                                                    <span className="w-4 h-4 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] font-bold">i</span>
+                                                    <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl z-10">
+                                                        Tarif spécial pour les chiots de moins d'un an nécessitant plus d'attention.
+                                                    </div>
+                                                </div>
+                                                <span>+{formatPrice(details.surchargeTotal)}€</span>
+                                            </div>
+                                        )}
                                     </div>
                                 )
                             })}
