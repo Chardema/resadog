@@ -86,12 +86,20 @@ function BookingSuccessContent() {
         </motion.div>
 
         <h1 className="text-4xl font-extrabold text-gray-900 mb-4">
-          Réservation Confirmée ! 🎉
+          Demande Reçue ! 🎉
         </h1>
         
-        <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-          Merci pour votre confiance. Votre compagnon est entre de bonnes mains.
-        </p>
+        <div className="space-y-4 mb-8 text-gray-600">
+          <p className="text-lg font-medium">
+            Votre demande de réservation a bien été enregistrée.
+          </p>
+          <div className="bg-orange-50 text-orange-800 p-4 rounded-xl text-sm font-medium border border-orange-100">
+            ⏳ Nous validerons votre demande sous 48h maximum.
+          </div>
+          <p className="text-sm">
+            Tous les détails pratiques et organisationnels pour le séjour de votre compagnon vous seront communiqués <strong>par téléphone</strong>.
+          </p>
+        </div>
 
         <div className="bg-gray-50 rounded-2xl p-6 mb-8 text-left border border-gray-100">
           <p className="text-sm text-gray-500 mb-1">Numéro de réservation</p>
