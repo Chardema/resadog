@@ -118,10 +118,12 @@ export default function BookingPage() {
     loading: boolean;
     isAuto: boolean;
     data: null | {
-      code: string;
-      description?: string;
-      discountType: "PERCENTAGE" | "FIXED_AMOUNT";
-      discountValue: number;
+      coupon: {
+        code: string;
+        description?: string | null;
+        discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+        discountValue: number;
+      };
       discountAmount: number;
       finalAmount: number;
       message: string;
@@ -373,7 +375,23 @@ export default function BookingPage() {
           const price = calculatePrice();
           if (price > 0) validateCoupon();
           else {
-             setCouponStatus({ applied: true, loading: false, isAuto: true, data: { ...data.autoCoupon, discountAmount: 0, finalAmount: 0, message: "Réduction VIP dispo" }, error: "" });
+             setCouponStatus({ 
+               applied: true, 
+               loading: false, 
+               isAuto: true, 
+               data: { 
+                 coupon: {
+                   code: data.autoCoupon.code,
+                   description: data.autoCoupon.description,
+                   discountType: data.autoCoupon.discountType,
+                   discountValue: data.autoCoupon.discountValue,
+                 },
+                 discountAmount: 0, 
+                 finalAmount: 0, 
+                 message: "Réduction VIP dispo" 
+               }, 
+               error: "" 
+             });
           }
         }
       }
@@ -665,7 +683,7 @@ export default function BookingPage() {
                           <span className="text-gray-500 line-through">{formatPrice(calculatePrice())}€</span>
                         </div>
                         <div className="flex justify-between text-green-600 font-bold">
-                          <span>Réduction ({couponStatus.data.code})</span> 
+                          <span>Réduction ({couponStatus.data.coupon.code})</span> 
                           <span>-{formatPrice(calculatePrice() - couponStatus.data.finalAmount)}€</span>
                         </div>
                         <div className="flex justify-between border-t border-orange-200 pt-2 mt-2">
