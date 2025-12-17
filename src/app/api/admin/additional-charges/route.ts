@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
       where: { id: validatedData.bookingId },
       include: {
         client: true,
+        pets: true,
         pet: true,
       },
     });
@@ -60,6 +61,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Nom des animaux pour la description
+    const petsName = booking.pets.length > 0 
+      ? booking.pets.map(p => p.name).join(", ") 
+      : (booking.pet?.name || "Animal");
+
     // 🚀 Débiter automatiquement la carte enregistrée
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(validatedData.amount * 100), // Convertir en centimes
@@ -68,7 +74,7 @@ export async function POST(request: NextRequest) {
       payment_method: booking.client.paymentMethodId,
       off_session: true, // 🔑 IMPORTANT : Permet de débiter sans que le client soit présent
       confirm: true, // Confirmer immédiatement le paiement
-      description: `Supplément: ${validatedData.reason} - Réservation ${booking.pet.name}`,
+      description: `Supplément: ${validatedData.reason} - Réservation ${petsName}`,
       metadata: {
         bookingId: booking.id,
         userId: booking.client.id,
