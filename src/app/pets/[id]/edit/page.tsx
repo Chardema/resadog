@@ -97,16 +97,29 @@ export default function EditPetPage() {
     setIsSaving(true);
 
     try {
-      // Conversion de l'âge
-      let finalAge = formData.age ? parseFloat(formData.age) : undefined;
-      if (finalAge && ageUnit === "MONTHS") {
-        finalAge = parseFloat((finalAge / 12).toFixed(2));
+      // Conversion de l'âge sécurisée
+      let finalAge: number | undefined = undefined;
+      const parsedAge = parseFloat(formData.age);
+      
+      if (!isNaN(parsedAge)) {
+        if (ageUnit === "MONTHS") {
+          finalAge = parseFloat((parsedAge / 12).toFixed(2));
+        } else {
+          finalAge = parsedAge;
+        }
+      }
+
+      // Conversion du poids
+      let finalWeight: number | undefined = undefined;
+      const parsedWeight = parseFloat(formData.weight);
+      if (!isNaN(parsedWeight)) {
+        finalWeight = parsedWeight;
       }
 
       const petData = {
         ...formData,
         age: finalAge,
-        weight: formData.weight ? parseFloat(formData.weight) : undefined,
+        weight: finalWeight,
       };
 
       const response = await fetch(`/api/pets/${petId}`, {
@@ -266,6 +279,7 @@ export default function EditPetPage() {
                     <Input 
                       type="number" 
                       placeholder="Ex: 2" 
+                      step="0.1"
                       className="bg-gray-50 border-gray-200 h-12 rounded-xl"
                       value={formData.age}
                       onChange={(e) => setFormData({...formData, age: e.target.value})}
@@ -294,6 +308,7 @@ export default function EditPetPage() {
                   <Input 
                     type="number" 
                     placeholder="Ex: 12.5" 
+                    step="0.1"
                     className="bg-gray-50 border-gray-200 h-12 rounded-xl"
                     value={formData.weight}
                     onChange={(e) => setFormData({...formData, weight: e.target.value})}
