@@ -280,17 +280,27 @@ export default function BookingPage() {
 
       for (const item of configsToCheck) {
           const { config } = item;
-          // Skip check if dates incomplete
+          
+          // Validation de base des dates
           if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-              if (config.individualDates.filter(d => d.date !== "").length === 0) continue;
+              if (config.individualDates.filter(d => d.date !== "").length === 0) {
+                  // Pas bloquant si vide au début, mais bloquant pour la soumission
+                  continue; 
+              }
           } else {
-              if (!config.startDate || !config.endDate) continue;
+              if (!config.startDate || !config.endDate) {
+                  // Incomplet = pas prêt
+                  continue; 
+              }
               if (new Date(config.endDate) < new Date(config.startDate)) {
-                  allAvailable = false; globalMessage = "Dates incorrectes"; break;
+                  allAvailable = false; 
+                  globalMessage = "Dates incorrectes (Fin avant Début)"; 
+                  break; // Stop checking, strict fail
               }
           }
 
           try {
+             // ... (API check logic remains)
              let datesToCheck: string[] = [];
              if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
                  datesToCheck = config.individualDates.filter(d => d.date !== "").map(d => d.date);
@@ -309,10 +319,13 @@ export default function BookingPage() {
                  if (!data.available) {
                      allAvailable = false;
                      allUnavailableDates.push(...data.unavailableDates);
-                     globalMessage = "Dates indisponibles";
+                     globalMessage = "Certaines dates sont indisponibles";
                  }
+             } else {
+                 allAvailable = false;
+                 globalMessage = "Erreur vérification";
              }
-          } catch(e) { allAvailable = false; }
+          } catch(e) { allAvailable = false; globalMessage = "Erreur connexion"; }
       }
       
       if (allAvailable && globalMessage === "") {

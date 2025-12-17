@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier si le coupon est actif
     if (!coupon.isActive) {
+      console.log(`[Coupon] ${code} inactif`);
       return NextResponse.json(
         { error: "Ce code promo n'est plus actif" },
         { status: 400 }
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
     // Vérifier la date de validité
     const now = new Date();
     if (coupon.validFrom && now < coupon.validFrom) {
+      console.log(`[Coupon] ${code} pas encore valide (Début: ${coupon.validFrom})`);
       return NextResponse.json(
         { error: "Ce code promo n'est pas encore valide" },
         { status: 400 }
@@ -61,6 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (coupon.validUntil && now > coupon.validUntil) {
+      console.log(`[Coupon] ${code} expiré (Fin: ${coupon.validUntil})`);
       return NextResponse.json(
         { error: "Ce code promo a expiré" },
         { status: 400 }
@@ -69,6 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier le nombre d'utilisations
     if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) {
+      console.log(`[Coupon] ${code} max utilisations atteint (${coupon.currentUses}/${coupon.maxUses})`);
       return NextResponse.json(
         { error: "Ce code promo a atteint son nombre maximum d'utilisations" },
         { status: 400 }
@@ -77,6 +81,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier le montant minimum
     if (coupon.minAmount && totalAmount < coupon.minAmount) {
+      console.log(`[Coupon] ${code} montant insuffisant (${totalAmount} < ${coupon.minAmount})`);
       return NextResponse.json(
         {
           error: `Montant minimum de ${coupon.minAmount}€ requis pour utiliser ce code`,
@@ -87,6 +92,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier les restrictions d'email
     if (coupon.restrictedTo.length > 0 && !coupon.restrictedTo.includes(session.user.email || "")) {
+      console.log(`[Coupon] ${code} restreint (User: ${session.user.email})`);
       return NextResponse.json(
         { error: "Ce code promo n'est pas valide pour votre compte" },
         { status: 403 }
