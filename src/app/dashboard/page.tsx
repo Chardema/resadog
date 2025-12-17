@@ -12,10 +12,14 @@ interface Booking {
   startDate: string;
   endDate: string;
   status: string;
-  pet: {
+  pets: {
     name: string;
     imageUrl?: string | null;
-  };
+  }[];
+  pet?: {
+    name: string;
+    imageUrl?: string | null;
+  } | null;
   totalPrice: number;
 }
 
@@ -179,15 +183,22 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {data?.upcomingBookings.slice(0, 2).map((booking) => (
+                {data?.upcomingBookings.slice(0, 2).map((booking) => {
+                  // Determine display data (handle multi-pet)
+                  const displayImage = booking.pets.length > 0 ? booking.pets[0].imageUrl : booking.pet?.imageUrl;
+                  const displayName = booking.pets.length > 0 
+                      ? booking.pets.map(p => p.name).join(", ") 
+                      : (booking.pet?.name || "Inconnu");
+
+                  return (
                   <div key={booking.id} className="bg-gray-50 rounded-2xl p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl">
-                      {booking.pet.imageUrl ? (
-                        <img src={booking.pet.imageUrl} alt="" className="w-full h-full object-cover rounded-xl" />
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl overflow-hidden">
+                      {displayImage ? (
+                        <img src={displayImage} alt="" className="w-full h-full object-cover" />
                       ) : "🐕"}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">{booking.pet.name}</p>
+                      <p className="font-bold text-gray-900">{displayName}</p>
                       <p className="text-xs text-gray-500">
                         {new Date(booking.startDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} - {new Date(booking.endDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
                       </p>
@@ -199,7 +210,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </motion.div>
