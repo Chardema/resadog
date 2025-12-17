@@ -11,7 +11,7 @@ function parseUTCDate(dateString: string): Date {
 
 // Schéma de validation pour la création de réservation
 const createBookingSchema = z.object({
-  petId: z.string().min(1, "L'animal est requis"),
+  petIds: z.array(z.string()).min(1, "Au moins un animal est requis"),
   startDate: z.string().min(1, "La date de début est requise"),
   endDate: z.string().min(1, "La date de fin est requise"),
   startTime: z.string().optional(), // Heure de dépôt (HH:mm)
@@ -38,10 +38,16 @@ export async function POST(request: NextRequest) {
 
     // Parser et valider les données
     const body = await request.json();
+    
+    // Support backward compatibility if frontend sends single petId
+    if (body.petId && !body.petIds) {
+      body.petIds = [body.petId];
+    }
+
     const validatedData = createBookingSchema.parse(body);
 
     const {
-      petId,
+      petIds,
       startDate,
       endDate,
       startTime,
@@ -53,6 +59,21 @@ export async function POST(request: NextRequest) {
       promoCode,
       paymentMethod,
     } = validatedData;
+
+    // --- Validation des contraintes de capacité ---
+    if (serviceType === "BOARDING" && petIds.length > 2) {
+      return NextResponse.json(
+        { error: "Maximum 2 animaux pour l'hébergement" },
+        { status: 400 }
+      );
+    }
+    if (serviceType === "DAY_CARE" && petIds.length > 2) {
+      return NextResponse.json(
+        { error: "Maximum 2 animaux pour la garderie" },
+        { status: 400 }
+      );
+    }
+    // DROP_IN et DOG_WALKING sont illimités (logic handled naturally)
 
     // Convertir les dates en UTC pour éviter les problèmes de fuseau horaire
     const start = parseUTCDate(startDate);
@@ -66,17 +87,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier que l'animal appartient bien à l'utilisateur
-    const pet = await prisma.pet.findFirst({
+    // Vérifier que TOUS les animaux appartiennent bien à l'utilisateur
+    const pets = await prisma.pet.findMany({
       where: {
-        id: petId,
+        id: { in: petIds },
         ownerId: session.user.id,
       },
     });
 
-    if (!pet) {
+    if (pets.length !== petIds.length) {
       return NextResponse.json(
-        { error: "Cet animal n'existe pas ou ne vous appartient pas" },
+        { error: "Certains animaux n'existent pas ou ne vous appartiennent pas" },
         { status: 404 }
       );
     }
@@ -106,18 +127,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("📅 Vérification réservation:", {
-      serviceType,
-      dates: daysToCheck.map(d => d.toISOString().split("T")[0]),
-      availabilitiesInDB: availabilities.map(a => ({
-        date: a.date.toISOString().split("T")[0],
-        available: a.available
-      }))
-    });
-
-    // Vérifier que toutes les dates sont disponibles
-    // PAR DÉFAUT: toutes les dates sont disponibles
-    // Seules les dates marquées explicitement comme indisponibles bloquent la réservation
+    // Vérifier que toutes les dates sont disponibles (Admin blocking)
     const unavailableDates = daysToCheck.filter((date) => {
       const dateKey = date.toISOString().split("T")[0];
       const availability = availabilities.find(
@@ -139,13 +149,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier s'il existe une réservation PENDING existante pour ce client/animal/dates
-    // (Cas du retour arrière ou panier abandonné)
-    const pendingBooking = await prisma.booking.findFirst({
+    // Créer une nouvelle réservation
+    // Note: On ne met pas à jour les réservations PENDING existantes car avec le multi-pet
+    // la logique de fusion devient complexe. On crée toujours une nouvelle entrée.
+    
+    // Vérifier les conflits réels (réservations CONFIRMED ou IN_PROGRESS)
+    // Pour simplifier : si UN des animaux a déjà une réservation confirmée, c'est bloqué.
+    const conflictingBookings = await prisma.booking.findMany({
       where: {
-        petId,
-        clientId: session.user.id,
-        status: "PENDING",
+        pets: { some: { id: { in: petIds } } },
+        status: { in: ["CONFIRMED", "IN_PROGRESS"] },
         OR: [
           {
             AND: [{ startDate: { lte: start } }, { endDate: { gte: start } }],
@@ -160,80 +173,42 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    let booking;
-
-    if (pendingBooking) {
-      // Mettre à jour la réservation existante
-      booking = await prisma.booking.update({
-        where: { id: pendingBooking.id },
-        data: {
-          startDate: start,
-          endDate: end,
-          startTime: startTime || null,
-          endTime: endTime || null,
-          serviceType,
-          totalPrice,
-          depositAmount,
-          specialRequests: notes || null,
-          notes: paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
+    if (conflictingBookings.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Une réservation confirmée existe déjà pour l'un de ces animaux sur cette période",
         },
-        include: {
-          pet: { select: { name: true, breed: true } },
-          client: { select: { name: true, email: true } },
-        },
-      });
-    } else {
-      // Vérifier les conflits réels (réservations CONFIRMED ou IN_PROGRESS)
-      const conflictingBookings = await prisma.booking.findMany({
-        where: {
-          petId,
-          status: { in: ["CONFIRMED", "IN_PROGRESS"] },
-          OR: [
-            {
-              AND: [{ startDate: { lte: start } }, { endDate: { gte: start } }],
-            },
-            {
-              AND: [{ startDate: { lte: end } }, { endDate: { gte: end } }],
-            },
-            {
-              AND: [{ startDate: { gte: start } }, { endDate: { lte: end } }],
-            },
-          ],
-        },
-      });
-
-      if (conflictingBookings.length > 0) {
-        return NextResponse.json(
-          {
-            error: "Une réservation confirmée existe déjà pour cet animal sur cette période",
-          },
-          { status: 400 }
-        );
-      }
-
-      // Créer une nouvelle réservation
-      booking = await prisma.booking.create({
-        data: {
-          startDate: start,
-          endDate: end,
-          startTime: startTime || null,
-          endTime: endTime || null,
-          status: "PENDING",
-          serviceType,
-          totalPrice,
-          depositPaid: false,
-          depositAmount,
-          specialRequests: notes || null,
-          notes: paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
-          clientId: session.user.id,
-          petId,
-        },
-        include: {
-          pet: { select: { name: true, breed: true } },
-          client: { select: { name: true, email: true } },
-        },
-      });
+        { status: 400 }
+      );
     }
+
+    // Créer une nouvelle réservation
+    const booking = await prisma.booking.create({
+      data: {
+        startDate: start,
+        endDate: end,
+        startTime: startTime || null,
+        endTime: endTime || null,
+        status: "PENDING",
+        serviceType,
+        totalPrice,
+        depositPaid: false,
+        depositAmount,
+        specialRequests: notes || null,
+        notes: paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
+        clientId: session.user.id,
+        // Liaison Many-to-Many
+        pets: {
+          connect: petIds.map((id) => ({ id })),
+        },
+        // Backward compatibility (optional, points to first pet)
+        petId: petIds[0],
+      },
+      include: {
+        pets: { select: { name: true, breed: true } },
+        client: { select: { name: true, email: true } },
+      },
+    });
 
     return NextResponse.json({
       success: true,
@@ -245,7 +220,7 @@ export async function POST(request: NextRequest) {
         status: booking.status,
         totalPrice: booking.totalPrice,
         depositAmount: booking.depositAmount,
-        pet: booking.pet,
+        pets: booking.pets,
         client: booking.client,
       },
       message: "Réservation créée avec succès! En attente de confirmation du gardien.",
@@ -294,12 +269,19 @@ export async function GET(request: NextRequest) {
         clientId: session.user.id,
       },
       include: {
-        pet: {
+        pets: {
           select: {
             name: true,
             breed: true,
           },
         },
+        // Fallback for old bookings
+        pet: {
+          select: {
+            name: true,
+            breed: true,
+          }
+        }
       },
       orderBy: {
         startDate: "desc",
@@ -316,7 +298,8 @@ export async function GET(request: NextRequest) {
         totalPrice: b.totalPrice,
         depositAmount: b.depositAmount,
         depositPaid: b.depositPaid,
-        pet: b.pet,
+        // Combine old and new pets logic
+        pets: b.pets.length > 0 ? b.pets : (b.pet ? [b.pet] : []),
         createdAt: b.createdAt.toISOString(),
       })),
     });

@@ -21,6 +21,7 @@ const serviceTypes = [
     icon: "🏠",
     maxHours: 24,
     extraHourlyRate: 3,
+    maxPets: 2,
   },
   {
     value: "DAY_CARE",
@@ -31,17 +32,19 @@ const serviceTypes = [
     icon: "☀️",
     maxHours: 10,
     extraHourlyRate: 3,
+    maxPets: 2,
   },
   {
     value: "DROP_IN",
     name: "Visite à domicile",
-    price: 20,
+    price: 13,
     unit: "visite",
     description: "Visite de 30 min pour les chats et chiens indépendants.",
     icon: "🚪",
     baseDuration: 30,
     extraDurationRate: 15,
     durationIncrement: 30,
+    maxPets: 99,
   },
   {
     value: "DOG_WALKING",
@@ -53,6 +56,7 @@ const serviceTypes = [
     baseDuration: 15,
     extraDurationRate: 10,
     durationIncrement: 15,
+    maxPets: 99,
   },
 ];
 
@@ -88,7 +92,7 @@ export default function BookingPage() {
 
   // Formulaire
   const [formData, setFormData] = useState<{
-    petId: string;
+    petIds: string[];
     startDate: string;
     endDate: string;
     startTime: string;
@@ -97,7 +101,7 @@ export default function BookingPage() {
     notes: string;
     promoCode: string;
   }>({
-    petId: "",
+    petIds: [],
     startDate: "",
     endDate: "",
     startTime: "18:00",
@@ -245,9 +249,19 @@ export default function BookingPage() {
     const service = getSelectedService();
     if (!service) return defaultResult;
 
-    const selectedPet = pets.find(p => p.id === formData.petId);
-    const isPuppy = selectedPet && selectedPet.age !== undefined && selectedPet.age !== null && selectedPet.age < 1;
+    // Get all selected pets
+    const selectedPets = pets.filter(p => formData.petIds.includes(p.id));
+    if (selectedPets.length === 0) return defaultResult;
+
     const puppyDailyRate = 2;
+    let totalPuppySurcharge = 0;
+    
+    // Check for puppies
+    selectedPets.forEach(pet => {
+       if (pet.age !== undefined && pet.age !== null && pet.age < 1) {
+           // Surcharge will be added based on duration later
+       }
+    });
 
     if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
       const validDates = individualDates.filter(d => d.date !== "");
@@ -256,24 +270,29 @@ export default function BookingPage() {
       let totalSurcharge = 0;
 
       validDates.forEach(item => {
-        totalBasePrice += service.price;
+        totalBasePrice += (service.price * selectedPets.length); // Price per pet
         const extraDuration = item.duration - (service.baseDuration || 0);
         if (extraDuration > 0) {
           const increment = service.durationIncrement || 1;
           const extraIncrements = Math.ceil(extraDuration / increment);
-          totalSurcharge += extraIncrements * (service.extraDurationRate || 0);
+          totalSurcharge += (extraIncrements * (service.extraDurationRate || 0)) * selectedPets.length;
         }
       });
 
-      const puppySurcharge = isPuppy ? days * puppyDailyRate : 0;
-      const total = totalBasePrice + totalSurcharge + puppySurcharge;
+      selectedPets.forEach(pet => {
+         if (pet.age !== undefined && pet.age !== null && pet.age < 1) {
+             totalPuppySurcharge += (days * puppyDailyRate);
+         }
+      });
+
+      const total = totalBasePrice + totalSurcharge + totalPuppySurcharge;
 
       return {
         ...defaultResult,
         baseNights: days,
         basePrice: totalBasePrice,
         surchargePrice: totalSurcharge,
-        puppySurcharge,
+        puppySurcharge: totalPuppySurcharge,
         totalPrice: total,
       };
     }
@@ -286,21 +305,27 @@ export default function BookingPage() {
     if (formData.serviceType === "BOARDING") {
       const baseNights = Math.floor(totalHours / 24);
       const extraHours = totalHours % 24;
-      const basePrice = baseNights * service.price;
+      
+      const basePrice = (baseNights * service.price) * selectedPets.length;
       
       let surchargePrice = 0;
       let surchargeType = null;
 
       if (extraHours > 8) {
-        surchargePrice = service.price;
+        surchargePrice = (service.price) * selectedPets.length;
         surchargeType = "plein";
       } else if (extraHours > 2) {
-        surchargePrice = service.price * 0.5;
+        surchargePrice = (service.price * 0.5) * selectedPets.length;
         surchargeType = "demi";
       }
 
-      const puppySurcharge = isPuppy ? baseNights * puppyDailyRate : 0;
-      const total = basePrice + surchargePrice + puppySurcharge;
+      selectedPets.forEach(pet => {
+         if (pet.age !== undefined && pet.age !== null && pet.age < 1) {
+             totalPuppySurcharge += (baseNights * puppyDailyRate);
+         }
+      });
+
+      const total = basePrice + surchargePrice + totalPuppySurcharge;
 
       return {
         baseNights,
@@ -308,7 +333,7 @@ export default function BookingPage() {
         surchargeType,
         basePrice,
         surchargePrice,
-        puppySurcharge,
+        puppySurcharge: totalPuppySurcharge,
         totalPrice: total,
         detail: "",
       };
@@ -320,22 +345,26 @@ export default function BookingPage() {
       const end = new Date(formData.endDate);
       const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       
-      let basePrice = days * service.price;
+      let basePrice = (days * service.price) * selectedPets.length;
       let surchargePrice = 0;
       
       if (days === 1 && totalHours > (service.maxHours || 10)) {
-        surchargePrice = (totalHours - (service.maxHours || 10)) * (service.extraHourlyRate || 0);
+        surchargePrice = ((totalHours - (service.maxHours || 10)) * (service.extraHourlyRate || 0)) * selectedPets.length;
       }
       
-      const puppySurcharge = isPuppy ? days * puppyDailyRate : 0;
+      selectedPets.forEach(pet => {
+         if (pet.age !== undefined && pet.age !== null && pet.age < 1) {
+             totalPuppySurcharge += (days * puppyDailyRate);
+         }
+      });
       
       return {
         ...defaultResult,
         baseNights: days,
         basePrice,
         surchargePrice,
-        puppySurcharge,
-        totalPrice: basePrice + surchargePrice + puppySurcharge,
+        puppySurcharge: totalPuppySurcharge,
+        totalPrice: basePrice + surchargePrice + totalPuppySurcharge,
       };
     }
 
@@ -361,6 +390,16 @@ export default function BookingPage() {
   const formatPrice = (value: number | undefined | null) => {
     if (value === undefined || value === null || isNaN(value)) return "0";
     return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
+  };
+
+  const togglePet = (id: string) => {
+      setFormData(prev => {
+          const exists = prev.petIds.includes(id);
+          const newIds = exists 
+              ? prev.petIds.filter(pid => pid !== id)
+              : [...prev.petIds, id];
+          return { ...prev, petIds: newIds };
+      });
   };
 
   // API Calls
@@ -464,8 +503,11 @@ export default function BookingPage() {
 
   // --- RENDER ---
   if (status === "loading") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐕</div>;
-
-  const currentPetName = pets.find(p => p.id === formData.petId)?.name || "votre compagnon";
+  
+  const selectedPetsList = pets.filter(p => formData.petIds.includes(p.id));
+  const currentPetName = selectedPetsList.length > 0 
+      ? selectedPetsList.map(p => p.name).join(", ") 
+      : "votre compagnon";
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
@@ -519,6 +561,7 @@ export default function BookingPage() {
             {step === 1 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-gray-900">Pour qui est ce séjour ?</h2>
+                <p className="text-gray-500 text-sm">Sélectionnez un ou plusieurs animaux.</p>
                 {pets.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
                     <p className="text-gray-500 mb-4">Vous n'avez pas encore de compagnon enregistré.</p>
@@ -526,19 +569,23 @@ export default function BookingPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
-                    {pets.map((pet) => (
+                    {pets.map((pet) => {
+                      const isSelected = formData.petIds.includes(pet.id);
+                      return (
                       <div
                         key={pet.id}
-                        onClick={() => setFormData({ ...formData, petId: pet.id })}
-                        className={`cursor-pointer rounded-2xl p-4 border-2 transition-all flex items-center gap-4 ${formData.petId === pet.id ? "border-orange-500 bg-orange-50 ring-2 ring-orange-200" : "border-gray-100 hover:border-gray-300"}`}
+                        onClick={() => togglePet(pet.id)}
+                        className={`cursor-pointer rounded-2xl p-4 border-2 transition-all flex items-center gap-4 ${isSelected ? "border-orange-500 bg-orange-50 ring-2 ring-orange-200" : "border-gray-100 hover:border-gray-300"}`}
                       >
-                        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-2xl">🐕</div>
-                        <span className="font-bold text-gray-900">{pet.name}</span>
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isSelected ? "bg-orange-100" : "bg-gray-100"}`}>
+                            {isSelected ? "✅" : "🐕"}
+                        </div>
+                        <span className={`font-bold ${isSelected ? "text-gray-900" : "text-gray-500"}`}>{pet.name}</span>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 )}
-                <Button type="button" onClick={() => setStep(2)} disabled={!formData.petId} className="w-full h-14 rounded-xl text-lg bg-gray-900 hover:bg-orange-600">Continuer</Button>
+                <Button type="button" onClick={() => setStep(2)} disabled={formData.petIds.length === 0} className="w-full h-14 rounded-xl text-lg bg-gray-900 hover:bg-orange-600">Continuer</Button>
               </div>
             )}
 
@@ -549,20 +596,35 @@ export default function BookingPage() {
                 
                 {/* Services Grid */}
                 <div className="grid md:grid-cols-2 gap-4">
-                  {serviceTypes.map((s) => (
+                  {serviceTypes.map((s) => {
+                    const isDisabled = s.maxPets < formData.petIds.length;
+                    return (
                     <div
                       key={s.value}
-                      onClick={() => setFormData({ ...formData, serviceType: s.value as any })}
-                      className={`cursor-pointer p-6 rounded-2xl border-2 transition-all ${formData.serviceType === s.value ? "border-orange-500 bg-orange-50 shadow-md" : "border-gray-100 hover:border-gray-300"}`}
+                      onClick={() => !isDisabled && setFormData({ ...formData, serviceType: s.value as any })}
+                      className={`relative p-6 rounded-2xl border-2 transition-all ${
+                          isDisabled 
+                            ? "opacity-50 cursor-not-allowed border-gray-100 bg-gray-50" 
+                            : "cursor-pointer hover:border-gray-300"
+                        } ${
+                          !isDisabled && formData.serviceType === s.value 
+                            ? "border-orange-500 bg-orange-50 shadow-md" 
+                            : "border-gray-100"
+                        }`}
                     >
+                      {isDisabled && (
+                          <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full">
+                              Max {s.maxPets} animaux
+                          </div>
+                      )}
                       <div className="text-3xl mb-2">{s.icon}</div>
                       <div className="flex justify-between items-center mb-1">
                         <h3 className="font-bold text-gray-900">{s.name}</h3>
                         <div className="font-bold text-orange-600">{s.price}€</div>
                       </div>
-                      <p className="text-xs text-gray-500">{s.description.replace("Votre chien", currentPetName)}</p>
+                      <p className="text-xs text-gray-500">{s.description}</p>
                     </div>
-                  ))}
+                  )})}
                 </div>
 
                 {/* Dates Inputs */}
@@ -606,7 +668,7 @@ export default function BookingPage() {
                 {calculatePrice() > 0 && availabilityStatus.available && (
                   <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6 rounded-3xl flex justify-between items-center shadow-lg">
                     <div>
-                      <p className="text-gray-400 text-sm">Total estimé</p>
+                      <p className="text-gray-400 text-sm">Total estimé ({formData.petIds.length} animaux)</p>
                       <div className="flex items-baseline gap-3">
                         {couponStatus.applied && couponStatus.data ? (
                           <>
@@ -673,7 +735,7 @@ export default function BookingPage() {
                 <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100">
                   <h3 className="font-bold text-orange-900 mb-4">Récapitulatif</h3>
                   <div className="space-y-2 text-sm text-gray-700">
-                    <div className="flex justify-between"><span>Compagnon</span> <strong>{currentPetName}</strong></div>
+                    <div className="flex justify-between"><span>Compagnon(s)</span> <strong>{currentPetName}</strong></div>
                     <div className="flex justify-between"><span>Service</span> <strong>{getSelectedService()?.name}</strong></div>
                     
                     {/* Affichage du supplément chiot si applicable */}

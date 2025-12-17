@@ -116,7 +116,8 @@ model Pet {
 
   ownerId      String
   owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  bookings     Booking[]
+  legacyBookings Booking[]
+  bookings     Booking[]     @relation("BookingPets")
   journalEntries JournalEntry[]
 
   @@index([ownerId])
@@ -151,8 +152,9 @@ model Booking {
 
   clientId     String
   client       User          @relation(fields: [clientId], references: [id])
-  petId        String
-  pet          Pet           @relation(fields: [petId], references: [id])
+  petId        String?
+  pet          Pet?          @relation(fields: [petId], references: [id])
+  pets         Pet[]         @relation("BookingPets")
   payment      Payment?
   additionalCharges AdditionalCharge[]
   journalEntries JournalEntry[]
