@@ -479,18 +479,24 @@ export default function BookingPage() {
   };
 
   const validateCoupon = async () => {
+      console.log("🖱️ Click validateCoupon");
       const price = calculateTotalPrice();
+      console.log("💰 Prix calculé:", price);
+      console.log("🎟️ Code:", formData.promoCode);
       
       if (!formData.promoCode) {
+          console.log("❌ Code manquant");
           setCouponStatus(p => ({ ...p, error: "Code requis" }));
           return;
       }
       
       if (price === 0) {
+          console.log("❌ Prix 0");
           setCouponStatus(p => ({ ...p, error: "Sélectionnez vos dates d'abord" }));
           return;
       }
       
+      console.log("🚀 Envoi requête API...");
       setCouponStatus(p => ({ ...p, loading: true, error: "" }));
       const duration = calculateMaxDuration();
 
@@ -501,12 +507,17 @@ export default function BookingPage() {
             body: JSON.stringify({ code: formData.promoCode, totalAmount: price, serviceType: formData.serviceType, duration }),
         });
         const data = await res.json();
+        console.log("📥 Réponse API:", data);
+        
         if (res.ok) {
             setCouponStatus({ applied: true, loading: false, isAuto: couponStatus.isAuto, data: data, error: "" });
         } else {
             setCouponStatus({ applied: false, loading: false, isAuto: false, data: null, error: data.error || "Code invalide" });
         }
-      } catch (e) { setCouponStatus(p => ({ ...p, loading: false, error: "Erreur de connexion" })); }
+      } catch (e) { 
+          console.error("🔥 Erreur fetch:", e);
+          setCouponStatus(p => ({ ...p, loading: false, error: "Erreur de connexion" })); 
+      }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
