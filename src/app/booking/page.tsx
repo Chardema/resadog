@@ -300,7 +300,6 @@ export default function BookingPage() {
           }
 
           try {
-             // ... (API check logic remains)
              let datesToCheck: string[] = [];
              if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
                  datesToCheck = config.individualDates.filter(d => d.date !== "").map(d => d.date);
@@ -343,16 +342,20 @@ export default function BookingPage() {
 
   const getSelectedService = () => serviceTypes.find(s => s.value === formData.serviceType);
   
-  const calculatePriceForConfig = (config: DateConfig, petList: Pet[]) => {
+  // Retourne le détail du prix pour UN animal donné
+  const calculatePriceDetailForPet = (config: DateConfig, pet: Pet) => {
       const service = getSelectedService();
-      if (!service) return 0;
+      if (!service) return { total: 0, breakdown: "Service inconnu", isPuppy: false, surcharge: 0 };
       
-      let totalPrice = 0;
       const puppyDailyRate = 2;
+      const isPuppy = pet.age !== undefined && pet.age !== null && pet.age < 1;
+      let total = 0;
+      let breakdown = "";
+      let surcharge = 0;
 
       if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
           const validDates = config.individualDates.filter(d => d.date !== "");
-          const days = validDates.length;
+          const visits = validDates.length;
           
           let subTotal = 0;
           validDates.forEach(item => {
@@ -365,24 +368,20 @@ export default function BookingPage() {
               }
           });
           
-          totalPrice = subTotal * petList.length;
-
-          // Puppy surcharge
-          petList.forEach(p => {
-              if (p.age !== undefined && p.age !== null && p.age < 1) {
-                  totalPrice += (days * puppyDailyRate);
-              }
-          });
+          if (isPuppy) surcharge = visits * puppyDailyRate;
+          total = subTotal + surcharge;
+          breakdown = `${visits} visite(s)`;
 
       } else {
-          if (!config.startDate || !config.endDate) return 0;
+          if (!config.startDate || !config.endDate) return { total: 0, breakdown: "", isPuppy, surcharge: 0 };
+          
           const start = new Date(`${config.startDate}T${config.startTime}`);
           const end = new Date(`${config.endDate}T${config.endTime}`);
           
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return { total: 0, breakdown: "", isPuppy, surcharge: 0 };
 
           const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-          if (totalHours <= 0) return 0;
+          if (totalHours <= 0) return { total: 0, breakdown: "", isPuppy, surcharge: 0 };
 
           if (formData.serviceType === "BOARDING") {
               const baseNights = Math.floor(totalHours / 24);
@@ -391,13 +390,9 @@ export default function BookingPage() {
               if (extraHours > 8) base += service.price;
               else if (extraHours > 2) base += (service.price * 0.5);
               
-              totalPrice = base * petList.length;
-               
-              petList.forEach(p => {
-                 if (p.age !== undefined && p.age !== null && p.age < 1) {
-                     totalPrice += (baseNights * puppyDailyRate);
-                 }
-              });
+              if (isPuppy) surcharge = baseNights * puppyDailyRate;
+              total = base + surcharge;
+              breakdown = `${baseNights} nuit(s)`;
 
           } else {
              const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -406,38 +401,27 @@ export default function BookingPage() {
                  base += ((totalHours - (service.maxHours || 10)) * (service.extraHourlyRate || 0));
              }
              
-             totalPrice = base * petList.length;
-
-             petList.forEach(p => {
-                 if (p.age !== undefined && p.age !== null && p.age < 1) {
-                     totalPrice += (days * puppyDailyRate);
-                 }
-              });
+             if (isPuppy) surcharge = days * puppyDailyRate;
+             total = base + surcharge;
+             breakdown = `${days} jour(s)`;
           }
       }
-      return totalPrice;
+      return { total, breakdown, isPuppy, surcharge };
   };
 
   const calculateTotalPrice = () => {
-      if (useSameDates) {
-          const selectedPets = pets.filter(p => formData.petIds.includes(p.id));
-          return calculatePriceForConfig({
-              startDate: formData.startDate,
-              endDate: formData.endDate,
-              startTime: formData.startTime,
-              endTime: formData.endTime,
-              individualDates: individualDates
-          }, selectedPets);
-      } else {
-          let total = 0;
-          formData.petIds.forEach(id => {
-              const pet = pets.find(p => p.id === id);
-              if (pet && petConfigs[id]) {
-                  total += calculatePriceForConfig(petConfigs[id], [pet]);
-              }
-          });
-          return total;
-      }
+      let total = 0;
+      formData.petIds.forEach(id => {
+          const pet = pets.find(p => p.id === id);
+          const config = useSameDates 
+            ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, individualDates } 
+            : petConfigs[id];
+            
+          if (pet && config) {
+              total += calculatePriceDetailForPet(config, pet).total;
+          }
+      });
+      return total;
   };
 
   // Helper pour calculer la durée (pour les coupons)
@@ -479,24 +463,18 @@ export default function BookingPage() {
   };
 
   const validateCoupon = async () => {
-      console.log("🖱️ Click validateCoupon");
       const price = calculateTotalPrice();
-      console.log("💰 Prix calculé:", price);
-      console.log("🎟️ Code:", formData.promoCode);
       
       if (!formData.promoCode) {
-          console.log("❌ Code manquant");
           setCouponStatus(p => ({ ...p, error: "Code requis" }));
           return;
       }
       
       if (price === 0) {
-          console.log("❌ Prix 0");
           setCouponStatus(p => ({ ...p, error: "Sélectionnez vos dates d'abord" }));
           return;
       }
       
-      console.log("🚀 Envoi requête API...");
       setCouponStatus(p => ({ ...p, loading: true, error: "" }));
       const duration = calculateMaxDuration();
 
@@ -507,7 +485,6 @@ export default function BookingPage() {
             body: JSON.stringify({ code: formData.promoCode, totalAmount: price, serviceType: formData.serviceType, duration }),
         });
         const data = await res.json();
-        console.log("📥 Réponse API:", data);
         
         if (res.ok) {
             setCouponStatus({ applied: true, loading: false, isAuto: couponStatus.isAuto, data: data, error: "" });
@@ -515,7 +492,6 @@ export default function BookingPage() {
             setCouponStatus({ applied: false, loading: false, isAuto: false, data: null, error: data.error || "Code invalide" });
         }
       } catch (e) { 
-          console.error("🔥 Erreur fetch:", e);
           setCouponStatus(p => ({ ...p, loading: false, error: "Erreur de connexion" })); 
       }
   };
@@ -557,8 +533,9 @@ export default function BookingPage() {
             const pet = pets.find(p => p.id === petId);
             if (!pet || !config) continue;
 
-            const rawPrice = calculatePriceForConfig(config, [pet]);
-            const finalPrice = rawPrice * discountRatio;
+            // Recalculate per pet price
+            const details = calculatePriceDetailForPet(config, pet);
+            const finalPrice = details.total * discountRatio;
 
             let startDate = config.startDate;
             let endDate = config.endDate;
@@ -802,32 +779,47 @@ export default function BookingPage() {
                     <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100">
                         <h3 className="font-bold text-orange-900 mb-4">Récapitulatif</h3>
                         <div className="space-y-4 text-sm text-gray-700">
-                            {useSameDates ? (
-                                <div className="border-b border-orange-200 pb-2">
-                                    <div className="font-bold">{currentPetName}</div>
-                                    <div className="text-xs text-gray-500">Mêmes dates pour tous</div>
-                                </div>
-                            ) : (
-                                formData.petIds.map(id => {
-                                    const pet = pets.find(p => p.id === id);
-                                    const config = petConfigs[id];
-                                    if(!pet || !config) return null;
-                                    return (
-                                        <div key={id} className="border-b border-orange-200 pb-2">
-                                            <div className="font-bold">{pet.name}</div>
-                                            <div className="text-xs text-gray-500">
-                                                {formData.serviceType === "DROP_IN" 
-                                                    ? `${config.individualDates.length} visites`
-                                                    : `Du ${config.startDate} au ${config.endDate}`
-                                                }
-                                            </div>
+                            {formData.petIds.map(id => {
+                                const pet = pets.find(p => p.id === id);
+                                const config = useSameDates 
+                                    ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, individualDates } 
+                                    : petConfigs[id];
+                                if(!pet || !config) return null;
+                                
+                                const details = calculatePriceDetailForPet(config, pet);
+
+                                return (
+                                    <div key={id} className="border-b border-orange-200 pb-2">
+                                        <div className="flex justify-between items-center">
+                                            <div className="font-bold text-gray-900">🐕 {pet.name}</div>
+                                            <div className="font-bold text-gray-900">{formatPrice(details.total)}€</div>
                                         </div>
-                                    )
-                                })
+                                        <div className="text-xs text-gray-500 flex justify-between">
+                                            <span>{details.breakdown}</span>
+                                            {details.isPuppy && <span className="text-orange-600 font-bold">+ Supplément Chiot</span>}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                            
+                            {/* Sous-total si coupon appliqué */}
+                            {couponStatus.applied && couponStatus.data && (
+                                <div className="flex justify-between pt-2 text-gray-500">
+                                    <span>Sous-total</span>
+                                    <span className="line-through">{formatPrice(calculateTotalPrice())}€</span>
+                                </div>
+                            )}
+
+                            {/* Réduction si coupon appliqué */}
+                            {couponStatus.applied && couponStatus.data && (
+                                <div className="flex justify-between text-green-600 font-bold">
+                                    <span>Réduction ({couponStatus.data.coupon.code})</span>
+                                    <span>-{formatPrice(calculateTotalPrice() - couponStatus.data.finalAmount)}€</span>
+                                </div>
                             )}
                             
-                            <div className="flex justify-between pt-2">
-                                <span className="font-bold text-xl">Total à payer</span>
+                            <div className="flex justify-between pt-2 border-t border-orange-200 mt-2">
+                                <span className="font-bold text-xl text-gray-900">Total à payer</span>
                                 <strong className="text-xl text-green-600">{formatPrice(couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice())}€</strong>
                             </div>
                         </div>
