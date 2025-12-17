@@ -754,18 +754,17 @@ export default function BookingPage() {
                                         onChange={(e) => setFormData({...formData, promoCode: e.target.value.toUpperCase()})}
                                         onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); validateCoupon(); } }} 
                                      />
-                                     <Button 
+                                     <button 
                                         type="button" 
-                                        size="sm" 
                                         onClick={(e) => { 
                                             e.preventDefault(); 
-                                            console.log("🔥 CLICK BUTTON TEST 🔥"); 
+                                            alert("🖱️ Click détecté ! Validation en cours...");
                                             validateCoupon(); 
                                         }} 
-                                        className="bg-white/20 text-white hover:bg-white/30 cursor-pointer z-50 relative"
+                                        className="bg-white/20 text-white hover:bg-white/30 cursor-pointer z-50 relative h-10 px-4 rounded-md font-bold text-sm border border-white/10"
                                      >
                                         {couponStatus.loading ? "..." : "OK"}
-                                     </Button>
+                                     </button>
                                  </div>
                                  {couponStatus.error && (
                                     <p className="text-red-400 text-xs font-bold mt-1 text-right">{couponStatus.error}</p>
