@@ -34,6 +34,7 @@ export default async function AdminDashboardPage() {
     include: {
       client: true,
       pet: true,
+      pets: true,
     },
     orderBy: {
       startDate: "asc",

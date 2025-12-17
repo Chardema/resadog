@@ -15,7 +15,8 @@ interface Booking {
   id: string;
   startDate: Date;
   status: string;
-  pet: { name: string };
+  pets: { name: string }[];
+  pet?: { name: string } | null;
   client: { name: string | null };
 }
 
@@ -283,7 +284,12 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {upcomingBookings.map((booking, index) => (
+                  {upcomingBookings.map((booking, index) => {
+                    const petsName = booking.pets.length > 0 
+                      ? booking.pets.map(p => p.name).join(", ") 
+                      : (booking.pet?.name || "Inconnu");
+
+                    return (
                     <motion.div
                       key={booking.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -301,7 +307,7 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
                               🐕
                             </div>
                             <div>
-                              <h3 className="font-bold text-gray-900">{booking.pet.name}</h3>
+                              <h3 className="font-bold text-gray-900">{petsName}</h3>
                               <p className="text-sm text-gray-600">{booking.client.name}</p>
                             </div>
                           </div>
@@ -321,7 +327,7 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
                         </div>
                       </Link>
                     </motion.div>
-                  ))}
+                  )})}
                 </div>
               )}
             </motion.div>
