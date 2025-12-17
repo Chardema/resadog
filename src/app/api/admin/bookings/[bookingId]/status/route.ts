@@ -35,6 +35,7 @@ export async function PATCH(
       include: { 
         payment: true,
         client: true,
+        pets: true,
         pet: true
       },
     });
@@ -60,12 +61,17 @@ export async function PATCH(
             data: { status: "SUCCEEDED", paidAt: new Date() }
           });
 
+          // Nom des animaux pour l'email
+          const petsName = booking.pets.length > 0 
+            ? booking.pets.map(p => p.name).join(", ") 
+            : (booking.pet?.name || "Votre compagnon");
+
           // Envoyer email de confirmation
           await sendBookingConfirmationEmail(
             booking.client.email,
             booking.client.name || "Client",
             {
-              petName: booking.pet.name,
+              petName: petsName,
               startDate: new Date(booking.startDate).toLocaleDateString("fr-FR"),
               endDate: new Date(booking.endDate).toLocaleDateString("fr-FR"),
               totalPrice: booking.totalPrice
