@@ -378,6 +378,9 @@ export default function BookingPage() {
           if (!config.startDate || !config.endDate) return 0;
           const start = new Date(`${config.startDate}T${config.startTime}`);
           const end = new Date(`${config.endDate}T${config.endTime}`);
+          
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+
           const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
           if (totalHours <= 0) return 0;
 
@@ -681,7 +684,7 @@ export default function BookingPage() {
                     <h2 className="text-2xl font-bold text-gray-900">3. Quand ? 📅</h2>
                     {formData.petIds.length > 1 && (
                         <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full">
-                            <label htmlFor="same-dates" className="text-sm font-medium cursor-pointer">Mêmes dates</label>
+                            <label htmlFor="same-dates" className="text-sm font-medium cursor-pointer text-gray-900">Mêmes dates</label>
                             <input id="same-dates" type="checkbox" checked={useSameDates} onChange={(e) => setUseSameDates(e.target.checked)} className="w-5 h-5 accent-orange-600" />
                         </div>
                     )}
