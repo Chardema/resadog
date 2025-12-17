@@ -464,9 +464,18 @@ export default function BookingPage() {
 
   const validateCoupon = async () => {
       const price = calculateTotalPrice();
-      if (!formData.promoCode || price === 0) return;
       
-      setCouponStatus(p => ({ ...p, loading: true }));
+      if (!formData.promoCode) {
+          setCouponStatus(p => ({ ...p, error: "Code requis" }));
+          return;
+      }
+      
+      if (price === 0) {
+          setCouponStatus(p => ({ ...p, error: "Sélectionnez vos dates d'abord" }));
+          return;
+      }
+      
+      setCouponStatus(p => ({ ...p, loading: true, error: "" }));
       const duration = calculateMaxDuration();
 
       try {
@@ -479,9 +488,9 @@ export default function BookingPage() {
         if (res.ok) {
             setCouponStatus({ applied: true, loading: false, isAuto: couponStatus.isAuto, data: data, error: "" });
         } else {
-            setCouponStatus({ applied: false, loading: false, isAuto: false, data: null, error: data.error });
+            setCouponStatus({ applied: false, loading: false, isAuto: false, data: null, error: data.error || "Code invalide" });
         }
-      } catch (e) { setCouponStatus(p => ({ ...p, loading: false, error: "Erreur" })); }
+      } catch (e) { setCouponStatus(p => ({ ...p, loading: false, error: "Erreur de connexion" })); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -709,15 +718,22 @@ export default function BookingPage() {
                              <div className="text-3xl font-bold">{formatPrice(calculateTotalPrice())}€</div>
                          </div>
                          {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
-                             <div className="flex gap-2">
-                                 <Input 
-                                    placeholder="PROMO" 
-                                    className="w-24 bg-white/10 border-none text-white placeholder:text-gray-500 uppercase" 
-                                    value={formData.promoCode} 
-                                    onChange={(e) => setFormData({...formData, promoCode: e.target.value.toUpperCase()})}
-                                    onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); validateCoupon(); } }} 
-                                 />
-                                 <Button type="button" size="sm" onClick={validateCoupon} className="bg-white/20 text-white hover:bg-white/30">OK</Button>
+                             <div className="flex flex-col items-end">
+                                 <div className="flex gap-2">
+                                     <Input 
+                                        placeholder="PROMO" 
+                                        className="w-24 bg-white/10 border-none text-white placeholder:text-gray-500 uppercase" 
+                                        value={formData.promoCode} 
+                                        onChange={(e) => setFormData({...formData, promoCode: e.target.value.toUpperCase()})}
+                                        onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); validateCoupon(); } }} 
+                                     />
+                                     <Button type="button" size="sm" onClick={validateCoupon} className="bg-white/20 text-white hover:bg-white/30">
+                                        {couponStatus.loading ? "..." : "OK"}
+                                     </Button>
+                                 </div>
+                                 {couponStatus.error && (
+                                    <p className="text-red-400 text-xs font-bold mt-1 text-right">{couponStatus.error}</p>
+                                 )}
                              </div>
                          )}
                      </div>
