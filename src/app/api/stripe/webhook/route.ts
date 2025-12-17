@@ -51,19 +51,29 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
-  const bookingId = paymentIntent.metadata.bookingId;
+// Helper to extract booking IDs
+function getBookingIds(metadata: Stripe.Metadata | undefined): string[] {
+    if (!metadata) return [];
+    if (metadata.bookingIds) return metadata.bookingIds.split(",");
+    if (metadata.bookingId) return [metadata.bookingId];
+    return [];
+}
 
-  if (!bookingId) {
-    console.error("Pas de bookingId dans les metadata du PaymentIntent");
+async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+  const bookingIds = getBookingIds(paymentIntent.metadata);
+
+  if (bookingIds.length === 0) {
+    console.error("Pas de bookingIds dans les metadata du PaymentIntent");
     return;
   }
 
   // Récupérer le Payment Method attaché
   const paymentMethodId = paymentIntent.payment_method as string;
-
-  // Récupérer les détails du Payment Method pour obtenir les infos de carte
-  const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+  let paymentMethod: Stripe.PaymentMethod | null = null;
+  
+  if (paymentMethodId) {
+      paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+  }
 
   // Mettre à jour le Payment dans la BDD
   await prisma.payment.updateMany({
@@ -77,7 +87,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 
   // 🔑 CLEF : Sauvegarder le Payment Method sur l'utilisateur
   const userId = paymentIntent.metadata.userId;
-  if (userId && paymentMethod.card) {
+  if (userId && paymentMethod?.card) {
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -88,17 +98,16 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     });
   }
 
-  // Marquer la réservation comme payée mais en attente de validation admin
-  await prisma.booking.update({
-    where: { id: bookingId },
+  // Marquer les réservations comme payées mais en attente de validation admin
+  await prisma.booking.updateMany({
+    where: { id: { in: bookingIds } },
     data: {
       status: "PENDING", // Reste en attente de validation manuelle
       depositPaid: true,
     },
   });
 
-  console.log(`✅ Paiement réussi pour la réservation ${bookingId}`);
-  console.log(`💳 Carte enregistrée : ${paymentMethod.card?.brand} •••• ${paymentMethod.card?.last4}`);
+  console.log(`✅ Paiement réussi pour les réservations: ${bookingIds.join(", ")}`);
 }
 
 async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
@@ -113,38 +122,46 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 }
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-  const bookingId = session.metadata?.bookingId;
+  const bookingIds = getBookingIds(session.metadata);
 
-  if (!bookingId) {
-    console.error("Pas de bookingId dans les metadata de la session");
+  if (bookingIds.length === 0) {
+    console.error("Pas de bookingIds dans les metadata de la session");
     return;
   }
 
-  console.log(`🔎 Recherche réservation ${bookingId} pour envoi emails...`);
-  // Récupérer les infos pour l'email
-  const booking = await prisma.booking.findUnique({
-    where: { id: bookingId },
-    include: { client: true, pet: true }
-  });
+  console.log(`🔎 Traitement session pour réservations: ${bookingIds.join(", ")}...`);
+  
+  // Boucler pour envoyer les emails pour CHAQUE réservation
+  for (const id of bookingIds) {
+      const booking = await prisma.booking.findUnique({
+        where: { id },
+        include: { client: true, pets: true, pet: true }
+      });
 
-  if (booking) {
-    console.log(`✅ Réservation trouvée. Envoi des emails à ${booking.client.email} et Admin...`);
-    await sendBookingRequestEmail(
-      booking.client.email,
-      booking.client.name || "Client",
-      booking.pet.name
-    );
+      if (booking) {
+        const petsName = booking.pets.length > 0 
+            ? booking.pets.map(p => p.name).join(", ") 
+            : (booking.pet?.name || "Animal");
 
-    await sendAdminNotification(
-      booking.pet.name,
-      booking.client.name || "Client",
-      new Date(booking.startDate).toLocaleDateString("fr-FR"),
-      new Date(booking.endDate).toLocaleDateString("fr-FR"),
-      booking.totalPrice
-    );
-  } else {
-    console.error(`❌ Réservation ${bookingId} introuvable en base !`);
+        console.log(`📧 Envoi emails pour réservation ${id} (${petsName})...`);
+        
+        await sendBookingRequestEmail(
+          booking.client.email,
+          booking.client.name || "Client",
+          petsName
+        );
+
+        await sendAdminNotification(
+          petsName,
+          booking.client.name || "Client",
+          new Date(booking.startDate).toLocaleDateString("fr-FR"),
+          new Date(booking.endDate).toLocaleDateString("fr-FR"),
+          booking.totalPrice
+        );
+      } else {
+        console.error(`❌ Réservation ${id} introuvable en base !`);
+      }
   }
 
-  console.log(`✅ Session Checkout complétée pour la réservation ${bookingId} (Email envoyé)`);
+  console.log(`✅ Session Checkout complétée.`);
 }
