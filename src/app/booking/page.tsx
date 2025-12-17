@@ -738,14 +738,28 @@ export default function BookingPage() {
                       )}
                  </div>
 
+                 {/* Total Price Bar */}
                  {calculateTotalPrice() > 0 && (
                      <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6 rounded-3xl flex justify-between items-center">
                          <div>
                              <p className="text-gray-400 text-sm">Total estimé</p>
-                             <div className="text-3xl font-bold">{formatPrice(calculateTotalPrice())}€</div>
+                             <div className="flex items-baseline gap-3">
+                                {couponStatus.applied && couponStatus.data ? (
+                                  <>
+                                    <span className="text-lg text-gray-500 line-through decoration-red-500/50 decoration-2">
+                                      {formatPrice(calculateTotalPrice())}€
+                                    </span>
+                                    <span className="text-3xl font-bold text-green-400">
+                                      {formatPrice(couponStatus.data.finalAmount)}€
+                                    </span>
+                                  </>
+                                ) : (
+                                  <div className="text-3xl font-bold">{formatPrice(calculateTotalPrice())}€</div>
+                                )}
+                             </div>
                          </div>
                          {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
-                             <div className="flex flex-col items-end">
+                             <div className="flex flex-col items-end gap-1">
                                  <div className="flex gap-2">
                                      <Input 
                                         placeholder="PROMO" 
@@ -756,18 +770,19 @@ export default function BookingPage() {
                                      />
                                      <button 
                                         type="button" 
-                                        onClick={(e) => { 
-                                            e.preventDefault(); 
-                                            alert("🖱️ Click détecté ! Validation en cours...");
-                                            validateCoupon(); 
-                                        }} 
+                                        onClick={(e) => { e.preventDefault(); validateCoupon(); }} 
                                         className="bg-white/20 text-white hover:bg-white/30 cursor-pointer z-50 relative h-10 px-4 rounded-md font-bold text-sm border border-white/10"
                                      >
                                         {couponStatus.loading ? "..." : "OK"}
                                      </button>
                                  </div>
+                                 {couponStatus.applied && couponStatus.data && (
+                                   <p className="text-green-400 text-xs font-bold">
+                                     -{couponStatus.data.coupon.discountType === "PERCENTAGE" ? `${couponStatus.data.coupon.discountValue}%` : `${couponStatus.data.coupon.discountValue}€`}
+                                   </p>
+                                 )}
                                  {couponStatus.error && (
-                                    <p className="text-red-400 text-xs font-bold mt-1 text-right">{couponStatus.error}</p>
+                                    <p className="text-red-400 text-xs font-bold">{couponStatus.error}</p>
                                  )}
                              </div>
                          )}
