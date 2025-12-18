@@ -937,7 +937,7 @@ export default function BookingPage() {
                                     <h4 className="text-lg font-bold">Payer moins cher ?</h4>
                                     <p className="text-sm text-gray-300 mt-1">
                                         Avec l'abonnement, cette réservation vous coûterait <span className="font-bold text-white">~{formatPrice(calculateTotalPrice() * 0.8)}€</span>
-                                        {pets.some(p => formData.petIds.includes(p.id) && p.age !== null && p.age < 1) && " (supplément chiot offert !)"}.
+                                        {pets.some(p => formData.petIds.includes(p.id) && typeof p.age === 'number' && p.age < 1) && " (supplément chiot offert !)"}.
                                     </p>
                                 </div>
                                 <Link href="/subscriptions" target="_blank">
