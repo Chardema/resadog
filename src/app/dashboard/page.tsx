@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import { AppNav } from "@/components/layout/AppNav";
 import confetti from "canvas-confetti";
@@ -35,7 +35,7 @@ interface DashboardData {
   };
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -119,7 +119,7 @@ export default function DashboardPage() {
 
       <main className="container mx-auto px-6 pt-32 relative z-10">
         {/* Header */}
-        <div className="mb-10 flex justify-between items-end">
+        <div className="mb-10 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
           <div>
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
@@ -143,7 +143,7 @@ export default function DashboardPage() {
               href={data.portalUrl}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="hidden md:flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-orange-600 bg-white px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-all"
+              className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-orange-600 bg-white px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-all self-start md:self-end"
             >
               ⚙️ Gérer mon abonnement
             </motion.a>
@@ -155,13 +155,13 @@ export default function DashboardPage() {
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-green-100 border border-green-200 text-green-800 px-6 py-4 rounded-2xl mb-8 flex items-center justify-between shadow-sm"
+            className="bg-green-100 border border-green-200 text-green-800 px-6 py-4 rounded-2xl mb-8 flex flex-col md:flex-row items-center justify-between shadow-sm gap-4 text-center md:text-left"
           >
             <div>
               <p className="font-bold text-lg">🎉 Félicitations ! Vous avez rejoint le club !</p>
               <p className="text-sm text-green-700">Vos crédits sont disponibles. Vous pouvez dès maintenant réserver sans sortir votre carte bancaire.</p>
             </div>
-            <Link href="/booking" className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition-colors">
+            <Link href="/booking" className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition-colors whitespace-nowrap">
               Utiliser mes crédits
             </Link>
           </motion.div>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Card 1: Crédits & Abonnement (NOUVEAU) */}
+          {/* Card 1: Crédits & Abonnement */}
           {data?.subscription ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -209,7 +209,6 @@ export default function DashboardPage() {
               </div>
             </motion.div>
           ) : (
-            // Card Promo Abonnement (Si pas abonné)
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -235,7 +234,7 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* Card 2: Mes Animaux (Stats) */}
+          {/* Card 2: Mes Animaux */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -252,7 +251,7 @@ export default function DashboardPage() {
             </div>
           </motion.div>
 
-          {/* Card 3: Prochaine Réservation (Status) */}
+          {/* Card 3: À venir */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -271,31 +270,30 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-400 mt-2">Profitez du calme !</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {data?.upcomingBookings.slice(0, 2).map((booking) => {
-                  // Determine display data (handle multi-pet)
+              <div className="space-y-4 overflow-y-auto max-h-[400px] pr-2 scrollbar-thin">
+                {data?.upcomingBookings.map((booking) => {
                   const displayImage = booking.pets.length > 0 ? booking.pets[0].imageUrl : booking.pet?.imageUrl;
                   const displayName = booking.pets.length > 0 
                       ? booking.pets.map(p => p.name).join(", ") 
                       : (booking.pet?.name || "Inconnu");
 
                   return (
-                  <div key={booking.id} className="bg-gray-50 rounded-2xl p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl overflow-hidden">
+                  <div key={booking.id} className="bg-gray-50 rounded-2xl p-4 flex items-center gap-4 border border-transparent hover:border-orange-100 transition-all">
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
                       {displayImage ? (
                         <img src={displayImage} alt="" className="w-full h-full object-cover" />
                       ) : "🐕"}
                     </div>
-                    <div>
-                      <p className="font-bold text-gray-900">{displayName}</p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(booking.startDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} - {new Date(booking.endDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900 truncate">{displayName}</p>
+                      <p className="text-[10px] text-gray-500">
+                        {new Date(booking.startDate).toLocaleDateString("fr-FR")} - {new Date(booking.endDate).toLocaleDateString("fr-FR")}
                       </p>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full mt-1 inline-block ${
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full mt-1 inline-block font-bold ${
                         booking.status === "PENDING" ? "bg-orange-100 text-orange-700" :
                         booking.status === "CONFIRMED" ? "bg-green-100 text-green-700" : "bg-gray-200"
                       }`}>
-                        {booking.status === "PENDING" ? "En attente" : "Confirmée"}
+                        {booking.status === "PENDING" ? "Attente" : "Confirmée"}
                       </span>
                     </div>
                   </div>
@@ -304,22 +302,22 @@ export default function DashboardPage() {
             )}
           </motion.div>
 
-          {/* Card 4: Historique / Factures (Link) */}
+          {/* Card 4: Historique */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
             whileHover={{ scale: 1.02 }}
             className="md:col-span-2 bg-orange-100 rounded-[2rem] p-8 flex items-center justify-between cursor-pointer group"
-            onClick={() => router.push('/booking')} // Ou page historique
+            onClick={() => router.push('/dashboard')} // Placeholder
           >
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 text-left">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm">
                 📂
               </div>
               <div>
-                <h3 className="text-xl font-bold text-orange-900">Historique & Factures</h3>
-                <p className="text-orange-700/80 text-sm">Retrouvez toutes vos anciennes gardes</p>
+                <h3 className="text-xl font-bold text-orange-900">Historique</h3>
+                <p className="text-orange-700/80 text-sm">Retrouvez vos anciennes gardes</p>
               </div>
             </div>
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-orange-600 font-bold shadow-sm group-hover:translate-x-2 transition-transform">
@@ -330,5 +328,13 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐕</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }
