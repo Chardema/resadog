@@ -46,7 +46,6 @@ export async function GET() {
                 enabled: !isLocked, // 🔒 Désactivé si engagement en cours
                 mode: "at_period_end",
               },
-              subscription_pause: { enabled: false },
             },
           });
 
