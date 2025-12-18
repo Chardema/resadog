@@ -39,12 +39,14 @@ export async function POST(request: NextRequest) {
     const finalAmount = Math.round(amountToPay * 100);
 
     // Créer ou récupérer le client Stripe
-    let stripeCustomerId = session.user.stripeCustomerId;
+    const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+    if (!user) {
+        return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
+    }
+
+    let stripeCustomerId = user.stripeCustomerId;
+    
     if (!stripeCustomerId) {
-      const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-      if (user?.stripeCustomerId) {
-        stripeCustomerId = user.stripeCustomerId;
-      } else {
         const customer = await stripe.customers.create({
           email: session.user.email!,
           name: session.user.name || undefined,
@@ -55,7 +57,6 @@ export async function POST(request: NextRequest) {
           where: { id: session.user.id },
           data: { stripeCustomerId: customer.id },
         });
-      }
     }
 
     // Créer un produit dynamique pour cet abonnement
