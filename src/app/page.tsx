@@ -238,70 +238,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Reviews Section - Floating Glass Cards */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gray-50 skew-y-3 transform origin-top-left z-0" />
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Ils valident (et leurs maîtres aussi)</h2>
-            <p className="text-gray-500">Avis vérifiés sur nos plateformes partenaires</p>
-          </div>
+import { ReviewsSection } from "@/components/home/ReviewsSection";
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {/* Rover Card */}
-            <motion.a
-              href="https://www.rover.com"
-              target="_blank"
-              initial={{ x: -50, opacity: 0 }}
-              whileInView={{ x: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              whileHover={{ y: -10, rotateZ: -1 }}
-              className="bg-white rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col relative group"
-            >
-              <div className="absolute top-6 right-6 text-gray-200 text-6xl opacity-20 font-serif">"</div>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-[#00A86B] rounded-full flex items-center justify-center text-white font-bold text-xl">R</div>
-                <div>
-                  <h4 className="font-bold text-gray-900">Rover</h4>
-                  <div className="flex text-yellow-400 text-sm">★★★★★</div>
-                </div>
-              </div>
-              <p className="text-gray-600 italic flex-1">
-                "Super expérience ! Mon chien a été chouchouté comme un roi. Je recommande vivement pour la tranquillité d'esprit. Des nouvelles tous les jours !"
-              </p>
-              <div className="mt-6 text-sm font-semibold text-[#00A86B] group-hover:underline">
-                Voir mon profil Rover →
-              </div>
-            </motion.a>
+// ... existing imports ...
 
-            {/* AlloVoisins Card */}
-            <motion.a
-              href="https://www.allovoisins.com"
-              target="_blank"
-              initial={{ x: 50, opacity: 0 }}
-              whileInView={{ x: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              whileHover={{ y: -10, rotateZ: 1 }}
-              className="bg-white rounded-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col relative group"
-            >
-              <div className="absolute top-6 right-6 text-gray-200 text-6xl opacity-20 font-serif">"</div>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-[#2864FF] rounded-full flex items-center justify-center text-white font-bold text-xs">AV</div>
-                <div>
-                  <h4 className="font-bold text-gray-900">AlloVoisins</h4>
-                  <div className="flex text-yellow-400 text-sm">★★★★★</div>
-                </div>
-              </div>
-              <p className="text-gray-600 italic flex-1">
-                "Très professionnel et arrangeant. Des nouvelles régulières et un vrai amour des animaux. Merci encore pour cette garde !"
-              </p>
-              <div className="mt-6 text-sm font-semibold text-[#2864FF] group-hover:underline">
-                Voir mon profil AlloVoisins →
-              </div>
-            </motion.a>
-          </div>
-        </div>
-      </section>
+// ... inside Home component ...
+
+      {/* Reviews Section - Dynamic */}
+      <ReviewsSection />
 
       {/* CTA Section */}
       <section className="container mx-auto px-6 pb-32">
