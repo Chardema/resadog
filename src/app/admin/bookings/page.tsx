@@ -14,17 +14,31 @@ interface Booking {
   endDate: string;
   status: "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   totalPrice: number;
+  creditsUsed: number;
   serviceType: string;
-  pet: {
+  pet?: {
     name: string;
     breed: string;
     imageUrl?: string;
   };
+  pets: {
+    name: string;
+    breed: string;
+    imageUrl?: string;
+  }[];
   client: {
     name: string;
     email: string;
     phone?: string;
     image?: string;
+    subscription?: {
+        status: string;
+        serviceType: string;
+        creditsPerMonth: number;
+    };
+    creditBatches?: {
+        remaining: number;
+    }[];
   };
   payment?: {
     status: string;
@@ -92,7 +106,6 @@ export default function AdminBookingsPage() {
       });
 
       if (response.ok) {
-        // Rafraîchir la liste
         fetchBookings();
       } else {
         alert("Erreur lors de la mise à jour du statut");
@@ -151,7 +164,7 @@ export default function AdminBookingsPage() {
           <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent mb-2">
-                Réservations payées 💳
+                Réservations 💳
               </h1>
               <p className="text-gray-700">
                 Gérez les demandes confirmées par paiement
@@ -159,7 +172,7 @@ export default function AdminBookingsPage() {
             </div>
             
             {/* Filtres */}
-            <div className="bg-white p-2 rounded-xl shadow-md border border-orange-100 flex gap-2">
+            <div className="bg-white p-2 rounded-xl shadow-md border border-orange-100 flex gap-2 overflow-x-auto max-w-full">
               {[
                 { id: "all", label: "Tout" },
                 { id: "pending", label: "En attente" },
@@ -170,7 +183,7 @@ export default function AdminBookingsPage() {
                 <button
                   key={f.id}
                   onClick={() => setFilter(f.id as any)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                     filter === f.id
                       ? "bg-orange-500 text-white shadow-md"
                       : "text-gray-600 hover:bg-orange-50"
@@ -199,36 +212,57 @@ export default function AdminBookingsPage() {
             </motion.div>
           ) : (
             <div className="grid gap-6">
-              {bookings.map((booking, index) => (
+              {bookings.map((booking, index) => {
+                const petsName = booking.pets.length > 0 
+                    ? booking.pets.map(p => p.name).join(", ") 
+                    : (booking.pet?.name || "Inconnu");
+                const petsBreed = booking.pets.length > 0
+                    ? booking.pets.map(p => p.breed || "?").join(", ")
+                    : (booking.pet?.breed || "Race inconnue");
+                
+                const clientCredits = booking.client.creditBatches?.reduce((acc, b) => acc + b.remaining, 0) || 0;
+                const isVip = booking.client.subscription?.status === 'ACTIVE';
+
+                return (
                 <motion.div
                   key={booking.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="bg-white rounded-2xl shadow-lg border border-orange-100 overflow-hidden hover:shadow-xl transition-all"
+                  className={`bg-white rounded-2xl shadow-lg border-2 overflow-hidden hover:shadow-xl transition-all ${isVip ? "border-yellow-400 ring-2 ring-yellow-100" : "border-orange-100"}`}
                 >
                   <div className="p-6 grid md:grid-cols-[2fr_1fr_1fr] gap-6">
                     {/* Info Client & Animal */}
                     <div className="flex gap-4">
-                      <div className="h-16 w-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
+                      <div className="h-16 w-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 relative">
                         {booking.serviceType === "DOG_WALKING" ? "🦮" : 
                          booking.serviceType === "DROP_IN" ? "🚪" : "🏠"}
+                         {isVip && (
+                             <div className="absolute -top-2 -left-2 bg-yellow-400 text-white rounded-full p-1 shadow-sm text-xs" title="Membre Club">👑</div>
+                         )}
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-bold text-lg text-gray-900">{booking.client.name}</h3>
-                          <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full text-gray-600">
-                            Client
-                          </span>
+                          {isVip ? (
+                              <span className="text-[10px] px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-bold shadow-sm">
+                                  ⚡ CLUB
+                              </span>
+                          ) : (
+                              <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full text-gray-600">
+                                Client
+                              </span>
+                          )}
                         </div>
-                        <p className="text-gray-600 text-sm mb-2 flex items-center gap-1">
+                        <p className="text-gray-600 text-sm mb-2 flex flex-col gap-0.5">
                           <span>📧 {booking.client.email}</span>
-                          {booking.client.phone && <span>• 📞 {booking.client.phone}</span>}
+                          {booking.client.phone && <span>📞 {booking.client.phone}</span>}
+                          {isVip && <span className="text-green-600 font-medium text-xs">💰 Solde Crédits: {clientCredits}</span>}
                         </p>
                         <div className="flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
                           <span className="text-lg">🐶</span>
-                          <span className="font-semibold text-orange-900">{booking.pet.name}</span>
-                          <span className="text-orange-700 text-sm">({booking.pet.breed})</span>
+                          <span className="font-semibold text-orange-900">{petsName}</span>
+                          <span className="text-orange-700 text-sm">({petsBreed})</span>
                         </div>
                       </div>
                     </div>
@@ -244,10 +278,17 @@ export default function AdminBookingsPage() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500 mb-1">Total payé</p>
-                        <p className="font-bold text-green-600 text-lg">
-                          {booking.totalPrice.toFixed(2)}€
-                        </p>
+                        <p className="text-sm text-gray-500 mb-1">Paiement</p>
+                        {booking.creditsUsed > 0 ? (
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-purple-600 text-lg">{booking.creditsUsed} Crédits</span>
+                                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Prépayé</span>
+                            </div>
+                        ) : (
+                            <p className="font-bold text-green-600 text-lg">
+                              {booking.totalPrice.toFixed(2)}€
+                            </p>
+                        )}
                       </div>
                     </div>
 
@@ -259,7 +300,7 @@ export default function AdminBookingsPage() {
                         booking.status === "CANCELLED" ? "bg-red-100 text-red-700" :
                         "bg-gray-100 text-gray-700"
                       }`}>
-                        {booking.status === "PENDING" ? "EN ATTENTE VALIDATION" :
+                        {booking.status === "PENDING" ? "EN ATTENTE" :
                          booking.status === "CONFIRMED" ? "CONFIRMÉE" :
                          booking.status === "CANCELLED" ? "ANNULÉE" : "TERMINÉE"}
                       </div>
@@ -291,7 +332,7 @@ export default function AdminBookingsPage() {
                           variant="destructive"
                           className="w-full bg-red-100 text-red-700 hover:bg-red-200 border border-red-200"
                         >
-                          Annuler & Rembourser
+                          Annuler {booking.creditsUsed > 0 ? "& Rembourser Crédits" : "& Rembourser"}
                         </Button>
                       )}
 
@@ -306,7 +347,7 @@ export default function AdminBookingsPage() {
                     </div>
                   </div>
                 </motion.div>
-              ))}
+              )})}
             </div>
           )}
         </motion.div>

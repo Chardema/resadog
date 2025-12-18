@@ -36,11 +36,10 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       include: {
         pet: {
-          select: {
-            name: true,
-            breed: true,
-            imageUrl: true,
-          },
+          select: { name: true, breed: true, imageUrl: true },
+        },
+        pets: {
+          select: { name: true, breed: true, imageUrl: true },
         },
         client: {
           select: {
@@ -48,6 +47,8 @@ export async function GET(request: NextRequest) {
             email: true,
             phone: true,
             image: true,
+            subscription: { select: { status: true, serviceType: true, creditsPerMonth: true } },
+            creditBatches: { select: { remaining: true }, where: { remaining: { gt: 0 } } },
           },
         },
         payment: {
