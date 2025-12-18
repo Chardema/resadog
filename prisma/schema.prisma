@@ -41,6 +41,8 @@ model User {
   bookings      Booking[]
   messages      Message[]
   notifications Notification[]
+  subscription  UserSubscription?
+  creditBatches CreditBatch[]
   autoApplyCoupon Coupon? @relation("UserAutoApplyCoupon", fields: [autoApplyCouponId], references: [id], onDelete: SetNull)
 
   @@index([email])
@@ -150,6 +152,7 @@ model Booking {
   totalPrice      Float
   depositPaid     Boolean       @default(false)
   depositAmount   Float?
+  creditsUsed     Int           @default(0)
   notes           String?       @db.Text
   specialRequests String?       @db.Text
   cancellationReason String?    @db.Text
@@ -384,4 +387,39 @@ model Coupon {
 enum DiscountType {
   PERCENTAGE    // Réduction en pourcentage (ex: 20%)
   FIXED_AMOUNT  // Réduction fixe (ex: 7€)
+}
+
+// ============================================
+// SUBSCRIPTION & CREDITS SYSTEM
+// ============================================
+
+model UserSubscription {
+  id                   String      @id @default(cuid())
+  stripeSubscriptionId String?     @unique
+  status               String      // ACTIVE, PAST_DUE, CANCELED
+  serviceType          ServiceType
+  daysPerWeek          Int
+  creditsPerMonth      Int
+  price                Float
+  
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  userId               String      @unique
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CreditBatch {
+  id          String      @id @default(cuid())
+  amount      Int
+  remaining   Int
+  serviceType ServiceType
+  expiresAt   DateTime
+  createdAt   DateTime    @default(now())
+
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
