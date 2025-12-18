@@ -122,6 +122,48 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 }
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  // Gestion ABONNEMENT
+  if (session.mode === "subscription") {
+      const subscriptionId = session.subscription as string;
+      const metadata = session.metadata;
+      
+      if (!metadata || !metadata.userId) {
+          console.error("❌ Metadata manquantes pour l'abonnement");
+          return;
+      }
+
+      console.log(`✨ Nouvel abonnement ${subscriptionId} pour user ${metadata.userId}`);
+
+      // Créer l'abonnement en base
+      await prisma.userSubscription.create({
+          data: {
+              userId: metadata.userId,
+              stripeSubscriptionId: subscriptionId,
+              status: "ACTIVE",
+              serviceType: metadata.serviceType as any,
+              daysPerWeek: parseInt(metadata.daysPerWeek),
+              creditsPerMonth: parseInt(metadata.creditsPerMonth),
+              price: session.amount_total ? session.amount_total / 100 : 0,
+              billingPeriod: session.amount_total && session.amount_total > 50000 ? "YEARLY" : "MONTHLY", // Heuristique simple ou ajouter dans metadata
+          }
+      });
+
+      // Créditer le premier lot
+      await prisma.creditBatch.create({
+          data: {
+              userId: metadata.userId,
+              amount: parseInt(metadata.creditsPerMonth),
+              remaining: parseInt(metadata.creditsPerMonth),
+              serviceType: metadata.serviceType as any,
+              expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000), // ~100 ans (Illimité)
+          }
+      });
+
+      console.log("✅ Abonnement créé et crédits ajoutés !");
+      return;
+  }
+
+  // Gestion RÉSERVATION (existant)
   const bookingIds = getBookingIds(session.metadata);
 
   if (bookingIds.length === 0) {
