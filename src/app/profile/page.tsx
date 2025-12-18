@@ -201,6 +201,11 @@ export default function ProfilePage() {
                                 <p className="text-sm text-gray-400">
                                     Prochain renouvellement : Automatique ({subscriptionData.subscription.billingPeriod === "YEARLY" ? "Annuel" : "Mensuel"})
                                 </p>
+                                {subscriptionData.commitmentEndsAt && new Date(subscriptionData.commitmentEndsAt) > new Date() && (
+                                    <p className="text-xs text-orange-300 mt-1 font-semibold">
+                                        🔒 Engagement jusqu'au {new Date(subscriptionData.commitmentEndsAt).toLocaleDateString("fr-FR")}
+                                    </p>
+                                )}
                             </div>
                         ) : (
                             <p className="text-gray-400 text-sm max-w-md">
