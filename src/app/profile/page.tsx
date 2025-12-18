@@ -229,9 +229,12 @@ export default function ProfilePage() {
                         <>
                             {subscriptionData.portalUrl && (
                                 <a href={subscriptionData.portalUrl} className="bg-white text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors">
-                                    Gérer mon abonnement (Stripe)
+                                    Résilier / Factures
                                 </a>
                             )}
+                            <Button onClick={() => router.push('/subscriptions')} className="bg-orange-500 hover:bg-orange-600 text-white h-12 rounded-xl px-6 font-bold">
+                                Changer de formule
+                            </Button>
                         </>
                     ) : (
                         <Button onClick={() => router.push('/subscriptions')} className="bg-orange-500 hover:bg-orange-600 text-white h-12 rounded-xl px-6 font-bold">

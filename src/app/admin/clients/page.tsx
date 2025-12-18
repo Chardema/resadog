@@ -16,12 +16,19 @@ interface Coupon {
   isActive: boolean;
 }
 
+interface Subscription {
+  status: string;
+  serviceType: string;
+  billingPeriod: string;
+}
+
 interface Client {
   id: string;
   name: string | null;
   email: string;
   createdAt: string;
   autoApplyCoupon: Coupon | null;
+  subscription: Subscription | null;
   creditBatches: { remaining: number }[];
   stats: {
     totalBookings: number;
@@ -148,6 +155,20 @@ export default function AdminClientsPage() {
               alert("Erreur");
           }
       } catch (e) { alert("Erreur"); }
+  };
+
+  const cancelSubscription = async (userId: string) => {
+      if (!confirm("Voulez-vous vraiment résilier l'abonnement de ce client ? Cette action est immédiate.")) return;
+      
+      try {
+          const res = await fetch(`/api/admin/clients/${userId}/subscription`, { method: "DELETE" });
+          if (res.ok) {
+              alert("Abonnement résilié.");
+              loadData();
+          } else {
+              alert("Erreur lors de la résiliation.");
+          }
+      } catch (e) { alert("Erreur connexion"); }
   };
 
   if (isLoading) {
@@ -288,6 +309,7 @@ export default function AdminClientsPage() {
         <div className="space-y-4">
           {clients.map((client) => {
             const totalCredits = client.creditBatches?.reduce((acc, b) => acc + b.remaining, 0) || 0;
+            const isSubscribed = client.subscription && client.subscription.status === 'ACTIVE';
             
             return (
             <motion.div
@@ -302,9 +324,14 @@ export default function AdminClientsPage() {
                     <h3 className="text-xl font-bold text-gray-900">
                       {client.name || "Sans nom"}
                     </h3>
-                    {client.autoApplyCoupon && (
-                      <span className="px-3 py-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-xs font-bold rounded-full">
-                        ⭐ VIP
+                    {isSubscribed && (
+                      <span className="px-3 py-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-xs font-bold rounded-full shadow-sm">
+                        ⭐ ABONNÉ
+                      </span>
+                    )}
+                    {client.autoApplyCoupon && !isSubscribed && (
+                      <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">
+                        Code VIP
                       </span>
                     )}
                   </div>
@@ -328,6 +355,24 @@ export default function AdminClientsPage() {
                       <p className="text-lg font-bold text-white">{totalCredits}</p>
                     </div>
                   </div>
+
+                  {/* Info Abonnement */}
+                  {isSubscribed && client.subscription && (
+                      <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex justify-between items-center">
+                          <div>
+                              <p className="text-sm font-bold text-yellow-800">Abonnement {client.subscription.billingPeriod === 'YEARLY' ? 'Annuel' : 'Mensuel'}</p>
+                              <p className="text-xs text-yellow-700">{client.subscription.serviceType}</p>
+                          </div>
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            className="h-8 text-xs"
+                            onClick={() => cancelSubscription(client.id)}
+                          >
+                              Résilier
+                          </Button>
+                      </div>
+                  )}
 
                   {client.autoApplyCoupon && (
                     <div className="p-3 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg border border-purple-300 mb-3">
@@ -353,7 +398,7 @@ export default function AdminClientsPage() {
                     💰 Gérer Crédits
                   </Button>
 
-                  {/* Gestion VIP */}
+                  {/* Gestion VIP (Code Promo) */}
                   {!client.autoApplyCoupon ? (
                     selectedClientForVIP === client.id ? (
                       <div className="space-y-2 bg-purple-50 p-2 rounded-lg border border-purple-200">
@@ -396,7 +441,7 @@ export default function AdminClientsPage() {
                         onClick={() => setSelectedClientForVIP(client.id)}
                         className="bg-gradient-to-r from-purple-500 to-pink-500"
                       >
-                        👑 Passer VIP
+                        👑 Code VIP
                       </Button>
                     )
                   ) : (
@@ -405,7 +450,7 @@ export default function AdminClientsPage() {
                       variant="outline"
                       className="border-red-300 text-red-600 hover:bg-red-50"
                     >
-                      Retirer le VIP
+                      Retirer Code
                     </Button>
                   )}
                 </div>

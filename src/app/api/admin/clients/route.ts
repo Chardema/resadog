@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
       include: {
         autoApplyCoupon: true,
+        subscription: true,
         creditBatches: {
             select: { remaining: true },
             where: { remaining: { gt: 0 } }
