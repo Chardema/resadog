@@ -109,6 +109,7 @@ export const sendAdminNotification = async (
           </div>
           <p><a href="https://resadog.vercel.app/admin/bookings">Accéder au Dashboard pour valider</a></p>
         </div>
+      `,
     });
   } catch (error) {
     console.error("Erreur email admin:", error);
