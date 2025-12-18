@@ -26,8 +26,10 @@ export async function GET() {
       // Récupérer les détails de l'abonnement depuis Stripe
       try {
           const stripeSub = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
-          currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
-          cancelAtPeriodEnd = stripeSub.cancel_at_period_end;
+          // Cast 'any' pour éviter les erreurs de typage strict sur la réponse SDK
+          const subData = stripeSub as any;
+          currentPeriodEnd = new Date(subData.current_period_end * 1000);
+          cancelAtPeriodEnd = subData.cancel_at_period_end;
       } catch (e) {
           console.error("Erreur récupération abonnement Stripe:", e);
       }
