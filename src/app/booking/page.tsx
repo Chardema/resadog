@@ -224,6 +224,9 @@ export default function BookingPage() {
       const duration = calculateMaxDuration();
       return duration * formData.petIds.length;
   };
+
+  // Coupons
+  const [couponStatus, setCouponStatus] = useState<{
     applied: boolean;
     loading: boolean;
     isAuto: boolean;
