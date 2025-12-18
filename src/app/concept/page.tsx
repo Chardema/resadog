@@ -149,7 +149,7 @@ export default function ConceptPage() {
                   </div>
                   <div className="flex justify-between items-center text-orange-100">
                     <span>Crédits reportables</span>
-                    <span>Oui (2 mois)</span>
+                    <span>Illimité</span>
                   </div>
                 </div>
                 <div className="pt-6 border-t border-white/20">
@@ -172,7 +172,7 @@ export default function ConceptPage() {
           <div className="space-y-4">
             {[
               { q: "Est-ce que je peux annuler quand je veux ?", a: "Oui ! L'abonnement mensuel est sans engagement au-delà des 2 premiers mois. L'annuel vous engage sur 12 mois en échange d'un tarif imbattable." },
-              { q: "Si je pars en vacances ?", a: "Pas de panique ! Vos crédits non utilisés sont valables 2 mois. Vous pouvez les cumuler pour une plus grosse garde le mois suivant." },
+              { q: "Si je pars en vacances ?", a: "Pas de panique ! Vos crédits sont valables à vie ! Vous pouvez les cumuler pour une plus grosse garde le mois suivant." },
               { q: "Ça marche pour plusieurs animaux ?", a: "Absolument. Vous pouvez prendre un abonnement 'Multi-chiens' et utiliser vos crédits indifféremment." },
             ].map((faq, i) => (
               <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">

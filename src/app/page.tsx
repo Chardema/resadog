@@ -284,7 +284,7 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-4">
               {[
                 { icon: "🪙", title: "1 Crédit = 1 Jour", desc: "Utilisez vos crédits pour n'importe quelle prestation." },
-                { icon: "🔄", title: "Reportable", desc: "Vos crédits non utilisés sont valables 2 mois." },
+                { icon: "🔄", title: "Reportable", desc: "Vos crédits ont une validité illimitée." },
                 { icon: "⚡", title: "Priorité", desc: "Les membres du club sont prioritaires sur les réservations." },
                 { icon: "📉", title: "-20% Garanti", desc: "Le tarif le plus bas, toute l'année, même en vacances." }
               ].map((feature, i) => (

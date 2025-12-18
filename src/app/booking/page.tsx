@@ -26,7 +26,7 @@ const serviceTypes = [
   {
     value: "DAY_CARE",
     name: "Garderie Jour",
-    price: 25,
+    price: 20,
     unit: "jour",
     description: "Déposez-le le matin, récupérez-le le soir.",
     icon: "☀️",
@@ -830,10 +830,22 @@ export default function BookingPage() {
                      </div>
                  )}
 
-                 <div className="flex gap-4">
-                  <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-14 rounded-xl">Retour</Button>
-                  <Button type="button" onClick={goNext} disabled={!availabilityStatus.available || calculateTotalPrice() === 0} className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600">Récapitulatif</Button>
-                </div>
+                 <div className="flex flex-col gap-2">
+                  <div className="flex gap-4">
+                    <Button type="button" variant="outline" onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl">Retour</Button>
+                    <Button 
+                        type="button" 
+                        onClick={() => setStep(3)} 
+                        disabled={!availabilityStatus.available || calculateTotalPrice() === 0} 
+                        className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600 disabled:opacity-50"
+                    >
+                        {!availabilityStatus.available ? "Indisponible" : "Récapitulatif"}
+                    </Button>
+                  </div>
+                  {calculateTotalPrice() === 0 && (
+                      <p className="text-center text-xs text-red-500 font-medium">Veuillez sélectionner des dates valides pour continuer.</p>
+                  )}
+                 </div>
               </motion.div>
             )}
 

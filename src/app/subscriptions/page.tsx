@@ -19,7 +19,7 @@ export default function SubscriptionPage() {
   // Prix de base (avant réduction) par animal
   const basePrices = {
     DOG_WALKING: 15, // Promenade
-    DAY_CARE: 25,    // Garderie
+    DAY_CARE: 20,    // Garderie
   };
 
   // Calcul du prix
@@ -229,7 +229,7 @@ export default function SubscriptionPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  Validité 2 mois (Reportable)
+                  {plan.credits} crédits validité illimitée
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
