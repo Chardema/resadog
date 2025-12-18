@@ -28,6 +28,7 @@ export function Footer() {
               <li><Link href="/dashboard" className="hover:text-orange-600 transition-colors">Mon Espace</Link></li>
               <li><Link href="/booking" className="hover:text-orange-600 transition-colors">Réserver</Link></li>
               <li><Link href="/pets" className="hover:text-orange-600 transition-colors">Mes Animaux</Link></li>
+              <li><Link href="/concept" className="hover:text-orange-600 transition-colors font-bold text-orange-600">Le Club (Abonnements) ✨</Link></li>
             </ul>
           </div>
 

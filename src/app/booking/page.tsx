@@ -914,6 +914,28 @@ export default function BookingPage() {
                         </div>
                     </div>
 
+                    {/* Upsell Abonnement */}
+                    {!couponStatus.applied && (
+                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-6 text-white shadow-lg">
+                            <div className="absolute top-0 right-0 -mr-8 -mt-8 h-24 w-24 rounded-full bg-white/10 blur-xl" />
+                            
+                            <div className="relative z-10 flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-wider text-orange-400">Bon plan</p>
+                                    <h4 className="text-lg font-bold">Payer moins cher ?</h4>
+                                    <p className="text-sm text-gray-300 mt-1">
+                                        Avec l'abonnement, cette réservation vous coûterait <span className="font-bold text-white">~{formatPrice(calculateTotalPrice() * 0.8)}€</span>.
+                                    </p>
+                                </div>
+                                <Link href="/subscriptions" target="_blank">
+                                    <Button size="sm" variant="secondary" className="whitespace-nowrap bg-white text-gray-900 hover:bg-orange-50">
+                                        Voir les offres →
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Validation légale */}
                     <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
                         <input 
