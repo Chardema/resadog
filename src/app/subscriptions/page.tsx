@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppNav } from "@/components/layout/AppNav";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,13 +8,27 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function SubscriptionPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   
   const [serviceType, setServiceType] = useState<"DOG_WALKING" | "DAY_CARE">("DOG_WALKING");
   const [daysPerWeek, setDaysPerWeek] = useState(2);
   const [petCount, setPetCount] = useState(1);
   const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
+  const [loading, setLoading] = useState(false);
+  const [existingSubscription, setExistingSubscription] = useState<any>(null);
+
+  useEffect(() => {
+      if (session) {
+          fetch("/api/user/subscription")
+            .then(res => res.json())
+            .then(data => {
+                if (data.subscription && data.subscription.status === 'ACTIVE') {
+                    setExistingSubscription(data.subscription);
+                }
+            });
+      }
+  }, [session]);
 
   // Prix de base (avant réduction) par animal
   const basePrices = {
@@ -59,8 +73,6 @@ export default function SubscriptionPage() {
 
   const plan = calculatePrice();
 
-  const [loading, setLoading] = useState(false);
-
   const handleSubscribe = async () => {
     if (!session) {
       router.push("/auth/signin?callbackUrl=/subscriptions");
@@ -101,6 +113,15 @@ export default function SubscriptionPage() {
           </p>
         </motion.div>
 
+        {existingSubscription && (
+            <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-8 rounded-r-lg shadow-sm flex justify-between items-center">
+                <div>
+                    <p className="font-bold">Vous êtes déjà membre du club ! ⚡</p>
+                    <p className="text-sm">Pour modifier votre offre ou annuler, accédez à votre espace de gestion.</p>
+                </div>
+            </div>
+        )}
+
         {/* Billing Cycle Toggle */}
         <div className="flex justify-center mb-12">
           <div className="bg-white p-1 rounded-full border border-gray-200 shadow-sm flex relative">
@@ -133,7 +154,7 @@ export default function SubscriptionPage() {
           <motion.div 
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="space-y-8 bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100"
+            className={`space-y-8 bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100 ${existingSubscription ? "opacity-50 pointer-events-none grayscale" : ""}`}
           >
             <div>
               <h3 className="text-lg font-bold text-gray-900 mb-4">1. Quel service ?</h3>
@@ -245,10 +266,6 @@ export default function SubscriptionPage() {
               <ul className="space-y-4 mb-10 text-gray-300 text-sm relative z-10">
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  {plan.creditsPerMonth} crédits / mois
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
                   {plan.creditsPerMonth} crédits validité illimitée
                 </li>
                 <li className="flex items-center gap-3">
@@ -257,7 +274,7 @@ export default function SubscriptionPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  Sans engagement, annulable à tout moment
+                  {billingCycle === "YEARLY" ? "Engagement 12 mois" : "Engagement 2 mois min."}
                 </li>
               </ul>
 
@@ -266,7 +283,7 @@ export default function SubscriptionPage() {
                 disabled={loading}
                 className="w-full h-16 rounded-2xl bg-white text-gray-900 font-bold text-lg hover:bg-orange-50 transition-colors shadow-lg relative z-10"
               >
-                {loading ? "Redirection..." : (billingCycle === "YEARLY" ? "Payer l'année" : "M'abonner")}
+                {loading ? "Redirection..." : (existingSubscription ? "Gérer mon abonnement" : (billingCycle === "YEARLY" ? "Payer l'année" : "M'abonner"))}
               </Button>
             </div>
           </motion.div>
