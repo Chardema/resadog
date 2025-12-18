@@ -22,51 +22,76 @@ export async function GET() {
         return NextResponse.json({ status: "NO_ACTIVE_SUBSCRIPTION" });
     }
 
+    console.log(`🔍 Check Sub pour ${session.user.id} / ${user.stripeCustomerId}`);
+    const subscriptions = await stripe.subscriptions.list({
+      customer: user.stripeCustomerId,
+      status: "active",
+      limit: 1,
+    });
+
+    console.log(`📦 Abonnements trouvés Stripe: ${subscriptions.data.length}`);
+
+    if (subscriptions.data.length === 0) {
+        // Nettoyage si on a un abo actif en base mais plus rien chez Stripe
+        await prisma.userSubscription.updateMany({
+            where: { userId: session.user.id, status: 'ACTIVE' },
+            data: { status: 'CANCELED_REMOTE' }
+        });
+        return NextResponse.json({ status: "NO_ACTIVE_SUBSCRIPTION" });
+    }
+
     const stripeSub = subscriptions.data[0];
-    const metadata = stripeSub.metadata;
+    const metadata = stripeSub.metadata || {};
+    console.log("📝 Metadata:", metadata);
 
     // Tentative de synchronisation / auto-réparation
-    if (metadata && metadata.userId === session.user.id && metadata.serviceType) {
-        console.log(`🔄 Auto-sync abonnement Stripe ${stripeSub.id} -> DB`);
+    // Si metadata incomplete, on essaie de déduire ou on met des défauts pour débloquer
+    const serviceType = (metadata.serviceType as any) || "DOG_WALKING"; // Default
+    const daysPerWeek = parseInt(metadata.daysPerWeek || "2");
+    const creditsPerMonth = parseInt(metadata.creditsPerMonth || "8");
+
+    console.log(`🔄 Auto-sync abonnement Stripe ${stripeSub.id} -> DB (Force Update)`);
         
-        // Upsert l'abonnement
-        await prisma.userSubscription.upsert({
-            where: { userId: session.user.id },
-            update: {
-                stripeSubscriptionId: stripeSub.id,
-                status: 'ACTIVE',
-                serviceType: metadata.serviceType as any,
-                daysPerWeek: parseInt(metadata.daysPerWeek || "0"),
-                creditsPerMonth: parseInt(metadata.creditsPerMonth || "0"),
-                // On pourrait mettre à jour le prix si dispo dans metadata ou via l'item
-            },
-            create: {
+    // Upsert l'abonnement
+    await prisma.userSubscription.upsert({
+        where: { userId: session.user.id },
+        update: {
+            stripeSubscriptionId: stripeSub.id,
+            status: 'ACTIVE',
+            serviceType,
+            daysPerWeek,
+            creditsPerMonth,
+        },
+        create: {
+            userId: session.user.id,
+            stripeSubscriptionId: stripeSub.id,
+            status: 'ACTIVE',
+            serviceType,
+            daysPerWeek,
+            creditsPerMonth,
+            price: (stripeSub.items.data[0].price.unit_amount || 0) / 100,
+        }
+    });
+    
+    // On s'assure qu'il a des crédits (si pas de batch actif)
+    const activeBatch = await prisma.creditBatch.findFirst({
+        where: { userId: session.user.id, remaining: { gt: 0 } }
+    });
+
+    if (!activeBatch) {
+        console.log("➕ Ajout crédits de secours (Sync)");
+        await prisma.creditBatch.create({
+            data: {
                 userId: session.user.id,
-                stripeSubscriptionId: stripeSub.id,
-                status: 'ACTIVE',
-                serviceType: metadata.serviceType as any,
-                daysPerWeek: parseInt(metadata.daysPerWeek || "0"),
-                creditsPerMonth: parseInt(metadata.creditsPerMonth || "0"),
-                price: 0, // Fallback si on a pas l'info facile ici
+                amount: creditsPerMonth,
+                remaining: creditsPerMonth,
+                serviceType,
+                expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
             }
         });
-        return NextResponse.json({ status: "REPAIRED", message: "Abonnement synchronisé" });
     }
 
-    // Fallback : Si on a un abo en base qui matche l'ID mais pas le statut
-    const dbSub = await prisma.userSubscription.findUnique({ where: { userId: session.user.id } });
-    
-    if (dbSub && dbSub.stripeSubscriptionId === stripeSub.id) {
-        if (dbSub.status !== 'ACTIVE') {
-            await prisma.userSubscription.update({
-                where: { id: dbSub.id },
-                data: { status: 'ACTIVE' }
-            });
-            return NextResponse.json({ status: "UPDATED", message: "Statut mis à jour" });
-        }
-    }
-
-    return NextResponse.json({ status: "SYNCED" });
+    return NextResponse.json({ status: "REPAIRED", message: "Abonnement synchronisé" });
 
   } catch (error) {
     console.error("Erreur check subscription:", error);
