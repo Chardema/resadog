@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -123,6 +123,9 @@ export default function BookingPage() {
   
   // États
   const [step, setStep] = useState(1);
+  // Direction de l'animation : 1 = avant, -1 = arrière
+  const [direction, setDirection] = useState(0);
+
   const [pets, setPets] = useState<Pet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -598,21 +601,48 @@ export default function BookingPage() {
   const selectedPetsList = pets.filter(p => formData.petIds.includes(p.id));
   const currentPetName = selectedPetsList.length > 0 ? selectedPetsList.map(p => p.name).join(", ") : "votre compagnon";
 
+  // Navigation helpers
+  const goNext = () => { setDirection(1); setStep(step + 1); };
+  const goBack = () => { setDirection(-1); setStep(step - 1); };
+
+  // Animation variants
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 50 : -50,
+      opacity: 0
+    }),
+    center: {
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      x: direction < 0 ? 50 : -50,
+      opacity: 0
+    })
+  };
+
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
       <AppNav userName={session?.user?.name} />
       
-      <div className="container mx-auto px-6 pt-32 max-w-4xl">
+      <div className="container mx-auto px-6 pt-32 max-w-4xl overflow-hidden">
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Nouvelle Réservation ✨</h1>
+          <p className="text-gray-500">Quelques étapes pour des vacances de rêve.</p>
+        </motion.div>
+
+        {/* Steps */}
         <div className="flex justify-center mb-12">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
               <motion.div 
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${step >= s ? "bg-gray-900 text-white shadow-lg" : "bg-gray-200 text-gray-500"}`}
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 ${step >= s ? "bg-gray-900 text-white shadow-lg" : "bg-gray-200 text-gray-500"}`}
                 animate={{ scale: step === s ? 1.2 : 1 }}
               >
                 {s}
               </motion.div>
-              {s < 3 && <div className={`w-16 h-1 rounded-full mx-2 ${step > s ? "bg-gray-900" : "bg-gray-200"}`} />}
+              {s < 3 && <div className={`w-16 h-1 rounded-full mx-2 transition-colors duration-300 ${step > s ? "bg-gray-900" : "bg-gray-200"}`} />}
             </div>
           ))}
         </div>
@@ -623,11 +653,26 @@ export default function BookingPage() {
           </div>
         )}
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-8 md:p-12">
-          <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Card Form */}
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-8 md:p-12 relative"
+        >
+          <form onSubmit={handleSubmit} className="space-y-8" onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}>
+            <AnimatePresence mode="wait" custom={direction}>
             
             {step === 1 && (
-              <div className="space-y-8">
+              <motion.div
+                key={1}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3 }}
+                className="space-y-8"
+              >
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Qui gardons-nous ? 🐕</h2>
                   {pets.length === 0 ? (
@@ -669,12 +714,24 @@ export default function BookingPage() {
                   </div>
                 )}
                 
-                <Button type="button" onClick={() => setStep(2)} disabled={formData.petIds.length === 0} className="w-full h-14 rounded-xl text-lg bg-gray-900 hover:bg-orange-600">Continuer vers les dates</Button>
-              </div>
+                <div className="flex gap-4">
+                    <Button type="button" variant="ghost" onClick={() => router.push('/dashboard')} className="flex-1 h-14 rounded-xl text-gray-500">Annuler</Button>
+                    <Button type="button" onClick={goNext} disabled={formData.petIds.length === 0} className="flex-[2] h-14 rounded-xl text-lg bg-gray-900 hover:bg-orange-600">Continuer vers les dates</Button>
+                </div>
+              </motion.div>
             )}
 
             {step === 2 && (
-              <div className="space-y-8">
+              <motion.div
+                key={2}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3 }}
+                className="space-y-8"
+              >
                  <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold text-gray-900">3. Quand ? 📅</h2>
                     {formData.petIds.length > 1 && (
@@ -774,14 +831,23 @@ export default function BookingPage() {
                  )}
 
                  <div className="flex gap-4">
-                  <Button type="button" variant="outline" onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl">Retour</Button>
-                  <Button type="button" onClick={() => setStep(3)} disabled={!availabilityStatus.available || calculateTotalPrice() === 0} className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600">Récapitulatif</Button>
+                  <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-14 rounded-xl">Retour</Button>
+                  <Button type="button" onClick={goNext} disabled={!availabilityStatus.available || calculateTotalPrice() === 0} className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600">Récapitulatif</Button>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {step === 3 && (
-                <div className="space-y-6">
+              <motion.div
+                key={3}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
                     <h2 className="text-2xl font-bold text-gray-900">Derniers détails 📝</h2>
                     <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100">
                         <h3 className="font-bold text-orange-900 mb-4">Récapitulatif</h3>
@@ -868,14 +934,15 @@ export default function BookingPage() {
                     </div>
 
                     <div className="flex gap-4">
-                      <Button type="button" variant="outline" onClick={() => setStep(2)} className="flex-1 h-14 rounded-xl">Retour</Button>
+                      <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-14 rounded-xl">Retour</Button>
                       <Button type="submit" disabled={isLoading || !legalAccepted} className="flex-1 h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg">
                           {isLoading ? "Chargement..." : "Payer et Confirmer 💳"}
                       </Button>
                     </div>
-                </div>
+              </motion.div>
             )}
-
+            
+            </AnimatePresence>
           </form>
         </motion.div>
       </div>
