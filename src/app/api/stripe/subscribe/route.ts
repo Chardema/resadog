@@ -38,7 +38,25 @@ export async function POST(request: NextRequest) {
     
     const finalAmount = Math.round(amountToPay * 100);
 
-    // ... (Customer creation logic remains) ...
+    // Créer ou récupérer le client Stripe
+    let stripeCustomerId = session.user.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+      if (user?.stripeCustomerId) {
+        stripeCustomerId = user.stripeCustomerId;
+      } else {
+        const customer = await stripe.customers.create({
+          email: session.user.email!,
+          name: session.user.name || undefined,
+          metadata: { userId: session.user.id },
+        });
+        stripeCustomerId = customer.id;
+        await prisma.user.update({
+          where: { id: session.user.id },
+          data: { stripeCustomerId: customer.id },
+        });
+      }
+    }
 
     // Créer un produit dynamique pour cet abonnement
     const product = await stripe.products.create({
