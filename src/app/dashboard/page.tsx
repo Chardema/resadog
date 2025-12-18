@@ -256,7 +256,7 @@ function DashboardContent() {
                     <h2 className="text-3xl font-bold">
                         {hasCanceledSub ? "Relancer mon Club" : "Rejoignez le Club"}
                     </h2>
-                    {data?.credits > 0 && (
+                    {data && data.credits > 0 && (
                         <div className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold">
                             Restant : {data.credits} crédits 🪙
                         </div>
