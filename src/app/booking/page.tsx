@@ -136,6 +136,9 @@ export default function BookingPage() {
   // Validation légale
   const [legalAccepted, setLegalAccepted] = useState(false);
   
+  // Modale Upsell
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  
   // Disponibilités (Global status)
   const [availabilityStatus, setAvailabilityStatus] = useState<{
     checking: boolean;
@@ -540,16 +543,9 @@ export default function BookingPage() {
     setError("");
 
     let bookingsToCreate = [];
-    const creditCost = calculateCreditCost();
-
-    if (payWithCredits && userCredits < creditCost) {
-        setError("Crédits insuffisants");
-        setIsLoading(false);
-        return;
-    }
 
     if (useSameDates) {
-        const price = payWithCredits ? 0 : (couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice());
+        const price = couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice();
         
         let startDate = formData.startDate;
         let endDate = formData.endDate;
@@ -693,6 +689,68 @@ export default function BookingPage() {
             ❌ {error}
           </div>
         )}
+
+        {/* Upsell Modal */}
+        <AnimatePresence>
+            {showUpsellModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={() => setShowUpsellModal(false)}
+                    />
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="relative z-10 bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl"
+                    >
+                        <button onClick={() => setShowUpsellModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+                        
+                        <div className="text-center mb-6">
+                            <span className="text-4xl">🐺</span>
+                            <h3 className="text-2xl font-bold text-gray-900 mt-2">Le Club La Meute</h3>
+                            <p className="text-gray-500">Comparez et économisez sur cette réservation</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-center mb-8">
+                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <p className="text-sm text-gray-500 mb-1">Prix Standard</p>
+                                <p className="text-xl font-bold text-gray-900 line-through decoration-red-400 decoration-2">{formatPrice(calculateTotalPrice())}€</p>
+                            </div>
+                            <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
+                                <p className="text-sm text-orange-600 font-bold mb-1">Prix Abonné</p>
+                                <p className="text-2xl font-bold text-orange-700">{formatPrice(calculateTotalPrice() * 0.8)}€</p>
+                                <p className="text-[10px] text-orange-600 mt-1">Soit 20% d'économie</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3 mb-8">
+                            <div className="flex items-center gap-3 text-sm">
+                                <span className="text-green-500 font-bold">✓</span>
+                                <span>Paiement par crédits simplifié</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm">
+                                <span className="text-green-500 font-bold">✓</span>
+                                <span>Supplément chiot OFFERT 🐶</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm">
+                                <span className="text-green-500 font-bold">✓</span>
+                                <span>Validité des crédits illimitée</span>
+                            </div>
+                        </div>
+
+                        <Link href="/subscriptions">
+                            <Button className="w-full h-12 bg-gray-900 hover:bg-orange-600 text-white font-bold rounded-xl shadow-lg">
+                                Voir les abonnements
+                            </Button>
+                        </Link>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
 
         {/* Card Form */}
         <motion.div 
@@ -871,22 +929,10 @@ export default function BookingPage() {
                      </div>
                  )}
 
-                 <div className="flex flex-col gap-2">
-                  <div className="flex gap-4">
-                    <Button type="button" variant="outline" onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl">Retour</Button>
-                    <Button 
-                        type="button" 
-                        onClick={() => setStep(3)} 
-                        disabled={!availabilityStatus.available || calculateTotalPrice() === 0} 
-                        className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600 disabled:opacity-50"
-                    >
-                        {!availabilityStatus.available ? "Indisponible" : "Récapitulatif"}
-                    </Button>
-                  </div>
-                  {calculateTotalPrice() === 0 && (
-                      <p className="text-center text-xs text-red-500 font-medium">Veuillez sélectionner des dates valides pour continuer.</p>
-                  )}
-                 </div>
+                 <div className="flex gap-4">
+                  <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-14 rounded-xl">Retour</Button>
+                  <Button type="button" onClick={goNext} disabled={!availabilityStatus.available || calculateTotalPrice() === 0} className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600">Récapitulatif</Button>
+                </div>
               </motion.div>
             )}
 
@@ -960,7 +1006,7 @@ export default function BookingPage() {
                                 </div>
                             )}
                             
-                    <div className="flex justify-between pt-2 border-t border-orange-200 mt-2">
+                            <div className="flex justify-between pt-2 border-t border-orange-200 mt-2">
                                 <span className="font-bold text-xl text-gray-900">Total à payer</span>
                                 <strong className="text-xl text-green-600">{formatPrice(couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice())}€</strong>
                             </div>
@@ -989,7 +1035,7 @@ export default function BookingPage() {
                     </div>
 
                     {/* Upsell Abonnement */}
-                    {!couponStatus.applied && (
+                    {!couponStatus.applied && userCredits < calculateCreditCost() && (
                         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-6 text-white shadow-lg">
                             <div className="absolute top-0 right-0 -mr-8 -mt-8 h-24 w-24 rounded-full bg-white/10 blur-xl" />
                             
@@ -1002,11 +1048,9 @@ export default function BookingPage() {
                                         {pets.some(p => formData.petIds.includes(p.id) && typeof p.age === 'number' && p.age < 1) && " (supplément chiot offert !)"}.
                                     </p>
                                 </div>
-                                <Link href="/subscriptions" target="_blank">
-                                    <Button size="sm" className="whitespace-nowrap bg-white text-gray-900 hover:bg-orange-50">
-                                        Voir les offres →
-                                    </Button>
-                                </Link>
+                                <Button size="sm" onClick={() => setShowUpsellModal(true)} className="whitespace-nowrap bg-white text-gray-900 hover:bg-orange-50">
+                                    Voir les offres →
+                                </Button>
                             </div>
                         </div>
                     )}
