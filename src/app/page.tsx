@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { useRef } from "react";
 import { ReviewsSection } from "@/components/home/ReviewsSection";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const { data: session, status } = useSession();
