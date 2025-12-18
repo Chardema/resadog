@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,7 @@ interface Client {
   email: string;
   createdAt: string;
   autoApplyCoupon: Coupon | null;
+  creditBatches: { remaining: number }[];
   stats: {
     totalBookings: number;
     completedBookings: number;
@@ -36,6 +37,10 @@ export default function AdminClientsPage() {
   const [showCreateCoupon, setShowCreateCoupon] = useState(false);
   const [selectedClientForVIP, setSelectedClientForVIP] = useState<string | null>(null);
   const [selectedCoupon, setSelectedCoupon] = useState("");
+  
+  // Gestion Crédits
+  const [selectedClientForCredits, setSelectedClientForCredits] = useState<string | null>(null);
+  const [creditAmount, setCreditAmount] = useState("");
 
   // Formulaire de création de coupon
   const [couponForm, setCouponForm] = useState({
@@ -125,6 +130,26 @@ export default function AdminClientsPage() {
     }
   };
 
+  const handleUpdateCredits = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!selectedClientForCredits || !creditAmount) return;
+
+      try {
+          const res = await fetch(`/api/admin/clients/${selectedClientForCredits}/credits`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ amount: parseInt(creditAmount) })
+          });
+          if (res.ok) {
+              setSelectedClientForCredits(null);
+              setCreditAmount("");
+              loadData();
+          } else {
+              alert("Erreur");
+          }
+      } catch (e) { alert("Erreur"); }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
@@ -150,10 +175,10 @@ export default function AdminClientsPage() {
           className="mb-10"
         >
           <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent mb-2">
-            Gestion des Clients VIP 👑
+            Gestion des Clients & VIP 👑
           </h1>
           <p className="text-gray-700 text-lg">
-            Créez des codes promo et assignez-les à vos clients fidèles
+            Gérez les codes promo, les statuts VIP et les crédits d'abonnement.
           </p>
         </motion.div>
 
@@ -261,14 +286,17 @@ export default function AdminClientsPage() {
         {/* Section Clients */}
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Liste des Clients</h2>
         <div className="space-y-4">
-          {clients.map((client) => (
+          {clients.map((client) => {
+            const totalCredits = client.creditBatches?.reduce((acc, b) => acc + b.remaining, 0) || 0;
+            
+            return (
             <motion.div
               key={client.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-white rounded-2xl p-6 border-2 border-orange-200"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col md:flex-row items-start justify-between gap-6">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <h3 className="text-xl font-bold text-gray-900">
@@ -282,7 +310,7 @@ export default function AdminClientsPage() {
                   </div>
                   <p className="text-gray-600 mb-3">{client.email}</p>
 
-                  <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-4 gap-4 mb-4">
                     <div className="p-3 bg-blue-50 rounded-lg">
                       <p className="text-xs text-gray-600">Réservations</p>
                       <p className="text-lg font-bold text-blue-600">{client.stats.totalBookings}</p>
@@ -294,6 +322,10 @@ export default function AdminClientsPage() {
                     <div className="p-3 bg-orange-50 rounded-lg">
                       <p className="text-xs text-gray-600">Total dépensé</p>
                       <p className="text-lg font-bold text-orange-600">{client.stats.totalSpent.toFixed(2)}€</p>
+                    </div>
+                    <div className="p-3 bg-gray-900 rounded-lg text-white">
+                      <p className="text-xs text-gray-400">Solde Crédits</p>
+                      <p className="text-lg font-bold text-white">{totalCredits}</p>
                     </div>
                   </div>
 
@@ -311,19 +343,29 @@ export default function AdminClientsPage() {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 w-full md:w-auto">
+                  {/* Gestion Crédits */}
+                  <Button 
+                    onClick={() => setSelectedClientForCredits(client.id)}
+                    variant="outline" 
+                    className="border-gray-900 text-gray-900 hover:bg-gray-100"
+                  >
+                    💰 Gérer Crédits
+                  </Button>
+
+                  {/* Gestion VIP */}
                   {!client.autoApplyCoupon ? (
                     selectedClientForVIP === client.id ? (
-                      <div className="space-y-2">
+                      <div className="space-y-2 bg-purple-50 p-2 rounded-lg border border-purple-200">
                         <select
                           value={selectedCoupon}
                           onChange={(e) => setSelectedCoupon(e.target.value)}
-                          className="h-10 border-2 border-purple-200 rounded-lg px-3 text-sm"
+                          className="h-10 border-2 border-purple-200 rounded-lg px-3 text-sm w-full"
                         >
                           <option value="">Sélectionner un code</option>
                           {coupons.filter(c => c.isActive).map((coupon) => (
                             <option key={coupon.id} value={coupon.id}>
-                              {coupon.code} - {coupon.discountType === "PERCENTAGE" ? `${coupon.discountValue}%` : `${coupon.discountValue}€`}
+                              {coupon.code}
                             </option>
                           ))}
                         </select>
@@ -331,10 +373,10 @@ export default function AdminClientsPage() {
                           <Button
                             onClick={() => assignVIPCoupon(client.id, selectedCoupon)}
                             disabled={!selectedCoupon}
-                            className="bg-purple-500 hover:bg-purple-600"
+                            className="bg-purple-500 hover:bg-purple-600 flex-1"
                             size="sm"
                           >
-                            Confirmer
+                            OK
                           </Button>
                           <Button
                             onClick={() => {
@@ -343,8 +385,9 @@ export default function AdminClientsPage() {
                             }}
                             variant="outline"
                             size="sm"
+                            className="flex-1"
                           >
-                            Annuler
+                            X
                           </Button>
                         </div>
                       </div>
@@ -368,8 +411,42 @@ export default function AdminClientsPage() {
                 </div>
               </div>
             </motion.div>
-          ))}
+          )})}
         </div>
+
+        {/* Modale Gestion Crédits */}
+        <AnimatePresence>
+            {selectedClientForCredits && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="bg-white p-6 rounded-2xl w-full max-w-sm"
+                    >
+                        <h3 className="text-xl font-bold mb-4">Gérer les crédits</h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Ajouter (positif) ou retirer (négatif) des crédits pour ce client.
+                        </p>
+                        <form onSubmit={handleUpdateCredits}>
+                            <Input 
+                                type="number" 
+                                placeholder="Montant (ex: 5 ou -2)" 
+                                value={creditAmount}
+                                onChange={(e) => setCreditAmount(e.target.value)}
+                                className="mb-4"
+                                autoFocus
+                            />
+                            <div className="flex gap-2 justify-end">
+                                <Button type="button" variant="outline" onClick={() => setSelectedClientForCredits(null)}>Annuler</Button>
+                                <Button type="submit" className="bg-green-600 hover:bg-green-700">Valider</Button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+
       </div>
     </div>
   );

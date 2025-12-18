@@ -84,7 +84,21 @@ export async function PATCH(
       }
     }
 
-    // Gestion de l'annulation et du remboursement (ou libération empreinte)
+    // Gestion du remboursement des CRÉDITS
+    if (status === "CANCELLED" && booking.creditsUsed > 0) {
+        console.log(`🪙 Remboursement de ${booking.creditsUsed} crédits pour ${booking.client.email}`);
+        await prisma.creditBatch.create({
+            data: {
+                userId: booking.clientId,
+                amount: booking.creditsUsed,
+                remaining: booking.creditsUsed,
+                serviceType: booking.serviceType,
+                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Valable 1 an
+            }
+        });
+    }
+
+    // Gestion de l'annulation et du remboursement Stripe (ou libération empreinte)
     if (status === "CANCELLED" && booking.payment?.stripePaymentId) {
       try {
         const paymentIntent = await stripe.paymentIntents.retrieve(booking.payment.stripePaymentId);
