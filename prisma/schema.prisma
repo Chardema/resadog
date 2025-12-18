@@ -394,19 +394,25 @@ enum DiscountType {
 // ============================================
 
 model UserSubscription {
-  id                   String      @id @default(cuid())
-  stripeSubscriptionId String?     @unique
-  status               String      // ACTIVE, PAST_DUE, CANCELED
+  id                   String        @id @default(cuid())
+  stripeSubscriptionId String?       @unique
+  status               String        // ACTIVE, PAST_DUE, CANCELED
   serviceType          ServiceType
+  billingPeriod        BillingPeriod @default(MONTHLY)
   daysPerWeek          Int
   creditsPerMonth      Int
   price                Float
   
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
-  userId               String      @unique
-  user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId               String        @unique
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
 }
 
 model CreditBatch {
