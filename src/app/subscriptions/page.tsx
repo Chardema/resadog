@@ -59,12 +59,32 @@ export default function SubscriptionPage() {
 
   const plan = calculatePrice();
 
-  const handleSubscribe = () => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubscribe = async () => {
     if (!session) {
       router.push("/auth/signin?callbackUrl=/subscriptions");
       return;
     }
-    alert(`Redirection vers le paiement de ${plan.amountDueNow}€ (${billingCycle === "YEARLY" ? "Annuel" : "Mensuel"})`);
+    
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stripe/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceType, daysPerWeek, petCount, billingCycle }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Erreur lors de la création de l'abonnement");
+      }
+    } catch (e) {
+      alert("Erreur de connexion");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -243,9 +263,10 @@ export default function SubscriptionPage() {
 
               <Button 
                 onClick={handleSubscribe}
+                disabled={loading}
                 className="w-full h-16 rounded-2xl bg-white text-gray-900 font-bold text-lg hover:bg-orange-50 transition-colors shadow-lg relative z-10"
               >
-                {billingCycle === "YEARLY" ? "Payer l'année" : "M'abonner"}
+                {loading ? "Redirection..." : (billingCycle === "YEARLY" ? "Payer l'année" : "M'abonner")}
               </Button>
             </div>
           </motion.div>
