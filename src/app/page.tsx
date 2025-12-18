@@ -274,7 +274,7 @@ export default function Home() {
                   </Button>
                 </Link>
                 <Link href="/subscriptions">
-                  <Button variant="outline" className="border-2 border-white/30 text-white hover:bg-white/10 h-14 px-8 rounded-2xl font-bold text-lg">
+                  <Button variant="outline" className="bg-white/20 text-white border border-white/40 hover:bg-white/30 h-14 px-8 rounded-2xl font-bold text-lg backdrop-blur-sm">
                     Voir les tarifs
                   </Button>
                 </Link>
