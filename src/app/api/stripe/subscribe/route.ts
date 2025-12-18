@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    // Créer un produit dynamique pour cet abonnement
+    // Créer un produit dynamique pour cet abonnement (Nouveau plan)
     const product = await stripe.products.create({
       name: `Abonnement La Meute (${serviceType === "DOG_WALKING" ? "Promenade" : "Garderie"})`,
       description: `${daysPerWeek}j/semaine pour ${petCount} animal(aux). ${billingCycle === "YEARLY" ? "Facturation Annuelle" : "Facturation Mensuelle"}`,
@@ -74,6 +74,50 @@ export async function POST(request: NextRequest) {
       product: product.id,
     });
 
+    // Vérifier si l'utilisateur a déjà un abonnement actif
+    const existingSubscription = await prisma.userSubscription.findUnique({
+        where: { userId: session.user.id }
+    });
+
+    // MODE MISE À JOUR (SWAP)
+    if (existingSubscription && existingSubscription.status === 'ACTIVE' && existingSubscription.stripeSubscriptionId) {
+        // 1. Récupérer l'abonnement Stripe actuel pour avoir l'ID de l'item
+        const stripeSub = await stripe.subscriptions.retrieve(existingSubscription.stripeSubscriptionId);
+        const itemId = stripeSub.items.data[0].id;
+
+        // 2. Mettre à jour l'abonnement Stripe
+        await stripe.subscriptions.update(existingSubscription.stripeSubscriptionId, {
+            items: [{
+                id: itemId,
+                price: price.id, // Nouveau prix
+            }],
+            metadata: {
+                userId: session.user.id,
+                serviceType,
+                creditsPerMonth: totalDays * petCount,
+                daysPerWeek,
+                petCount
+            },
+            proration_behavior: 'always_invoice', // Facturer la différence immédiatement
+        });
+
+        // 3. Mettre à jour la base locale
+        await prisma.userSubscription.update({
+            where: { userId: session.user.id },
+            data: {
+                serviceType: serviceType as any,
+                daysPerWeek,
+                creditsPerMonth: totalDays * petCount,
+                price: amountToPay,
+                billingPeriod: billingCycle,
+            }
+        });
+
+        // 4. Rediriger vers le dashboard (pas de checkout nécessaire)
+        return NextResponse.json({ url: `${process.env.NEXTAUTH_URL}/dashboard?subscription=updated` });
+    }
+
+    // MODE CRÉATION (CHECKOUT)
     // Créer la session de checkout
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
@@ -90,6 +134,15 @@ export async function POST(request: NextRequest) {
         daysPerWeek,
         petCount
       },
+      subscription_data: {
+        metadata: {
+            userId: session.user.id,
+            serviceType,
+            creditsPerMonth: totalDays * petCount,
+            daysPerWeek,
+            petCount
+        }
+      }
     });
 
     return NextResponse.json({ url: checkoutSession.url });

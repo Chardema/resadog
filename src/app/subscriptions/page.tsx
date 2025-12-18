@@ -117,7 +117,7 @@ export default function SubscriptionPage() {
             <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-8 rounded-r-lg shadow-sm flex justify-between items-center">
                 <div>
                     <p className="font-bold">Vous êtes déjà membre du club ! ⚡</p>
-                    <p className="text-sm">Pour modifier votre offre ou annuler, accédez à votre espace de gestion.</p>
+                    <p className="text-sm">Modifiez vos options ci-dessous pour changer de formule instantanément.</p>
                 </div>
             </div>
         )}
@@ -154,7 +154,7 @@ export default function SubscriptionPage() {
           <motion.div 
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className={`space-y-8 bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100 ${existingSubscription ? "opacity-50 pointer-events-none grayscale" : ""}`}
+            className="space-y-8 bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100"
           >
             <div>
               <h3 className="text-lg font-bold text-gray-900 mb-4">1. Quel service ?</h3>
@@ -283,7 +283,7 @@ export default function SubscriptionPage() {
                 disabled={loading}
                 className="w-full h-16 rounded-2xl bg-white text-gray-900 font-bold text-lg hover:bg-orange-50 transition-colors shadow-lg relative z-10"
               >
-                {loading ? "Redirection..." : (existingSubscription ? "Gérer mon abonnement" : (billingCycle === "YEARLY" ? "Payer l'année" : "M'abonner"))}
+                {loading ? "Traitement..." : (existingSubscription ? "Mettre à jour mon offre" : (billingCycle === "YEARLY" ? "Payer l'année" : "M'abonner"))}
               </Button>
             </div>
           </motion.div>

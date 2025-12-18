@@ -57,8 +57,20 @@ function DashboardContent() {
         spread: 70,
         origin: { y: 0.6 }
       });
-      // Clean URL
-      router.replace("/dashboard");
+      
+      // Polling pour attendre le webhook
+      let attempts = 0;
+      const interval = setInterval(async () => {
+          attempts++;
+          await fetchDashboardData();
+          if (attempts >= 5) { // Stop après 10s
+              clearInterval(interval);
+              // Clean URL après tentative
+              router.replace("/dashboard");
+          }
+      }, 2000);
+
+      return () => clearInterval(interval);
     }
   }, [searchParams, router]);
 
