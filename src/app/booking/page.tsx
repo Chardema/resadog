@@ -928,7 +928,7 @@ export default function BookingPage() {
                                     </p>
                                 </div>
                                 <Link href="/subscriptions" target="_blank">
-                                    <Button size="sm" variant="secondary" className="whitespace-nowrap bg-white text-gray-900 hover:bg-orange-50">
+                                    <Button size="sm" className="whitespace-nowrap bg-white text-gray-900 hover:bg-orange-50">
                                         Voir les offres →
                                     </Button>
                                 </Link>
