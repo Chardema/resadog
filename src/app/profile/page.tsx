@@ -14,6 +14,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
+  
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -31,8 +33,19 @@ export default function ProfilePage() {
         phone: "", // À récupérer via API si stocké
         image: session.user.image || "",
       });
+      fetchSubscription();
     }
   }, [status, session, router]);
+
+  const fetchSubscription = async () => {
+      try {
+          const res = await fetch("/api/user/subscription");
+          if (res.ok) {
+              const data = await res.json();
+              setSubscriptionData(data);
+          }
+      } catch (e) {}
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,25 +110,27 @@ export default function ProfilePage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-1">{formData.name}</h2>
               <p className="text-gray-500 text-sm mb-6">{formData.email}</p>
 
-              <div className="flex justify-center gap-2">
+              <div className="flex justify-center gap-2 flex-wrap">
                 <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
                   Client Vérifié
                 </span>
-                {/* Badge VIP si applicable */}
-                <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                  <span>⭐</span> Membre
-                </span>
+                {subscriptionData?.subscription && (
+                    <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm">
+                    <span>⚡</span> Membre Club
+                    </span>
+                )}
               </div>
             </div>
           </motion.div>
 
-          {/* Formulaire (Droite) */}
+          {/* Formulaire & Abo (Droite) */}
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="md:col-span-2"
+            className="md:col-span-2 space-y-8"
           >
+            {/* Infos Perso */}
             <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-gray-100">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-xl font-bold text-gray-900">Informations</h3>
@@ -168,23 +183,59 @@ export default function ProfilePage() {
                   </div>
                 )}
               </form>
-
-              {/* Stats rapides */}
-              <div className="mt-10 grid grid-cols-3 gap-4 pt-8 border-t border-gray-100">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">0</div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wide font-semibold mt-1">Gardes</div>
-                </div>
-                <div className="text-center border-l border-gray-100">
-                  <div className="text-2xl font-bold text-gray-900">0</div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wide font-semibold mt-1">Animaux</div>
-                </div>
-                <div className="text-center border-l border-gray-100">
-                  <div className="text-2xl font-bold text-gray-900">0€</div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wide font-semibold mt-1">Économisés</div>
-                </div>
-              </div>
             </div>
+
+            {/* Section Abonnement */}
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-gray-700 text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
+                
+                <div className="flex justify-between items-start relative z-10">
+                    <div>
+                        <h3 className="text-xl font-bold mb-2">Mon Abonnement</h3>
+                        {subscriptionData?.subscription ? (
+                            <div className="space-y-1">
+                                <p className="text-orange-400 font-medium">Formule {subscriptionData.subscription.serviceType === "DOG_WALKING" ? "Promenade" : "Garderie"}</p>
+                                <p className="text-sm text-gray-400">
+                                    {subscriptionData.subscription.daysPerWeek} jours/semaine • {subscriptionData.subscription.creditsPerMonth} crédits/mois
+                                </p>
+                                <p className="text-sm text-gray-400">
+                                    Prochain renouvellement : Automatique ({subscriptionData.subscription.billingPeriod === "YEARLY" ? "Annuel" : "Mensuel"})
+                                </p>
+                            </div>
+                        ) : (
+                            <p className="text-gray-400 text-sm max-w-md">
+                                Vous n'avez pas encore d'abonnement actif. Rejoignez le club pour économiser sur vos gardes !
+                            </p>
+                        )}
+                    </div>
+                    {subscriptionData?.subscription ? (
+                        <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">
+                            ACTIF
+                        </div>
+                    ) : (
+                        <div className="bg-white/10 text-gray-400 px-3 py-1 rounded-full text-xs font-bold">
+                            INACTIF
+                        </div>
+                    )}
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-white/10 flex gap-4">
+                    {subscriptionData?.subscription ? (
+                        <>
+                            {subscriptionData.portalUrl && (
+                                <a href={subscriptionData.portalUrl} className="bg-white text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors">
+                                    Gérer mon abonnement (Stripe)
+                                </a>
+                            )}
+                        </>
+                    ) : (
+                        <Button onClick={() => router.push('/subscriptions')} className="bg-orange-500 hover:bg-orange-600 text-white h-12 rounded-xl px-6 font-bold">
+                            Découvrir les offres
+                        </Button>
+                    )}
+                </div>
+            </div>
+
           </motion.div>
 
         </div>

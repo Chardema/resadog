@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { AppNav } from "@/components/layout/AppNav";
+import confetti from "canvas-confetti";
 
 interface Booking {
   id: string;
@@ -25,6 +26,9 @@ interface Booking {
 
 interface DashboardData {
   upcomingBookings: Booking[];
+  credits: number;
+  subscription: any;
+  portalUrl: string | null;
   stats: {
     totalBookings: number;
     totalSpent: number;
@@ -34,6 +38,7 @@ interface DashboardData {
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,22 +50,39 @@ export default function DashboardPage() {
     }
   }, [status, router]);
 
+  useEffect(() => {
+    if (searchParams.get("subscription") === "success") {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+      // Clean URL
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
+
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch("/api/bookings");
-      if (response.ok) {
-        const jsonData = await response.json();
-        const bookings = jsonData.bookings || [];
+      const [bookingsRes, subRes] = await Promise.all([
+        fetch("/api/bookings"),
+        fetch("/api/user/subscription")
+      ]);
+
+      if (bookingsRes.ok && subRes.ok) {
+        const bookingsData = await bookingsRes.json();
+        const subData = await subRes.json();
         
+        const bookings = bookingsData.bookings || [];
         const now = new Date();
-        // Filtrer les réservations futures ou en cours
         const upcoming = bookings.filter((b: any) => new Date(b.endDate) >= now);
-        
-        // Calculer les stats
         const totalSpent = bookings.reduce((acc: number, b: any) => acc + (b.totalPrice || 0), 0);
 
         setData({
           upcomingBookings: upcoming,
+          credits: subData.credits,
+          subscription: subData.subscription,
+          portalUrl: subData.portalUrl,
           stats: {
             totalBookings: bookings.length,
             totalSpent: totalSpent,
@@ -86,7 +108,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFbf7] pb-20">
+    <div className="min-h-screen bg-[#FDFbf7] pb-24">
       <AppNav userName={session?.user?.name} />
 
       {/* Decorative Background */}
@@ -97,54 +119,121 @@ export default function DashboardPage() {
 
       <main className="container mx-auto px-6 pt-32 relative z-10">
         {/* Header */}
-        <div className="mb-10">
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2"
-          >
-            Bon retour, <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-600">{session?.user?.name?.split(' ')[0]}</span> 👋
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-xl text-gray-500"
-          >
-            Voici ce qui se passe aujourd'hui.
-          </motion.p>
+        <div className="mb-10 flex justify-between items-end">
+          <div>
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2"
+            >
+              Bon retour, <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-600">{session?.user?.name?.split(' ')[0]}</span> 👋
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-xl text-gray-500"
+            >
+              Votre espace personnel
+            </motion.p>
+          </div>
+          
+          {data?.portalUrl && (
+            <motion.a
+              href={data.portalUrl}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="hidden md:flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-orange-600 bg-white px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-all"
+            >
+              ⚙️ Gérer mon abonnement
+            </motion.a>
+          )}
         </div>
+
+        {/* Subscription Success Message */}
+        {searchParams.get("subscription") === "success" && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-green-100 border border-green-200 text-green-800 px-6 py-4 rounded-2xl mb-8 flex items-center justify-between shadow-sm"
+          >
+            <div>
+              <p className="font-bold text-lg">🎉 Félicitations ! Vous avez rejoint le club !</p>
+              <p className="text-sm text-green-700">Vos crédits sont disponibles. Vous pouvez dès maintenant réserver sans sortir votre carte bancaire.</p>
+            </div>
+            <Link href="/booking" className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition-colors">
+              Utiliser mes crédits
+            </Link>
+          </motion.div>
+        )}
 
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Card 1: Nouvelle Réservation (Call to Action) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            whileHover={{ scale: 1.02, y: -5 }}
-            className="md:col-span-2 bg-gradient-to-br from-gray-900 to-gray-800 rounded-[2rem] p-8 text-white shadow-xl shadow-gray-900/20 relative overflow-hidden group cursor-pointer"
-            onClick={() => router.push('/booking')}
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-150" />
-            <div className="relative z-10 flex flex-col h-full justify-between">
-              <div>
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl mb-4">
-                  📅
+          {/* Card 1: Crédits & Abonnement (NOUVEAU) */}
+          {data?.subscription ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              whileHover={{ scale: 1.02 }}
+              className="md:col-span-2 bg-gradient-to-br from-gray-900 to-gray-800 rounded-[2rem] p-8 text-white shadow-xl shadow-gray-900/20 relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-150" />
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl mb-4">
+                      🪙
+                    </div>
+                    <h2 className="text-3xl font-bold mb-1">{data.credits} Crédits</h2>
+                    <p className="text-gray-400 text-sm">
+                      Disponibles pour vos réservations
+                    </p>
+                  </div>
+                  <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                    {data.subscription.billingPeriod === "YEARLY" ? "Annuel" : "Mensuel"}
+                  </div>
                 </div>
-                <h2 className="text-3xl font-bold mb-2">Planifier une garde</h2>
-                <p className="text-gray-300 max-w-md">
-                  Besoin de partir quelques jours ? Réservez un séjour ou une promenade en quelques clics.
-                </p>
+                
+                <div className="mt-8 flex items-center gap-3">
+                  <Link href="/booking" className="flex-1 text-center bg-white text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors">
+                    Réserver avec mes crédits
+                  </Link>
+                  {data.portalUrl && (
+                    <a href={data.portalUrl} className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white font-bold text-lg">
+                      ⚙️
+                    </a>
+                  )}
+                </div>
               </div>
-              <div className="mt-8 flex items-center gap-3">
-                <span className="bg-white text-gray-900 px-6 py-3 rounded-full font-bold text-sm group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                  Commencer →
-                </span>
+            </motion.div>
+          ) : (
+            // Card Promo Abonnement (Si pas abonné)
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              whileHover={{ scale: 1.02 }}
+              className="md:col-span-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-[2rem] p-8 text-white shadow-xl shadow-orange-500/20 relative overflow-hidden group cursor-pointer"
+              onClick={() => router.push('/subscriptions')}
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl -mr-16 -mt-16" />
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">Rejoignez le Club</h2>
+                  <p className="text-orange-100">
+                    Économisez jusqu'à 20% sur vos gardes et profitez de la priorité de réservation.
+                  </p>
+                </div>
+                <div className="mt-6 flex items-center gap-2">
+                  <span className="bg-white text-orange-600 px-6 py-3 rounded-full font-bold text-sm group-hover:bg-orange-50 transition-colors">
+                    Voir les offres →
+                  </span>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Card 2: Mes Animaux (Stats) */}
           <motion.div
