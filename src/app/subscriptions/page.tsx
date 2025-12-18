@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AppNav } from "@/components/layout/AppNav";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -14,6 +14,7 @@ export default function SubscriptionPage() {
   const [serviceType, setServiceType] = useState<"DOG_WALKING" | "DAY_CARE">("DOG_WALKING");
   const [daysPerWeek, setDaysPerWeek] = useState(2);
   const [petCount, setPetCount] = useState(1);
+  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
 
   // Prix de base (avant réduction) par animal
   const basePrices = {
@@ -21,23 +22,38 @@ export default function SubscriptionPage() {
     DAY_CARE: 25,    // Garderie
   };
 
-  // Calcul du prix mensuel (4 semaines)
+  // Calcul du prix
   const calculatePrice = () => {
     const unitPrice = basePrices[serviceType];
-    const totalDays = daysPerWeek * 4;
-    const rawPrice = (unitPrice * totalDays) * petCount;
+    const daysPerMonth = daysPerWeek * 4;
+    const rawMonthlyPrice = (unitPrice * daysPerMonth) * petCount;
     
-    // Réduction progressive : 10% pour 1-2 jours, 15% pour 3-4, 20% pour 5+
-    let discount = 0.10;
-    if (daysPerWeek >= 3) discount = 0.15;
-    if (daysPerWeek >= 5) discount = 0.20;
+    // Réduction volume (jours/semaine)
+    let volumeDiscount = 0.10;
+    if (daysPerWeek >= 3) volumeDiscount = 0.15;
+    if (daysPerWeek >= 5) volumeDiscount = 0.20;
 
-    const finalPrice = rawPrice * (1 - discount);
+    // Prix mensuel avec réduction volume
+    const monthlyWithVolume = rawMonthlyPrice * (1 - volumeDiscount);
+
+    // Réduction facturation annuelle (20% supplémentaire)
+    const billingDiscount = billingCycle === "YEARLY" ? 0.20 : 0;
+
+    // Prix final mensuel (base de calcul)
+    const finalMonthlyPrice = monthlyWithVolume * (1 - billingDiscount);
+
+    // Total à payer aujourd'hui
+    const amountDueNow = billingCycle === "YEARLY" ? finalMonthlyPrice * 12 : finalMonthlyPrice;
+
+    // Total économisé (par rapport au prix unitaire sans aucun engagement ni volume)
+    const totalSavingsMonthly = rawMonthlyPrice - finalMonthlyPrice;
+
     return {
-      monthly: Math.round(finalPrice),
-      perDay: (finalPrice / (totalDays * petCount)).toFixed(2), // Prix par jour par chien
-      savings: Math.round(rawPrice - finalPrice),
-      credits: totalDays * petCount // Total crédits (ex: 2 chiens x 8 jours = 16 crédits)
+      amountDueNow: Math.round(amountDueNow),
+      monthlyDisplay: Math.round(finalMonthlyPrice),
+      perDay: (finalMonthlyPrice / (daysPerMonth * petCount)).toFixed(2),
+      totalSavingsYearly: Math.round(totalSavingsMonthly * 12),
+      creditsPerMonth: daysPerMonth * petCount
     };
   };
 
@@ -48,8 +64,7 @@ export default function SubscriptionPage() {
       router.push("/auth/signin?callbackUrl=/subscriptions");
       return;
     }
-    // TODO: Connecter à Stripe Subscription
-    alert("Redirection vers le paiement de l'abonnement (Simulation)");
+    alert(`Redirection vers le paiement de ${plan.amountDueNow}€ (${billingCycle === "YEARLY" ? "Annuel" : "Mensuel"})`);
   };
 
   return (
@@ -62,11 +77,38 @@ export default function SubscriptionPage() {
             Abonnements <span className="text-orange-600">La Meute</span> 🐺
           </h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Simplifiez-vous la vie. Choisissez vos jours, obtenez des crédits mensuels à prix réduit et réservez quand vous voulez.
+            Rejoignez le club et profitez de tarifs exclusifs toute l'année.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-center">
+        {/* Billing Cycle Toggle */}
+        <div className="flex justify-center mb-12">
+          <div className="bg-white p-1 rounded-full border border-gray-200 shadow-sm flex relative">
+            <motion.div 
+              className="absolute top-1 bottom-1 bg-gray-900 rounded-full shadow-md z-0"
+              initial={false}
+              animate={{ 
+                x: billingCycle === "MONTHLY" ? 0 : "100%", 
+                width: "50%" 
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+            <button
+              onClick={() => setBillingCycle("MONTHLY")}
+              className={`relative z-10 px-6 py-2 rounded-full text-sm font-bold transition-colors ${billingCycle === "MONTHLY" ? "text-white" : "text-gray-500 hover:text-gray-900"}`}
+            >
+              Mensuel
+            </button>
+            <button
+              onClick={() => setBillingCycle("YEARLY")}
+              className={`relative z-10 px-6 py-2 rounded-full text-sm font-bold transition-colors flex items-center gap-2 ${billingCycle === "YEARLY" ? "text-white" : "text-gray-500 hover:text-gray-900"}`}
+            >
+              Annuel <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">-20%</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-12 items-start">
           {/* Configurator */}
           <motion.div 
             initial={{ x: -20, opacity: 0 }}
@@ -122,7 +164,7 @@ export default function SubscriptionPage() {
                 ))}
               </div>
               <p className="text-center text-sm text-gray-500 mt-3">
-                Soit <strong>{plan.credits} crédits</strong> par mois
+                Soit <strong>{plan.creditsPerMonth} crédits</strong> par mois
               </p>
             </div>
           </motion.div>
@@ -137,50 +179,69 @@ export default function SubscriptionPage() {
             <div className="bg-gray-900 text-white p-10 rounded-[2.5rem] relative shadow-2xl overflow-hidden">
               <div className="absolute top-0 right-0 bg-white/10 w-32 h-32 rounded-full blur-2xl -mr-10 -mt-10" />
               
-              <div className="flex justify-between items-start mb-8">
+              <div className="flex justify-between items-start mb-8 relative z-10">
                 <div>
-                  <p className="text-orange-300 font-medium mb-1">Votre formule</p>
+                  <p className="text-orange-300 font-medium mb-1 uppercase text-xs tracking-wider">
+                    {billingCycle === "YEARLY" ? "Paiement Annuel" : "Paiement Mensuel"}
+                  </p>
                   <h2 className="text-2xl font-bold">{serviceType === "DOG_WALKING" ? "Promenade" : "Garderie"} x{petCount}</h2>
                   <p className="text-gray-400 text-sm">{daysPerWeek} jours / semaine</p>
                 </div>
-                <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                  -{Math.round((1 - (parseFloat(plan.perDay) / basePrices[serviceType])) * 100)}%
-                </div>
+                {billingCycle === "YEARLY" && (
+                  <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">
+                    BEST DEAL
+                  </div>
+                )}
               </div>
 
-              <div className="mb-8">
+              <div className="mb-8 relative z-10">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-6xl font-extrabold">{plan.monthly}€</span>
+                  <span className="text-6xl font-extrabold">{plan.monthlyDisplay}€</span>
                   <span className="text-gray-400">/ mois</span>
                 </div>
-                <p className="text-sm text-gray-400 mt-2">
-                  Soit {plan.perDay}€ par jour/chien (au lieu de {basePrices[serviceType]}€)
-                </p>
-                <div className="mt-4 inline-block bg-white/10 px-4 py-2 rounded-xl text-green-400 font-bold text-sm">
-                  Vous économisez {plan.savings}€ / mois 💰
+                
+                {billingCycle === "YEARLY" ? (
+                  <div className="mt-2 text-sm text-gray-400">
+                    Facturé {plan.amountDueNow}€ par an
+                  </div>
+                ) : (
+                  <div className="mt-2 text-sm text-gray-400">
+                    Engagement 2 mois minimum
+                  </div>
+                )}
+
+                <div className="mt-6 p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-gray-300 text-sm">Prix par jour</span>
+                    <span className="font-bold">{plan.perDay}€</span>
+                  </div>
+                  <div className="flex justify-between items-center text-green-400">
+                    <span className="text-sm font-bold">Économie annuelle</span>
+                    <span className="font-bold">-{plan.totalSavingsYearly}€ 💰</span>
+                  </div>
                 </div>
               </div>
 
-              <ul className="space-y-4 mb-10 text-gray-300 text-sm">
+              <ul className="space-y-4 mb-10 text-gray-300 text-sm relative z-10">
                 <li className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center">✓</span>
-                  {plan.credits} crédits valables 2 mois
+                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
+                  {plan.creditsPerMonth} crédits / mois
                 </li>
                 <li className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center">✓</span>
-                  1 Crédit = 1 prestation pour 1 chien
+                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
+                  Validité 2 mois (Reportable)
                 </li>
                 <li className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center">✓</span>
-                  Sans engagement, annulable à tout moment
+                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
+                  {billingCycle === "YEARLY" ? "Engagement 12 mois" : "Engagement 2 mois min."}
                 </li>
               </ul>
 
               <Button 
                 onClick={handleSubscribe}
-                className="w-full h-16 rounded-2xl bg-white text-gray-900 font-bold text-lg hover:bg-orange-50 transition-colors shadow-lg"
+                className="w-full h-16 rounded-2xl bg-white text-gray-900 font-bold text-lg hover:bg-orange-50 transition-colors shadow-lg relative z-10"
               >
-                S'abonner maintenant ⚡
+                {billingCycle === "YEARLY" ? "Payer l'année" : "M'abonner"}
               </Button>
             </div>
           </motion.div>
