@@ -23,24 +23,37 @@ export async function GET() {
     }
 
     const stripeSub = subscriptions.data[0];
-    const metadata = stripeSub.metadata; // On espère que les metadata sont là, sinon on les récupère de la session checkout
+    const metadata = stripeSub.metadata;
 
-    // Si les metadata sont vides sur l'abo (car mis sur la session), on doit récupérer la session
-    // Mais simplifions : Si on trouve un abo actif et qu'on a rien en base, on le crée.
-    // On a besoin des détails (credits, serviceType) qui étaient dans les metadata de la session.
-    
-    // Récupération de la session qui a créé cet abonnement (via latest_invoice -> payment_intent ou autre ?)
-    // C'est complexe de remonter à la session.
-    // Solution de secours : On utilise les metadata stockées sur l'abonnement SI on les a mises lors de la création (via subscription_data.metadata)
-    
-    // MAIS, dans mon code checkout, j'ai mis les metadata sur la SESSION, pas explicitement sur l'abonnement via `subscription_data`.
-    // Stripe copie parfois, mais pas toujours.
-    
-    // Correctif immédiat pour l'avenir : mettre les metadata sur subscription_data.
-    // Pour l'instant présent : On va essayer de deviner ou laisser le webhook faire son travail plus tard.
-    // Sauf si... je peux récupérer la dernière transaction.
+    // Tentative de synchronisation / auto-réparation
+    if (metadata && metadata.userId === session.user.id && metadata.serviceType) {
+        console.log(`🔄 Auto-sync abonnement Stripe ${stripeSub.id} -> DB`);
+        
+        // Upsert l'abonnement
+        await prisma.userSubscription.upsert({
+            where: { userId: session.user.id },
+            update: {
+                stripeSubscriptionId: stripeSub.id,
+                status: 'ACTIVE',
+                serviceType: metadata.serviceType as any,
+                daysPerWeek: parseInt(metadata.daysPerWeek || "0"),
+                creditsPerMonth: parseInt(metadata.creditsPerMonth || "0"),
+                // On pourrait mettre à jour le prix si dispo dans metadata ou via l'item
+            },
+            create: {
+                userId: session.user.id,
+                stripeSubscriptionId: stripeSub.id,
+                status: 'ACTIVE',
+                serviceType: metadata.serviceType as any,
+                daysPerWeek: parseInt(metadata.daysPerWeek || "0"),
+                creditsPerMonth: parseInt(metadata.creditsPerMonth || "0"),
+                price: 0, // Fallback si on a pas l'info facile ici
+            }
+        });
+        return NextResponse.json({ status: "REPAIRED", message: "Abonnement synchronisé" });
+    }
 
-    // On va mettre à jour le statut en base si l'ID correspond
+    // Fallback : Si on a un abo en base qui matche l'ID mais pas le statut
     const dbSub = await prisma.userSubscription.findUnique({ where: { userId: session.user.id } });
     
     if (dbSub && dbSub.stripeSubscriptionId === stripeSub.id) {
@@ -49,13 +62,8 @@ export async function GET() {
                 where: { id: dbSub.id },
                 data: { status: 'ACTIVE' }
             });
-            return NextResponse.json({ status: "UPDATED", message: "Abonnement activé" });
+            return NextResponse.json({ status: "UPDATED", message: "Statut mis à jour" });
         }
-    } else if (!dbSub) {
-        // Cas critique : Webhook n'a pas encore créé l'abo en base.
-        // On ne peut pas le créer ici sans les infos de serviceType/credits.
-        // On va juste renvoyer "PENDING_WEBHOOK"
-        return NextResponse.json({ status: "PENDING_WEBHOOK", message: "En attente de validation Stripe..." });
     }
 
     return NextResponse.json({ status: "SYNCED" });

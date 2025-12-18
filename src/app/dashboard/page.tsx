@@ -60,10 +60,14 @@ function DashboardContent() {
         origin: { y: 0.6 }
       });
       
-      // Polling pour attendre le webhook
+      // Polling pour attendre le webhook ou forcer la sync
       let attempts = 0;
       const interval = setInterval(async () => {
           attempts++;
+          
+          // Tentative de réparation active
+          await fetch("/api/stripe/check-subscription");
+          
           await fetchDashboardData();
           if (attempts >= 5) { // Stop après 10s
               clearInterval(interval);
