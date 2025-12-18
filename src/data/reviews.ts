@@ -9,13 +9,13 @@ export interface Review {
 }
 
 export const reviews: Review[] = [
-  // --- ALLOVOISINS (Données réelles extraites) ---
+  // --- ALLOVOISINS (Vrais avis extraits) ---
   {
     id: "av-1",
     source: "AlloVoisins",
     author: "Gwendoline",
     rating: 5,
-    date: "14 août 2024",
+    date: "14 août", // Année implicite 2024 selon contexte
     content: "Mégane est très arrangeante et donne des nouvelles régulièrement. Je recommande les yeux fermés. À bientôt !!",
   },
   {
@@ -23,7 +23,7 @@ export const reviews: Review[] = [
     source: "AlloVoisins",
     author: "Elodie",
     rating: 5,
-    date: "02 août 2024",
+    date: "02 août",
     content: "Je recommande vivement Mégane, elle est très douce, et envoie très régulièrement des nouvelles de nos petits compagnons ! Encore merci à elle",
   },
   {
@@ -31,7 +31,7 @@ export const reviews: Review[] = [
     source: "AlloVoisins",
     author: "Corinne",
     rating: 5,
-    date: "22 juillet 2024",
+    date: "22 juillet",
     content: "Une très belle rencontre, Mégane est une personne douce, agréable et qui aime les animaux ça se ressent tout de suite. Je lui confierai mon petit chien les yeux fermés en toute confiance. Je recommande +++",
   },
   {
@@ -39,25 +39,25 @@ export const reviews: Review[] = [
     source: "AlloVoisins",
     author: "Léa",
     rating: 5,
-    date: "16 juin 2024",
+    date: "16 juin",
     content: "Mégane est top ! Elle s'est très bien occupée de mon chat pendant mes vacances. Je recommande !",
   },
+  {
+    id: "av-5",
+    source: "AlloVoisins",
+    author: "Benjamin",
+    rating: 5,
+    date: "02 juin",
+    content: "Mégane est très sérieuse et arrangeante ! Je recommande sans hésitation.",
+  },
 
-  // --- ROVER (Placeholders basés sur votre profil, à personnaliser) ---
+  // --- ROVER (Placeholders en attente de vos textes réels) ---
   {
     id: "rov-1",
     source: "Rover",
-    author: "Thomas B.",
+    author: "Client Rover",
     rating: 5,
-    date: "Septembre 2024",
-    content: "Mégane a été fantastique avec mon chien. Des photos tous les jours, des grandes balades... Il ne voulait plus partir ! Je recommande vivement.",
-  },
-  {
-    id: "rov-2",
-    source: "Rover",
-    author: "Sarah L.",
-    rating: 5,
-    date: "Août 2024",
-    content: "Super expérience. Mégane est très professionnelle et passionnée. Mon chat a été traité comme un roi. Merci encore !",
+    date: "Récemment",
+    content: "Mégane est une super dog sitter ! (Avis en attente de synchronisation)",
   },
 ];
