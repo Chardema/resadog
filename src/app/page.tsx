@@ -285,7 +285,7 @@ export default function Home() {
               {[
                 { icon: "🪙", title: "1 Crédit = 1 Jour", desc: "Utilisez vos crédits pour n'importe quelle prestation." },
                 { icon: "🔄", title: "Reportable", desc: "Vos crédits ont une validité illimitée." },
-                { icon: "⚡", title: "Priorité", desc: "Les membres du club sont prioritaires sur les réservations." },
+                { icon: "🐶", title: "Chiot Offert", desc: "Le supplément chiot est 100% offert pour les membres." },
                 { icon: "📉", title: "-20% Garanti", desc: "Le tarif le plus bas, toute l'année, même en vacances." }
               ].map((feature, i) => (
                 <motion.div

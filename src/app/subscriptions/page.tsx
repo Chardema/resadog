@@ -233,7 +233,11 @@ export default function SubscriptionPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  {billingCycle === "YEARLY" ? "Engagement 12 mois" : "Engagement 2 mois min."}
+                  Supplément chiot OFFERT 🐶
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
+                  Sans engagement, annulable à tout moment
                 </li>
               </ul>
 

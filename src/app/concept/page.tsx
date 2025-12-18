@@ -151,6 +151,10 @@ export default function ConceptPage() {
                     <span>Crédits reportables</span>
                     <span>Illimité</span>
                   </div>
+                  <div className="flex justify-between items-center text-orange-100">
+                    <span>Supplément chiot</span>
+                    <span className="font-bold bg-white text-orange-600 px-2 py-0.5 rounded">OFFERT</span>
+                  </div>
                 </div>
                 <div className="pt-6 border-t border-white/20">
                   <div className="flex justify-between items-center">
