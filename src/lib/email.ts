@@ -110,8 +110,38 @@ export const sendAdminNotification = async (
           <p><a href="https://resadog.vercel.app/admin/bookings">Accéder au Dashboard pour valider</a></p>
         </div>
       `,
+export const sendBugReport = async (
+  userEmail: string | undefined,
+  description: string,
+  path: string
+) => {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("⚠️ RESEND_API_KEY manquante. Email bug non envoyé.");
+    return;
+  }
+
+  try {
+    await resend.emails.send({
+      from: 'La Patte Dorée Bug <onboarding@resend.dev>',
+      to: 'christo59@pm.me',
+      subject: '🐛 Rapport de Bug - La Patte Dorée',
+      html: `
+        <div style="font-family: sans-serif; color: #333;">
+          <h1>Nouveau signalement de bug</h1>
+          <p><strong>Utilisateur :</strong> ${userEmail || "Anonyme"}</p>
+          <p><strong>Page concernée :</strong> ${path}</p>
+          
+          <div style="background: #fff0f0; padding: 15px; border-radius: 8px; border: 1px solid #ffcccc; margin: 20px 0;">
+            <h3>Description :</h3>
+            <p style="white-space: pre-wrap;">${description}</p>
+          </div>
+          
+          <p><em>Envoyé automatiquement depuis l'application.</em></p>
+        </div>
+      `,
     });
+    console.log(`📧 Rapport de bug envoyé.`);
   } catch (error) {
-    console.error("Erreur email admin:", error);
+    console.error("Erreur envoi rapport bug:", error);
   }
 };
