@@ -32,7 +32,11 @@ export default async function AdminDashboardPage() {
       },
     },
     include: {
-      client: true,
+      client: {
+        include: {
+          subscription: true,
+        }
+      },
       pet: true,
       pets: true,
     },

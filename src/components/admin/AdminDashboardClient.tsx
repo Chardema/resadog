@@ -17,7 +17,10 @@ interface Booking {
   status: string;
   pets: { name: string }[];
   pet?: { name: string } | null;
-  client: { name: string | null };
+  client: { 
+    name: string | null;
+    subscription?: { status: string } | null;
+  };
 }
 
 interface AdminDashboardClientProps {
@@ -315,14 +318,21 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
                             <p className="text-sm font-semibold text-gray-900">
                               {new Date(booking.startDate).toLocaleDateString("fr-FR")}
                             </p>
-                            <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                              booking.status === "PENDING" ? "bg-orange-100 text-orange-700" :
-                              booking.status === "CONFIRMED" ? "bg-green-100 text-green-700" :
-                              "bg-gray-100 text-gray-700"
-                            }`}>
-                              {booking.status === "PENDING" ? "En attente" :
-                               booking.status === "CONFIRMED" ? "Confirmée" : booking.status}
-                            </span>
+                            <div className="flex flex-col items-end gap-1 mt-1">
+                              {booking.client.subscription?.status === 'ACTIVE' && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold shadow-sm">
+                                  ⚡ CLUB
+                                </span>
+                              )}
+                              <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                                booking.status === "PENDING" ? "bg-orange-100 text-orange-700" :
+                                booking.status === "CONFIRMED" ? "bg-green-100 text-green-700" :
+                                "bg-gray-100 text-gray-700"
+                              }`}>
+                                {booking.status === "PENDING" ? "En attente" :
+                                 booking.status === "CONFIRMED" ? "Confirmée" : booking.status}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </Link>
