@@ -37,6 +37,18 @@ export async function POST(request: NextRequest) {
         await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
         break;
 
+      case "customer.subscription.deleted":
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        break;
+
+      case "customer.subscription.updated":
+        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        break;
+
+      case "invoice.payment_succeeded":
+        await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
+        break;
+
       default:
         console.log(`Événement non géré : ${event.type}`);
     }
@@ -49,6 +61,54 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// ... (existing helper functions) ...
+
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+    console.log(`🗑️ Abonnement supprimé : ${subscription.id}`);
+    await prisma.userSubscription.updateMany({
+        where: { stripeSubscriptionId: subscription.id },
+        data: { status: "CANCELED" }
+    });
+}
+
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+    // Si l'abonnement est annulé à la fin de la période, le statut Stripe reste 'active' mais 'cancel_at_period_end' est true.
+    // On peut stocker ça si on veut afficher "Fin le..."
+    console.log(`🔄 Abonnement mis à jour : ${subscription.id} (Status: ${subscription.status})`);
+    
+    await prisma.userSubscription.updateMany({
+        where: { stripeSubscriptionId: subscription.id },
+        data: { 
+            status: subscription.status === 'active' ? 'ACTIVE' : subscription.status.toUpperCase() 
+        }
+    });
+}
+
+async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
+    if (invoice.billing_reason === 'subscription_cycle') {
+        const subscriptionId = invoice.subscription as string;
+        console.log(`🔄 Renouvellement abonnement ${subscriptionId}`);
+
+        const subscription = await prisma.userSubscription.findFirst({
+            where: { stripeSubscriptionId: subscriptionId }
+        });
+
+        if (subscription) {
+            // Ajouter les crédits du mois
+            await prisma.creditBatch.create({
+                data: {
+                    userId: subscription.userId,
+                    amount: subscription.creditsPerMonth,
+                    remaining: subscription.creditsPerMonth,
+                    serviceType: subscription.serviceType,
+                    expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000), // Illimité
+                }
+            });
+            console.log(`✅ Crédits renouvelés pour ${subscription.userId}`);
+        }
+    }
 }
 
 // Helper to extract booking IDs
