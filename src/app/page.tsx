@@ -239,6 +239,71 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Subscription Teaser Section */}
+      <section className="container mx-auto px-6 py-24">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-[3rem] p-10 md:p-20 text-white relative overflow-hidden shadow-2xl"
+        >
+          {/* Decorative Circles */}
+          <div className="absolute top-[-20%] right-[-10%] w-[400px] h-[400px] bg-white/10 rounded-full blur-[80px]" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-[300px] h-[300px] bg-yellow-400/20 rounded-full blur-[60px]" />
+
+          <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <motion.span
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                className="inline-block bg-white/20 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-sm font-bold mb-6"
+              >
+                🐺 Le Club La Meute
+              </motion.span>
+              <h2 className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight">
+                Gardez-le souvent,<br /> payez moins cher.
+              </h2>
+              <p className="text-orange-50 text-xl mb-10 leading-relaxed max-w-lg">
+                Rejoignez notre abonnement par crédits et économisez jusqu'à <span className="font-bold border-b-2 border-white">20% sur chaque garde</span>. Simple, flexible et sans stress.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <Link href="/concept">
+                  <Button className="bg-white text-orange-600 hover:bg-orange-50 h-14 px-8 rounded-2xl font-bold text-lg shadow-xl">
+                    Découvrir le concept
+                  </Button>
+                </Link>
+                <Link href="/subscriptions">
+                  <Button variant="outline" className="border-2 border-white/30 text-white hover:bg-white/10 h-14 px-8 rounded-2xl font-bold text-lg">
+                    Voir les tarifs
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { icon: "🪙", title: "1 Crédit = 1 Jour", desc: "Utilisez vos crédits pour n'importe quelle prestation." },
+                { icon: "🔄", title: "Reportable", desc: "Vos crédits non utilisés sont valables 2 mois." },
+                { icon: "⚡", title: "Priorité", desc: "Les membres du club sont prioritaires sur les réservations." },
+                { icon: "📉", title: "-20% Garanti", desc: "Le tarif le plus bas, toute l'année, même en vacances." }
+              ].map((feature, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="bg-white/10 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 shadow-inner"
+                >
+                  <div className="text-3xl mb-3">{feature.icon}</div>
+                  <h4 className="font-bold text-lg mb-1">{feature.title}</h4>
+                  <p className="text-orange-100 text-xs leading-relaxed">{feature.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
       {/* Reviews Section - Dynamic */}
       <ReviewsSection />
 
