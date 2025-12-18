@@ -29,6 +29,8 @@ interface DashboardData {
   credits: number;
   subscription: any;
   portalUrl: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
   stats: {
     totalBookings: number;
     totalSpent: number;
@@ -95,6 +97,8 @@ function DashboardContent() {
           credits: subData.credits,
           subscription: subData.subscription,
           portalUrl: subData.portalUrl,
+          currentPeriodEnd: subData.currentPeriodEnd,
+          cancelAtPeriodEnd: subData.cancelAtPeriodEnd,
           stats: {
             totalBookings: bookings.length,
             totalSpent: totalSpent,
@@ -180,6 +184,22 @@ function DashboardContent() {
               Utiliser mes crédits
             </Link>
           </motion.div>
+        )}
+
+        {data?.cancelAtPeriodEnd && data.subscription?.status === 'ACTIVE' && (
+            <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-6 py-4 rounded-2xl mb-8 flex flex-col md:flex-row items-center justify-between shadow-sm gap-4"
+            >
+                <div>
+                    <p className="font-bold">Résiliation en cours ⏳</p>
+                    <p className="text-sm text-yellow-700">Votre abonnement se terminera le {new Date(data.currentPeriodEnd!).toLocaleDateString("fr-FR")}. Vos crédits resteront utilisables ensuite.</p>
+                </div>
+                <Link href="/subscriptions" className="bg-yellow-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-yellow-700 transition-colors whitespace-nowrap">
+                    Reprendre l'offre
+                </Link>
+            </motion.div>
         )}
 
         {hasCanceledSub && (

@@ -17,10 +17,21 @@ export async function GET() {
   // Récupérer le portail Stripe si abonné
   let portalUrl = null;
   let commitmentEndsAt = null;
+  let currentPeriodEnd = null;
+  let cancelAtPeriodEnd = false;
 
   if (subscription?.stripeSubscriptionId) {
       const user = await prisma.user.findUnique({ where: { id: session.user.id } });
       
+      // Récupérer les détails de l'abonnement depuis Stripe
+      try {
+          const stripeSub = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+          currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
+          cancelAtPeriodEnd = stripeSub.cancel_at_period_end;
+      } catch (e) {
+          console.error("Erreur récupération abonnement Stripe:", e);
+      }
+
       // Calcul engagement
       const startDate = new Date(subscription.createdAt);
       const monthsToAdd = subscription.billingPeriod === "YEARLY" ? 12 : 2;
@@ -28,9 +39,7 @@ export async function GET() {
       const isLocked = new Date() < commitmentEndsAt;
 
       if (user?.stripeCustomerId) {
-          // Créer une configuration de portail adaptée
-          // Note: En prod, on devrait créer ces configs une fois et stocker leurs IDs.
-          // Ici pour le prototype, on crée à la volée (attention aux limites de rate limit Stripe si trafic énorme)
+          // ... (configuration creation remains same) ...
           const configuration = await stripe.billingPortal.configurations.create({
             business_profile: {
               headline: "Gestion de votre abonnement La Meute",
@@ -62,6 +71,8 @@ export async function GET() {
     subscription,
     credits: totalCredits,
     portalUrl,
-    commitmentEndsAt
+    commitmentEndsAt,
+    currentPeriodEnd,
+    cancelAtPeriodEnd
   });
 }

@@ -199,8 +199,15 @@ export default function ProfilePage() {
                                     {subscriptionData.subscription.daysPerWeek} jours/semaine • {subscriptionData.subscription.creditsPerMonth} crédits/mois
                                 </p>
                                 <p className="text-sm text-gray-400">
-                                    Prochain renouvellement : Automatique ({subscriptionData.subscription.billingPeriod === "YEARLY" ? "Annuel" : "Mensuel"})
+                                    Statut : {subscriptionData.subscription.status === 'ACTIVE' 
+                                        ? (subscriptionData.cancelAtPeriodEnd ? "Résiliation demandée" : "Actif") 
+                                        : subscriptionData.subscription.status}
                                 </p>
+                                {subscriptionData.currentPeriodEnd && (
+                                    <p className="text-sm text-gray-400">
+                                        {subscriptionData.cancelAtPeriodEnd ? "Prend fin le" : "Prochain renouvellement le"} : {new Date(subscriptionData.currentPeriodEnd).toLocaleDateString("fr-FR")}
+                                    </p>
+                                )}
                                 {subscriptionData.commitmentEndsAt && new Date(subscriptionData.commitmentEndsAt) > new Date() && (
                                     <p className="text-xs text-orange-300 mt-1 font-semibold">
                                         🔒 Engagement jusqu'au {new Date(subscriptionData.commitmentEndsAt).toLocaleDateString("fr-FR")}
