@@ -548,29 +548,62 @@ export default function BookingPage() {
         return;
     }
 
-    // ... (booking creation logic unchanged) ...
     if (useSameDates) {
         const price = payWithCredits ? 0 : (couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice());
-        // ...
+        
+        let startDate = formData.startDate;
+        let endDate = formData.endDate;
+        if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+            const valid = individualDates.filter(d => d.date !== "").map(d => d.date).sort();
+            if (valid.length > 0) { startDate = valid[0]; endDate = valid[valid.length - 1]; }
+        }
+
         bookingsToCreate.push({
-            // ...
+            petIds: formData.petIds,
+            startDate,
+            endDate,
+            startTime: formData.startTime,
+            endTime: formData.endTime,
+            serviceType: formData.serviceType,
             totalPrice: price,
             depositAmount: price,
-            useCredits: payWithCredits, // Flag for API
-            // ...
+            notes: formData.notes,
+            useCredits: payWithCredits,
+            promoCode: formData.promoCode
         });
     } else {
-        // ... loop ...
-            const rawPrice = calculatePriceForConfig(config, [pet]);
-            const finalPrice = payWithCredits ? 0 : rawPrice * discountRatio;
-            // ...
+        const totalRaw = calculateTotalPrice();
+        const discountRatio = (couponStatus.applied && couponStatus.data) ? (couponStatus.data.finalAmount / totalRaw) : 1;
+
+        for (const petId of formData.petIds) {
+            const config = petConfigs[petId];
+            const pet = pets.find(p => p.id === petId);
+            if (!pet || !config) continue;
+
+            const details = calculatePriceDetailForPet(config, pet);
+            const finalPrice = payWithCredits ? 0 : details.total * discountRatio;
+
+            let startDate = config.startDate;
+            let endDate = config.endDate;
+            if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+                const valid = config.individualDates.filter(d => d.date !== "").map(d => d.date).sort();
+                if (valid.length > 0) { startDate = valid[0]; endDate = valid[valid.length - 1]; }
+            }
+
             bookingsToCreate.push({
-                // ...
+                petIds: [petId],
+                startDate,
+                endDate,
+                startTime: config.startTime,
+                endTime: config.endTime,
+                serviceType: formData.serviceType,
                 totalPrice: finalPrice,
                 depositAmount: finalPrice,
+                notes: formData.notes,
                 useCredits: payWithCredits,
-                // ...
+                promoCode: formData.promoCode
             });
+        }
     }
 
     try {
@@ -587,7 +620,6 @@ export default function BookingPage() {
         }
 
         if (payWithCredits) {
-            // Direct success
             window.location.href = `/booking/success?bookingId=${createdBookingIds[0]}`;
         } else {
             const resCheckout = await fetch("/api/stripe/checkout", {
