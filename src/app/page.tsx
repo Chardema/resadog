@@ -5,6 +5,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { useRef } from "react";
+import { ReviewsSection } from "@/components/home/ReviewsSection";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -237,12 +238,6 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
-
-import { ReviewsSection } from "@/components/home/ReviewsSection";
-
-// ... existing imports ...
-
-// ... inside Home component ...
 
       {/* Reviews Section - Dynamic */}
       <ReviewsSection />
