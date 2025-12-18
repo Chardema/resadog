@@ -27,9 +27,26 @@ const createBookingSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // ... (auth check) ...
+    // Vérifier l'authentification
+    const session = await auth();
 
-    // ... (body parsing) ...
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Vous devez être connecté pour créer une réservation" },
+        { status: 401 }
+      );
+    }
+
+    // Parser et valider les données
+    const body = await request.json();
+    
+    // Support backward compatibility if frontend sends single petId
+    if (body.petId && !body.petIds) {
+      body.petIds = [body.petId];
+    }
+
+    const validatedData = createBookingSchema.parse(body);
+
     const {
       petIds,
       startDate,
@@ -45,11 +62,40 @@ export async function POST(request: NextRequest) {
       useCredits,
     } = validatedData;
 
-    // ... (date checks) ...
+    // Convertir les dates en UTC pour éviter les problèmes de fuseau horaire
+    const start = parseUTCDate(startDate);
+    const end = parseUTCDate(endDate);
 
+    // Vérifier que la date de fin est après la date de début
+    if (end <= start) {
+      return NextResponse.json(
+        { error: "La date de fin doit être après la date de début" },
+        { status: 400 }
+      );
+    }
+
+    // Vérifier que TOUS les animaux appartiennent bien à l'utilisateur
+    const pets = await prisma.pet.findMany({
+      where: {
+        id: { in: petIds },
+        ownerId: session.user.id,
+      },
+    });
+
+    if (pets.length !== petIds.length) {
+      return NextResponse.json(
+        { error: "Certains animaux n'existent pas ou ne vous appartiennent pas" },
+        { status: 404 }
+      );
+    }
+
+    // Gestion des CRÉDITS
     let creditsToDeduct = 0;
     if (useCredits) {
         // Calculate credits needed (simplified: 1 day = 1 credit per pet)
+        // Note: For DROP_IN/WALKING we should ideally pass duration/quantity, but here we estimate based on date range.
+        // For accurate credit usage, frontend should pass the exact credit cost or backend should recalculate precisely.
+        // Assuming 1 day = 1 credit for now as base.
         const duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) || 1;
         creditsToDeduct = duration * petIds.length;
 
@@ -63,14 +109,79 @@ export async function POST(request: NextRequest) {
         if (totalAvailable < creditsToDeduct) {
             return NextResponse.json({ error: "Crédits insuffisants" }, { status: 400 });
         }
-
-        // Deduct credits (Simplified: just update first batch found for now, ideally transaction)
-        // In a real app, distribute deduction across batches.
-        // For MVP: We assume we just debit (we need a transaction logic here but let's just mark the booking)
-        // We will just mark the booking as paid with credits for now.
     }
 
-    // ... (availability check) ...
+    // Vérifier les disponibilités pour toutes les dates de la période
+    const daysToCheck = [];
+    let currentDate = new Date(start);
+
+    while (currentDate <= end) {
+      daysToCheck.push(new Date(currentDate));
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+    }
+
+    // Récupérer toutes les disponibilités pour ces dates et ce type de service
+    const startOfRange = new Date(start);
+    startOfRange.setUTCHours(0, 0, 0, 0);
+    const endOfRange = new Date(end);
+    endOfRange.setUTCHours(23, 59, 59, 999);
+
+    const availabilities = await prisma.availability.findMany({
+      where: {
+        date: {
+          gte: startOfRange,
+          lte: endOfRange,
+        },
+        serviceType, // Important: filtrer par type de service !
+      },
+    });
+
+    // Vérifier que toutes les dates sont disponibles
+    const unavailableDates = daysToCheck.filter((date) => {
+      const dateKey = date.toISOString().split("T")[0];
+      const availability = availabilities.find(
+        (a) => a.date.toISOString().split("T")[0] === dateKey
+      );
+      // La date est indisponible UNIQUEMENT si elle existe dans la BDD ET est marquée comme indisponible
+      return availability && !availability.available;
+    });
+
+    if (unavailableDates.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Certaines dates ne sont pas disponibles.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Vérifier les conflits réels (réservations CONFIRMED ou IN_PROGRESS)
+    const conflictingBookings = await prisma.booking.findMany({
+      where: {
+        pets: { some: { id: { in: petIds } } },
+        status: { in: ["CONFIRMED", "IN_PROGRESS"] },
+        OR: [
+          {
+            AND: [{ startDate: { lte: start } }, { endDate: { gte: start } }],
+          },
+          {
+            AND: [{ startDate: { lte: end } }, { endDate: { gte: end } }],
+          },
+          {
+            AND: [{ startDate: { gte: start } }, { endDate: { lte: end } }],
+          },
+        ],
+      },
+    });
+
+    if (conflictingBookings.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Une réservation confirmée existe déjà pour l'un de ces animaux sur cette période",
+        },
+        { status: 400 }
+      );
+    }
 
     // Créer une nouvelle réservation
     const booking = await prisma.booking.create({
