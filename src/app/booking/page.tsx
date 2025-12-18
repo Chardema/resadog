@@ -707,7 +707,7 @@ export default function BookingPage() {
                         exit={{ scale: 0.9, opacity: 0 }}
                         className="relative z-10 bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl"
                     >
-                        <button onClick={() => setShowUpsellModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+                        <button type="button" onClick={() => setShowUpsellModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
                         
                         <div className="text-center mb-6">
                             <span className="text-4xl">🐺</span>
@@ -728,15 +728,15 @@ export default function BookingPage() {
                         </div>
 
                         <div className="space-y-3 mb-8">
-                            <div className="flex items-center gap-3 text-sm">
+                            <div className="flex items-center gap-3 text-sm text-gray-700">
                                 <span className="text-green-500 font-bold">✓</span>
                                 <span>Paiement par crédits simplifié</span>
                             </div>
-                            <div className="flex items-center gap-3 text-sm">
+                            <div className="flex items-center gap-3 text-sm text-gray-700">
                                 <span className="text-green-500 font-bold">✓</span>
                                 <span>Supplément chiot OFFERT 🐶</span>
                             </div>
-                            <div className="flex items-center gap-3 text-sm">
+                            <div className="flex items-center gap-3 text-sm text-gray-700">
                                 <span className="text-green-500 font-bold">✓</span>
                                 <span>Validité des crédits illimitée</span>
                             </div>
