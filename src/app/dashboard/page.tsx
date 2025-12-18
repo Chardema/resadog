@@ -119,6 +119,9 @@ function DashboardContent() {
     );
   }
 
+  const isSubscribed = data?.subscription && data.subscription.status === 'ACTIVE';
+  const hasCanceledSub = data?.subscription && data.subscription.status === 'CANCELED';
+
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
       <AppNav userName={session?.user?.name} />
@@ -150,7 +153,7 @@ function DashboardContent() {
             </motion.p>
           </div>
           
-          {data?.portalUrl && (
+          {data?.portalUrl && isSubscribed && (
             <motion.a
               href={data.portalUrl}
               initial={{ opacity: 0, scale: 0.8 }}
@@ -162,7 +165,7 @@ function DashboardContent() {
           )}
         </div>
 
-        {/* Subscription Success Message */}
+        {/* Subscription Messages */}
         {searchParams.get("subscription") === "success" && (
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
@@ -179,11 +182,27 @@ function DashboardContent() {
           </motion.div>
         )}
 
+        {hasCanceledSub && (
+            <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gray-100 border border-gray-200 text-gray-800 px-6 py-4 rounded-2xl mb-8 flex flex-col md:flex-row items-center justify-between shadow-sm gap-4"
+            >
+                <div>
+                    <p className="font-bold">Abonnement résilié 🛑</p>
+                    <p className="text-sm text-gray-600">Votre abonnement est inactif. Vos crédits restants ({data.credits}) sont toujours utilisables sans limite de temps.</p>
+                </div>
+                <Link href="/subscriptions" className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-orange-600 transition-colors">
+                    Me ré-abonner
+                </Link>
+            </motion.div>
+        )}
+
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           {/* Card 1: Crédits & Abonnement */}
-          {data?.subscription ? (
+          {isSubscribed ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -198,21 +217,21 @@ function DashboardContent() {
                     <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl mb-4">
                       🪙
                     </div>
-                    <h2 className="text-3xl font-bold mb-1">{data.credits} Crédits</h2>
+                    <h2 className="text-3xl font-bold mb-1">{data?.credits} Crédits</h2>
                     <p className="text-gray-400 text-sm">
                       Disponibles pour vos réservations
                     </p>
                   </div>
                   <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                    {data.subscription.billingPeriod === "YEARLY" ? "Annuel" : "Mensuel"}
+                    {data?.subscription.billingPeriod === "YEARLY" ? "Annuel" : "Mensuel"}
                   </div>
                 </div>
                 
                 <div className="mt-8 flex items-center gap-3">
-                  <Link href="/booking" className="flex-1 text-center bg-white text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors">
+                  <Link href="/booking" className="flex-1 text-center bg-white text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors shadow-lg">
                     Réserver avec mes crédits
                   </Link>
-                  {data.portalUrl && (
+                  {data?.portalUrl && (
                     <a href={data.portalUrl} className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white font-bold text-lg">
                       ⚙️
                     </a>
@@ -221,24 +240,36 @@ function DashboardContent() {
               </div>
             </motion.div>
           ) : (
+            // Card Promo Abonnement (Si pas abonné ou résilié)
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
               whileHover={{ scale: 1.02 }}
-              className="md:col-span-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-[2rem] p-8 text-white shadow-xl shadow-orange-500/20 relative overflow-hidden group cursor-pointer"
+              className={`md:col-span-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-[2rem] p-8 text-white shadow-xl shadow-orange-500/20 relative overflow-hidden group cursor-pointer ${hasCanceledSub ? 'grayscale-[0.5]' : ''}`}
               onClick={() => router.push('/subscriptions')}
             >
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl -mr-16 -mt-16" />
               <div className="relative z-10 flex flex-col h-full justify-between">
                 <div>
-                  <h2 className="text-3xl font-bold mb-2">Rejoignez le Club</h2>
-                  <p className="text-orange-100">
-                    Économisez jusqu'à 20% sur vos gardes et profitez de la priorité de réservation.
+                  <div className="flex justify-between items-start mb-4">
+                    <h2 className="text-3xl font-bold">
+                        {hasCanceledSub ? "Relancer mon Club" : "Rejoignez le Club"}
+                    </h2>
+                    {data?.credits > 0 && (
+                        <div className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold">
+                            Restant : {data.credits} crédits 🪙
+                        </div>
+                    )}
+                  </div>
+                  <p className="text-orange-100 max-w-md italic">
+                    {hasCanceledSub 
+                        ? "Votre abonnement est terminé, mais vous pouvez toujours utiliser vos crédits ou reprendre une formule pour économiser à nouveau."
+                        : "Économisez jusqu'à 20% sur vos gardes et profitez de la priorité de réservation."}
                   </p>
                 </div>
                 <div className="mt-6 flex items-center gap-2">
-                  <span className="bg-white text-orange-600 px-6 py-3 rounded-full font-bold text-sm group-hover:bg-orange-50 transition-colors">
+                  <span className="bg-white text-orange-600 px-6 py-3 rounded-full font-bold text-sm group-hover:bg-orange-50 transition-all shadow-md">
                     Voir les offres →
                   </span>
                 </div>
