@@ -88,7 +88,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     if (invoice.billing_reason === 'subscription_cycle') {
-        const subscriptionId = invoice.subscription as string;
+        const subscriptionId = (invoice.subscription as string) || (invoice as any).subscription;
         console.log(`🔄 Renouvellement abonnement ${subscriptionId}`);
 
         const subscription = await prisma.userSubscription.findFirst({
