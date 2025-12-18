@@ -11,17 +11,6 @@ export async function GET() {
     const user = await prisma.user.findUnique({ where: { id: session.user.id } });
     if (!user?.stripeCustomerId) return NextResponse.json({ status: "NO_CUSTOMER" });
 
-    // Récupérer les abonnements actifs chez Stripe
-    const subscriptions = await stripe.subscriptions.list({
-      customer: user.stripeCustomerId,
-      status: "active",
-      limit: 1,
-    });
-
-    if (subscriptions.data.length === 0) {
-        return NextResponse.json({ status: "NO_ACTIVE_SUBSCRIPTION" });
-    }
-
     console.log(`🔍 Check Sub pour ${session.user.id} / ${user.stripeCustomerId}`);
     const subscriptions = await stripe.subscriptions.list({
       customer: user.stripeCustomerId,
