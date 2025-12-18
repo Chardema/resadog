@@ -32,7 +32,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">3. Partage des Données</h2>
             <p>Nous ne vendons aucune donnée personnelle. Vos informations sont partagées uniquement avec :</p>
             <ul className="list-disc pl-5 space-y-1 mt-2">
-              <li><strong>Stripe :</strong> Pour le traitement sécurisé des paiements.</li>
+              <li><strong>Stripe :</strong> Pour le traitement sécurisé des paiements et la gestion des abonnements récurrents.</li>
               <li><strong>Autorités légales :</strong> Uniquement si requis par la loi.</li>
             </ul>
           </section>

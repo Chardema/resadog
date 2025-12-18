@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 };
 
 import { Footer } from "@/components/layout/Footer";
+import { CookieConsent } from "@/components/layout/CookieConsent";
 
 // ... (imports existants)
 
@@ -36,6 +37,7 @@ export default function RootLayout({
           <div className="flex-1">
             {children}
           </div>
+          <CookieConsent />
           <Footer />
         </SessionProvider>
       </body>

@@ -49,8 +49,24 @@ export default function CGVPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Tarifs</h2>
             <p>
               Les tarifs sont indiqués en Euros TTC. Ils varient selon le type de service (Hébergement, Visite, Promenade) et le nombre d'animaux.
-              Un supplément "Chiot" (+2€/nuit) s'applique pour les animaux de moins d'un an.
+              Un supplément "Chiot" (+2€/nuit) s'applique pour les animaux de moins d'un an (offert pour les abonnés).
             </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">5. Abonnement Le Club La Meute</h2>
+            <p className="mb-2"><strong>Fonctionnement :</strong></p>
+            <ul className="list-disc pl-5 mb-4">
+              <li>L'abonnement donne droit à un nombre défini de crédits mensuels.</li>
+              <li>1 Crédit = 1 Jour de garde ou 1 Promenade (peu importe le type).</li>
+              <li>Les crédits ont une durée de validité illimitée tant que le compte est actif.</li>
+            </ul>
+            <p className="mb-2"><strong>Engagement et Résiliation :</strong></p>
+            <ul className="list-disc pl-5">
+              <li>Formule Mensuelle : Engagement minimum de 2 mois. Résiliable ensuite à tout moment sans frais.</li>
+              <li>Formule Annuelle : Engagement ferme de 12 mois, payé en une fois ou mensuellement selon l'offre.</li>
+              <li>Toute période commencée est due. Les crédits non utilisés restent acquis.</li>
+            </ul>
           </section>
 
         </div>
