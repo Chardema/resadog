@@ -229,7 +229,7 @@ export default function SubscriptionPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  {plan.credits} crédits validité illimitée
+                  {plan.creditsPerMonth} crédits validité illimitée
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
