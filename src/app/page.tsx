@@ -88,7 +88,7 @@ export default function Home() {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-7xl font-extrabold text-gray-900 leading-[1.1] mb-6 tracking-tight"
+            className="text-3xl sm:text-5xl md:text-7xl font-extrabold text-gray-900 leading-[1.1] mb-6 tracking-tight"
           >
             La meilleure colo <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 relative">

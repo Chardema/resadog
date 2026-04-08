@@ -245,7 +245,7 @@ export default function AdminBookingsPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-bold text-lg text-gray-900">{booking.client.name}</h3>
                           {isVip ? (
-                              <span className="text-[10px] px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-bold shadow-sm">
+                              <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-bold shadow-sm">
                                   ⚡ CLUB
                               </span>
                           ) : (

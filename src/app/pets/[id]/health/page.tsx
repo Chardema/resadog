@@ -374,7 +374,7 @@ export default function PetHealthPage({ params }: { params: Promise<{ id: string
                             key={name}
                             type="button"
                             onClick={() => setVaccineForm({ ...vaccineForm, name })}
-                            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                            className={`px-3 py-2 rounded-full text-xs font-bold transition-all ${
                               vaccineForm.name === name
                                 ? "bg-orange-500 text-white"
                                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"

@@ -107,7 +107,7 @@ export function AppNav({ userName }: AppNavProps) {
                   <div className={cn("text-2xl mb-0.5 transition-transform", isActive && "-translate-y-1")}>
                     {link.icon}
                   </div>
-                  <span className={cn("text-[10px] font-bold", isActive ? "opacity-100" : "opacity-0 scale-0 h-0 overflow-hidden")}>
+                  <span className={cn("text-xs font-bold", isActive ? "opacity-100" : "opacity-0 scale-0 h-0 overflow-hidden")}>
                     {link.label}
                   </span>
                   {isActive && (

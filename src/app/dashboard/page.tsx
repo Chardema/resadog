@@ -353,10 +353,10 @@ function DashboardContent() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900 truncate">{displayName}</p>
-                      <p className="text-[10px] text-gray-500">
+                      <p className="text-xs text-gray-500">
                         {new Date(booking.startDate).toLocaleDateString("fr-FR")} - {new Date(booking.endDate).toLocaleDateString("fr-FR")}
                       </p>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full mt-1 inline-block font-bold ${
+                      <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block font-bold ${
                         booking.status === "PENDING" ? "bg-orange-100 text-orange-700" :
                         booking.status === "CONFIRMED" ? "bg-green-100 text-green-700" : "bg-gray-200"
                       }`}>

@@ -149,12 +149,12 @@ export default function SubscriptionPage() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-start">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-12 items-start">
           {/* Configurator */}
           <motion.div 
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="space-y-8 bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100"
+            className="space-y-8 bg-white p-4 sm:p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-gray-100"
           >
             <div>
               <h3 className="text-lg font-bold text-gray-900 mb-4">1. Quel service ?</h3>
@@ -217,7 +217,7 @@ export default function SubscriptionPage() {
             className="relative"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-[3rem] blur-xl opacity-20 transform rotate-3" />
-            <div className="bg-gray-900 text-white p-10 rounded-[2.5rem] relative shadow-2xl overflow-hidden">
+            <div className="bg-gray-900 text-white p-5 sm:p-8 md:p-10 rounded-[2.5rem] relative shadow-2xl overflow-hidden">
               <div className="absolute top-0 right-0 bg-white/10 w-32 h-32 rounded-full blur-2xl -mr-10 -mt-10" />
               
               <div className="flex justify-between items-start mb-8 relative z-10">
