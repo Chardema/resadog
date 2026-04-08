@@ -376,7 +376,7 @@ function DashboardContent() {
             transition={{ delay: 0.5 }}
             whileHover={{ scale: 1.02 }}
             className="md:col-span-2 bg-orange-100 rounded-[2rem] p-8 flex items-center justify-between cursor-pointer group"
-            onClick={() => router.push('/dashboard')} // Placeholder
+            onClick={() => router.push('/history')}
           >
             <div className="flex items-center gap-6 text-left">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm">

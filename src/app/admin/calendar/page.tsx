@@ -48,8 +48,6 @@ export default function AdminCalendarPage() {
         const data = await response.json();
         const availabilityMap: Record<string, Availability> = {};
 
-        console.log(`📥 Chargement ${data.availabilities.length} disponibilités pour ${selectedServiceType}`);
-
         data.availabilities.forEach((availability: any) => {
           // Utiliser directement la date ISO de la BDD (déjà en UTC)
           const dateKey = availability.date.split("T")[0];
@@ -60,7 +58,6 @@ export default function AdminCalendarPage() {
             maxSlots: availability.maxSlots,
             notes: availability.notes,
           };
-          console.log(`  ✓ ${dateKey}: ${availability.available ? "DISPO" : "INDISPO"}`);
         });
 
         setAvailabilities(availabilityMap);
@@ -119,8 +116,6 @@ export default function AdminCalendarPage() {
       ...availabilities,
       [dateKey]: newAvailabilityData,
     });
-
-    console.log(`📅 Clic sur le ${dateKey} - Nouveau statut: ${newAvailability ? "DISPONIBLE" : "INDISPONIBLE"}`);
 
     // Sauvegarder dans la base de données
     try {

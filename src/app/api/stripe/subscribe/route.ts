@@ -94,9 +94,10 @@ export async function POST(request: NextRequest) {
             metadata: {
                 userId: session.user.id,
                 serviceType,
-                creditsPerMonth: totalDays * petCount,
-                daysPerWeek,
-                petCount
+                creditsPerMonth: String(totalDays * petCount),
+                daysPerWeek: String(daysPerWeek),
+                petCount: String(petCount),
+                billingCycle,
             },
             proration_behavior: 'always_invoice', // Facturer la différence immédiatement
         });
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
         await prisma.userSubscription.update({
             where: { userId: session.user.id },
             data: {
-                serviceType: serviceType as any,
+                serviceType,
                 daysPerWeek,
                 creditsPerMonth: totalDays * petCount,
                 price: amountToPay,
@@ -130,24 +131,26 @@ export async function POST(request: NextRequest) {
       metadata: {
         userId: session.user.id,
         serviceType,
-        creditsPerMonth: totalDays * petCount,
-        daysPerWeek,
-        petCount
+        creditsPerMonth: String(totalDays * petCount),
+        daysPerWeek: String(daysPerWeek),
+        petCount: String(petCount),
+        billingCycle,
       },
       subscription_data: {
         metadata: {
             userId: session.user.id,
             serviceType,
-            creditsPerMonth: totalDays * petCount,
-            daysPerWeek,
-            petCount
+            creditsPerMonth: String(totalDays * petCount),
+            daysPerWeek: String(daysPerWeek),
+            petCount: String(petCount),
+            billingCycle,
         }
       }
     });
 
     return NextResponse.json({ url: checkoutSession.url });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erreur création abonnement:", error);
     return NextResponse.json(
       { error: "Erreur serveur" },

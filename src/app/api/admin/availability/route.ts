@@ -72,8 +72,6 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    console.log("📝 Données reçues:", body);
-
     const validatedData = availabilitySchema.parse(body);
 
     // Créer la date en UTC pour cohérence
@@ -88,8 +86,6 @@ export async function POST(request: Request) {
       0
     ));
 
-    console.log("📅 Date à sauvegarder:", utcDate.toISOString(), "- Service:", validatedData.serviceType, "- Disponible:", validatedData.available);
-
     // Vérifier si une disponibilité existe déjà pour cette date et ce type de service
     const existing = await prisma.availability.findUnique({
       where: {
@@ -99,8 +95,6 @@ export async function POST(request: Request) {
         },
       },
     });
-
-    console.log("🔍 Existant:", existing ? "Oui" : "Non");
 
     let availability;
     if (existing) {
@@ -118,7 +112,6 @@ export async function POST(request: Request) {
           notes: validatedData.notes,
         },
       });
-      console.log("✅ Mise à jour effectuée:", availability.available);
     } else {
       // Créer
       availability = await prisma.availability.create({
@@ -130,7 +123,6 @@ export async function POST(request: Request) {
           notes: validatedData.notes,
         },
       });
-      console.log("✅ Création effectuée:", availability.available);
     }
 
     return NextResponse.json({

@@ -32,12 +32,9 @@ export function AvailabilityCalendar() {
         const data = await response.json();
         const availabilityMap: Record<string, boolean> = {};
 
-        console.log(`📥 Client: Chargement ${data.availabilities.length} disponibilités pour ${selectedServiceType}`);
-
         data.availabilities.forEach((availability: any) => {
           const dateKey = availability.date.split("T")[0];
           availabilityMap[dateKey] = availability.available;
-          console.log(`  ✓ ${dateKey}: ${availability.available ? "DISPO" : "INDISPO"}`);
         });
 
         setAvailabilities(availabilityMap);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Helper pour parser une date ISO string en UTC (format YYYY-MM-DD)
 function parseUTCDate(dateString: string): Date {
@@ -34,6 +35,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Vous devez être connecté pour créer une réservation" },
         { status: 401 }
+      );
+    }
+
+    // Rate limiting : 10 réservations par user par heure
+    const { success: rateLimitOk } = rateLimit(`booking:${session.user.id}`, { maxRequests: 10, windowSeconds: 3600 });
+    if (!rateLimitOk) {
+      return NextResponse.json(
+        { error: "Trop de réservations. Réessayez plus tard." },
+        { status: 429 }
       );
     }
 
@@ -183,53 +193,64 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Créer une nouvelle réservation
-    const booking = await prisma.booking.create({
-      data: {
-        startDate: start,
-        endDate: end,
-        startTime: startTime || null,
-        endTime: endTime || null,
-        status: "PENDING",
-        serviceType,
-        totalPrice: useCredits ? 0 : totalPrice,
-        depositPaid: useCredits ? true : false,
-        depositAmount: useCredits ? 0 : depositAmount,
-        creditsUsed: useCredits ? creditsToDeduct : 0,
-        specialRequests: notes || null,
-        notes: paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
-        clientId: session.user.id,
-        // Liaison Many-to-Many
-        pets: {
-          connect: petIds.map((id) => ({ id })),
+    // Transaction atomique : créer la réservation + déduire crédits + incrémenter coupon
+    const booking = await prisma.$transaction(async (tx) => {
+      const newBooking = await tx.booking.create({
+        data: {
+          startDate: start,
+          endDate: end,
+          startTime: startTime || null,
+          endTime: endTime || null,
+          status: "PENDING",
+          serviceType,
+          totalPrice: useCredits ? 0 : totalPrice,
+          depositPaid: useCredits ? true : false,
+          depositAmount: useCredits ? 0 : depositAmount,
+          creditsUsed: useCredits ? creditsToDeduct : 0,
+          specialRequests: notes || null,
+          notes: paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
+          clientId: session.user.id,
+          pets: {
+            connect: petIds.map((id) => ({ id })),
+          },
+          petId: petIds[0],
         },
-        // Backward compatibility (optional, points to first pet)
-        petId: petIds[0],
-      },
-      include: {
-        pets: { select: { name: true, breed: true } },
-        client: { select: { name: true, email: true } },
-      },
-    });
-    
-    // If used credits, actually deduct from batches (Post-creation to keep it simple or use transaction)
-    if (useCredits && creditsToDeduct > 0) {
-        const batches = await prisma.creditBatch.findMany({
-            where: { userId: session.user.id, remaining: { gt: 0 } },
-            orderBy: { expiresAt: 'asc' }
+        include: {
+          pets: { select: { name: true, breed: true } },
+          client: { select: { name: true, email: true } },
+        },
+      });
+
+      // Incrémenter le coupon uniquement pour les paiements par crédits (pas de checkout Stripe)
+      // Pour les paiements Stripe, le coupon sera incrémenté dans le webhook checkout.session.completed
+      if (promoCode && useCredits) {
+        await tx.coupon.updateMany({
+          where: { code: promoCode.toUpperCase(), isActive: true },
+          data: { currentUses: { increment: 1 } },
         });
-        
+      }
+
+      // Déduire les crédits (FIFO par date d'expiration)
+      if (useCredits && creditsToDeduct > 0) {
+        const batches = await tx.creditBatch.findMany({
+          where: { userId: session.user.id, remaining: { gt: 0 } },
+          orderBy: { expiresAt: 'asc' },
+        });
+
         let remainingToDeduct = creditsToDeduct;
         for (const batch of batches) {
-            if (remainingToDeduct <= 0) break;
-            const deduction = Math.min(batch.remaining, remainingToDeduct);
-            await prisma.creditBatch.update({
-                where: { id: batch.id },
-                data: { remaining: batch.remaining - deduction }
-            });
-            remainingToDeduct -= deduction;
+          if (remainingToDeduct <= 0) break;
+          const deduction = Math.min(batch.remaining, remainingToDeduct);
+          await tx.creditBatch.update({
+            where: { id: batch.id },
+            data: { remaining: batch.remaining - deduction },
+          });
+          remainingToDeduct -= deduction;
         }
-    }
+      }
+
+      return newBooking;
+    });
 
     return NextResponse.json({
       success: true,
@@ -319,6 +340,7 @@ export async function GET(request: NextRequest) {
         totalPrice: b.totalPrice,
         depositAmount: b.depositAmount,
         depositPaid: b.depositPaid,
+        creditsUsed: b.creditsUsed,
         // Combine old and new pets logic
         pets: b.pets.length > 0 ? b.pets : (b.pet ? [b.pet] : []),
         createdAt: b.createdAt.toISOString(),

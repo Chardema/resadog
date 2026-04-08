@@ -96,10 +96,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`💰 Supplément de ${validatedData.amount}€ débité pour ${booking.client.email}`);
-    console.log(`   Raison: ${validatedData.reason}`);
-    console.log(`   Carte: ${booking.client.cardBrand} •••• ${booking.client.cardLast4}`);
-
     return NextResponse.json({
       success: true,
       charge: additionalCharge,

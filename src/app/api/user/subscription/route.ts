@@ -26,18 +26,17 @@ export async function GET() {
       // Récupérer les détails de l'abonnement depuis Stripe
       try {
           const stripeSub = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
-          // Cast 'any' pour éviter les erreurs de typage strict sur la réponse SDK
-          const subData = stripeSub as any;
-          currentPeriodEnd = new Date(subData.current_period_end * 1000);
-          cancelAtPeriodEnd = subData.cancel_at_period_end;
+          currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
+          cancelAtPeriodEnd = stripeSub.cancel_at_period_end;
       } catch (e) {
           console.error("Erreur récupération abonnement Stripe:", e);
       }
 
-      // Calcul engagement
+      // Calcul engagement (clone pour éviter la mutation)
       const startDate = new Date(subscription.createdAt);
       const monthsToAdd = subscription.billingPeriod === "YEARLY" ? 12 : 2;
-      commitmentEndsAt = new Date(startDate.setMonth(startDate.getMonth() + monthsToAdd));
+      commitmentEndsAt = new Date(startDate);
+      commitmentEndsAt.setMonth(commitmentEndsAt.getMonth() + monthsToAdd);
       const isLocked = new Date() < commitmentEndsAt;
 
       if (user?.stripeCustomerId) {

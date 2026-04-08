@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { rateLimit } from "@/lib/rate-limit";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
@@ -12,6 +13,16 @@ const registerSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting : 5 inscriptions par IP par heure
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const { success } = rateLimit(`register:${ip}`, { maxRequests: 5, windowSeconds: 3600 });
+    if (!success) {
+      return NextResponse.json(
+        { error: "Trop de tentatives. Réessayez plus tard." },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
 
     // Validation des données
@@ -24,7 +35,7 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "Un compte avec cet email existe déjà" },
+        { error: "Impossible de créer le compte. Vérifiez vos informations." },
         { status: 400 }
       );
     }

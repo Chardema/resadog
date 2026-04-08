@@ -11,14 +11,11 @@ export async function GET() {
     const user = await prisma.user.findUnique({ where: { id: session.user.id } });
     if (!user?.stripeCustomerId) return NextResponse.json({ status: "NO_CUSTOMER" });
 
-    console.log(`🔍 Check Sub pour ${session.user.id} / ${user.stripeCustomerId}`);
     const subscriptions = await stripe.subscriptions.list({
       customer: user.stripeCustomerId,
       status: "active",
       limit: 1,
     });
-
-    console.log(`📦 Abonnements trouvés Stripe: ${subscriptions.data.length}`);
 
     if (subscriptions.data.length === 0) {
         // Nettoyage si on a un abo actif en base mais plus rien chez Stripe
@@ -31,16 +28,12 @@ export async function GET() {
 
     const stripeSub = subscriptions.data[0];
     const metadata = stripeSub.metadata || {};
-    console.log("📝 Metadata:", metadata);
-
     // Tentative de synchronisation / auto-réparation
     // Si metadata incomplete, on essaie de déduire ou on met des défauts pour débloquer
-    const serviceType = (metadata.serviceType as any) || "DOG_WALKING"; // Default
+    const serviceType = metadata.serviceType || "DOG_WALKING";
     const daysPerWeek = parseInt(metadata.daysPerWeek || "2");
     const creditsPerMonth = parseInt(metadata.creditsPerMonth || "8");
 
-    console.log(`🔄 Auto-sync abonnement Stripe ${stripeSub.id} -> DB (Force Update)`);
-        
     // Upsert l'abonnement
     await prisma.userSubscription.upsert({
         where: { userId: session.user.id },
@@ -68,7 +61,6 @@ export async function GET() {
     });
 
     if (!activeBatch) {
-        console.log("➕ Ajout crédits de secours (Sync)");
         await prisma.creditBatch.create({
             data: {
                 userId: session.user.id,

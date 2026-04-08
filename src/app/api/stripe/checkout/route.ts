@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     // Accept either single bookingId (for backward compat) or array of bookingIds
     const bookingIds = body.bookingIds || (body.bookingId ? [body.bookingId] : []);
+    const promoCode = body.promoCode || "";
 
     if (bookingIds.length === 0) {
       return NextResponse.json(
@@ -116,14 +117,15 @@ export async function POST(request: NextRequest) {
         metadata: {
           bookingIds: bookingIdsStr,
           userId: client.id,
+          promoCode,
         },
       },
-      // Redirect to success page (first booking ID used for display logic if needed, or update page to handle multiple)
-      success_url: `${process.env.NEXTAUTH_URL}/booking/success?bookingId=${bookingIds[0]}`, 
+      success_url: `${process.env.NEXTAUTH_URL}/booking/success?bookingId=${bookingIds[0]}`,
       cancel_url: `${process.env.NEXTAUTH_URL}/booking?cancelled=true`,
       metadata: {
         bookingIds: bookingIdsStr,
         userId: client.id,
+        promoCode,
       },
     });
 

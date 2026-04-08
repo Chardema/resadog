@@ -53,7 +53,6 @@ export async function PATCH(
         const paymentIntent = await stripe.paymentIntents.retrieve(booking.payment.stripePaymentId);
         
         if (paymentIntent.status === 'requires_capture') {
-          console.log(`💰 Capture du paiement ${booking.payment.stripePaymentId}...`);
           await stripe.paymentIntents.capture(booking.payment.stripePaymentId);
           
           await prisma.payment.update({
@@ -86,7 +85,6 @@ export async function PATCH(
 
     // Gestion du remboursement des CRÉDITS
     if (status === "CANCELLED" && booking.creditsUsed > 0) {
-        console.log(`🪙 Remboursement de ${booking.creditsUsed} crédits pour ${booking.client.email}`);
         await prisma.creditBatch.create({
             data: {
                 userId: booking.clientId,
@@ -105,11 +103,9 @@ export async function PATCH(
 
         if (paymentIntent.status === 'requires_capture') {
            // Annuler l'empreinte (Le client n'est pas débité)
-           console.log(`🔓 Libération de l'empreinte ${booking.payment.stripePaymentId}...`);
            await stripe.paymentIntents.cancel(booking.payment.stripePaymentId);
         } else if (paymentIntent.status === 'succeeded') {
            // Rembourser via Stripe
-           console.log(`💸 Remboursement ${booking.payment.stripePaymentId}...`);
            const refund = await stripe.refunds.create({
              payment_intent: booking.payment.stripePaymentId,
            });

@@ -75,11 +75,6 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    console.log("📅 Dates à vérifier:", daysToCheck.map(d => d.toISOString().split("T")[0]));
-    console.log("🔍 Service type:", serviceType);
-    console.log("🗄️ Disponibilités admin:", availabilities.length);
-    console.log("🔒 Réservations existantes:", existingBookings.length);
-
     // Vérifier quelles dates sont disponibles ou non
     const dateStatuses = daysToCheck.map((date) => {
       const dateKey = date.toISOString().split("T")[0];

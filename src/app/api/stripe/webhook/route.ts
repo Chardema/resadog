@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
-import { sendBookingRequestEmail, sendAdminNotification } from "@/lib/email";
+import { sendBookingRequestEmail, sendAdminNotification, sendPaymentFailedEmail } from "@/lib/email";
 import Stripe from "stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -22,6 +22,20 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Idempotency: vérifier si cet événement a déjà été traité
+    const existingEvent = await prisma.stripeWebhookEvent.findUnique({
+      where: { id: event.id },
+    });
+
+    if (existingEvent) {
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+
+    // Enregistrer l'événement AVANT le traitement pour éviter les doublons en cas de retry
+    await prisma.stripeWebhookEvent.create({
+      data: { id: event.id, type: event.type },
+    });
 
     // Gérer les événements Stripe
     switch (event.type) {
@@ -49,8 +63,12 @@ export async function POST(request: NextRequest) {
         await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
         break;
 
+      case "invoice.payment_failed":
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+
       default:
-        console.log(`Événement non géré : ${event.type}`);
+        break;
     }
 
     return NextResponse.json({ received: true });
@@ -66,7 +84,6 @@ export async function POST(request: NextRequest) {
 // ... (existing helper functions) ...
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-    console.log(`🗑️ Abonnement supprimé : ${subscription.id}`);
     await prisma.userSubscription.updateMany({
         where: { stripeSubscriptionId: subscription.id },
         data: { status: "CANCELED" }
@@ -76,8 +93,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     // Si l'abonnement est annulé à la fin de la période, le statut Stripe reste 'active' mais 'cancel_at_period_end' est true.
     // On peut stocker ça si on veut afficher "Fin le..."
-    console.log(`🔄 Abonnement mis à jour : ${subscription.id} (Status: ${subscription.status})`);
-    
     await prisma.userSubscription.updateMany({
         where: { stripeSubscriptionId: subscription.id },
         data: { 
@@ -88,27 +103,66 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     if (invoice.billing_reason === 'subscription_cycle') {
-        const subscriptionId = (invoice as any).subscription as string;
-        console.log(`🔄 Renouvellement abonnement ${subscriptionId}`);
+        const subscriptionId = typeof invoice.subscription === 'string'
+            ? invoice.subscription
+            : invoice.subscription?.id;
+
+        if (!subscriptionId) return;
 
         const subscription = await prisma.userSubscription.findFirst({
             where: { stripeSubscriptionId: subscriptionId }
         });
 
         if (subscription) {
-            // Ajouter les crédits du mois
             await prisma.creditBatch.create({
                 data: {
                     userId: subscription.userId,
                     amount: subscription.creditsPerMonth,
                     remaining: subscription.creditsPerMonth,
                     serviceType: subscription.serviceType,
-                    expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000), // Illimité
+                    expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
                 }
             });
-            console.log(`✅ Crédits renouvelés pour ${subscription.userId}`);
         }
     }
+}
+
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+    const subscriptionId = typeof invoice.subscription === 'string'
+        ? invoice.subscription
+        : invoice.subscription?.id;
+
+    if (!subscriptionId) return;
+
+    const subscription = await prisma.userSubscription.findFirst({
+        where: { stripeSubscriptionId: subscriptionId },
+        include: { user: true }
+    });
+
+    if (!subscription) return;
+
+    // Marquer l'abonnement comme impayé
+    await prisma.userSubscription.update({
+        where: { id: subscription.id },
+        data: { status: 'PAST_DUE' }
+    });
+
+    // Notifier le client par email
+    if (subscription.user.email) {
+        await sendPaymentFailedEmail(
+            subscription.user.email,
+            subscription.user.name || 'Client'
+        );
+    }
+
+    // Notifier l'admin
+    await sendAdminNotification(
+        `⚠️ Paiement échoué`,
+        subscription.user.name || 'Client',
+        `Abonnement ${subscriptionId}`,
+        `Statut: PAST_DUE`,
+        subscription.price
+    );
 }
 
 // Helper to extract booking IDs
@@ -167,7 +221,6 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     },
   });
 
-  console.log(`✅ Paiement réussi pour les réservations: ${bookingIds.join(", ")}`);
 }
 
 async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
@@ -178,7 +231,6 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
     },
   });
 
-  console.log(`❌ Paiement échoué : ${paymentIntent.id}`);
 }
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
@@ -192,19 +244,17 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           return;
       }
 
-      console.log(`✨ Nouvel abonnement ${subscriptionId} pour user ${metadata.userId}`);
-
       // Créer l'abonnement en base
       await prisma.userSubscription.create({
           data: {
               userId: metadata.userId,
               stripeSubscriptionId: subscriptionId,
               status: "ACTIVE",
-              serviceType: metadata.serviceType as any,
+              serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
               daysPerWeek: parseInt(metadata.daysPerWeek),
               creditsPerMonth: parseInt(metadata.creditsPerMonth),
               price: session.amount_total ? session.amount_total / 100 : 0,
-              billingPeriod: session.amount_total && session.amount_total > 50000 ? "YEARLY" : "MONTHLY", // Heuristique simple ou ajouter dans metadata
+              billingPeriod: metadata.billingCycle === "YEARLY" ? "YEARLY" : "MONTHLY",
           }
       });
 
@@ -214,12 +264,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
               userId: metadata.userId,
               amount: parseInt(metadata.creditsPerMonth),
               remaining: parseInt(metadata.creditsPerMonth),
-              serviceType: metadata.serviceType as any,
-              expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000), // ~100 ans (Illimité)
+              serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
+              expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
           }
       });
 
-      console.log("✅ Abonnement créé et crédits ajoutés !");
       return;
   }
 
@@ -231,8 +280,15 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  console.log(`🔎 Traitement session pour réservations: ${bookingIds.join(", ")}...`);
-  
+  // Incrémenter le coupon si utilisé (le code est stocké dans les metadata)
+  const promoCode = session.metadata?.promoCode;
+  if (promoCode) {
+    await prisma.coupon.updateMany({
+      where: { code: promoCode.toUpperCase(), isActive: true },
+      data: { currentUses: { increment: 1 } },
+    });
+  }
+
   // Boucler pour envoyer les emails pour CHAQUE réservation
   for (const id of bookingIds) {
       const booking = await prisma.booking.findUnique({
@@ -245,8 +301,6 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
             ? booking.pets.map(p => p.name).join(", ") 
             : (booking.pet?.name || "Animal");
 
-        console.log(`📧 Envoi emails pour réservation ${id} (${petsName})...`);
-        
         await sendBookingRequestEmail(
           booking.client.email,
           booking.client.name || "Client",
@@ -265,5 +319,4 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       }
   }
 
-  console.log(`✅ Session Checkout complétée.`);
 }

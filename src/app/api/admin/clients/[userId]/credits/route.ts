@@ -15,7 +15,7 @@ export async function POST(
   try {
     const session = await auth();
 
-    if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "SITTER")) {
+    if (!session?.user?.id || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Interdit" }, { status: 403 });
     }
 

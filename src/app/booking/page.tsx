@@ -621,7 +621,7 @@ export default function BookingPage() {
             const resCheckout = await fetch("/api/stripe/checkout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ bookingIds: createdBookingIds }),
+                body: JSON.stringify({ bookingIds: createdBookingIds, promoCode: formData.promoCode || undefined }),
             });
             const dataCheckout = await resCheckout.json();
             if (!resCheckout.ok) throw new Error(dataCheckout.error);

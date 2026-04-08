@@ -429,3 +429,15 @@ model CreditBatch {
   @@index([userId])
   @@index([expiresAt])
 }
+
+// ============================================
+// WEBHOOK IDEMPOTENCY
+// ============================================
+
+model StripeWebhookEvent {
+  id        String   @id // Stripe event ID (evt_xxx)
+  type      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

@@ -4,13 +4,9 @@ import { prisma } from "@/lib/db/prisma";
 export async function GET(request: NextRequest) {
   // Vérification de sécurité (Vercel Cron envoie un header spécifique)
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    // En local ou sans secret, on peut autoriser pour tester si besoin, 
-    // mais en prod c'est mieux de sécuriser.
-    // Pour l'instant, on laisse ouvert si pas de secret défini (pour faciliter le test)
-    if (process.env.CRON_SECRET) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
