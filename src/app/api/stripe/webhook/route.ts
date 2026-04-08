@@ -101,12 +101,16 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     });
 }
 
+// Extraire le subscription ID depuis une Invoice (Stripe SDK v20+)
+function getSubscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
+    const sub = invoice.parent?.subscription_details?.subscription;
+    if (!sub) return null;
+    return typeof sub === 'string' ? sub : sub.id;
+}
+
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     if (invoice.billing_reason === 'subscription_cycle') {
-        const subscriptionId = typeof invoice.subscription === 'string'
-            ? invoice.subscription
-            : invoice.subscription?.id;
-
+        const subscriptionId = getSubscriptionIdFromInvoice(invoice);
         if (!subscriptionId) return;
 
         const subscription = await prisma.userSubscription.findFirst({
@@ -128,9 +132,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
-    const subscriptionId = typeof invoice.subscription === 'string'
-        ? invoice.subscription
-        : invoice.subscription?.id;
+    const subscriptionId = getSubscriptionIdFromInvoice(invoice);
 
     if (!subscriptionId) return;
 
