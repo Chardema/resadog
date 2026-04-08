@@ -375,7 +375,7 @@ function DashboardContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
             whileHover={{ scale: 1.02 }}
-            className="md:col-span-2 bg-orange-100 rounded-[2rem] p-8 flex items-center justify-between cursor-pointer group"
+            className="bg-orange-100 rounded-[2rem] p-8 flex items-center justify-between cursor-pointer group"
             onClick={() => router.push('/history')}
           >
             <div className="flex items-center gap-6 text-left">
@@ -389,6 +389,33 @@ function DashboardContent() {
             </div>
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-orange-600 font-bold shadow-sm group-hover:translate-x-2 transition-transform">
               →
+            </div>
+          </motion.div>
+
+          {/* Card 5: Sync Calendrier */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            whileHover={{ scale: 1.02 }}
+            className="bg-blue-50 rounded-[2rem] p-8 flex items-center justify-between cursor-pointer group"
+            onClick={() => {
+              const url = `${window.location.origin}/api/calendar/ical?token=${session?.user?.id}`;
+              navigator.clipboard.writeText(url);
+              alert("Lien iCal copié ! Collez-le dans Apple Calendar > Fichier > Nouvel abonnement à un calendrier");
+            }}
+          >
+            <div className="flex items-center gap-6 text-left">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm">
+                📅
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-blue-900">Synchroniser mon calendrier</h3>
+                <p className="text-blue-700/80 text-sm">Apple Calendar, Google Calendar...</p>
+              </div>
+            </div>
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-blue-600 font-bold shadow-sm group-hover:translate-x-2 transition-transform">
+              📋
             </div>
           </motion.div>
 

@@ -166,8 +166,14 @@ export default function PetsPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="grid grid-cols-2 gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0">
-                  <Link 
+                <div className="grid grid-cols-3 gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0">
+                  <Link
+                    href={`/pets/${pet.id}/health`}
+                    className="flex items-center justify-center py-2.5 rounded-xl bg-green-50 hover:bg-green-100 text-green-700 font-semibold text-sm transition-colors"
+                  >
+                    🏥 Santé
+                  </Link>
+                  <Link
                     href={`/pets/${pet.id}/edit`}
                     className="flex items-center justify-center py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm transition-colors"
                   >

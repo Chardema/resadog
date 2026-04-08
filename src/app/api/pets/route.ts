@@ -13,12 +13,16 @@ const createPetSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "UNKNOWN"]).optional(),
   spayedNeutered: z.boolean().optional(),
   imageUrl: z.string().url().optional().or(z.literal("")),
+  microchipNumber: z.string().optional(),
+  insuranceInfo: z.string().optional(),
+  allergies: z.string().optional(),
   medicalInfo: z.string().optional(),
   behaviorNotes: z.string().optional(),
   feedingSchedule: z.string().optional(),
   medications: z.string().optional(),
   vetInfo: z.string().optional(),
   emergencyContact: z.string().optional(),
+  lastVetVisit: z.string().datetime().optional().or(z.literal("")),
 });
 
 // GET - Récupérer tous les animaux de l'utilisateur

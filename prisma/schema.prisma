@@ -108,12 +108,16 @@ model Pet {
   gender          Gender?
   spayedNeutered  Boolean?
   imageUrl        String?
+  microchipNumber String?
+  insuranceInfo   String?  @db.Text
+  allergies       String?  @db.Text
   medicalInfo     String?  @db.Text
   behaviorNotes   String?  @db.Text
   feedingSchedule String?  @db.Text
   medications     String?  @db.Text
   vetInfo         String?  @db.Text
   emergencyContact String? @db.Text
+  lastVetVisit    DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -122,8 +126,26 @@ model Pet {
   legacyBookings Booking[]
   bookings     Booking[]     @relation("BookingPets")
   journalEntries JournalEntry[]
+  vaccines     Vaccine[]
 
   @@index([ownerId])
+}
+
+model Vaccine {
+  id          String    @id @default(cuid())
+  name        String    // Rage, CHPL, Leucose, Typhus, etc.
+  dateGiven   DateTime
+  expiryDate  DateTime?
+  batchNumber String?
+  vetName     String?
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  petId       String
+  pet         Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+  @@index([expiryDate])
 }
 
 enum Species {
