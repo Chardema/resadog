@@ -453,6 +453,33 @@ model CreditBatch {
 }
 
 // ============================================
+// REVIEWS / AVIS CLIENTS
+// ============================================
+
+model Review {
+  id        String       @id @default(cuid())
+  source    ReviewSource
+  author    String
+  rating    Int          @default(5) // 1-5
+  date      String       // Date affichée (ex: "14 août 2024")
+  content   String       @db.Text
+  isActive  Boolean      @default(true)
+  order     Int          @default(0) // Ordre d'affichage
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([isActive])
+  @@index([source])
+}
+
+enum ReviewSource {
+  ALLOVOISINS
+  ROVER
+  GOOGLE
+  WEBSITE // Avis laissé directement sur le site
+}
+
+// ============================================
 // WEBHOOK IDEMPOTENCY
 // ============================================
 

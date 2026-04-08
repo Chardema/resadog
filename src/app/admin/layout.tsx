@@ -15,6 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/coupons", label: "Codes Promo", icon: "🎟️" },
     { href: "/admin/calendar", label: "Calendrier", icon: "📆" },
     { href: "/admin/clients", label: "Clients", icon: "👥" },
+    { href: "/admin/reviews", label: "Avis", icon: "⭐" },
     { href: "/admin/revenue", label: "Finance", icon: "💰" },
   ];
 
