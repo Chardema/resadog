@@ -47,7 +47,7 @@ export default function SignUpPage() {
     <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center p-6 relative overflow-hidden">
       {/* 3D Background Elements */}
       <div className="fixed inset-0 pointer-events-none">
-        <motion.div animate={{ y: [0, -30, 0], rotate: [0, 10, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute top-[15%] right-[15%] text-9xl opacity-10 blur-sm">🐕</motion.div>
+        <motion.div animate={{ y: [0, -30, 0], rotate: [0, 10, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute top-[15%] right-[15%] text-9xl opacity-10 blur-sm">🐾</motion.div>
         <motion.div animate={{ y: [0, 20, 0], rotate: [0, -5, 0] }} transition={{ duration: 7, repeat: Infinity, delay: 1 }} className="absolute bottom-[10%] left-[10%] text-8xl opacity-10 blur-sm">🏠</motion.div>
       </div>
 
@@ -68,7 +68,7 @@ export default function SignUpPage() {
               </div>
             </Link>
             <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Bienvenue !</h1>
-            <p className="text-gray-500">Rejoignez la famille et offrez le meilleur à votre chien.</p>
+            <p className="text-gray-500">Rejoignez la famille et offrez le meilleur à votre compagnon.</p>
           </div>
 
           {/* Messages */}

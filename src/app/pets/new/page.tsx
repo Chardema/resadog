@@ -133,7 +133,7 @@ export default function NewPetPage() {
                 onClick={() => setFormData({...formData, species: "DOG"})}
                 className={`cursor-pointer rounded-2xl p-6 border-2 transition-all flex flex-col items-center gap-3 ${formData.species === "DOG" ? "border-orange-500 bg-orange-50 shadow-lg scale-105" : "border-gray-200 hover:border-orange-200 bg-white"}`}
               >
-                <span className="text-5xl">🐕</span>
+                <span className="text-5xl">🐾</span>
                 <span className={`font-bold text-lg ${formData.species === "DOG" ? "text-orange-700" : "text-gray-600"}`}>Chien</span>
               </div>
               <div 

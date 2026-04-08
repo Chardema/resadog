@@ -49,7 +49,7 @@ export default function CGVPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Tarifs</h2>
             <p>
               Les tarifs sont indiqués en Euros TTC. Ils varient selon le type de service (Hébergement, Visite, Promenade) et le nombre d'animaux.
-              Un supplément "Chiot" (+2€/nuit) s'applique pour les animaux de moins d'un an (offert pour les abonnés).
+              Un supplément "Jeune animal" (+2€/nuit) s'applique pour les animaux de moins d'un an (offert pour les abonnés).
             </p>
           </section>
 

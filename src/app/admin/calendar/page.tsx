@@ -296,7 +296,7 @@ export default function AdminCalendarPage() {
                       : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
                   }`}
                 >
-                  <div className="text-2xl mb-1">🦮</div>
+                  <div className="text-2xl mb-1">🐾</div>
                   <div>Promenade</div>
                 </motion.button>
               </div>

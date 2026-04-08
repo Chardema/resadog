@@ -52,7 +52,7 @@ export default function CookiesPage() {
               </p>
               <p className="text-sm text-green-700 mt-1">
                 La Patte Dorée n'utilise aucun cookie tiers à des fins publicitaires, de traçage commercial ou de revente de données.
-                Nous utilisons uniquement ce qui est nécessaire pour garder vos chiens ! 🐕
+                Nous utilisons uniquement ce qui est nécessaire pour prendre soin de vos animaux ! 🐾
               </p>
             </div>
           </section>

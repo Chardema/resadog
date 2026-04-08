@@ -65,7 +65,7 @@ export default function PetsPage() {
   if (status === "loading" || isLoading) {
     return (
       <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center">
-        <div className="text-6xl animate-bounce">🐕</div>
+        <div className="text-6xl animate-bounce">🐾</div>
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default function PetsPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-[2rem] border border-gray-100 shadow-xl p-16 text-center max-w-2xl mx-auto"
           >
-            <div className="text-8xl mb-6 grayscale opacity-50">🐶</div>
+            <div className="text-8xl mb-6 grayscale opacity-50">🐾</div>
             <h3 className="text-2xl font-bold text-gray-900 mb-3">
               C'est un peu vide ici...
             </h3>
@@ -145,7 +145,7 @@ export default function PetsPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-8xl">
-                      {pet.gender === "MALE" ? "🐕" : pet.gender === "FEMALE" ? "🐩" : "🐶"}
+                      🐾
                     </div>
                   )}
                   

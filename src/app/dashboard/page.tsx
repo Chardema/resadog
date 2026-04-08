@@ -120,7 +120,7 @@ function DashboardContent() {
     return (
       <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="text-6xl animate-bounce">🐕</div>
+          <div className="text-6xl animate-bounce">🐾</div>
           <p className="text-gray-500 font-medium animate-pulse">Chargement de votre espace...</p>
         </div>
       </div>
@@ -312,7 +312,7 @@ function DashboardContent() {
           >
             <div className="absolute inset-0 bg-orange-50 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative z-10">
-              <div className="text-6xl mb-4 transform group-hover:scale-110 transition-transform">🐕</div>
+              <div className="text-6xl mb-4 transform group-hover:scale-110 transition-transform">🐾</div>
               <h3 className="text-xl font-bold text-gray-900 mb-1">Mes Animaux</h3>
               <p className="text-gray-500 text-sm">Gérer les profils</p>
             </div>
@@ -349,7 +349,7 @@ function DashboardContent() {
                     <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
                       {displayImage ? (
                         <img src={displayImage} alt="" className="w-full h-full object-cover" />
-                      ) : "🐕"}
+                      ) : "🐾"}
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900 truncate">{displayName}</p>
@@ -400,7 +400,7 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐕</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>}>
       <DashboardContent />
     </Suspense>
   );

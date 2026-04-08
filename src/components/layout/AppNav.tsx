@@ -21,7 +21,7 @@ export function AppNav({ userName }: AppNavProps) {
   const navLinks = [
     { href: "/dashboard", label: "Accueil", icon: "🏠" },
     { href: "/booking", label: "Réserver", icon: "📅" },
-    { href: "/pets", label: "Animaux", icon: "🐕" },
+    { href: "/pets", label: "Animaux", icon: "🐾" },
     { href: "/profile", label: "Profil", icon: "👤" },
   ];
 

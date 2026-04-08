@@ -17,7 +17,7 @@ const serviceTypes = [
     name: "Hébergement",
     price: 20,
     unit: "jour",
-    description: "Votre chien vit avec nous, accès canapé et jardin inclus.",
+    description: "Votre compagnon vit avec nous, accès canapé et jardin inclus.",
     icon: "🏠",
     maxHours: 24,
     extraHourlyRate: 3,
@@ -52,7 +52,7 @@ const serviceTypes = [
     price: 15,
     unit: "promenade",
     description: "Balade de 15 min dans le quartier.",
-    icon: "🦮",
+    icon: "🐾",
     baseDuration: 15,
     extraDurationRate: 10,
     durationIncrement: 15,
@@ -633,7 +633,7 @@ export default function BookingPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  if (status === "loading") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐕</div>;
+  if (status === "loading") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>;
   
   const selectedPetsList = pets.filter(p => formData.petIds.includes(p.id));
   const currentPetName = selectedPetsList.length > 0 ? selectedPetsList.map(p => p.name).join(", ") : "votre compagnon";
@@ -734,7 +734,7 @@ export default function BookingPage() {
                             </div>
                             <div className="flex items-center gap-3 text-sm text-gray-700">
                                 <span className="text-green-500 font-bold">✓</span>
-                                <span>Supplément chiot OFFERT 🐶</span>
+                                <span>Supplément jeune animal OFFERT 🐾</span>
                             </div>
                             <div className="flex items-center gap-3 text-sm text-gray-700">
                                 <span className="text-green-500 font-bold">✓</span>
@@ -773,7 +773,7 @@ export default function BookingPage() {
                 className="space-y-8"
               >
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Qui gardons-nous ? 🐕</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Qui gardons-nous ? 🐾</h2>
                   {pets.length === 0 ? (
                     <div className="text-center py-8 bg-gray-50 rounded-2xl border-dashed border-2 border-gray-200">
                       <Link href="/pets/new" className="text-orange-600 font-bold hover:underline">Créer un profil</Link>
@@ -786,7 +786,7 @@ export default function BookingPage() {
                         <div key={pet.id} onClick={() => togglePet(pet.id)}
                           className={`cursor-pointer rounded-2xl p-4 border-2 transition-all flex flex-col items-center gap-2 text-center ${isSelected ? "border-orange-500 bg-orange-50" : "border-gray-100 hover:border-gray-300"}`}
                         >
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isSelected ? "bg-orange-100" : "bg-gray-100"}`}>{isSelected ? "✅" : "🐕"}</div>
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isSelected ? "bg-orange-100" : "bg-gray-100"}`}>{isSelected ? "✅" : "🐾"}</div>
                           <span className={`font-bold text-sm ${isSelected ? "text-gray-900" : "text-gray-500"}`}>{pet.name}</span>
                         </div>
                       )})}
@@ -859,7 +859,7 @@ export default function BookingPage() {
                                  if (!pet || !config) return null;
                                  return (
                                      <div key={id} className="bg-white p-4 rounded-2xl border border-gray-200">
-                                         <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">🐕 Dates pour {pet.name}</h4>
+                                         <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">🐾 Dates pour {pet.name}</h4>
                                          <DateSelector 
                                             config={config} 
                                             onChange={(c) => setPetConfigs(p => ({...p, [id]: c}))} 
@@ -963,7 +963,7 @@ export default function BookingPage() {
                                 return (
                                     <div key={id} className="border-b border-orange-200 pb-2">
                                         <div className="flex justify-between items-center mb-1">
-                                            <div className="font-bold text-gray-900">🐕 {pet.name}</div>
+                                            <div className="font-bold text-gray-900">🐾 {pet.name}</div>
                                             <div className="font-bold text-gray-900">{formatPrice(details.total)}€</div>
                                         </div>
                                         
@@ -973,14 +973,14 @@ export default function BookingPage() {
                                             <span>{formatPrice(details.unitPrice * details.quantity)}€</span>
                                         </div>
 
-                                        {/* Supplément Chiot */}
+                                        {/* Supplément Jeune Animal */}
                                         {details.isPuppy && (
                                             <div className="text-xs text-orange-600 flex justify-between items-center mt-1">
                                                 <div className="flex items-center gap-1 group relative cursor-help">
-                                                    <span>Supplément Chiot (+2€/{details.breakdown})</span>
+                                                    <span>Supplément Jeune Animal (+2€/{details.breakdown})</span>
                                                     <span className="w-4 h-4 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] font-bold">i</span>
                                                     <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl z-10">
-                                                        Tarif spécial pour les chiots de moins d'un an nécessitant plus d'attention.
+                                                        Tarif spécial pour les jeunes animaux de moins d'un an nécessitant plus d'attention.
                                                     </div>
                                                 </div>
                                                 <span>+{formatPrice(details.surchargeTotal)}€</span>
@@ -1045,7 +1045,7 @@ export default function BookingPage() {
                                     <h4 className="text-lg font-bold">Payer moins cher ?</h4>
                                     <p className="text-sm text-gray-300 mt-1">
                                         Avec l'abonnement, cette réservation vous coûterait <span className="font-bold text-white">~{formatPrice(calculateTotalPrice() * 0.8)}€</span>
-                                        {pets.some(p => formData.petIds.includes(p.id) && typeof p.age === 'number' && p.age < 1) && " (supplément chiot offert !)"}.
+                                        {pets.some(p => formData.petIds.includes(p.id) && typeof p.age === 'number' && p.age < 1) && " (supplément jeune animal offert !)"}.
                                     </p>
                                 </div>
                                 <Button size="sm" onClick={() => setShowUpsellModal(true)} className="whitespace-nowrap bg-white text-gray-900 hover:bg-orange-50">

@@ -307,7 +307,7 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="h-12 w-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center text-2xl">
-                              🐕
+                              🐾
                             </div>
                             <div>
                               <h3 className="font-bold text-gray-900">{petsName}</h3>

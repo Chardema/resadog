@@ -1,5 +1,12 @@
+
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('CLIENT', 'SITTER', 'ADMIN');
+
+-- CreateEnum
+CREATE TYPE "Species" AS ENUM ('DOG', 'CAT');
 
 -- CreateEnum
 CREATE TYPE "Gender" AS ENUM ('MALE', 'FEMALE', 'UNKNOWN');
@@ -19,6 +26,12 @@ CREATE TYPE "JournalType" AS ENUM ('FEEDING', 'WALK', 'PLAYTIME', 'BATHROOM', 'M
 -- CreateEnum
 CREATE TYPE "NotificationType" AS ENUM ('BOOKING_CONFIRMED', 'BOOKING_CANCELLED', 'BOOKING_REMINDER', 'PAYMENT_RECEIVED', 'PAYMENT_FAILED', 'NEW_MESSAGE', 'JOURNAL_UPDATE', 'BOOKING_REQUEST');
 
+-- CreateEnum
+CREATE TYPE "DiscountType" AS ENUM ('PERCENTAGE', 'FIXED_AMOUNT');
+
+-- CreateEnum
+CREATE TYPE "BillingPeriod" AS ENUM ('MONTHLY', 'YEARLY');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -31,6 +44,11 @@ CREATE TABLE "User" (
     "passwordHash" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "autoApplyCouponId" TEXT,
+    "stripeCustomerId" TEXT,
+    "paymentMethodId" TEXT,
+    "cardLast4" TEXT,
+    "cardBrand" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -74,8 +92,9 @@ CREATE TABLE "VerificationToken" (
 CREATE TABLE "Pet" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "species" "Species" NOT NULL DEFAULT 'DOG',
     "breed" TEXT,
-    "age" INTEGER,
+    "age" DOUBLE PRECISION,
     "weight" DOUBLE PRECISION,
     "gender" "Gender",
     "spayedNeutered" BOOLEAN,
@@ -98,17 +117,21 @@ CREATE TABLE "Booking" (
     "id" TEXT NOT NULL,
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3) NOT NULL,
+    "startTime" TEXT,
+    "endTime" TEXT,
     "status" "BookingStatus" NOT NULL DEFAULT 'PENDING',
     "serviceType" "ServiceType" NOT NULL,
     "totalPrice" DOUBLE PRECISION NOT NULL,
     "depositPaid" BOOLEAN NOT NULL DEFAULT false,
     "depositAmount" DOUBLE PRECISION,
+    "creditsUsed" INTEGER NOT NULL DEFAULT 0,
     "notes" TEXT,
+    "specialRequests" TEXT,
     "cancellationReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "clientId" TEXT NOT NULL,
-    "petId" TEXT NOT NULL,
+    "petId" TEXT,
 
     CONSTRAINT "Booking_pkey" PRIMARY KEY ("id")
 );
@@ -130,6 +153,22 @@ CREATE TABLE "Payment" (
     "bookingId" TEXT NOT NULL,
 
     CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AdditionalCharge" (
+    "id" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "reason" TEXT NOT NULL,
+    "description" TEXT,
+    "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
+    "stripePaymentId" TEXT,
+    "chargedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "bookingId" TEXT NOT NULL,
+
+    CONSTRAINT "AdditionalCharge_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -180,6 +219,7 @@ CREATE TABLE "Notification" (
 CREATE TABLE "Availability" (
     "id" TEXT NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
+    "serviceType" "ServiceType" NOT NULL,
     "available" BOOLEAN NOT NULL DEFAULT true,
     "maxSlots" INTEGER NOT NULL DEFAULT 1,
     "notes" TEXT,
@@ -189,11 +229,88 @@ CREATE TABLE "Availability" (
     CONSTRAINT "Availability_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Coupon" (
+    "id" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "discountType" "DiscountType" NOT NULL,
+    "discountValue" DOUBLE PRECISION NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "minAmount" DOUBLE PRECISION,
+    "maxUses" INTEGER,
+    "currentUses" INTEGER NOT NULL DEFAULT 0,
+    "validFrom" TIMESTAMP(3),
+    "validUntil" TIMESTAMP(3),
+    "restrictedTo" TEXT[],
+    "applicableServices" "ServiceType"[],
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Coupon_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "UserSubscription" (
+    "id" TEXT NOT NULL,
+    "stripeSubscriptionId" TEXT,
+    "status" TEXT NOT NULL,
+    "serviceType" "ServiceType" NOT NULL,
+    "billingPeriod" "BillingPeriod" NOT NULL DEFAULT 'MONTHLY',
+    "daysPerWeek" INTEGER NOT NULL,
+    "creditsPerMonth" INTEGER NOT NULL,
+    "price" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "UserSubscription_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CreditBatch" (
+    "id" TEXT NOT NULL,
+    "amount" INTEGER NOT NULL,
+    "remaining" INTEGER NOT NULL,
+    "serviceType" "ServiceType" NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "CreditBatch_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "StripeWebhookEvent" (
+    "id" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "StripeWebhookEvent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "_BookingPets" (
+    "A" TEXT NOT NULL,
+    "B" TEXT NOT NULL,
+
+    CONSTRAINT "_BookingPets_AB_pkey" PRIMARY KEY ("A","B")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_stripeCustomerId_key" ON "User"("stripeCustomerId");
+
+-- CreateIndex
 CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_autoApplyCouponId_idx" ON "User"("autoApplyCouponId");
+
+-- CreateIndex
+CREATE INDEX "User_stripeCustomerId_idx" ON "User"("stripeCustomerId");
 
 -- CreateIndex
 CREATE INDEX "Account_userId_idx" ON "Account"("userId");
@@ -241,6 +358,15 @@ CREATE INDEX "Payment_stripePaymentId_idx" ON "Payment"("stripePaymentId");
 CREATE INDEX "Payment_status_idx" ON "Payment"("status");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "AdditionalCharge_stripePaymentId_key" ON "AdditionalCharge"("stripePaymentId");
+
+-- CreateIndex
+CREATE INDEX "AdditionalCharge_bookingId_idx" ON "AdditionalCharge"("bookingId");
+
+-- CreateIndex
+CREATE INDEX "AdditionalCharge_status_idx" ON "AdditionalCharge"("status");
+
+-- CreateIndex
 CREATE INDEX "JournalEntry_bookingId_idx" ON "JournalEntry"("bookingId");
 
 -- CreateIndex
@@ -268,10 +394,43 @@ CREATE INDEX "Notification_read_idx" ON "Notification"("read");
 CREATE INDEX "Notification_createdAt_idx" ON "Notification"("createdAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Availability_date_key" ON "Availability"("date");
+CREATE INDEX "Availability_date_idx" ON "Availability"("date");
 
 -- CreateIndex
-CREATE INDEX "Availability_date_idx" ON "Availability"("date");
+CREATE INDEX "Availability_serviceType_idx" ON "Availability"("serviceType");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Availability_date_serviceType_key" ON "Availability"("date", "serviceType");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Coupon_code_key" ON "Coupon"("code");
+
+-- CreateIndex
+CREATE INDEX "Coupon_code_idx" ON "Coupon"("code");
+
+-- CreateIndex
+CREATE INDEX "Coupon_isActive_idx" ON "Coupon"("isActive");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UserSubscription_stripeSubscriptionId_key" ON "UserSubscription"("stripeSubscriptionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UserSubscription_userId_key" ON "UserSubscription"("userId");
+
+-- CreateIndex
+CREATE INDEX "CreditBatch_userId_idx" ON "CreditBatch"("userId");
+
+-- CreateIndex
+CREATE INDEX "CreditBatch_expiresAt_idx" ON "CreditBatch"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "StripeWebhookEvent_createdAt_idx" ON "StripeWebhookEvent"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "_BookingPets_B_index" ON "_BookingPets"("B");
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_autoApplyCouponId_fkey" FOREIGN KEY ("autoApplyCouponId") REFERENCES "Coupon"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -286,10 +445,13 @@ ALTER TABLE "Pet" ADD CONSTRAINT "Pet_ownerId_fkey" FOREIGN KEY ("ownerId") REFE
 ALTER TABLE "Booking" ADD CONSTRAINT "Booking_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Booking" ADD CONSTRAINT "Booking_petId_fkey" FOREIGN KEY ("petId") REFERENCES "Pet"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Booking" ADD CONSTRAINT "Booking_petId_fkey" FOREIGN KEY ("petId") REFERENCES "Pet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "Booking"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AdditionalCharge" ADD CONSTRAINT "AdditionalCharge_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "Booking"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "JournalEntry" ADD CONSTRAINT "JournalEntry_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "Booking"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -305,3 +467,16 @@ ALTER TABLE "Message" ADD CONSTRAINT "Message_bookingId_fkey" FOREIGN KEY ("book
 
 -- AddForeignKey
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserSubscription" ADD CONSTRAINT "UserSubscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CreditBatch" ADD CONSTRAINT "CreditBatch_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_BookingPets" ADD CONSTRAINT "_BookingPets_A_fkey" FOREIGN KEY ("A") REFERENCES "Booking"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_BookingPets" ADD CONSTRAINT "_BookingPets_B_fkey" FOREIGN KEY ("B") REFERENCES "Pet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

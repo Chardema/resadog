@@ -161,7 +161,7 @@ export default function AdminCouponsPage() {
                   { id: "BOARDING", label: "🏠 Hébergement" },
                   { id: "DAY_CARE", label: "☀️ Garderie" },
                   { id: "DROP_IN", label: "🚪 Visite" },
-                  { id: "DOG_WALKING", label: "🦮 Promenade" },
+                  { id: "DOG_WALKING", label: "🐾 Promenade" },
                 ].map((s) => (
                   <button
                     key={s.id}

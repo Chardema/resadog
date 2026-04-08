@@ -73,7 +73,7 @@ export default function HistoryPage() {
   if (status === "loading" || isLoading) {
     return (
       <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center">
-        <div className="text-6xl animate-bounce">🐕</div>
+        <div className="text-6xl animate-bounce">🐾</div>
       </div>
     );
   }
@@ -150,7 +150,7 @@ export default function HistoryPage() {
                         {booking.serviceType === "BOARDING" && "🏠"}
                         {booking.serviceType === "DAY_CARE" && "☀️"}
                         {booking.serviceType === "DROP_IN" && "🚪"}
-                        {booking.serviceType === "DOG_WALKING" && "🦮"}
+                        {booking.serviceType === "DOG_WALKING" && "🐾"}
                       </div>
                       <div>
                         <p className="font-bold text-gray-900">{petNames}</p>

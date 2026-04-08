@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "La Patte Dorée - Garde de chiens professionnelle",
-  description: "Réservez une garde de chien en ligne avec suivi en temps réel et journal d'activités",
+  title: "La Patte Dorée - Garde d'animaux professionnelle",
+  description: "Réservez une garde d'animaux en ligne avec suivi en temps réel et journal d'activités",
 };
 
 import { Footer } from "@/components/layout/Footer";

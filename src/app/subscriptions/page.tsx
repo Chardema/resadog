@@ -163,7 +163,7 @@ export default function SubscriptionPage() {
                   onClick={() => setServiceType("DOG_WALKING")}
                   className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${serviceType === "DOG_WALKING" ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-gray-300"}`}
                 >
-                  <span className="text-3xl">🦮</span>
+                  <span className="text-3xl">🐾</span>
                   <span className="font-bold text-gray-700">Promenade</span>
                 </button>
                 <button
@@ -185,7 +185,7 @@ export default function SubscriptionPage() {
                     onClick={() => setPetCount(count)}
                     className={`flex-1 p-3 rounded-xl font-bold transition-all border-2 ${petCount === count ? "border-orange-500 bg-orange-50 text-orange-700" : "border-gray-100 text-gray-500 hover:border-gray-300"}`}
                   >
-                    {count} {count > 1 ? "Chiens" : "Chien"}
+                    {count} {count > 1 ? "Animaux" : "Animal"}
                   </button>
                 ))}
               </div>
@@ -270,7 +270,7 @@ export default function SubscriptionPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  Supplément chiot OFFERT 🐶
+                  Supplément jeune animal OFFERT 🐾
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>

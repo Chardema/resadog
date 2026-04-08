@@ -107,7 +107,7 @@ export const sendAdminNotification = async (
     await resend.emails.send({
       from: 'La Patte Dorée <onboarding@resend.dev>',
       to: ADMIN_EMAIL,
-      subject: '🐶 Nouvelle demande de réservation !',
+      subject: '🐾 Nouvelle demande de réservation !',
       html: `
         <div style="font-family: sans-serif; color: #333;">
           <h1>Nouvelle demande reçue !</h1>

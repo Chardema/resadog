@@ -235,7 +235,7 @@ export default function AdminBookingsPage() {
                     {/* Info Client & Animal */}
                     <div className="flex gap-4">
                       <div className="h-16 w-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 relative">
-                        {booking.serviceType === "DOG_WALKING" ? "🦮" : 
+                        {booking.serviceType === "DOG_WALKING" ? "🐾" : 
                          booking.serviceType === "DROP_IN" ? "🚪" : "🏠"}
                          {isVip && (
                              <div className="absolute -top-2 -left-2 bg-yellow-400 text-white rounded-full p-1 shadow-sm text-xs" title="Membre Club">👑</div>
@@ -260,7 +260,7 @@ export default function AdminBookingsPage() {
                           {isVip && <span className="text-green-600 font-medium text-xs">💰 Solde Crédits: {clientCredits}</span>}
                         </p>
                         <div className="flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
-                          <span className="text-lg">🐶</span>
+                          <span className="text-lg">🐾</span>
                           <span className="font-semibold text-orange-900">{petsName}</span>
                           <span className="text-orange-700 text-sm">({petsBreed})</span>
                         </div>

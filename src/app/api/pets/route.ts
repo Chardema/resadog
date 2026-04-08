@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         pet,
-        message: "Animal ajouté avec succès ! 🐕",
+        message: "Animal ajouté avec succès ! 🐾",
       },
       { status: 201 }
     );

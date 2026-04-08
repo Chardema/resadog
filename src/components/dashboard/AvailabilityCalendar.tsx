@@ -81,7 +81,7 @@ export function AvailabilityCalendar() {
     { value: "BOARDING" as ServiceType, name: "Hébergement", icon: "🏠", color: "purple" },
     { value: "DAY_CARE" as ServiceType, name: "Garde de jour", icon: "☀️", color: "yellow" },
     { value: "DROP_IN" as ServiceType, name: "Visite", icon: "🚪", color: "blue" },
-    { value: "DOG_WALKING" as ServiceType, name: "Promenade", icon: "🦮", color: "green" },
+    { value: "DOG_WALKING" as ServiceType, name: "Promenade", icon: "🐾", color: "green" },
   ];
 
   const selectedService = services.find(s => s.value === selectedServiceType);

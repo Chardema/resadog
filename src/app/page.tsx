@@ -33,7 +33,7 @@ export default function Home() {
         <div className="bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg shadow-orange-900/5 rounded-full px-6 py-3 flex items-center gap-6 max-w-4xl w-full justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="bg-gradient-to-br from-orange-400 to-amber-600 text-white w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-md group-hover:rotate-12 transition-transform">
-              🐕
+              🐾
             </div>
             <span className="font-bold text-gray-800 tracking-tight">La Patte Dorée</span>
           </Link>
@@ -92,7 +92,7 @@ export default function Home() {
           >
             La meilleure colo <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 relative">
-              pour votre chien.
+              pour votre compagnon.
               <svg className="absolute w-full h-3 -bottom-1 left-0 text-orange-200 -z-10" viewBox="0 0 100 10" preserveAspectRatio="none">
                 <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
               </svg>
@@ -119,7 +119,7 @@ export default function Home() {
               href="/booking"
               className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-105 hover:-rotate-1 transition-all flex items-center justify-center gap-2"
             >
-              <span>🐶</span> Réserver un séjour
+              <span>🐾</span> Réserver un séjour
             </Link>
             <Link
               href={session?.user ? "/dashboard" : "/auth/signup"}
@@ -169,7 +169,7 @@ export default function Home() {
               <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-3xl mb-4">🏠</div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Hébergement Familial</h3>
               <p className="text-gray-600 leading-relaxed mb-6">
-                Votre chien vit avec nous, dans la maison. Pas de box, accès jardin illimité et
+                Votre compagnon vit avec nous, dans la maison. Pas de box, accès jardin illimité et
                 séances de câlins sur le canapé. C'est comme chez vous, en mieux.
               </p>
               <ul className="space-y-2">
@@ -187,7 +187,7 @@ export default function Home() {
                 transition={{ duration: 4, repeat: Infinity }}
                 className="filter drop-shadow-2xl"
               >
-                🐕
+                🐾
               </motion.div>
             </div>
           </motion.div>
@@ -199,7 +199,7 @@ export default function Home() {
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
             <div>
-              <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-3xl mb-4 backdrop-blur-sm">🦮</div>
+              <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-3xl mb-4 backdrop-blur-sm">🐾</div>
               <h3 className="text-2xl font-bold mb-2">Promenades</h3>
               <p className="text-gray-300 text-sm">
                 Besoin de se dépenser ? Je viens chercher votre compagnon pour une balade active.
@@ -285,7 +285,7 @@ export default function Home() {
               {[
                 { icon: "🪙", title: "1 Crédit = 1 Jour", desc: "Utilisez vos crédits pour n'importe quelle prestation." },
                 { icon: "🔄", title: "Reportable", desc: "Vos crédits ont une validité illimitée." },
-                { icon: "🐶", title: "Chiot Offert", desc: "Le supplément chiot est 100% offert pour les membres." },
+                { icon: "🐾", title: "Jeune Animal Offert", desc: "Le supplément jeune animal est 100% offert pour les membres." },
                 { icon: "📉", title: "-20% Garanti", desc: "Le tarif le plus bas, toute l'année, même en vacances." }
               ].map((feature, i) => (
                 <motion.div
@@ -342,7 +342,7 @@ export default function Home() {
             <span className="font-bold text-gray-900">La Patte Dorée</span>
           </div>
           <p className="text-gray-500 text-sm">
-            © 2026 - Fait avec ❤️ pour les chiens.
+            © 2026 - Fait avec ❤️ pour vos compagnons.
           </p>
         </div>
       </footer>

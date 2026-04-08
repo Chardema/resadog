@@ -158,7 +158,7 @@ function SignInContent() {
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-4xl">🐕</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-4xl">🐾</div>}>
       <SignInContent />
     </Suspense>
   );

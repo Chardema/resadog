@@ -152,7 +152,7 @@ export default function ConceptPage() {
                     <span>Illimité</span>
                   </div>
                   <div className="flex justify-between items-center text-orange-100">
-                    <span>Supplément chiot</span>
+                    <span>Supplément jeune animal</span>
                     <span className="font-bold bg-white text-orange-600 px-2 py-0.5 rounded">OFFERT</span>
                   </div>
                 </div>
@@ -177,7 +177,7 @@ export default function ConceptPage() {
             {[
               { q: "Est-ce que je peux annuler quand je veux ?", a: "Oui ! L'abonnement mensuel est sans engagement au-delà des 2 premiers mois. L'annuel vous engage sur 12 mois en échange d'un tarif imbattable." },
               { q: "Si je pars en vacances ?", a: "Pas de panique ! Vos crédits sont valables à vie ! Vous pouvez les cumuler pour une plus grosse garde le mois suivant." },
-              { q: "Ça marche pour plusieurs animaux ?", a: "Absolument. Vous pouvez prendre un abonnement 'Multi-chiens' et utiliser vos crédits indifféremment." },
+              { q: "Ça marche pour plusieurs animaux ?", a: "Absolument. Vous pouvez prendre un abonnement 'Multi-animaux' et utiliser vos crédits indifféremment." },
             ].map((faq, i) => (
               <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                 <h4 className="font-bold text-gray-900 mb-2">{faq.q}</h4>
@@ -195,7 +195,7 @@ export default function ConceptPage() {
               Configurer mon abonnement →
             </Button>
           </Link>
-          <p className="mt-4 text-sm text-gray-500">2 minutes pour s'inscrire, des heures de bonheur pour votre chien.</p>
+          <p className="mt-4 text-sm text-gray-500">2 minutes pour s'inscrire, des heures de bonheur pour votre compagnon.</p>
         </div>
 
       </main>
