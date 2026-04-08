@@ -59,8 +59,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
         </div>
 
-        <div className="mt-auto p-8 border-t border-gray-50">
-          <div className="flex items-center gap-3 mb-4">
+        <div className="mt-auto p-8 border-t border-gray-50 space-y-3">
+          <Link
+            href="/admin/calendar-sync"
+            className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-all"
+          >
+            <span className="text-base">📅</span>
+            Sync Calendrier Apple
+          </Link>
+          <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
               A
             </div>
