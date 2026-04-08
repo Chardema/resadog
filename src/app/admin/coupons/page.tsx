@@ -123,7 +123,7 @@ export default function AdminCouponsPage() {
           <form onSubmit={handleCreate} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <Label>Code (ex: PROMO2025)</Label>
+                <Label>Code (ex: PROMO2026)</Label>
                 <Input value={formData.code} onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})} className="uppercase font-mono font-bold" required />
               </div>
               <div>

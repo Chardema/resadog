@@ -81,7 +81,7 @@ export default function Home() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
             </span>
-            Disponibilités ouvertes pour 2025
+            Disponibilités ouvertes pour 2026
           </motion.div>
 
           <motion.h1
@@ -342,7 +342,7 @@ export default function Home() {
             <span className="font-bold text-gray-900">La Patte Dorée</span>
           </div>
           <p className="text-gray-500 text-sm">
-            © 2025 - Fait avec ❤️ pour les chiens.
+            © 2026 - Fait avec ❤️ pour les chiens.
           </p>
         </div>
       </footer>
