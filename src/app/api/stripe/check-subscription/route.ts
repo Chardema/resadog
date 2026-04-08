@@ -30,7 +30,7 @@ export async function GET() {
     const metadata = stripeSub.metadata || {};
     // Tentative de synchronisation / auto-réparation
     // Si metadata incomplete, on essaie de déduire ou on met des défauts pour débloquer
-    const serviceType = metadata.serviceType || "DOG_WALKING";
+    const serviceType = (metadata.serviceType || "DOG_WALKING") as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING";
     const daysPerWeek = parseInt(metadata.daysPerWeek || "2");
     const creditsPerMonth = parseInt(metadata.creditsPerMonth || "8");
 
