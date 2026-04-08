@@ -10,10 +10,11 @@ export default function CalendarSyncPage() {
 
   const userId = session?.user?.id;
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const icalUrl = `${baseUrl}/api/calendar/ical?token=${userId}&mode=admin`;
+  const httpsUrl = `${baseUrl}/api/calendar/ical?token=${userId}&mode=admin`;
+  const webcalUrl = httpsUrl.replace(/^https?:\/\//, "webcal://");
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(icalUrl);
+    navigator.clipboard.writeText(httpsUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
   };
@@ -47,28 +48,45 @@ export default function CalendarSyncPage() {
           </div>
         </div>
 
-        {/* Lien iCal */}
-        <div className="bg-gray-50 rounded-xl p-4">
-          <label className="text-xs text-gray-500 font-medium block mb-2">Votre lien iCal personnel :</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              readOnly
-              value={icalUrl}
-              className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono text-gray-600 truncate"
-            />
-            <button
-              onClick={handleCopy}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                copied
-                  ? "bg-green-500 text-white"
-                  : "bg-gray-900 text-white hover:bg-orange-600"
-              }`}
-            >
-              {copied ? "Copié !" : "Copier"}
-            </button>
+        {/* Bouton direct Apple Calendar */}
+        {!userId ? (
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center">
+            <p className="text-orange-800 font-medium">Chargement de votre session...</p>
           </div>
-        </div>
+        ) : (
+          <>
+            <a
+              href={webcalUrl}
+              className="block w-full text-center bg-gray-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-orange-600 transition-colors shadow-lg"
+            >
+              📅 Ajouter à Apple Calendar
+            </a>
+            <p className="text-center text-xs text-gray-400 -mt-3">Cliquez pour ouvrir directement dans Apple Calendar</p>
+
+            {/* Lien manuel */}
+            <div className="bg-gray-50 rounded-xl p-4">
+              <label className="text-xs text-gray-500 font-medium block mb-2">Ou copiez le lien manuellement :</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={httpsUrl}
+                  className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono text-gray-600 truncate"
+                />
+                <button
+                  onClick={handleCopy}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                    copied
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-900 text-white hover:bg-orange-600"
+                  }`}
+                >
+                  {copied ? "Copié !" : "Copier"}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Instructions */}
         <div>
