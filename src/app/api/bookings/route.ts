@@ -18,8 +18,8 @@ const createBookingSchema = z.object({
   startTime: z.string().optional(), // Heure de dépôt (HH:mm)
   endTime: z.string().optional(),   // Heure de récupération (HH:mm)
   serviceType: z.enum(["BOARDING", "DAY_CARE", "DROP_IN", "DOG_WALKING"]),
-  totalPrice: z.number().positive("Le prix doit être positif"),
-  depositAmount: z.number().positive("Le montant doit être positif"),
+  totalPrice: z.number().nonnegative("Le prix doit être positif ou zéro"),
+  depositAmount: z.number().nonnegative("Le montant doit être positif ou zéro"),
   notes: z.string().optional(),
   promoCode: z.string().optional(),
   paymentMethod: z.enum(["PAYPAL", "WERO", "BANK_TRANSFER"]).optional(),
