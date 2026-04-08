@@ -123,7 +123,9 @@ export default function AdminReviewsPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900">Avis Clients</h1>
-          <p className="text-gray-500">Gérez les avis affichés sur le site</p>
+          <p className="text-gray-500">
+            {reviews.length} avis au total · {reviews.filter(r => r.isActive).length} actifs · {reviews.filter(r => r.source === "ROVER").length} Rover · {reviews.filter(r => r.source === "ALLOVOISINS").length} AlloVoisins
+          </p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={syncAlloVoisins} disabled={alloLoading} className="rounded-xl">
@@ -136,22 +138,50 @@ export default function AdminReviewsPage() {
       </div>
 
       {/* AlloVoisins Stats */}
-      {alloData && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-4">
-            <span className="text-3xl">⭐</span>
-            <div>
-              <p className="font-bold text-blue-900">AlloVoisins — Note : {alloData.rating}/5</p>
-              <p className="text-sm text-blue-600">{alloData.reviewCount} avis au total</p>
+      {alloData && (() => {
+        const alloInDb = reviews.filter(r => r.source === "ALLOVOISINS").length;
+        const missing = (alloData.reviewCount || 0) - alloInDb;
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-4">
+                <span className="text-3xl">⭐</span>
+                <div>
+                  <p className="font-bold text-blue-900">AlloVoisins — Note : {alloData.rating}/5</p>
+                  <p className="text-sm text-blue-600">{alloData.reviewCount} avis sur AlloVoisins · {alloInDb} ajoutés ici</p>
+                </div>
+              </div>
+              <p className="text-xs text-blue-400">Mis à jour : {new Date(alloData.fetchedAt).toLocaleString("fr-FR")}</p>
             </div>
-          </div>
-          <p className="text-xs text-blue-400">Mis à jour : {new Date(alloData.fetchedAt).toLocaleString("fr-FR")}</p>
-        </motion.div>
-      )}
+            {missing > 0 && (
+              <div className="bg-white/60 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-blue-800">Il manque {missing} avis AlloVoisins</p>
+                  <p className="text-xs text-blue-600">Les textes ne sont pas récupérables automatiquement. Copiez-les depuis votre profil AlloVoisins.</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, source: "ALLOVOISINS", rating: 5 }));
+                    setShowForm(true);
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 flex-shrink-0"
+                >
+                  + Ajouter un avis AlloVoisins
+                </button>
+              </div>
+            )}
+            {missing <= 0 && (
+              <div className="bg-green-50 rounded-xl p-3 text-center">
+                <p className="text-sm font-bold text-green-700">✅ Tous les avis AlloVoisins sont synchronisés</p>
+              </div>
+            )}
+          </motion.div>
+        );
+      })()}
 
       {/* Formulaire ajout */}
       {showForm && (
