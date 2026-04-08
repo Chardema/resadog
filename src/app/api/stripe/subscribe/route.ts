@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { serviceType, daysPerWeek, petCount, billingCycle } = body;
 
-    // Recalculer le prix côté serveur pour sécurité (copie de la logique frontend)
-    const basePrices = { DOG_WALKING: 15, DAY_CARE: 20 };
+    // Recalculer le prix côté serveur pour sécurité (tarifs alignés Rover)
+    const basePrices = { DOG_WALKING: 10, DAY_CARE: 23 };
     const unitPrice = basePrices[serviceType as "DOG_WALKING" | "DAY_CARE"];
     const totalDays = daysPerWeek * 4; // Par mois
     const rawPrice = (unitPrice * totalDays) * petCount;

@@ -103,7 +103,7 @@ export default function ConceptPage() {
           <div className="relative z-10">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Pourquoi passer au Club ?</h2>
-              <p className="text-gray-400">Comparatif pour une garde de 2 jours / semaine</p>
+              <p className="text-gray-400">Comparatif garderie 2 jours / semaine (1 chien)</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -112,8 +112,12 @@ export default function ConceptPage() {
                 <h3 className="text-xl font-bold text-gray-400 mb-6">Client Classique</h3>
                 <div className="space-y-4 mb-8">
                   <div className="flex justify-between items-center text-gray-300">
-                    <span>Prix par jour</span>
-                    <span className="font-mono">25€</span>
+                    <span>Prix par jour (chien)</span>
+                    <span className="font-mono">23€</span>
+                  </div>
+                  <div className="flex justify-between items-center text-gray-300">
+                    <span>8 jours / mois</span>
+                    <span className="font-mono">184€</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-300">
                     <span>Paiement</span>
@@ -127,7 +131,7 @@ export default function ConceptPage() {
                 <div className="pt-6 border-t border-white/10">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400">Total mensuel</span>
-                    <span className="text-2xl font-bold">200€</span>
+                    <span className="text-2xl font-bold">184€</span>
                   </div>
                 </div>
               </div>
@@ -141,7 +145,7 @@ export default function ConceptPage() {
                 <div className="space-y-4 mb-8">
                   <div className="flex justify-between items-center text-orange-100">
                     <span>Prix par jour</span>
-                    <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded">~20€</span>
+                    <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded">~19€</span>
                   </div>
                   <div className="flex justify-between items-center text-orange-100">
                     <span>Paiement</span>
@@ -155,14 +159,18 @@ export default function ConceptPage() {
                     <span>Supplément jeune animal</span>
                     <span className="font-bold bg-white text-orange-600 px-2 py-0.5 rounded">OFFERT</span>
                   </div>
+                  <div className="flex justify-between items-center text-orange-100">
+                    <span>Tarif chat</span>
+                    <span>Dès 12€/visite</span>
+                  </div>
                 </div>
                 <div className="pt-6 border-t border-white/20">
                   <div className="flex justify-between items-center">
                     <span className="text-orange-100">Total mensuel</span>
-                    <span className="text-3xl font-extrabold">160€</span>
+                    <span className="text-3xl font-extrabold">~149€</span>
                   </div>
                   <div className="mt-2 text-right text-xs font-bold text-white/80">
-                    Économisez 480€ / an ! 💰
+                    Économisez jusqu'à 420€ / an ! 💰
                   </div>
                 </div>
               </div>

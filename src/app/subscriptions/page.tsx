@@ -30,10 +30,10 @@ export default function SubscriptionPage() {
       }
   }, [session]);
 
-  // Prix de base (avant réduction) par animal
+  // Prix de base (avant réduction) par animal — aligné Rover
   const basePrices = {
-    DOG_WALKING: 15, // Promenade
-    DAY_CARE: 20,    // Garderie
+    DOG_WALKING: 10, // Promenade
+    DAY_CARE: 23,    // Garderie
   };
 
   // Calcul du prix

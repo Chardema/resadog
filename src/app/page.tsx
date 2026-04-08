@@ -206,7 +206,7 @@ export default function Home() {
               </p>
             </div>
             <div className="mt-8 pt-8 border-t border-white/10">
-              <p className="text-3xl font-bold">dès 15€</p>
+              <p className="text-3xl font-bold">dès 10€</p>
               <p className="text-gray-400 text-sm">la balade</p>
             </div>
           </motion.div>

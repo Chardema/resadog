@@ -48,8 +48,8 @@ export default function CGVPage() {
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Tarifs</h2>
             <p>
-              Les tarifs sont indiqués en Euros TTC. Ils varient selon le type de service (Hébergement, Visite, Promenade) et le nombre d'animaux.
-              Un supplément "Jeune animal" (+2€/nuit) s'applique pour les animaux de moins d'un an (offert pour les abonnés).
+              Les tarifs sont indiqués en Euros TTC. Ils varient selon le type de service (Hébergement, Garderie, Visite, Promenade), l'espèce (chien/chat), le nombre d'animaux et la période (haute/basse saison).
+              Un tarif spécifique s'applique pour les jeunes animaux de moins d'un an. Les tarifs sont affichés de manière transparente lors de la réservation.
             </p>
           </section>
 

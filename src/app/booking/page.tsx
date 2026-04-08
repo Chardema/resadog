@@ -9,53 +9,41 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppNav } from "@/components/layout/AppNav";
+import { getUnitPrice, getServiceDisplayPrice, isHighSeasonRange, EXTRA_DURATION, type Species, type PriceLine } from "@/lib/pricing";
 
-// On reprend les mêmes types de service
 const serviceTypes = [
   {
     value: "BOARDING",
     name: "Hébergement",
-    price: 20,
-    unit: "jour",
+    unit: "nuit",
     description: "Votre compagnon vit avec nous, accès canapé et jardin inclus.",
     icon: "🏠",
     maxHours: 24,
-    extraHourlyRate: 3,
-    maxPets: 2,
+    maxPets: 3,
   },
   {
     value: "DAY_CARE",
     name: "Garderie Jour",
-    price: 20,
     unit: "jour",
     description: "Déposez-le le matin, récupérez-le le soir.",
     icon: "☀️",
     maxHours: 10,
-    extraHourlyRate: 3,
-    maxPets: 2,
+    maxPets: 3,
   },
   {
     value: "DROP_IN",
     name: "Visite à domicile",
-    price: 13,
     unit: "visite",
     description: "Visite de 30 min pour les chats et chiens indépendants.",
     icon: "🚪",
-    baseDuration: 30,
-    extraDurationRate: 15,
-    durationIncrement: 30,
     maxPets: 99,
   },
   {
     value: "DOG_WALKING",
     name: "Promenade",
-    price: 15,
     unit: "promenade",
-    description: "Balade de 15 min dans le quartier.",
+    description: "Balade de 30 min dans le quartier.",
     icon: "🐾",
-    baseDuration: 15,
-    extraDurationRate: 10,
-    durationIncrement: 15,
     maxPets: 99,
   },
 ];
@@ -64,6 +52,7 @@ interface Pet {
   id: string;
   name: string;
   breed: string;
+  species: Species;
   age?: number | null;
 }
 
@@ -377,77 +366,104 @@ export default function BookingPage() {
   const resetAvailability = () => setAvailabilityStatus({ checking: false, available: true, message: "", unavailableDates: [] });
 
   const getSelectedService = () => serviceTypes.find(s => s.value === formData.serviceType);
-  
+
+  // Détermine si un animal est "supplémentaire" (pas le premier de son espèce)
+  const getAdditionalStatus = (petId: string): boolean => {
+    const selectedPets = pets.filter(p => formData.petIds.includes(p.id));
+    const pet = selectedPets.find(p => p.id === petId);
+    if (!pet) return false;
+    const sameSpecies = selectedPets.filter(p => p.species === pet.species);
+    return sameSpecies.indexOf(pet) > 0;
+  };
+
   // Retourne le détail du prix pour UN animal donné
   const calculatePriceDetailForPet = (config: DateConfig, pet: Pet) => {
       const service = getSelectedService();
-      if (!service) return { total: 0, breakdown: "Service inconnu", isPuppy: false, surchargeTotal: 0, quantity: 0, unitPrice: 0 };
-      
-      const puppyDailyRate = 2;
-      const isPuppy = pet.age !== undefined && pet.age !== null && pet.age < 1;
+      if (!service) return { total: 0, breakdown: "Service inconnu", isPuppy: false, surchargeTotal: 0, quantity: 0, unitPrice: 0, priceLines: [] as PriceLine[] };
+
+      const isYoung = pet.age !== undefined && pet.age !== null && pet.age < 1;
+      const isAdditional = getAdditionalStatus(pet.id);
+
+      // Déterminer si haute saison
+      let highSeason = false;
+      if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+        const validDates = config.individualDates.filter(d => d.date !== "");
+        highSeason = validDates.some(d => isHighSeasonRange(d.date, d.date));
+      } else if (config.startDate && config.endDate) {
+        highSeason = isHighSeasonRange(config.startDate, config.endDate);
+      }
+
+      const { price: unitPrice, lines: priceLines } = getUnitPrice(formData.serviceType, {
+        species: pet.species || "DOG",
+        isYoung,
+        isAdditional,
+        isHighSeason: highSeason,
+      });
+
       let total = 0;
       let breakdown = "";
-      let surchargeTotal = 0;
       let quantity = 0;
-      let unitPrice = service.price;
 
       if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
           const validDates = config.individualDates.filter(d => d.date !== "");
           const visits = validDates.length;
-          
+          const extra = EXTRA_DURATION[formData.serviceType as "DROP_IN" | "DOG_WALKING"];
+
           let subTotal = 0;
+          let extraDurationTotal = 0;
           validDates.forEach(item => {
-              subTotal += service.price;
-              const extraDuration = item.duration - (service.baseDuration || 0);
-              if (extraDuration > 0) {
-                 const increment = service.durationIncrement || 1;
-                 const extraIncrements = Math.ceil(extraDuration / increment);
-                 subTotal += (extraIncrements * (service.extraDurationRate || 0));
+              subTotal += unitPrice;
+              if (extra) {
+                const extraTime = item.duration - extra.baseDuration;
+                if (extraTime > 0) {
+                  const extraIncrements = Math.ceil(extraTime / extra.increment);
+                  extraDurationTotal += extraIncrements * extra.extraRate;
+                }
               }
           });
-          
-          if (isPuppy) surchargeTotal = visits * puppyDailyRate;
-          total = subTotal + surchargeTotal;
+
+          total = subTotal + extraDurationTotal;
+          if (extraDurationTotal > 0) {
+            priceLines.push({ label: "Durée prolongée", amount: extraDurationTotal, type: "surcharge" });
+          }
           breakdown = "visites";
           quantity = visits;
 
       } else {
-          if (!config.startDate || !config.endDate) return { total: 0, breakdown: "", isPuppy, surchargeTotal: 0, quantity: 0, unitPrice: 0 };
-          
+          if (!config.startDate || !config.endDate) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
+
           const start = new Date(`${config.startDate}T${config.startTime}`);
           const end = new Date(`${config.endDate}T${config.endTime}`);
-          
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) return { total: 0, breakdown: "", isPuppy, surchargeTotal: 0, quantity: 0, unitPrice: 0 };
+
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
 
           const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-          if (totalHours <= 0) return { total: 0, breakdown: "", isPuppy, surchargeTotal: 0, quantity: 0, unitPrice: 0 };
+          if (totalHours <= 0) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
 
           if (formData.serviceType === "BOARDING") {
               const baseNights = Math.floor(totalHours / 24);
               const extraHours = totalHours % 24;
-              let base = baseNights * service.price;
-              if (extraHours > 8) base += service.price;
-              else if (extraHours > 2) base += (service.price * 0.5);
-              
-              if (isPuppy) surchargeTotal = baseNights * puppyDailyRate;
-              total = base + surchargeTotal;
+              total = baseNights * unitPrice;
+              if (extraHours > 8) {
+                total += unitPrice;
+                priceLines.push({ label: "Journée supplémentaire (> 8h)", amount: unitPrice, type: "surcharge" });
+              } else if (extraHours > 2) {
+                const half = Math.round(unitPrice * 0.5);
+                total += half;
+                priceLines.push({ label: "Demi-journée (2-8h)", amount: half, type: "surcharge" });
+              }
               breakdown = "nuits";
-              quantity = baseNights; // Simplified, extra hours might confuse "quantity" display but good for "nights" context
-
+              quantity = baseNights;
           } else {
-             const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-             let base = days * service.price;
-             if (days === 1 && totalHours > (service.maxHours || 10)) {
-                 base += ((totalHours - (service.maxHours || 10)) * (service.extraHourlyRate || 0));
-             }
-             
-             if (isPuppy) surchargeTotal = days * puppyDailyRate;
-             total = base + surchargeTotal;
-             breakdown = "jours";
-             quantity = days;
+              // DAY_CARE
+              const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+              total = days * unitPrice;
+              breakdown = "jours";
+              quantity = days;
           }
       }
-      return { total, breakdown, isPuppy, surchargeTotal, quantity, unitPrice };
+
+      return { total, breakdown, isPuppy: isYoung, surchargeTotal: 0, quantity, unitPrice, priceLines };
   };
 
   const calculateTotalPrice = () => {
@@ -806,7 +822,14 @@ export default function BookingPage() {
                         >
                           {isDisabled && <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full">Max {s.maxPets}</div>}
                           <div className="text-3xl mb-2">{s.icon}</div>
-                          <div className="flex justify-between items-center"><h3 className="font-bold text-gray-900">{s.name}</h3><div className="font-bold text-orange-600">{s.price}€</div></div>
+                          <div>
+                            <h3 className="font-bold text-gray-900">{s.name}</h3>
+                            <div className="flex gap-3 mt-1 text-sm">
+                              <span className="text-orange-600 font-bold">🐕 {getServiceDisplayPrice(s.value).dogPrice}€</span>
+                              <span className="text-blue-600 font-bold">🐈 {getServiceDisplayPrice(s.value).catPrice}€</span>
+                              <span className="text-gray-400">/ {getServiceDisplayPrice(s.value).unit}</span>
+                            </div>
+                          </div>
                         </div>
                       )})}
                     </div>
@@ -967,25 +990,26 @@ export default function BookingPage() {
                                             <div className="font-bold text-gray-900">{formatPrice(details.total)}€</div>
                                         </div>
                                         
-                                        {/* Détail calcul */}
-                                        <div className="text-xs text-gray-500 flex justify-between items-center">
-                                            <span>{details.quantity} {details.breakdown} à {formatPrice(details.unitPrice)}€</span>
+                                        {/* Détail calcul ligne par ligne */}
+                                        <div className="space-y-0.5">
+                                          <div className="text-xs text-gray-500 flex justify-between items-center">
+                                            <span>{details.quantity} {details.breakdown} x {formatPrice(details.unitPrice)}€</span>
                                             <span>{formatPrice(details.unitPrice * details.quantity)}€</span>
-                                        </div>
-
-                                        {/* Supplément Jeune Animal */}
-                                        {details.isPuppy && (
-                                            <div className="text-xs text-orange-600 flex justify-between items-center mt-1">
-                                                <div className="flex items-center gap-1 group relative cursor-help">
-                                                    <span>Supplément Jeune Animal (+2€/{details.breakdown})</span>
-                                                    <span className="w-4 h-4 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] font-bold">i</span>
-                                                    <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl z-10">
-                                                        Tarif spécial pour les jeunes animaux de moins d'un an nécessitant plus d'attention.
-                                                    </div>
-                                                </div>
-                                                <span>+{formatPrice(details.surchargeTotal)}€</span>
+                                          </div>
+                                          {details.priceLines?.map((line, idx) => (
+                                            <div key={idx} className={`text-xs flex justify-between items-center ${
+                                              line.type === "surcharge" ? "text-orange-600" :
+                                              line.type === "discount" ? "text-green-600" : "text-gray-400"
+                                            }`}>
+                                              <div className="flex items-center gap-1">
+                                                {line.type === "surcharge" && <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
+                                                {line.type === "base" && <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />}
+                                                <span>{line.label}</span>
+                                              </div>
+                                              {line.type === "surcharge" && <span>+{formatPrice(line.amount)}€</span>}
                                             </div>
-                                        )}
+                                          ))}
+                                        </div>
                                     </div>
                                 )
                             })}
