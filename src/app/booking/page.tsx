@@ -659,6 +659,36 @@ export default function BookingPage() {
     return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
   };
 
+  const getHourlyDurationSummary = () => {
+      const extra = EXTRA_DURATION[formData.serviceType as "DROP_IN" | "DOG_WALKING"];
+      return extra
+        ? `${extra.baseDuration} min inclus, +${extra.extraRate}€ par ${extra.increment} min supplémentaire`
+        : "";
+  };
+
+  const calculateDurationExtraForSlots = (slots: VisitSlot[]) => {
+      const extra = EXTRA_DURATION[formData.serviceType as "DROP_IN" | "DOG_WALKING"];
+      if (!extra) return 0;
+
+      return slots.reduce((total, slot) => {
+        const extraTime = slot.duration - extra.baseDuration;
+        if (extraTime <= 0) return total;
+        return total + Math.ceil(extraTime / extra.increment) * extra.extraRate;
+      }, 0);
+  };
+
+  const getDurationCounts = (slots: VisitSlot[]) => {
+      const counts = slots.reduce<Record<number, number>>((acc, slot) => {
+        acc[slot.duration] = (acc[slot.duration] || 0) + 1;
+        return acc;
+      }, {});
+
+      return Object.entries(counts)
+        .sort(([a], [b]) => Number(a) - Number(b))
+        .map(([duration, count]) => `${count} x ${duration} min`)
+        .join(" · ");
+  };
+
   const togglePet = (id: string) => {
       setFormData(prev => {
           const exists = prev.petIds.includes(id);
@@ -1135,34 +1165,76 @@ export default function BookingPage() {
 
                                 const details = calculatePriceDetailForPet(config, pet);
                                 const selectedSlots = getValidVisitSlots(config.visitSlots);
+                                const baseTotal = details.unitPrice * details.quantity;
+                                const durationExtraTotal = isHourlyService(formData.serviceType)
+                                  ? calculateDurationExtraForSlots(selectedSlots)
+                                  : 0;
+                                const otherSurchargeLines = details.priceLines?.filter((line) =>
+                                  line.type === "surcharge" &&
+                                  line.label !== "Durée prolongée" &&
+                                  line.label !== "Majoration haute saison"
+                                ) || [];
+                                const baseLine = details.priceLines?.find((line) => line.type === "base" || line.label.includes("haute saison"));
 
                                 return (
-                                    <div key={id} className="border-b border-orange-200 pb-2">
-                                        <div className="flex justify-between items-center mb-1">
+                                    <div key={id} className="border-b border-orange-200 pb-4">
+                                        <div className="flex justify-between items-center mb-3">
                                             <div className="font-bold text-gray-900">🐾 {pet.name}</div>
                                             <div className="font-bold text-gray-900">{formatPrice(details.total)}€</div>
                                         </div>
 
-                                        {/* Détail calcul ligne par ligne */}
-                                        <div className="space-y-0.5">
-                                          <div className="text-xs text-gray-500 flex justify-between items-center">
+                                        <div className="rounded-2xl bg-white/80 border border-orange-100 p-4 space-y-2">
+                                          <div className="flex items-center justify-between gap-4 text-xs font-bold uppercase tracking-wide text-orange-800">
+                                            <span>Détail du prix</span>
+                                            {isHourlyService(formData.serviceType) && selectedSlots.length > 0 && (
+                                              <span className="text-xs font-semibold normal-case tracking-normal text-gray-500">{getDurationCounts(selectedSlots)}</span>
+                                            )}
+                                          </div>
+
+                                          {baseLine && (
+                                            <div className="flex justify-between gap-4 text-xs text-gray-600">
+                                              <span>{baseLine.label}</span>
+                                              <span>{formatPrice(details.unitPrice)}€ / {getSelectedService()?.unit}</span>
+                                            </div>
+                                          )}
+
+                                          {details.priceLines?.some((line) => line.label === "Majoration haute saison") && (
+                                            <div className="text-xs text-orange-600">
+                                              Majoration haute saison incluse dans le prix unitaire.
+                                            </div>
+                                          )}
+
+                                          <div className="flex justify-between gap-4 text-xs text-gray-700">
                                             <span>{details.quantity} {details.breakdown} x {formatPrice(details.unitPrice)}€</span>
                                             <span>{formatPrice(details.unitPrice * details.quantity)}€</span>
                                           </div>
-                                          {details.priceLines?.map((line, idx) => (
-                                            <div key={idx} className={`text-xs flex justify-between items-center ${
-                                              line.type === "surcharge" ? "text-orange-600" :
-                                              line.type === "discount" ? "text-green-600" : "text-gray-400"
-                                            }`}>
-                                              <div className="flex items-center gap-1">
-                                                {line.type === "surcharge" && <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
-                                                {line.type === "base" && <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />}
-                                                <span>{line.label}</span>
-                                              </div>
-                                              {line.type === "surcharge" && <span>+{formatPrice(line.amount)}€</span>}
+
+                                          {isHourlyService(formData.serviceType) && getHourlyDurationSummary() && (
+                                            <div className="text-xs text-gray-500">
+                                              {getHourlyDurationSummary()}
+                                            </div>
+                                          )}
+
+                                          {durationExtraTotal > 0 && (
+                                            <div className="flex justify-between gap-4 text-xs text-orange-600">
+                                              <span>Supplément durée prolongée</span>
+                                              <span>+{formatPrice(durationExtraTotal)}€</span>
+                                            </div>
+                                          )}
+
+                                          {otherSurchargeLines.map((line, idx) => (
+                                            <div key={idx} className="flex justify-between gap-4 text-xs text-orange-600">
+                                              <span>{line.label}</span>
+                                              <span>+{formatPrice(line.amount)}€</span>
                                             </div>
                                           ))}
+
+                                          <div className="flex justify-between gap-4 pt-2 border-t border-orange-100 text-sm font-bold text-gray-900">
+                                            <span>Sous-total {pet.name}</span>
+                                            <span>{formatPrice(baseTotal + durationExtraTotal + otherSurchargeLines.reduce((sum, line) => sum + line.amount, 0))}€</span>
+                                          </div>
                                         </div>
+
                                         {isHourlyService(formData.serviceType) && selectedSlots.length > 0 && (
                                           <div className="mt-3 rounded-xl bg-white/70 p-3 text-xs text-gray-600 space-y-1">
                                             {selectedSlots.slice(0, 6).map((slot, idx) => (
