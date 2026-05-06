@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { extractServiceDetails, stripServiceDetails } from "@/lib/booking-details";
 
 export async function GET(request: NextRequest) {
   try {
@@ -64,7 +65,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ bookings });
+    return NextResponse.json({
+      bookings: bookings.map((booking) => ({
+        ...booking,
+        serviceDetails: extractServiceDetails(booking.specialRequests),
+        specialRequests: stripServiceDetails(booking.specialRequests),
+      })),
+    });
   } catch (error) {
     console.error("Erreur lors de la récupération des réservations admin:", error);
     return NextResponse.json(

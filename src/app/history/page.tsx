@@ -13,6 +13,13 @@ interface Booking {
   endDate: string;
   status: string;
   serviceType: string;
+  serviceDetails?: {
+    visitSlots?: {
+      date: string;
+      startTime: string;
+      duration: number;
+    }[];
+  } | null;
   pets: { name: string; breed?: string }[];
   totalPrice: number;
   creditsUsed?: number;
@@ -135,6 +142,7 @@ export default function HistoryPage() {
             {filteredBookings.map((booking, index) => {
               const statusInfo = STATUS_LABELS[booking.status] || STATUS_LABELS.PENDING;
               const petNames = booking.pets.map((p) => p.name).join(", ") || "Animal";
+              const visitSlots = booking.serviceDetails?.visitSlots?.filter((slot) => slot.date) || [];
 
               return (
                 <motion.div
@@ -159,6 +167,11 @@ export default function HistoryPage() {
                           {new Date(booking.startDate).toLocaleDateString("fr-FR")} au{" "}
                           {new Date(booking.endDate).toLocaleDateString("fr-FR")}
                         </p>
+                        {visitSlots.length > 0 && (
+                          <p className="text-xs text-blue-700 font-medium mt-1">
+                            {visitSlots.length} passage{visitSlots.length > 1 ? "s" : ""} · prochain : {new Date(visitSlots[0].date).toLocaleDateString("fr-FR")} à {visitSlots[0].startTime} ({visitSlots[0].duration} min)
+                          </p>
+                        )}
                       </div>
                     </div>
 

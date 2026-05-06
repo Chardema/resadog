@@ -3,12 +3,35 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 import { rateLimit } from "@/lib/rate-limit";
+import { buildSpecialRequests, extractServiceDetails, stripServiceDetails } from "@/lib/booking-details";
 
 // Helper pour parser une date ISO string en UTC (format YYYY-MM-DD)
 function parseUTCDate(dateString: string): Date {
   const [year, month, day] = dateString.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 }
+
+function toDateKey(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
+
+function getDateKeysInRange(start: Date, end: Date): string[] {
+  const days: string[] = [];
+  const currentDate = new Date(start);
+
+  while (currentDate <= end) {
+    days.push(toDateKey(currentDate));
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+  }
+
+  return days;
+}
+
+const visitSlotSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date de passage invalide"),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, "Heure de passage invalide"),
+  duration: z.number().int().min(30).max(60),
+});
 
 // Schéma de validation pour la création de réservation
 const createBookingSchema = z.object({
@@ -24,6 +47,9 @@ const createBookingSchema = z.object({
   promoCode: z.string().optional(),
   paymentMethod: z.enum(["PAYPAL", "WERO", "BANK_TRANSFER"]).optional(),
   useCredits: z.boolean().optional(),
+  serviceDetails: z.object({
+    visitSlots: z.array(visitSlotSchema).optional(),
+  }).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -70,16 +96,41 @@ export async function POST(request: NextRequest) {
       promoCode,
       paymentMethod,
       useCredits,
+      serviceDetails,
     } = validatedData;
+
+    const isHourlyService = serviceType === "DROP_IN" || serviceType === "DOG_WALKING";
+    const visitSlots = serviceDetails?.visitSlots || [];
 
     // Convertir les dates en UTC pour éviter les problèmes de fuseau horaire
     const start = parseUTCDate(startDate);
     const end = parseUTCDate(endDate);
 
     // Vérifier que la date de fin est après la date de début
-    if (end <= start) {
+    if (isHourlyService ? end < start : end <= start) {
       return NextResponse.json(
-        { error: "La date de fin doit être après la date de début" },
+        { error: isHourlyService ? "La date de fin ne peut pas être avant la date de début" : "La date de fin doit être après la date de début" },
+        { status: 400 }
+      );
+    }
+
+    if (isHourlyService && visitSlots.length === 0) {
+      return NextResponse.json(
+        { error: "Ajoutez au moins un passage avec une date, une heure et une durée" },
+        { status: 400 }
+      );
+    }
+
+    const selectedDateKeys = isHourlyService
+      ? [...new Set(visitSlots.map((slot) => slot.date))].sort()
+      : getDateKeysInRange(start, end);
+
+    if (isHourlyService && selectedDateKeys.some((dateKey) => {
+      const slotDate = parseUTCDate(dateKey);
+      return slotDate < start || slotDate > end;
+    })) {
+      return NextResponse.json(
+        { error: "Certains passages sont en dehors de la période demandée" },
         { status: 400 }
       );
     }
@@ -102,11 +153,9 @@ export async function POST(request: NextRequest) {
     // Gestion des CRÉDITS
     let creditsToDeduct = 0;
     if (useCredits) {
-        // Calculate credits needed (simplified: 1 day = 1 credit per pet)
-        // Note: For DROP_IN/WALKING we should ideally pass duration/quantity, but here we estimate based on date range.
-        // For accurate credit usage, frontend should pass the exact credit cost or backend should recalculate precisely.
-        // Assuming 1 day = 1 credit for now as base.
-        const duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+        const duration = isHourlyService
+          ? visitSlots.length
+          : Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) || 1;
         creditsToDeduct = duration * petIds.length;
 
         // Check balance
@@ -119,15 +168,6 @@ export async function POST(request: NextRequest) {
         if (totalAvailable < creditsToDeduct) {
             return NextResponse.json({ error: "Crédits insuffisants" }, { status: 400 });
         }
-    }
-
-    // Vérifier les disponibilités pour toutes les dates de la période
-    const daysToCheck = [];
-    let currentDate = new Date(start);
-
-    while (currentDate <= end) {
-      daysToCheck.push(new Date(currentDate));
-      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
 
     // Récupérer toutes les disponibilités pour ces dates et ce type de service
@@ -147,10 +187,9 @@ export async function POST(request: NextRequest) {
     });
 
     // Vérifier que toutes les dates sont disponibles
-    const unavailableDates = daysToCheck.filter((date) => {
-      const dateKey = date.toISOString().split("T")[0];
+    const unavailableDates = selectedDateKeys.filter((dateKey) => {
       const availability = availabilities.find(
-        (a) => a.date.toISOString().split("T")[0] === dateKey
+        (a) => toDateKey(a.date) === dateKey
       );
       // La date est indisponible UNIQUEMENT si elle existe dans la BDD ET est marquée comme indisponible
       return availability && !availability.available;
@@ -166,7 +205,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier les conflits réels (réservations CONFIRMED ou IN_PROGRESS)
-    const conflictingBookings = await prisma.booking.findMany({
+    const potentiallyConflictingBookings = await prisma.booking.findMany({
       where: {
         pets: { some: { id: { in: petIds } } },
         status: { in: ["CONFIRMED", "IN_PROGRESS"] },
@@ -183,6 +222,13 @@ export async function POST(request: NextRequest) {
         ],
       },
     });
+
+    const conflictingBookings = isHourlyService
+      ? potentiallyConflictingBookings.filter((booking) => {
+          const bookingDates = getDateKeysInRange(booking.startDate, booking.endDate);
+          return selectedDateKeys.some((dateKey) => bookingDates.includes(dateKey));
+        })
+      : potentiallyConflictingBookings;
 
     if (conflictingBookings.length > 0) {
       return NextResponse.json(
@@ -207,7 +253,7 @@ export async function POST(request: NextRequest) {
           depositPaid: useCredits ? true : false,
           depositAmount: useCredits ? 0 : depositAmount,
           creditsUsed: useCredits ? creditsToDeduct : 0,
-          specialRequests: notes || null,
+          specialRequests: buildSpecialRequests(notes, serviceDetails),
           notes: paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
           clientId: session.user.id,
           pets: {
@@ -262,6 +308,8 @@ export async function POST(request: NextRequest) {
         status: booking.status,
         totalPrice: booking.totalPrice,
         depositAmount: booking.depositAmount,
+        serviceDetails: extractServiceDetails(booking.specialRequests),
+        specialRequests: stripServiceDetails(booking.specialRequests),
         pets: booking.pets,
         client: booking.client,
       },
@@ -341,6 +389,8 @@ export async function GET(request: NextRequest) {
         depositAmount: b.depositAmount,
         depositPaid: b.depositPaid,
         creditsUsed: b.creditsUsed,
+        serviceDetails: extractServiceDetails(b.specialRequests),
+        specialRequests: stripServiceDetails(b.specialRequests),
         // Combine old and new pets logic
         pets: b.pets.length > 0 ? b.pets : (b.pet ? [b.pet] : []),
         createdAt: b.createdAt.toISOString(),

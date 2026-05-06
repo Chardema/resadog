@@ -12,10 +12,19 @@ interface Booking {
   id: string;
   startDate: string;
   endDate: string;
+  startTime?: string | null;
+  endTime?: string | null;
   status: "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   totalPrice: number;
   creditsUsed: number;
   serviceType: string;
+  serviceDetails?: {
+    visitSlots?: {
+      date: string;
+      startTime: string;
+      duration: number;
+    }[];
+  } | null;
   pet?: {
     name: string;
     breed: string;
@@ -45,6 +54,9 @@ interface Booking {
     amount: number;
   };
 }
+
+const getVisitSlots = (booking: Booking) =>
+  booking.serviceDetails?.visitSlots?.filter((slot) => slot.date) || [];
 
 export default function AdminBookingsPage() {
   const { data: session, status } = useSession();
@@ -222,6 +234,7 @@ export default function AdminBookingsPage() {
                 
                 const clientCredits = booking.client.creditBatches?.reduce((acc, b) => acc + b.remaining, 0) || 0;
                 const isVip = booking.client.subscription?.status === 'ACTIVE';
+                const visitSlots = getVisitSlots(booking);
 
                 return (
                 <motion.div
@@ -276,6 +289,17 @@ export default function AdminBookingsPage() {
                           <span className="text-gray-400 mx-2">➔</span>
                           {new Date(booking.endDate).toLocaleDateString("fr-FR")}
                         </p>
+                        {visitSlots.length > 0 && (
+                          <div className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-900 space-y-1">
+                            <p className="font-bold">{visitSlots.length} passage{visitSlots.length > 1 ? "s" : ""} prévu{visitSlots.length > 1 ? "s" : ""}</p>
+                            {visitSlots.slice(0, 4).map((slot, slotIndex) => (
+                              <p key={`${slot.date}-${slot.startTime}-${slotIndex}`}>
+                                {new Date(slot.date).toLocaleDateString("fr-FR")} à {slot.startTime} · {slot.duration} min
+                              </p>
+                            ))}
+                            {visitSlots.length > 4 && <p>+ {visitSlots.length - 4} autre{visitSlots.length - 4 > 1 ? "s" : ""}</p>}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <p className="text-sm text-gray-500 mb-1">Paiement</p>

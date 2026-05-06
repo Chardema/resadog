@@ -7,12 +7,20 @@ function parseUTCDate(dateString: string): Date {
   return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 }
 
+function toDateKey(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const serviceType = searchParams.get("serviceType");
+    const selectedDates = (searchParams.get("dates") || "")
+      .split(",")
+      .map((date) => date.trim())
+      .filter(Boolean);
 
     if (!startDate || !endDate) {
       return NextResponse.json(
@@ -32,14 +40,19 @@ export async function GET(request: NextRequest) {
     const start = parseUTCDate(startDate);
     const end = parseUTCDate(endDate);
 
-    // Générer toutes les dates entre start et end
-    const daysToCheck = [];
-    let currentDate = new Date(start);
-
-    while (currentDate <= end) {
-      daysToCheck.push(new Date(currentDate));
-      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-    }
+    // Générer les dates à vérifier. Pour les visites/promenades, le client
+    // peut sélectionner des dates non consécutives : on ne bloque que celles-ci.
+    const daysToCheck = selectedDates.length > 0
+      ? [...new Set(selectedDates)].sort().map(parseUTCDate)
+      : (() => {
+          const days = [];
+          let currentDate = new Date(start);
+          while (currentDate <= end) {
+            days.push(new Date(currentDate));
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+          }
+          return days;
+        })();
 
     // Récupérer toutes les disponibilités pour la période
     const startOfRange = new Date(start);
@@ -77,12 +90,12 @@ export async function GET(request: NextRequest) {
 
     // Vérifier quelles dates sont disponibles ou non
     const dateStatuses = daysToCheck.map((date) => {
-      const dateKey = date.toISOString().split("T")[0];
+      const dateKey = toDateKey(date);
       const checkDate = new Date(dateKey); // Date normalisée minuit UTC
 
       // 1. Vérifier la table Availability (Priorité Admin)
       const adminAvailability = availabilities.find((a) => {
-        const aDateKey = a.date.toISOString().split("T")[0];
+        const aDateKey = toDateKey(a.date);
         return aDateKey === dateKey;
       });
 

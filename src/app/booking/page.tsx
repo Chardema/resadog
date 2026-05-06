@@ -56,36 +56,186 @@ interface Pet {
   age?: number | null;
 }
 
+type VisitSlot = {
+  date: string;
+  startTime: string;
+  duration: number;
+};
+
 type DateConfig = {
   startDate: string;
   endDate: string;
   startTime: string;
   endTime: string;
-  // For Drop-In
-  individualDates: { date: string; duration: number }[];
+  visitSlots: VisitSlot[];
+};
+
+const hourlyServiceTypes = ["DROP_IN", "DOG_WALKING"];
+const isHourlyService = (serviceType: string) => hourlyServiceTypes.includes(serviceType);
+const defaultVisitDuration = () => 30;
+const defaultVisitTime = "09:00";
+
+const createEmptyVisitSlot = (): VisitSlot => ({
+  date: "",
+  startTime: defaultVisitTime,
+  duration: defaultVisitDuration(),
+});
+
+const sortVisitSlots = (slots: VisitSlot[]) =>
+  [...slots].sort((a, b) => `${a.date || "9999-99-99"}T${a.startTime || "99:99"}`.localeCompare(`${b.date || "9999-99-99"}T${b.startTime || "99:99"}`));
+
+const getValidVisitSlots = (slots: VisitSlot[]) =>
+  sortVisitSlots(slots.filter((slot) => slot.date));
+
+const getUniqueVisitDates = (slots: VisitSlot[]) =>
+  [...new Set(getValidVisitSlots(slots).map((slot) => slot.date))];
+
+const buildDateRange = (startDate: string, endDate: string) => {
+  if (!startDate || !endDate) return [];
+
+  const start = new Date(`${startDate}T12:00:00`);
+  const end = new Date(`${endDate}T12:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return [];
+
+  const dates: string[] = [];
+  const current = new Date(start);
+  while (current <= end) {
+    dates.push(current.toISOString().split("T")[0]);
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
 };
 
 // --- COMPOSANT DATE SELECTOR EXTRAIT ---
 const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, onChange: (c: DateConfig) => void, serviceType: string }) => {
-    const isHourly = serviceType === "DROP_IN" || serviceType === "DOG_WALKING";
+    const isHourly = isHourlyService(serviceType);
     const today = new Date().toISOString().split("T")[0];
+    const [batchStartDate, setBatchStartDate] = useState("");
+    const [batchEndDate, setBatchEndDate] = useState("");
+    const [batchVisitsPerDay, setBatchVisitsPerDay] = useState(1);
+    const [batchDuration, setBatchDuration] = useState(defaultVisitDuration());
+    const [batchTimes, setBatchTimes] = useState<string[]>([defaultVisitTime, "13:00", "18:00"]);
+
+    const updateVisitSlot = (idx: number, changes: Partial<VisitSlot>) => {
+      onChange({
+        ...config,
+        visitSlots: config.visitSlots.map((slot, i) => i === idx ? { ...slot, ...changes } : slot),
+      });
+    };
+
+    const removeVisitSlot = (idx: number) => {
+      const nextSlots = config.visitSlots.filter((_, i) => i !== idx);
+      onChange({ ...config, visitSlots: nextSlots.length > 0 ? nextSlots : [createEmptyVisitSlot()] });
+    };
+
+    const addRangeSlots = () => {
+      const dates = buildDateRange(batchStartDate, batchEndDate || batchStartDate);
+      if (dates.length === 0) return;
+
+      const newSlots = dates.flatMap((date) =>
+        Array.from({ length: batchVisitsPerDay }, (_, i) => ({
+          date,
+          startTime: batchTimes[i] || defaultVisitTime,
+          duration: batchDuration,
+        }))
+      );
+
+      const existingSlots = config.visitSlots.filter((slot) => slot.date);
+      onChange({ ...config, visitSlots: sortVisitSlots([...existingSlots, ...newSlots]) });
+    };
 
     if (isHourly) {
         return (
-           <div className="space-y-2">
-               {config.individualDates.map((item, idx) => (
-                  <div key={idx} className="flex gap-2">
-                      <Input type="date" className="bg-white" value={item.date} onChange={(e) => {
-                          const n = [...config.individualDates]; n[idx].date = e.target.value;
-                          onChange({ ...config, individualDates: n });
-                      }} />
-                      <Button type="button" variant="outline" onClick={() => {
-                           const n = [...config.individualDates]; n.splice(idx, 1);
-                           onChange({ ...config, individualDates: n });
-                      }}>×</Button>
-                  </div>
-               ))}
-               <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...config, individualDates: [...config.individualDates, { date: "", duration: 30 }] })}>+ Date</Button>
+           <div className="space-y-5">
+               <div className="rounded-2xl border border-orange-100 bg-white p-4 space-y-4">
+                   <div className="grid md:grid-cols-2 gap-3">
+                       <div>
+                           <Label>Du</Label>
+                           <Input type="date" min={today} className="bg-white" value={batchStartDate} onChange={(e) => {
+                             setBatchStartDate(e.target.value);
+                             if (!batchEndDate || batchEndDate < e.target.value) setBatchEndDate(e.target.value);
+                           }} />
+                       </div>
+                       <div>
+                           <Label>Au</Label>
+                           <Input type="date" min={batchStartDate || today} className="bg-white" value={batchEndDate} onChange={(e) => setBatchEndDate(e.target.value)} />
+                       </div>
+                   </div>
+
+                   <div className="grid md:grid-cols-3 gap-3">
+                       <div>
+                           <Label>Passages / jour</Label>
+                           <select
+                             className="w-full h-10 rounded-md border border-gray-200 bg-white px-3 text-sm"
+                             value={batchVisitsPerDay}
+                             onChange={(e) => setBatchVisitsPerDay(Number(e.target.value))}
+                           >
+                             <option value={1}>1 passage</option>
+                             <option value={2}>2 passages</option>
+                             <option value={3}>3 passages</option>
+                           </select>
+                       </div>
+                       <div>
+                           <Label>Durée</Label>
+                           <select
+                             className="w-full h-10 rounded-md border border-gray-200 bg-white px-3 text-sm"
+                             value={batchDuration}
+                             onChange={(e) => setBatchDuration(Number(e.target.value))}
+                           >
+                             <option value={30}>30 min</option>
+                             <option value={60}>1 h</option>
+                           </select>
+                       </div>
+                       <div className="flex items-end">
+                           <Button type="button" className="w-full bg-orange-500 hover:bg-orange-600" onClick={addRangeSlots} disabled={!batchStartDate}>
+                             Ajouter
+                           </Button>
+                       </div>
+                   </div>
+
+                   <div className="grid md:grid-cols-3 gap-3">
+                       {Array.from({ length: batchVisitsPerDay }, (_, i) => (
+                         <div key={i}>
+                           <Label>Heure {i + 1}</Label>
+                           <Input
+                             type="time"
+                             className="bg-white"
+                             value={batchTimes[i] || defaultVisitTime}
+                             onChange={(e) => setBatchTimes((times) => {
+                               const next = [...times];
+                               next[i] = e.target.value;
+                               return next;
+                             })}
+                           />
+                         </div>
+                       ))}
+                   </div>
+               </div>
+
+               <div className="space-y-2">
+                   <div className="flex items-center justify-between">
+                       <Label>Passages sélectionnés</Label>
+                       <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...config, visitSlots: [...config.visitSlots, createEmptyVisitSlot()] })}>
+                         + Passage
+                       </Button>
+                   </div>
+
+                   {config.visitSlots.map((item, idx) => (
+                      <div key={idx} className="grid grid-cols-2 md:grid-cols-[1fr_92px_92px_44px] gap-2 items-center">
+                          <Input type="date" min={today} className="bg-white col-span-2 md:col-span-1" value={item.date} onChange={(e) => updateVisitSlot(idx, { date: e.target.value })} />
+                          <Input type="time" className="bg-white" value={item.startTime} onChange={(e) => updateVisitSlot(idx, { startTime: e.target.value })} />
+                          <select
+                            className="h-10 rounded-md border border-gray-200 bg-white px-2 text-sm"
+                            value={item.duration}
+                            onChange={(e) => updateVisitSlot(idx, { duration: Number(e.target.value) })}
+                          >
+                            <option value={30}>30 min</option>
+                            <option value={60}>1 h</option>
+                          </select>
+                          <Button type="button" variant="outline" className="col-span-2 md:col-span-1" onClick={() => removeVisitSlot(idx)}>×</Button>
+                      </div>
+                   ))}
+               </div>
            </div>
         );
     }
@@ -109,7 +259,7 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, o
 export default function BookingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  
+
   // États
   const [step, setStep] = useState(1);
   // Direction de l'animation : 1 = avant, -1 = arrière
@@ -118,16 +268,16 @@ export default function BookingPage() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  
+
   // Configuration dates
   const [useSameDates, setUseSameDates] = useState(true);
-  
+
   // Validation légale
   const [legalAccepted, setLegalAccepted] = useState(false);
-  
+
   // Modale Upsell
   const [showUpsellModal, setShowUpsellModal] = useState(false);
-  
+
   // Disponibilités (Global status)
   const [availabilityStatus, setAvailabilityStatus] = useState<{
     checking: boolean;
@@ -163,9 +313,9 @@ export default function BookingPage() {
     endTime: "10:00",
   });
 
-  // Dates individuelles pour Drop-In (Global)
-  const [individualDates, setIndividualDates] = useState<Array<{ date: string; duration: number }>>([
-    { date: "", duration: 30 },
+  // Passages individuels pour visites/promenades (Global)
+  const [visitSlots, setVisitSlots] = useState<VisitSlot[]>([
+    createEmptyVisitSlot(),
   ]);
 
   // Configurations individuelles par animal (si useSameDates = false)
@@ -181,7 +331,7 @@ export default function BookingPage() {
                endDate: formData.endDate,
                startTime: formData.startTime,
                endTime: formData.endTime,
-               individualDates: [...individualDates]
+               visitSlots: [...visitSlots]
            };
        } else {
            initialConfig[id] = petConfigs[id];
@@ -208,9 +358,9 @@ export default function BookingPage() {
 
   const calculateCreditCost = () => {
       if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-          return useSameDates 
-            ? individualDates.filter(d => d.date).length * formData.petIds.length
-            : Math.max(0, ...Object.values(petConfigs).map(c => c.individualDates.filter(d => d.date).length)) * formData.petIds.length; // Approx for multi
+          return useSameDates
+            ? getValidVisitSlots(visitSlots).length * formData.petIds.length
+            : Object.values(petConfigs).reduce((sum, c) => sum + getValidVisitSlots(c.visitSlots).length, 0);
       }
       // Boarding/Daycare = 1 credit per day per pet
       const duration = calculateMaxDuration();
@@ -243,7 +393,7 @@ export default function BookingPage() {
   });
 
   // --- LOGIQUE ---
-  
+
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/signin");
   }, [status, router]);
@@ -259,15 +409,14 @@ export default function BookingPage() {
     fetchPets();
   }, []);
 
-  // Update duration default when service changes
+  // Reset visit slots when service changes
   useEffect(() => {
-    const defaultDuration = formData.serviceType === "DOG_WALKING" ? 15 : 30;
-    setIndividualDates([{ date: "", duration: defaultDuration }]);
-    
+    setVisitSlots([createEmptyVisitSlot()]);
+
     // Reset configs
     const newConfigs = { ...petConfigs };
     Object.keys(newConfigs).forEach(k => {
-        newConfigs[k].individualDates = [{ date: "", duration: defaultDuration }];
+        newConfigs[k].visitSlots = [createEmptyVisitSlot()];
     });
     setPetConfigs(newConfigs);
   }, [formData.serviceType]);
@@ -276,17 +425,17 @@ export default function BookingPage() {
   useEffect(() => {
     const check = async () => {
       const configsToCheck: {petIds: string[], config: DateConfig}[] = [];
-      
+
       if (useSameDates) {
-          configsToCheck.push({ 
-              petIds: formData.petIds, 
-              config: { 
-                  startDate: formData.startDate, 
-                  endDate: formData.endDate, 
-                  startTime: formData.startTime, 
-                  endTime: formData.endTime, 
-                  individualDates 
-              } 
+          configsToCheck.push({
+              petIds: formData.petIds,
+              config: {
+                  startDate: formData.startDate,
+                  endDate: formData.endDate,
+                  startTime: formData.startTime,
+                  endTime: formData.endTime,
+                  visitSlots
+              }
           });
       } else {
           formData.petIds.forEach(id => {
@@ -305,21 +454,21 @@ export default function BookingPage() {
 
       for (const item of configsToCheck) {
           const { config } = item;
-          
+
           // Validation de base des dates
           if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-              if (config.individualDates.filter(d => d.date !== "").length === 0) {
+              if (getValidVisitSlots(config.visitSlots).length === 0) {
                   // Pas bloquant si vide au début, mais bloquant pour la soumission
-                  continue; 
+                  continue;
               }
           } else {
               if (!config.startDate || !config.endDate) {
                   // Incomplet = pas prêt
-                  continue; 
+                  continue;
               }
               if (new Date(config.endDate) < new Date(config.startDate)) {
-                  allAvailable = false; 
-                  globalMessage = "Dates incorrectes (Fin avant Début)"; 
+                  allAvailable = false;
+                  globalMessage = "Dates incorrectes (Fin avant Début)";
                   break; // Stop checking, strict fail
               }
           }
@@ -327,17 +476,18 @@ export default function BookingPage() {
           try {
              let datesToCheck: string[] = [];
              if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-                 datesToCheck = config.individualDates.filter(d => d.date !== "").map(d => d.date);
+                 datesToCheck = getUniqueVisitDates(config.visitSlots);
              } else {
                  datesToCheck = [config.startDate, config.endDate];
              }
 
              if (datesToCheck.length === 0) continue;
 
-             const start = formData.serviceType === "DROP_IN" ? datesToCheck[0] : config.startDate;
-             const end = formData.serviceType === "DROP_IN" ? datesToCheck[datesToCheck.length-1] : config.endDate;
+             const start = isHourlyService(formData.serviceType) ? datesToCheck[0] : config.startDate;
+             const end = isHourlyService(formData.serviceType) ? datesToCheck[datesToCheck.length-1] : config.endDate;
+             const datesParam = isHourlyService(formData.serviceType) ? `&dates=${datesToCheck.join(",")}` : "";
 
-             const res = await fetch(`/api/availability/check?startDate=${start}&endDate=${end}&serviceType=${formData.serviceType}`);
+             const res = await fetch(`/api/availability/check?startDate=${start}&endDate=${end}&serviceType=${formData.serviceType}${datesParam}`);
              if (res.ok) {
                  const data = await res.json();
                  if (!data.available) {
@@ -351,7 +501,7 @@ export default function BookingPage() {
              }
           } catch(e) { allAvailable = false; globalMessage = "Erreur connexion"; }
       }
-      
+
       if (allAvailable && globalMessage === "") {
           setAvailabilityStatus({ checking: false, available: true, message: "✅ Disponible", unavailableDates: [] });
       } else {
@@ -361,7 +511,7 @@ export default function BookingPage() {
 
     const timer = setTimeout(check, 800);
     return () => clearTimeout(timer);
-  }, [formData, individualDates, petConfigs, useSameDates]);
+  }, [formData, visitSlots, petConfigs, useSameDates]);
 
   const resetAvailability = () => setAvailabilityStatus({ checking: false, available: true, message: "", unavailableDates: [] });
 
@@ -387,8 +537,8 @@ export default function BookingPage() {
       // Déterminer si haute saison
       let highSeason = false;
       if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-        const validDates = config.individualDates.filter(d => d.date !== "");
-        highSeason = validDates.some(d => isHighSeasonRange(d.date, d.date));
+        const validSlots = getValidVisitSlots(config.visitSlots);
+        highSeason = validSlots.some(d => isHighSeasonRange(d.date, d.date));
       } else if (config.startDate && config.endDate) {
         highSeason = isHighSeasonRange(config.startDate, config.endDate);
       }
@@ -405,13 +555,13 @@ export default function BookingPage() {
       let quantity = 0;
 
       if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-          const validDates = config.individualDates.filter(d => d.date !== "");
-          const visits = validDates.length;
+          const validSlots = getValidVisitSlots(config.visitSlots);
+          const visits = validSlots.length;
           const extra = EXTRA_DURATION[formData.serviceType as "DROP_IN" | "DOG_WALKING"];
 
           let subTotal = 0;
           let extraDurationTotal = 0;
-          validDates.forEach(item => {
+          validSlots.forEach(item => {
               subTotal += unitPrice;
               if (extra) {
                 const extraTime = item.duration - extra.baseDuration;
@@ -470,10 +620,10 @@ export default function BookingPage() {
       let total = 0;
       formData.petIds.forEach(id => {
           const pet = pets.find(p => p.id === id);
-          const config = useSameDates 
-            ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, individualDates } 
+          const config = useSameDates
+            ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, visitSlots }
             : petConfigs[id];
-            
+
           if (pet && config) {
               total += calculatePriceDetailForPet(config, pet).total;
           }
@@ -484,23 +634,23 @@ export default function BookingPage() {
   // Helper pour calculer la durée (pour les coupons)
   const calculateMaxDuration = () => {
       if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-          return useSameDates 
-            ? individualDates.filter(d => d.date).length 
-            : Math.max(...Object.values(petConfigs).map(c => c.individualDates.filter(d => d.date).length));
+          return useSameDates
+            ? getValidVisitSlots(visitSlots).length
+            : Math.max(0, ...Object.values(petConfigs).map(c => getValidVisitSlots(c.visitSlots).length));
       }
-      
+
       // Boarding/Daycare: Calculate nights/days
-      const config = useSameDates 
+      const config = useSameDates
         ? { startDate: formData.startDate, endDate: formData.endDate }
         : Object.values(petConfigs)[0]; // Take first as approx if varying
 
       if (!config?.startDate || !config?.endDate) return 1;
-      
+
       const start = new Date(config.startDate);
       const end = new Date(config.endDate);
       const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-      
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
       return diffDays || 1;
   };
 
@@ -512,7 +662,7 @@ export default function BookingPage() {
   const togglePet = (id: string) => {
       setFormData(prev => {
           const exists = prev.petIds.includes(id);
-          const newIds = exists 
+          const newIds = exists
               ? prev.petIds.filter(pid => pid !== id)
               : [...prev.petIds, id];
           return { ...prev, petIds: newIds };
@@ -521,17 +671,17 @@ export default function BookingPage() {
 
   const validateCoupon = async () => {
       const price = calculateTotalPrice();
-      
+
       if (!formData.promoCode) {
           setCouponStatus(p => ({ ...p, error: "Code requis" }));
           return;
       }
-      
+
       if (price === 0) {
           setCouponStatus(p => ({ ...p, error: "Sélectionnez vos dates d'abord" }));
           return;
       }
-      
+
       setCouponStatus(p => ({ ...p, loading: true, error: "" }));
       const duration = calculateMaxDuration();
 
@@ -542,14 +692,14 @@ export default function BookingPage() {
             body: JSON.stringify({ code: formData.promoCode, totalAmount: price, serviceType: formData.serviceType, duration }),
         });
         const data = await res.json();
-        
+
         if (res.ok) {
             setCouponStatus({ applied: true, loading: false, isAuto: couponStatus.isAuto, data: data, error: "" });
         } else {
             setCouponStatus({ applied: false, loading: false, isAuto: false, data: null, error: data.error || "Code invalide" });
         }
-      } catch (e) { 
-          setCouponStatus(p => ({ ...p, loading: false, error: "Erreur de connexion" })); 
+      } catch (e) {
+          setCouponStatus(p => ({ ...p, loading: false, error: "Erreur de connexion" }));
       }
   };
 
@@ -562,11 +712,11 @@ export default function BookingPage() {
 
     if (useSameDates) {
         const price = couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice();
-        
+
         let startDate = formData.startDate;
         let endDate = formData.endDate;
         if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-            const valid = individualDates.filter(d => d.date !== "").map(d => d.date).sort();
+            const valid = getUniqueVisitDates(visitSlots);
             if (valid.length > 0) { startDate = valid[0]; endDate = valid[valid.length - 1]; }
         }
 
@@ -581,7 +731,8 @@ export default function BookingPage() {
             depositAmount: price,
             notes: formData.notes,
             useCredits: payWithCredits,
-            promoCode: formData.promoCode
+            promoCode: formData.promoCode,
+            serviceDetails: isHourlyService(formData.serviceType) ? { visitSlots: getValidVisitSlots(visitSlots) } : undefined,
         });
     } else {
         const totalRaw = calculateTotalPrice();
@@ -598,7 +749,7 @@ export default function BookingPage() {
             let startDate = config.startDate;
             let endDate = config.endDate;
             if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-                const valid = config.individualDates.filter(d => d.date !== "").map(d => d.date).sort();
+                const valid = getUniqueVisitDates(config.visitSlots);
                 if (valid.length > 0) { startDate = valid[0]; endDate = valid[valid.length - 1]; }
             }
 
@@ -613,7 +764,8 @@ export default function BookingPage() {
                 depositAmount: finalPrice,
                 notes: formData.notes,
                 useCredits: payWithCredits,
-                promoCode: formData.promoCode
+                promoCode: formData.promoCode,
+                serviceDetails: isHourlyService(formData.serviceType) ? { visitSlots: getValidVisitSlots(config.visitSlots) } : undefined,
             });
         }
     }
@@ -650,7 +802,7 @@ export default function BookingPage() {
   const today = new Date().toISOString().split("T")[0];
 
   if (status === "loading") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>;
-  
+
   const selectedPetsList = pets.filter(p => formData.petIds.includes(p.id));
   const currentPetName = selectedPetsList.length > 0 ? selectedPetsList.map(p => p.name).join(", ") : "votre compagnon";
 
@@ -677,7 +829,7 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
       <AppNav userName={session?.user?.name} />
-      
+
       <div className="container mx-auto px-6 pt-32 max-w-4xl overflow-hidden">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
@@ -689,7 +841,7 @@ export default function BookingPage() {
         <div className="flex justify-center mb-12">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
-              <motion.div 
+              <motion.div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 ${step >= s ? "bg-gray-900 text-white shadow-lg" : "bg-gray-200 text-gray-500"}`}
                 animate={{ scale: step === s ? 1.2 : 1 }}
               >
@@ -710,9 +862,9 @@ export default function BookingPage() {
         <AnimatePresence>
             {showUpsellModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <motion.div 
-                        initial={{ opacity: 0 }} 
-                        animate={{ opacity: 1 }} 
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                         onClick={() => setShowUpsellModal(false)}
@@ -724,7 +876,7 @@ export default function BookingPage() {
                         className="relative z-10 bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl"
                     >
                         <button type="button" onClick={() => setShowUpsellModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
-                        
+
                         <div className="text-center mb-6">
                             <span className="text-4xl">🐺</span>
                             <h3 className="text-2xl font-bold text-gray-900 mt-2">Le Club La Meute</h3>
@@ -769,14 +921,14 @@ export default function BookingPage() {
         </AnimatePresence>
 
         {/* Card Form */}
-        <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-8 md:p-12 relative"
         >
           <form onSubmit={handleSubmit} className="space-y-8" onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}>
             <AnimatePresence mode="wait" custom={direction}>
-            
+
             {step === 1 && (
               <motion.div
                 key={1}
@@ -835,7 +987,7 @@ export default function BookingPage() {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="flex gap-4">
                     <Button type="button" variant="ghost" onClick={() => router.push('/dashboard')} className="flex-1 h-14 rounded-xl text-gray-500">Annuler</Button>
                     <Button type="button" onClick={goNext} disabled={formData.petIds.length === 0} className="flex-[2] h-14 rounded-xl text-lg bg-gray-900 hover:bg-orange-600">Continuer vers les dates</Button>
@@ -866,12 +1018,12 @@ export default function BookingPage() {
 
                  <div className="bg-gray-50 p-6 rounded-3xl space-y-6">
                      {useSameDates ? (
-                         <DateSelector 
-                            config={{ startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, individualDates }} 
+                         <DateSelector
+                            config={{ startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, visitSlots }}
                             onChange={(c) => {
                                 setFormData(p => ({ ...p, startDate: c.startDate, endDate: c.endDate, startTime: c.startTime, endTime: c.endTime }));
-                                setIndividualDates(c.individualDates);
-                            }} 
+                                setVisitSlots(c.visitSlots);
+                            }}
                             serviceType={formData.serviceType}
                          />
                      ) : (
@@ -883,9 +1035,9 @@ export default function BookingPage() {
                                  return (
                                      <div key={id} className="bg-white p-4 rounded-2xl border border-gray-200">
                                          <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">🐾 Dates pour {pet.name}</h4>
-                                         <DateSelector 
-                                            config={config} 
-                                            onChange={(c) => setPetConfigs(p => ({...p, [id]: c}))} 
+                                         <DateSelector
+                                            config={config}
+                                            onChange={(c) => setPetConfigs(p => ({...p, [id]: c}))}
                                             serviceType={formData.serviceType}
                                          />
                                      </div>
@@ -924,16 +1076,16 @@ export default function BookingPage() {
                          {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
                              <div className="flex flex-col items-end gap-1">
                                  <div className="flex gap-2">
-                                     <Input 
-                                        placeholder="PROMO" 
-                                        className="w-24 bg-white/10 border-none text-white placeholder:text-gray-500 uppercase" 
-                                        value={formData.promoCode} 
+                                     <Input
+                                        placeholder="PROMO"
+                                        className="w-24 bg-white/10 border-none text-white placeholder:text-gray-500 uppercase"
+                                        value={formData.promoCode}
                                         onChange={(e) => setFormData({...formData, promoCode: e.target.value.toUpperCase()})}
-                                        onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); validateCoupon(); } }} 
+                                        onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); validateCoupon(); } }}
                                      />
-                                     <button 
-                                        type="button" 
-                                        onClick={(e) => { e.preventDefault(); validateCoupon(); }} 
+                                     <button
+                                        type="button"
+                                        onClick={(e) => { e.preventDefault(); validateCoupon(); }}
                                         className="bg-white/20 text-white hover:bg-white/30 cursor-pointer z-50 relative h-10 px-4 rounded-md font-bold text-sm border border-white/10"
                                      >
                                         {couponStatus.loading ? "..." : "OK"}
@@ -976,12 +1128,13 @@ export default function BookingPage() {
                         <div className="space-y-4 text-sm text-gray-700">
                             {formData.petIds.map(id => {
                                 const pet = pets.find(p => p.id === id);
-                                const config = useSameDates 
-                                    ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, individualDates } 
+                                const config = useSameDates
+                                    ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, visitSlots }
                                     : petConfigs[id];
                                 if(!pet || !config) return null;
-                                
+
                                 const details = calculatePriceDetailForPet(config, pet);
+                                const selectedSlots = getValidVisitSlots(config.visitSlots);
 
                                 return (
                                     <div key={id} className="border-b border-orange-200 pb-2">
@@ -989,7 +1142,7 @@ export default function BookingPage() {
                                             <div className="font-bold text-gray-900">🐾 {pet.name}</div>
                                             <div className="font-bold text-gray-900">{formatPrice(details.total)}€</div>
                                         </div>
-                                        
+
                                         {/* Détail calcul ligne par ligne */}
                                         <div className="space-y-0.5">
                                           <div className="text-xs text-gray-500 flex justify-between items-center">
@@ -1010,10 +1163,23 @@ export default function BookingPage() {
                                             </div>
                                           ))}
                                         </div>
+                                        {isHourlyService(formData.serviceType) && selectedSlots.length > 0 && (
+                                          <div className="mt-3 rounded-xl bg-white/70 p-3 text-xs text-gray-600 space-y-1">
+                                            {selectedSlots.slice(0, 6).map((slot, idx) => (
+                                              <div key={`${slot.date}-${slot.startTime}-${idx}`} className="flex justify-between gap-3">
+                                                <span>{new Date(slot.date).toLocaleDateString("fr-FR")} à {slot.startTime}</span>
+                                                <span className="font-medium">{slot.duration} min</span>
+                                              </div>
+                                            ))}
+                                            {selectedSlots.length > 6 && (
+                                              <div className="font-medium text-gray-500">+ {selectedSlots.length - 6} autre{selectedSlots.length - 6 > 1 ? "s" : ""}</div>
+                                            )}
+                                          </div>
+                                        )}
                                     </div>
                                 )
                             })}
-                            
+
                             {/* Sous-total si coupon appliqué */}
                             {couponStatus.applied && couponStatus.data && (
                                 <div className="flex justify-between pt-2 text-gray-500">
@@ -1029,12 +1195,12 @@ export default function BookingPage() {
                                     <span>-{formatPrice(calculateTotalPrice() - couponStatus.data.finalAmount)}€</span>
                                 </div>
                             )}
-                            
+
                             <div className="flex justify-between pt-2 border-t border-orange-200 mt-2">
                                 <span className="font-bold text-xl text-gray-900">Total à payer</span>
                                 <strong className="text-xl text-green-600">{formatPrice(couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice())}€</strong>
                             </div>
-                            
+
                             {/* Crédits */}
                             {userCredits > 0 && (
                                 <div className="mt-4 p-4 bg-gray-900 rounded-xl text-white">
@@ -1043,8 +1209,8 @@ export default function BookingPage() {
                                         <span className="text-xs bg-white/20 px-2 py-1 rounded">Coût : {calculateCreditCost()} crédits</span>
                                     </div>
                                     {userCredits >= calculateCreditCost() ? (
-                                        <Button 
-                                            type="button" 
+                                        <Button
+                                            type="button"
                                             onClick={() => handleSubmit(undefined, true)} // Pass true for credit payment
                                             className="w-full bg-white text-gray-900 hover:bg-gray-200 font-bold"
                                         >
@@ -1062,7 +1228,7 @@ export default function BookingPage() {
                     {!couponStatus.applied && userCredits < calculateCreditCost() && (
                         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-6 text-white shadow-lg">
                             <div className="absolute top-0 right-0 -mr-8 -mt-8 h-24 w-24 rounded-full bg-white/10 blur-xl" />
-                            
+
                             <div className="relative z-10 flex items-center justify-between gap-4">
                                 <div>
                                     <p className="text-xs font-bold uppercase tracking-wider text-orange-400">Bon plan</p>
@@ -1081,10 +1247,10 @@ export default function BookingPage() {
 
                     {/* Validation légale */}
                     <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                        <input 
-                            type="checkbox" 
-                            id="legal-checkbox" 
-                            checked={legalAccepted} 
+                        <input
+                            type="checkbox"
+                            id="legal-checkbox"
+                            checked={legalAccepted}
                             onChange={(e) => setLegalAccepted(e.target.checked)}
                             className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
                         />
@@ -1106,7 +1272,7 @@ export default function BookingPage() {
                     </div>
               </motion.div>
             )}
-            
+
             </AnimatePresence>
           </form>
         </motion.div>
