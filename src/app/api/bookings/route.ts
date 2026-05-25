@@ -106,10 +106,11 @@ export async function POST(request: NextRequest) {
     const start = parseUTCDate(startDate);
     const end = parseUTCDate(endDate);
 
-    // Vérifier que la date de fin est après la date de début
-    if (isHourlyService ? end < start : end <= start) {
+    // Vérifier que la période est cohérente.
+    // La garderie peut être réservée sur une seule journée, contrairement à l'hébergement.
+    if (serviceType === "BOARDING" ? end <= start : end < start) {
       return NextResponse.json(
-        { error: isHourlyService ? "La date de fin ne peut pas être avant la date de début" : "La date de fin doit être après la date de début" },
+        { error: serviceType === "BOARDING" ? "La date de fin doit être après la date de début" : "La date de fin ne peut pas être avant la date de début" },
         { status: 400 }
       );
     }
@@ -155,7 +156,9 @@ export async function POST(request: NextRequest) {
     if (useCredits) {
         const duration = isHourlyService
           ? visitSlots.length
-          : Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+          : serviceType === "DAY_CARE"
+            ? selectedDateKeys.length
+            : Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) || 1;
         creditsToDeduct = duration * petIds.length;
 
         // Check balance

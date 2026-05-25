@@ -74,6 +74,14 @@ const hourlyServiceTypes = ["DROP_IN", "DOG_WALKING"];
 const isHourlyService = (serviceType: string) => hourlyServiceTypes.includes(serviceType);
 const defaultVisitDuration = () => 30;
 const defaultVisitTime = "09:00";
+const boardingCheckoutTime = "10:00";
+
+const serviceDefaultTimes: Record<string, { startTime: string; endTime: string }> = {
+  BOARDING: { startTime: "18:00", endTime: boardingCheckoutTime },
+  DAY_CARE: { startTime: "09:00", endTime: "18:00" },
+  DROP_IN: { startTime: defaultVisitTime, endTime: defaultVisitTime },
+  DOG_WALKING: { startTime: defaultVisitTime, endTime: defaultVisitTime },
+};
 
 const createEmptyVisitSlot = (): VisitSlot => ({
   date: "",
@@ -104,6 +112,27 @@ const buildDateRange = (startDate: string, endDate: string) => {
     current.setDate(current.getDate() + 1);
   }
   return dates;
+};
+
+const getCalendarDayDifference = (startDate: string, endDate: string) => {
+  if (!startDate || !endDate) return 0;
+
+  const start = new Date(`${startDate}T12:00:00`);
+  const end = new Date(`${endDate}T12:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+
+  return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+};
+
+const getInclusiveCalendarDayCount = (startDate: string, endDate: string) => {
+  const diff = getCalendarDayDifference(startDate, endDate);
+  return diff >= 0 ? diff + 1 : 0;
+};
+
+const timeToMinutes = (time: string) => {
+  const [hours, minutes] = time.split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return 0;
+  return hours * 60 + minutes;
 };
 
 // --- COMPOSANT DATE SELECTOR EXTRAIT ---
@@ -411,11 +440,24 @@ export default function BookingPage() {
 
   // Reset visit slots when service changes
   useEffect(() => {
+    const defaultTimes = serviceDefaultTimes[formData.serviceType];
+    if (defaultTimes) {
+      setFormData((prev) => ({
+        ...prev,
+        startTime: defaultTimes.startTime,
+        endTime: defaultTimes.endTime,
+      }));
+    }
+
     setVisitSlots([createEmptyVisitSlot()]);
 
     // Reset configs
     const newConfigs = { ...petConfigs };
     Object.keys(newConfigs).forEach(k => {
+        if (defaultTimes) {
+          newConfigs[k].startTime = defaultTimes.startTime;
+          newConfigs[k].endTime = defaultTimes.endTime;
+        }
         newConfigs[k].visitSlots = [createEmptyVisitSlot()];
     });
     setPetConfigs(newConfigs);
@@ -526,6 +568,10 @@ export default function BookingPage() {
     return sameSpecies.indexOf(pet) > 0;
   };
 
+  const getPrimarySelectedPetId = () => {
+    return formData.petIds[0] || null;
+  };
+
   // Retourne le détail du prix pour UN animal donné
   const calculatePriceDetailForPet = (config: DateConfig, pet: Pet) => {
       const service = getSelectedService();
@@ -558,12 +604,13 @@ export default function BookingPage() {
           const validSlots = getValidVisitSlots(config.visitSlots);
           const visits = validSlots.length;
           const extra = EXTRA_DURATION[formData.serviceType as "DROP_IN" | "DOG_WALKING"];
+          const appliesSharedDurationExtra = !useSameDates || getPrimarySelectedPetId() === pet.id;
 
           let subTotal = 0;
           let extraDurationTotal = 0;
           validSlots.forEach(item => {
               subTotal += unitPrice;
-              if (extra) {
+              if (extra && appliesSharedDurationExtra) {
                 const extraTime = item.duration - extra.baseDuration;
                 if (extraTime > 0) {
                   const extraIncrements = Math.ceil(extraTime / extra.increment);
@@ -591,22 +638,27 @@ export default function BookingPage() {
           if (totalHours <= 0) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
 
           if (formData.serviceType === "BOARDING") {
-              const baseNights = Math.floor(totalHours / 24);
-              const extraHours = totalHours % 24;
+              const baseNights = getCalendarDayDifference(config.startDate, config.endDate);
+              if (baseNights <= 0) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
+
               total = baseNights * unitPrice;
-              if (extraHours > 8) {
+              const checkoutOverrunHours = (timeToMinutes(config.endTime) - timeToMinutes(boardingCheckoutTime)) / 60;
+
+              if (checkoutOverrunHours > 8) {
                 total += unitPrice;
-                priceLines.push({ label: "Journée supplémentaire (> 8h)", amount: unitPrice, type: "surcharge" });
-              } else if (extraHours > 2) {
+                priceLines.push({ label: `Journée supplémentaire (> 8h après ${boardingCheckoutTime})`, amount: unitPrice, type: "surcharge" });
+              } else if (checkoutOverrunHours > 2) {
                 const half = Math.round(unitPrice * 0.5);
                 total += half;
-                priceLines.push({ label: "Demi-journée (2-8h)", amount: half, type: "surcharge" });
+                priceLines.push({ label: `Demi-journée (2-8h après ${boardingCheckoutTime})`, amount: half, type: "surcharge" });
               }
               breakdown = "nuits";
               quantity = baseNights;
           } else {
               // DAY_CARE
-              const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+              const days = getInclusiveCalendarDayCount(config.startDate, config.endDate);
+              if (days <= 0) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
+
               total = days * unitPrice;
               breakdown = "jours";
               quantity = days;
@@ -646,12 +698,11 @@ export default function BookingPage() {
 
       if (!config?.startDate || !config?.endDate) return 1;
 
-      const start = new Date(config.startDate);
-      const end = new Date(config.endDate);
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (formData.serviceType === "DAY_CARE") {
+        return getInclusiveCalendarDayCount(config.startDate, config.endDate) || 1;
+      }
 
-      return diffDays || 1;
+      return getCalendarDayDifference(config.startDate, config.endDate) || 1;
   };
 
   const formatPrice = (value: number | undefined | null) => {
@@ -664,17 +715,6 @@ export default function BookingPage() {
       return extra
         ? `${extra.baseDuration} min inclus, +${extra.extraRate}€ par ${extra.increment} min supplémentaire`
         : "";
-  };
-
-  const calculateDurationExtraForSlots = (slots: VisitSlot[]) => {
-      const extra = EXTRA_DURATION[formData.serviceType as "DROP_IN" | "DOG_WALKING"];
-      if (!extra) return 0;
-
-      return slots.reduce((total, slot) => {
-        const extraTime = slot.duration - extra.baseDuration;
-        if (extraTime <= 0) return total;
-        return total + Math.ceil(extraTime / extra.increment) * extra.extraRate;
-      }, 0);
   };
 
   const getDurationCounts = (slots: VisitSlot[]) => {
@@ -1166,9 +1206,7 @@ export default function BookingPage() {
                                 const details = calculatePriceDetailForPet(config, pet);
                                 const selectedSlots = getValidVisitSlots(config.visitSlots);
                                 const baseTotal = details.unitPrice * details.quantity;
-                                const durationExtraTotal = isHourlyService(formData.serviceType)
-                                  ? calculateDurationExtraForSlots(selectedSlots)
-                                  : 0;
+                                const durationExtraTotal = details.priceLines?.find((line) => line.label === "Durée prolongée")?.amount || 0;
                                 const otherSurchargeLines = details.priceLines?.filter((line) =>
                                   line.type === "surcharge" &&
                                   line.label !== "Durée prolongée" &&
