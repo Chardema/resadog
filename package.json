@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:env": "node scripts/check-env.mjs",
+    "preflight": "npm run check:env && npm run lint && npm run build",
     "postinstall": "prisma generate",
     "create-admin": "tsx scripts/create-admin.ts",
     "reset-admin": "tsx scripts/reset-admin-password.ts"

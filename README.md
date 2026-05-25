@@ -1,224 +1,90 @@
-# La Patte Dorée - Plateforme de Garde de Chiens
+# La Patte Doree
 
-Plateforme professionnelle de réservation de garde de chiens avec suivi en temps réel, photos quotidiennes et communication directe.
+Application Next.js de reservation pour La Patte Doree : reservations, paiement Stripe avec empreinte bancaire, espace client, administration, disponibilites, coupons, credits, abonnements et emails transactionnels.
 
-## Fonctionnalités
+## Stack
 
-- Système de réservation en ligne avec calendrier
-- Paiements sécurisés via Stripe
-- Chat en temps réel
-- Journal d'activités quotidien avec photos/vidéos
-- Notifications email et SMS
-- Interface moderne et responsive
+- Next.js 16, React 19, TypeScript
+- Prisma 7 et PostgreSQL
+- NextAuth v5
+- Stripe Checkout, PaymentIntents et abonnements
+- Resend pour les emails
+- UploadThing pour les fichiers
+- Vercel pour l'hebergement et les crons
 
-## Technologies
+## Demarrage local
 
-### Frontend
-- Next.js 14+ (App Router)
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- React Query (TanStack Query)
-- Zustand
-
-### Backend
-- Next.js API Routes
-- PostgreSQL
-- Prisma ORM
-- NextAuth.js v5
-
-### Services Externes
-- Stripe (paiements)
-- Pusher (temps réel)
-- Uploadthing (uploads)
-- Resend (emails)
-- Twilio (SMS)
-
-## Installation
-
-### Prérequis
-- Node.js 18+ et npm
-- PostgreSQL (local ou cloud)
-
-### Étapes
-
-1. **Installer les dépendances**
 ```bash
 npm install
-```
-
-2. **Configurer la base de données**
-
-Créer une base de données PostgreSQL, puis mettre à jour `.env.local` avec votre URL de connexion :
-
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/resadog?schema=public"
-```
-
-3. **Générer une clé secrète pour NextAuth**
-```bash
-openssl rand -base64 32
-```
-
-Ajouter dans `.env.local` :
-```env
-NEXTAUTH_SECRET="votre-clé-générée"
-NEXTAUTH_URL="http://localhost:3000"
-```
-
-4. **Appliquer les migrations Prisma**
-```bash
-npx prisma migrate dev
-```
-
-5. **Lancer le serveur de développement**
-```bash
 npm run dev
 ```
 
-Ouvrir [http://localhost:3000](http://localhost:3000) dans votre navigateur.
+L'application demarre sur [http://localhost:3000](http://localhost:3000).
 
-## Structure du Projet
-
-```
-resadog/
-├── src/
-│   ├── app/                      # Next.js App Router
-│   │   ├── api/                  # API Routes
-│   │   ├── auth/                 # Pages d'authentification
-│   │   └── page.tsx              # Page d'accueil
-│   ├── components/               # Composants React
-│   │   ├── ui/                   # shadcn/ui
-│   │   ├── calendar/             # Calendrier
-│   │   ├── booking/              # Réservations
-│   │   ├── chat/                 # Chat
-│   │   └── journal/              # Journal
-│   ├── lib/                      # Bibliothèques
-│   │   ├── auth/                 # Configuration NextAuth
-│   │   ├── db/                   # Client Prisma
-│   │   └── utils.ts              # Utilitaires
-│   └── types/                    # Types TypeScript
-├── prisma/
-│   └── schema.prisma             # Schéma de base de données
-└── public/                       # Fichiers statiques
-```
-
-## Configuration des Services Externes
-
-### Stripe
-
-1. Créer un compte sur [stripe.com](https://stripe.com)
-2. Récupérer vos clés API (test puis production)
-3. Ajouter dans `.env.local` :
-
-```env
-STRIPE_SECRET_KEY="sk_test_..."
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
-```
-
-### Pusher (Chat temps réel)
-
-1. Créer un compte sur [pusher.com](https://pusher.com)
-2. Créer une app
-3. Ajouter dans `.env.local` :
-
-```env
-PUSHER_APP_ID="..."
-PUSHER_SECRET="..."
-NEXT_PUBLIC_PUSHER_KEY="..."
-NEXT_PUBLIC_PUSHER_CLUSTER="eu"
-```
-
-### Uploadthing (Upload fichiers)
-
-1. Créer un compte sur [uploadthing.com](https://uploadthing.com)
-2. Créer un projet
-3. Ajouter dans `.env.local` :
-
-```env
-UPLOADTHING_SECRET="sk_..."
-UPLOADTHING_APP_ID="..."
-```
-
-### Resend (Emails)
-
-1. Créer un compte sur [resend.com](https://resend.com)
-2. Récupérer votre clé API
-3. Ajouter dans `.env.local` :
-
-```env
-RESEND_API_KEY="re_..."
-```
-
-### Twilio (SMS)
-
-1. Créer un compte sur [twilio.com](https://twilio.com)
-2. Récupérer vos credentials
-3. Ajouter dans `.env.local` :
-
-```env
-TWILIO_ACCOUNT_SID="AC..."
-TWILIO_AUTH_TOKEN="..."
-TWILIO_PHONE_NUMBER="+33..."
-```
-
-## Scripts Disponibles
+## Scripts utiles
 
 ```bash
-# Développement
-npm run dev              # Démarre le serveur dev
-npm run build            # Build pour production
-npm start                # Lance la version production
-npm run lint             # Lint le code
-
-# Base de données
-npx prisma studio        # Interface UI pour la BDD
-npx prisma migrate dev   # Créer une migration
-npx prisma db push       # Push le schéma (dev rapide)
-npx prisma generate      # Générer le client Prisma
+npm run dev          # serveur local
+npm run lint         # ESLint
+npm run build        # build production Next.js
+npm run check:env    # controle des variables d'environnement de production
+npm run preflight    # env + lint + build
+npm run create-admin # creation d'un admin
+npm run reset-admin  # reset du mot de passe admin
 ```
 
-## Prochaines Étapes
+## Variables d'environnement
 
-### Phase 1 (MVP) - En cours
-- [x] Setup du projet
-- [x] Configuration de l'authentification
-- [x] Page d'accueil
-- [ ] Pages d'inscription/connexion
-- [ ] Système de réservation
-- [ ] Gestion des profils d'animaux
-- [ ] Intégration Stripe
-
-### Phase 2 (Communication)
-- [ ] Chat en temps réel
-- [ ] Journal d'activités
-- [ ] Upload de photos/vidéos
-- [ ] Notifications
-
-### Phase 3 (Polish)
-- [ ] Notifications SMS
-- [ ] Tests end-to-end
-- [ ] Optimisations performances
-- [ ] Déploiement production
-
-## Déploiement
-
-### Vercel (Recommandé)
-
-1. Pousser le code sur GitHub
-2. Connecter le repo à Vercel
-3. Configurer les variables d'environnement
-4. Déployer
+Le controle de production se lance avec :
 
 ```bash
-vercel --prod
+npm run check:env
 ```
 
-## Support
+Variables requises en production :
 
-Pour toute question ou problème, contactez-moi.
+- `DATABASE_URL`
+- `NEXTAUTH_URL`
+- `AUTH_SECRET` ou `NEXTAUTH_SECRET`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `CRON_SECRET`
+- `UPLOADTHING_TOKEN`
+- `UPLOADTHING_APP_ID`
+- `RESEND_API_KEY`
+- `ADMIN_EMAIL`
+
+Variables conseillees :
+
+- `RESEND_FROM`
+- `RESEND_BUG_FROM`
+- `DEV_EMAIL`
+
+Voir [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) pour la checklist complete de mise en production.
+
+## Deploiement
+
+Le projet est lie a Vercel. Le flux normal est :
+
+```bash
+npm run check:env
+npm run lint
+npm run build
+git push origin main
+```
+
+Le push sur `main` declenche le deploiement Vercel de production via l'integration Git.
+
+## Paiements
+
+Les reservations utilisent Stripe Checkout avec PaymentIntent en capture manuelle. Le client autorise le paiement, puis l'admin confirme la reservation pour capturer le paiement. Une annulation admin annule l'autorisation ou rembourse selon l'etat du paiement.
+
+Webhook Stripe production :
+
+```text
+https://resadog.vercel.app/api/stripe/webhook
+```
 
 ## Licence
 
-Propriétaire - Tous droits réservés
+Projet proprietaire.

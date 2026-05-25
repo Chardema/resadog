@@ -4,6 +4,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'meganemelique36@gmail.com';
 const DEV_EMAIL = process.env.DEV_EMAIL || 'christo59@pm.me';
 const APP_URL = process.env.NEXTAUTH_URL || 'https://resadog.vercel.app';
+const EMAIL_FROM = process.env.RESEND_FROM || 'La Patte Dorée <onboarding@resend.dev>';
+const BUG_EMAIL_FROM = process.env.RESEND_BUG_FROM || EMAIL_FROM;
 
 // Protection XSS : échapper les caractères HTML dans les données utilisateur
 function escapeHtml(str: string): string {
@@ -32,7 +34,7 @@ export const sendBookingConfirmationEmail = async (
 
   try {
     await resend.emails.send({
-      from: 'La Patte Dorée <onboarding@resend.dev>', // Ou ton domaine personnalisé si configuré
+      from: EMAIL_FROM,
       to: email,
       subject: '✅ Votre réservation est confirmée !',
       html: `
@@ -72,7 +74,7 @@ export const sendBookingRequestEmail = async (
 
   try {
     await resend.emails.send({
-      from: 'La Patte Dorée <onboarding@resend.dev>',
+      from: EMAIL_FROM,
       to: email,
       subject: '⏳ Demande de réservation reçue',
       html: `
@@ -105,7 +107,7 @@ export const sendAdminNotification = async (
 
   try {
     await resend.emails.send({
-      from: 'La Patte Dorée <onboarding@resend.dev>',
+      from: EMAIL_FROM,
       to: ADMIN_EMAIL,
       subject: '🐾 Nouvelle demande de réservation !',
       html: `
@@ -138,7 +140,7 @@ export const sendBugReport = async (
 
   try {
     await resend.emails.send({
-      from: 'La Patte Dorée Bug <onboarding@resend.dev>',
+      from: BUG_EMAIL_FROM,
       to: DEV_EMAIL,
       subject: '🐛 Rapport de Bug - La Patte Dorée',
       html: `
@@ -172,7 +174,7 @@ export const sendPaymentFailedEmail = async (
 
   try {
     await resend.emails.send({
-      from: 'La Patte Dorée <onboarding@resend.dev>',
+      from: EMAIL_FROM,
       to: email,
       subject: '⚠️ Échec de paiement de votre abonnement',
       html: `

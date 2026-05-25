@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
+import { z } from "zod";
+
+const subscribeSchema = z.object({
+  serviceType: z.enum(["DOG_WALKING", "DAY_CARE"]),
+  daysPerWeek: z.number().int().min(1).max(5),
+  petCount: z.number().int().min(1).max(3),
+  billingCycle: z.enum(["MONTHLY", "YEARLY"]),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,11 +23,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { serviceType, daysPerWeek, petCount, billingCycle } = body;
+    const { serviceType, daysPerWeek, petCount, billingCycle } =
+      subscribeSchema.parse(body);
 
     // Recalculer le prix côté serveur pour sécurité (tarifs alignés Rover)
     const basePrices = { DOG_WALKING: 10, DAY_CARE: 23 };
-    const unitPrice = basePrices[serviceType as "DOG_WALKING" | "DAY_CARE"];
+    const unitPrice = basePrices[serviceType];
     const totalDays = daysPerWeek * 4; // Par mois
     const rawPrice = (unitPrice * totalDays) * petCount;
     
@@ -92,8 +101,8 @@ export async function POST(request: NextRequest) {
                 price: price.id, // Nouveau prix
             }],
             metadata: {
-                userId: session.user.id,
-                serviceType,
+              userId: session.user.id,
+              serviceType,
                 creditsPerMonth: String(totalDays * petCount),
                 daysPerWeek: String(daysPerWeek),
                 petCount: String(petCount),
@@ -152,6 +161,17 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("Erreur création abonnement:", error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "Configuration d'abonnement invalide",
+          details: error.issues.map((issue) => issue.message),
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Erreur serveur" },
       { status: 500 }
