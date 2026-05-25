@@ -435,8 +435,8 @@ export default function BookingPage() {
         setPets(data.pets || []);
       }
     };
-    fetchPets();
-  }, []);
+    if (session?.user) fetchPets();
+  }, [session]);
 
   // Reset visit slots when service changes
   useEffect(() => {
@@ -871,7 +871,7 @@ export default function BookingPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  if (status === "loading") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>;
+  if (status === "loading" || status === "unauthenticated") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>;
 
   const selectedPetsList = pets.filter(p => formData.petIds.includes(p.id));
   const currentPetName = selectedPetsList.length > 0 ? selectedPetsList.map(p => p.name).join(", ") : "votre compagnon";
