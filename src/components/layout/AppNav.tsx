@@ -17,6 +17,7 @@ export function AppNav({ userName }: AppNavProps) {
   
   const finalUserName = userName || session?.user?.name;
   const userRole = session?.user?.role;
+  const isAuthenticated = Boolean(finalUserName || session?.user?.id);
 
   const navLinks = [
     { href: "/dashboard", label: "Accueil", icon: "🏠" },
@@ -27,6 +28,57 @@ export function AppNav({ userName }: AppNavProps) {
 
   if (userRole === "ADMIN" || userRole === "SITTER") {
     navLinks.push({ href: "/admin/dashboard", label: "Admin", icon: "⚡" });
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <motion.header
+        initial={{ y: -80 }}
+        animate={{ y: 0 }}
+        className="fixed top-4 left-4 right-4 z-50"
+      >
+        <div className="mx-auto max-w-5xl bg-white/85 backdrop-blur-xl border border-white/60 shadow-lg shadow-orange-900/5 rounded-full px-3 py-2 flex items-center justify-between gap-3">
+          <Link href="/" className="flex items-center gap-2 group min-w-0">
+            <div className="bg-gradient-to-br from-orange-400 to-amber-600 text-white w-9 h-9 rounded-full flex items-center justify-center text-sm shadow-md group-hover:rotate-12 transition-transform">
+              🐾
+            </div>
+            <span className="font-bold text-gray-800 tracking-tight truncate">
+              La Patte Dorée
+            </span>
+          </Link>
+
+          <nav className="hidden sm:flex items-center gap-1 text-sm font-semibold">
+            <Link
+              href="/concept"
+              className="px-4 py-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-white/70 transition-colors"
+            >
+              Concept
+            </Link>
+            <Link
+              href="/subscriptions"
+              className="px-4 py-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-white/70 transition-colors"
+            >
+              Tarifs
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/auth/signin"
+              className="px-3 sm:px-4 py-2 rounded-full text-sm font-bold text-gray-700 hover:bg-white/70 transition-colors"
+            >
+              Connexion
+            </Link>
+            <Link
+              href="/auth/signup"
+              className="px-3 sm:px-4 py-2 rounded-full text-sm font-bold bg-gray-900 text-white hover:bg-orange-600 transition-colors"
+            >
+              S'inscrire
+            </Link>
+          </div>
+        </div>
+      </motion.header>
+    );
   }
 
   return (
