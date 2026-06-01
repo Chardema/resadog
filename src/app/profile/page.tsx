@@ -15,6 +15,8 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [subscriptionActionLoading, setSubscriptionActionLoading] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelConfirmed, setCancelConfirmed] = useState(false);
   const [subscriptionMessage, setSubscriptionMessage] = useState("");
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   
@@ -84,6 +86,8 @@ export default function ProfilePage() {
           ? "Résiliation programmée à la fin de la période payée."
           : "Résiliation annulée, votre abonnement continue."
       );
+      setShowCancelConfirm(false);
+      setCancelConfirmed(false);
       await fetchSubscription();
     } catch (e) {
       setSubscriptionMessage("Erreur de connexion.");
@@ -319,7 +323,10 @@ export default function ProfilePage() {
                                 </Button>
                             ) : (
                                 <Button
-                                  onClick={() => manageSubscription("cancel_at_period_end")}
+                                  onClick={() => {
+                                    setShowCancelConfirm(true);
+                                    setSubscriptionMessage("");
+                                  }}
                                   disabled={subscriptionActionLoading || subscriptionData.isLocked}
                                   variant="outline"
                                   className="bg-transparent border-white/20 text-white hover:bg-white/10 h-12 rounded-xl px-6 font-bold"
@@ -339,6 +346,45 @@ export default function ProfilePage() {
                         </Button>
                     )}
                 </div>
+
+                {showCancelConfirm && subscriptionData?.subscription && !subscriptionData.cancelAtPeriodEnd && (
+                    <div className="relative z-10 mt-6 bg-red-500/10 border border-red-300/20 rounded-2xl p-5">
+                        <p className="font-bold text-red-100 mb-2">Confirmer la résiliation à échéance</p>
+                        <p className="text-sm text-red-100/80 mb-4">
+                            Aucun arrêt immédiat : l'abonnement reste actif jusqu'au {subscriptionData.currentPeriodEnd ? new Date(subscriptionData.currentPeriodEnd).toLocaleDateString("fr-FR") : "prochain renouvellement"}. Les crédits déjà obtenus restent utilisables.
+                        </p>
+                        <label className="flex items-start gap-3 text-sm text-red-50 mb-4 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={cancelConfirmed}
+                              onChange={(event) => setCancelConfirmed(event.target.checked)}
+                              className="mt-1"
+                            />
+                            <span>Je confirme vouloir programmer la résiliation à la fin de la période payée.</span>
+                        </label>
+                        <div className="flex flex-wrap gap-3">
+                            <Button
+                              onClick={() => manageSubscription("cancel_at_period_end")}
+                              disabled={!cancelConfirmed || subscriptionActionLoading}
+                              variant="destructive"
+                              className="h-11 rounded-xl px-5 font-bold"
+                            >
+                              Confirmer la résiliation
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                setShowCancelConfirm(false);
+                                setCancelConfirmed(false);
+                              }}
+                              variant="outline"
+                              className="h-11 rounded-xl px-5 font-bold bg-transparent border-white/20 text-white hover:bg-white/10"
+                            >
+                              Garder mon abonnement
+                            </Button>
+                        </div>
+                    </div>
+                )}
 
                 {subscriptionData?.invoices?.length > 0 && (
                     <div className="relative z-10 mt-8 pt-6 border-t border-white/10">

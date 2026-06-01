@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
+import Stripe from "stripe";
 import { z } from "zod";
 
 const manageSubscriptionSchema = z.object({
@@ -150,6 +151,79 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let currentStripeSubscription: Stripe.Subscription;
+
+    try {
+      currentStripeSubscription = await stripe.subscriptions.retrieve(
+        subscription.stripeSubscriptionId
+      );
+    } catch (error) {
+      if (error instanceof Stripe.errors.StripeError) {
+        if (error.statusCode === 404 || error.code === "resource_missing") {
+          await prisma.userSubscription.update({
+            where: { userId: session.user.id },
+            data: { status: "CANCELED_REMOTE" },
+          });
+
+          return NextResponse.json(
+            {
+              error:
+                "L'abonnement n'existe plus côté Stripe. Le statut local a été mis à jour.",
+            },
+            { status: 404 }
+          );
+        }
+
+        return NextResponse.json(
+          {
+            error:
+              error.message ||
+              "Stripe n'a pas pu vérifier l'abonnement. Réessayez dans quelques instants.",
+          },
+          { status: 502 }
+        );
+      }
+
+      throw error;
+    }
+
+    if (currentStripeSubscription.status === "canceled") {
+      await prisma.userSubscription.update({
+        where: { userId: session.user.id },
+        data: { status: "CANCELED" },
+      });
+
+      return NextResponse.json(
+        { error: "Cet abonnement est déjà résilié." },
+        { status: 409 }
+      );
+    }
+
+    if (
+      action === "cancel_at_period_end" &&
+      currentStripeSubscription.cancel_at_period_end
+    ) {
+      const firstItem = currentStripeSubscription.items.data[0];
+      return NextResponse.json({
+        success: true,
+        cancelAtPeriodEnd: true,
+        currentPeriodEnd: firstItem?.current_period_end
+          ? new Date(firstItem.current_period_end * 1000)
+          : null,
+      });
+    }
+
+    if (action === "resume" && !currentStripeSubscription.cancel_at_period_end) {
+      const firstItem = currentStripeSubscription.items.data[0];
+      return NextResponse.json({
+        success: true,
+        cancelAtPeriodEnd: false,
+        currentPeriodEnd: firstItem?.current_period_end
+          ? new Date(firstItem.current_period_end * 1000)
+          : null,
+      });
+    }
+
     const stripeSubscription = await stripe.subscriptions.update(
       subscription.stripeSubscriptionId,
       {
@@ -178,6 +252,17 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Action invalide" }, { status: 400 });
+    }
+
+    if (error instanceof Stripe.errors.StripeError) {
+      return NextResponse.json(
+        {
+          error:
+            error.message ||
+            "Stripe n'a pas pu modifier l'abonnement. Réessayez ou contactez le support.",
+        },
+        { status: 502 }
+      );
     }
 
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
