@@ -24,19 +24,15 @@ export async function DELETE(
       return NextResponse.json({ error: "Abonnement introuvable" }, { status: 404 });
     }
 
-    // Résilier dans Stripe
-    await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
-
-    // Mettre à jour la base
-    await prisma.userSubscription.update({
-      where: { userId },
-      data: { status: "CANCELED" },
+    // Résilier à échéance pour ne pas couper un service déjà payé.
+    await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+      cancel_at_period_end: true,
     });
 
-    // Optionnel : Retirer les crédits restants ?
-    // await prisma.creditBatch.updateMany({ where: { userId }, data: { remaining: 0 } });
-
-    return NextResponse.json({ success: true, message: "Abonnement résilié" });
+    return NextResponse.json({
+      success: true,
+      message: "Résiliation programmée à la fin de la période",
+    });
   } catch (error) {
     console.error("Erreur résiliation admin:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });

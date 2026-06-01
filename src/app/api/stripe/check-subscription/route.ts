@@ -33,6 +33,9 @@ export async function GET() {
     const serviceType = (metadata.serviceType || "DOG_WALKING") as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING";
     const daysPerWeek = parseInt(metadata.daysPerWeek || "2");
     const creditsPerMonth = parseInt(metadata.creditsPerMonth || "8");
+    const existingLocalSubscription = await prisma.userSubscription.findUnique({
+        where: { userId: session.user.id }
+    });
 
     // Upsert l'abonnement
     await prisma.userSubscription.upsert({
@@ -55,12 +58,12 @@ export async function GET() {
         }
     });
     
-    // On s'assure qu'il a des crédits (si pas de batch actif)
-    const activeBatch = await prisma.creditBatch.findFirst({
-        where: { userId: session.user.id, remaining: { gt: 0 } }
+    // Créditer uniquement une première synchronisation, jamais un client qui a déjà consommé ses crédits.
+    const creditBatchCount = await prisma.creditBatch.count({
+        where: { userId: session.user.id }
     });
 
-    if (!activeBatch) {
+    if (!existingLocalSubscription && creditBatchCount === 0) {
         await prisma.creditBatch.create({
             data: {
                 userId: session.user.id,

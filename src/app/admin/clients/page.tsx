@@ -158,12 +158,12 @@ export default function AdminClientsPage() {
   };
 
   const cancelSubscription = async (userId: string) => {
-      if (!confirm("Voulez-vous vraiment résilier l'abonnement de ce client ? Cette action est immédiate.")) return;
+      if (!confirm("Programmer la résiliation à la fin de la période payée ? Les crédits existants restent utilisables.")) return;
       
       try {
           const res = await fetch(`/api/admin/clients/${userId}/subscription`, { method: "DELETE" });
           if (res.ok) {
-              alert("Abonnement résilié.");
+              alert("Résiliation programmée à échéance.");
               loadData();
           } else {
               alert("Erreur lors de la résiliation.");
@@ -369,7 +369,7 @@ export default function AdminClientsPage() {
                             className="h-8 text-xs"
                             onClick={() => cancelSubscription(client.id)}
                           >
-                              Résilier
+                              Résilier à échéance
                           </Button>
                       </div>
                   )}

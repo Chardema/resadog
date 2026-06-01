@@ -14,6 +14,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [subscriptionActionLoading, setSubscriptionActionLoading] = useState(false);
+  const [subscriptionMessage, setSubscriptionMessage] = useState("");
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   
   const [formData, setFormData] = useState({
@@ -55,6 +57,39 @@ export default function ProfilePage() {
     await update({ name: formData.name });
     setIsEditing(false);
     setIsLoading(false);
+  };
+
+  const formatMoney = (amount: number) =>
+    amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const manageSubscription = async (action: "cancel_at_period_end" | "resume") => {
+    setSubscriptionActionLoading(true);
+    setSubscriptionMessage("");
+
+    try {
+      const res = await fetch("/api/user/subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setSubscriptionMessage(data.error || "Impossible de modifier l'abonnement.");
+        return;
+      }
+
+      setSubscriptionMessage(
+        action === "cancel_at_period_end"
+          ? "Résiliation programmée à la fin de la période payée."
+          : "Résiliation annulée, votre abonnement continue."
+      );
+      await fetchSubscription();
+    } catch (e) {
+      setSubscriptionMessage("Erreur de connexion.");
+    } finally {
+      setSubscriptionActionLoading(false);
+    }
   };
 
   if (status === "loading") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">👤</div>;
@@ -189,7 +224,7 @@ export default function ProfilePage() {
             <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-gray-700 text-white relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
                 
-                <div className="flex justify-between items-start relative z-10">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 relative z-10">
                     <div>
                         <h3 className="text-xl font-bold mb-2">Mon Abonnement</h3>
                         {subscriptionData?.subscription ? (
@@ -197,6 +232,9 @@ export default function ProfilePage() {
                                 <p className="text-orange-400 font-medium">Formule {subscriptionData.subscription.serviceType === "DOG_WALKING" ? "Promenade" : "Garderie"}</p>
                                 <p className="text-sm text-gray-400">
                                     {subscriptionData.subscription.daysPerWeek} jours/semaine • {subscriptionData.subscription.creditsPerMonth} crédits/mois
+                                </p>
+                                <p className="text-sm text-gray-400">
+                                    Montant : {formatMoney(subscriptionData.subscription.price)}€ / {subscriptionData.subscription.billingPeriod === "YEARLY" ? "an" : "mois"}
                                 </p>
                                 <p className="text-sm text-gray-400">
                                     Statut : {subscriptionData.subscription.status === 'ACTIVE' 
@@ -213,6 +251,11 @@ export default function ProfilePage() {
                                         🔒 Engagement jusqu'au {new Date(subscriptionData.commitmentEndsAt).toLocaleDateString("fr-FR")}
                                     </p>
                                 )}
+                                {subscriptionData.cancelAtPeriodEnd && (
+                                    <p className="text-xs text-yellow-200 mt-2 font-semibold">
+                                        Votre abonnement restera actif jusqu'à la date de fin. Les crédits déjà acquis restent utilisables.
+                                    </p>
+                                )}
                             </div>
                         ) : (
                             <p className="text-gray-400 text-sm max-w-md">
@@ -221,8 +264,8 @@ export default function ProfilePage() {
                         )}
                     </div>
                     {subscriptionData?.subscription ? (
-                        <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">
-                            ACTIF
+                        <div className={`${subscriptionData.cancelAtPeriodEnd ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"} px-3 py-1 rounded-full text-xs font-bold border`}>
+                            {subscriptionData.cancelAtPeriodEnd ? "FIN PROGRAMMÉE" : "ACTIF"}
                         </div>
                     ) : (
                         <div className="bg-white/10 text-gray-400 px-3 py-1 rounded-full text-xs font-bold">
@@ -231,17 +274,64 @@ export default function ProfilePage() {
                     )}
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-white/10 flex gap-4">
+                {subscriptionMessage && (
+                    <div className="relative z-10 mt-6 bg-white/10 border border-white/10 rounded-2xl p-4 text-sm text-orange-100">
+                        {subscriptionMessage}
+                    </div>
+                )}
+
+                <div className="relative z-10 mt-8 grid gap-4 md:grid-cols-3">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                        <p className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Résiliation</p>
+                        <p className="text-sm text-gray-300">
+                            {subscriptionData?.isLocked
+                                ? "Disponible après la période d'engagement."
+                                : "Se programme à la fin de la période payée, jamais en coupure immédiate."}
+                        </p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                        <p className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Factures</p>
+                        <p className="text-sm text-gray-300">
+                            Les dernières factures sont listées ici et restent aussi accessibles via Stripe.
+                        </p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                        <p className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Crédits</p>
+                        <p className="text-sm text-gray-300">
+                            Les crédits obtenus restent utilisables, même après une résiliation à échéance.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap gap-4 relative z-10">
                     {subscriptionData?.subscription ? (
                         <>
-                            {subscriptionData.portalUrl && (
-                                <a href={subscriptionData.portalUrl} className="bg-white text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors">
-                                    Résilier / Factures
-                                </a>
-                            )}
                             <Button onClick={() => router.push('/subscriptions')} className="bg-orange-500 hover:bg-orange-600 text-white h-12 rounded-xl px-6 font-bold">
                                 Changer de formule
                             </Button>
+                            {subscriptionData.cancelAtPeriodEnd ? (
+                                <Button
+                                  onClick={() => manageSubscription("resume")}
+                                  disabled={subscriptionActionLoading}
+                                  className="bg-green-500 hover:bg-green-600 text-white h-12 rounded-xl px-6 font-bold"
+                                >
+                                  Garder mon abonnement
+                                </Button>
+                            ) : (
+                                <Button
+                                  onClick={() => manageSubscription("cancel_at_period_end")}
+                                  disabled={subscriptionActionLoading || subscriptionData.isLocked}
+                                  variant="outline"
+                                  className="bg-transparent border-white/20 text-white hover:bg-white/10 h-12 rounded-xl px-6 font-bold"
+                                >
+                                  Résilier à échéance
+                                </Button>
+                            )}
+                            {subscriptionData.portalUrl && (
+                                <a href={subscriptionData.portalUrl} className="bg-white text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors">
+                                    Moyen de paiement Stripe
+                                </a>
+                            )}
                         </>
                     ) : (
                         <Button onClick={() => router.push('/subscriptions')} className="bg-orange-500 hover:bg-orange-600 text-white h-12 rounded-xl px-6 font-bold">
@@ -249,6 +339,37 @@ export default function ProfilePage() {
                         </Button>
                     )}
                 </div>
+
+                {subscriptionData?.invoices?.length > 0 && (
+                    <div className="relative z-10 mt-8 pt-6 border-t border-white/10">
+                        <h4 className="font-bold mb-4">Dernières factures</h4>
+                        <div className="space-y-3">
+                            {subscriptionData.invoices.map((invoice: any) => (
+                                <div key={invoice.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/5 border border-white/10 rounded-2xl p-4">
+                                    <div>
+                                        <p className="font-bold text-sm">{invoice.number || "Facture Stripe"}</p>
+                                        <p className="text-xs text-gray-400">
+                                            {new Date(invoice.createdAt).toLocaleDateString("fr-FR")} • {invoice.status}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-bold">{formatMoney(invoice.amountPaid || invoice.amountDue)}€</span>
+                                        {invoice.hostedInvoiceUrl && (
+                                            <a href={invoice.hostedInvoiceUrl} className="text-sm font-bold text-orange-300 hover:text-orange-200">
+                                                Voir
+                                            </a>
+                                        )}
+                                        {invoice.invoicePdf && (
+                                            <a href={invoice.invoicePdf} className="text-sm font-bold text-orange-300 hover:text-orange-200">
+                                                PDF
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
           </motion.div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
+import { calculateSubscriptionPlan } from "@/lib/subscription-pricing";
 import { z } from "zod";
 
 const subscribeSchema = z.object({
@@ -25,27 +26,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { serviceType, daysPerWeek, petCount, billingCycle } =
       subscribeSchema.parse(body);
-
-    // Recalculer le prix côté serveur pour sécurité (tarifs alignés Rover)
-    const basePrices = { DOG_WALKING: 10, DAY_CARE: 23 };
-    const unitPrice = basePrices[serviceType];
-    const totalDays = daysPerWeek * 4; // Par mois
-    const rawPrice = (unitPrice * totalDays) * petCount;
-    
-    let discount = 0.10;
-    if (daysPerWeek >= 3) discount = 0.15;
-    if (daysPerWeek >= 5) discount = 0.20;
-
-    const monthlyPrice = rawPrice * (1 - discount);
-    const billingDiscount = billingCycle === "YEARLY" ? 0.20 : 0;
-    const finalMonthlyPrice = monthlyPrice * (1 - billingDiscount);
-    
-    let amountToPay = finalMonthlyPrice;
-    if (billingCycle === "YEARLY") {
-        amountToPay = finalMonthlyPrice * 12;
-    }
-    
-    const finalAmount = Math.round(amountToPay * 100);
+    const plan = calculateSubscriptionPlan({
+      serviceType,
+      daysPerWeek,
+      petCount,
+      billingCycle,
+    });
 
     // Créer ou récupérer le client Stripe
     const user = await prisma.user.findUnique({ where: { id: session.user.id } });
@@ -68,24 +54,38 @@ export async function POST(request: NextRequest) {
         });
     }
 
+    // Vérifier si l'utilisateur a déjà un abonnement actif
+    const existingSubscription = await prisma.userSubscription.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (
+      existingSubscription &&
+      existingSubscription.status === "ACTIVE" &&
+      existingSubscription.billingPeriod !== billingCycle
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Le passage mensuel/annuel se fait à la fin de la période en cours pour éviter une facturation confuse.",
+        },
+        { status: 409 }
+      );
+    }
+
     // Créer un produit dynamique pour cet abonnement (Nouveau plan)
     const product = await stripe.products.create({
-      name: `Abonnement La Meute (${serviceType === "DOG_WALKING" ? "Promenade" : "Garderie"})`,
-      description: `${daysPerWeek}j/semaine pour ${petCount} animal(aux). ${billingCycle === "YEARLY" ? "Facturation Annuelle" : "Facturation Mensuelle"}`,
+      name: `Abonnement La Meute (${plan.service.label})`,
+      description: `${daysPerWeek}j/semaine pour ${petCount} animal(aux). ${billingCycle === "YEARLY" ? "Facturation annuelle" : "Facturation mensuelle"}`,
     });
 
     const price = await stripe.prices.create({
-      unit_amount: finalAmount,
+      unit_amount: plan.amountDueNowCents,
       currency: "eur",
       recurring: {
         interval: billingCycle === "YEARLY" ? "year" : "month",
       },
       product: product.id,
-    });
-
-    // Vérifier si l'utilisateur a déjà un abonnement actif
-    const existingSubscription = await prisma.userSubscription.findUnique({
-        where: { userId: session.user.id }
     });
 
     // MODE MISE À JOUR (SWAP)
@@ -103,12 +103,14 @@ export async function POST(request: NextRequest) {
             metadata: {
               userId: session.user.id,
               serviceType,
-                creditsPerMonth: String(totalDays * petCount),
+                creditsPerMonth: String(plan.creditsPerMonth),
                 daysPerWeek: String(daysPerWeek),
                 petCount: String(petCount),
                 billingCycle,
+                monthlyPrice: plan.monthlyPrice.toFixed(2),
+                effectiveCreditPrice: plan.effectiveCreditPrice.toFixed(2),
             },
-            proration_behavior: 'always_invoice', // Facturer la différence immédiatement
+            proration_behavior: 'none',
         });
 
         // 3. Mettre à jour la base locale
@@ -117,13 +119,13 @@ export async function POST(request: NextRequest) {
             data: {
                 serviceType,
                 daysPerWeek,
-                creditsPerMonth: totalDays * petCount,
-                price: amountToPay,
+                creditsPerMonth: plan.creditsPerMonth,
+                price: plan.amountDueNow,
                 billingPeriod: billingCycle,
             }
         });
 
-        // 4. Rediriger vers le dashboard (pas de checkout nécessaire)
+        // 4. Rediriger vers le dashboard : pas de débit immédiat, nouveau tarif au prochain renouvellement.
         return NextResponse.json({ url: `${process.env.NEXTAUTH_URL}/dashboard?subscription=updated` });
     }
 
@@ -140,19 +142,23 @@ export async function POST(request: NextRequest) {
       metadata: {
         userId: session.user.id,
         serviceType,
-        creditsPerMonth: String(totalDays * petCount),
+        creditsPerMonth: String(plan.creditsPerMonth),
         daysPerWeek: String(daysPerWeek),
         petCount: String(petCount),
         billingCycle,
+        monthlyPrice: plan.monthlyPrice.toFixed(2),
+        effectiveCreditPrice: plan.effectiveCreditPrice.toFixed(2),
       },
       subscription_data: {
         metadata: {
             userId: session.user.id,
             serviceType,
-            creditsPerMonth: String(totalDays * petCount),
+            creditsPerMonth: String(plan.creditsPerMonth),
             daysPerWeek: String(daysPerWeek),
             petCount: String(petCount),
             billingCycle,
+            monthlyPrice: plan.monthlyPrice.toFixed(2),
+            effectiveCreditPrice: plan.effectiveCreditPrice.toFixed(2),
         }
       }
     });

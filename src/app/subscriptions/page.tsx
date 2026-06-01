@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { AppNav } from "@/components/layout/AppNav";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { calculateSubscriptionPlan } from "@/lib/subscription-pricing";
 
 export default function SubscriptionPage() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
   
   const [serviceType, setServiceType] = useState<"DOG_WALKING" | "DAY_CARE">("DOG_WALKING");
@@ -17,6 +18,7 @@ export default function SubscriptionPage() {
   const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
   const [loading, setLoading] = useState(false);
   const [existingSubscription, setExistingSubscription] = useState<any>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
       if (session) {
@@ -30,48 +32,16 @@ export default function SubscriptionPage() {
       }
   }, [session]);
 
-  // Prix de base (avant réduction) par animal — aligné Rover
-  const basePrices = {
-    DOG_WALKING: 10, // Promenade
-    DAY_CARE: 23,    // Garderie
-  };
-
-  // Calcul du prix
-  const calculatePrice = () => {
-    const unitPrice = basePrices[serviceType];
-    const daysPerMonth = daysPerWeek * 4;
-    const rawMonthlyPrice = (unitPrice * daysPerMonth) * petCount;
-    
-    // Réduction volume (jours/semaine)
-    let volumeDiscount = 0.10;
-    if (daysPerWeek >= 3) volumeDiscount = 0.15;
-    if (daysPerWeek >= 5) volumeDiscount = 0.20;
-
-    // Prix mensuel avec réduction volume
-    const monthlyWithVolume = rawMonthlyPrice * (1 - volumeDiscount);
-
-    // Réduction facturation annuelle (20% supplémentaire)
-    const billingDiscount = billingCycle === "YEARLY" ? 0.20 : 0;
-
-    // Prix final mensuel (base de calcul)
-    const finalMonthlyPrice = monthlyWithVolume * (1 - billingDiscount);
-
-    // Total à payer aujourd'hui
-    const amountDueNow = billingCycle === "YEARLY" ? finalMonthlyPrice * 12 : finalMonthlyPrice;
-
-    // Total économisé (par rapport au prix unitaire sans aucun engagement ni volume)
-    const totalSavingsMonthly = rawMonthlyPrice - finalMonthlyPrice;
-
-    return {
-      amountDueNow: Math.round(amountDueNow),
-      monthlyDisplay: Math.round(finalMonthlyPrice),
-      perDay: (finalMonthlyPrice / (daysPerMonth * petCount)).toFixed(2),
-      totalSavingsYearly: Math.round(totalSavingsMonthly * 12),
-      creditsPerMonth: daysPerMonth * petCount
-    };
-  };
-
-  const plan = calculatePrice();
+  const plan = calculateSubscriptionPlan({
+    serviceType,
+    daysPerWeek,
+    petCount,
+    billingCycle,
+  });
+  const billingChangeBlocked =
+    existingSubscription && existingSubscription.billingPeriod !== billingCycle;
+  const formatMoney = (amount: number) =>
+    amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleSubscribe = async () => {
     if (!session) {
@@ -80,6 +50,7 @@ export default function SubscriptionPage() {
     }
     
     setLoading(true);
+    setError("");
     try {
       const res = await fetch("/api/stripe/subscribe", {
         method: "POST",
@@ -90,10 +61,10 @@ export default function SubscriptionPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert("Erreur lors de la création de l'abonnement");
+        setError(data.error || "Erreur lors de la création de l'abonnement");
       }
     } catch (e) {
-      alert("Erreur de connexion");
+      setError("Erreur de connexion");
     } finally {
       setLoading(false);
     }
@@ -114,12 +85,18 @@ export default function SubscriptionPage() {
         </motion.div>
 
         {existingSubscription && (
-            <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-8 rounded-r-lg shadow-sm flex justify-between items-center">
+            <div className="bg-blue-50 border border-blue-200 text-blue-800 p-5 mb-8 rounded-2xl shadow-sm">
                 <div>
                     <p className="font-bold">Vous êtes déjà membre du club ! ⚡</p>
-                    <p className="text-sm">Modifiez vos options ci-dessous pour changer de formule instantanément.</p>
+                    <p className="text-sm mt-1">Vous pouvez ajuster le service, les jours et le nombre d'animaux sans débit immédiat. La nouvelle formule s'appliquera au prochain renouvellement.</p>
                 </div>
             </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 mb-8 rounded-2xl text-sm font-semibold">
+            {error}
+          </div>
         )}
 
         {/* Billing Cycle Toggle */}
@@ -229,38 +206,47 @@ export default function SubscriptionPage() {
                   <p className="text-gray-400 text-sm">{daysPerWeek} jours / semaine</p>
                 </div>
                 {billingCycle === "YEARLY" && (
-                  <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">
-                    BEST DEAL
+                  <div className="bg-white/10 text-orange-200 px-3 py-1 rounded-full text-xs font-bold border border-white/10">
+                    Annuel
                   </div>
                 )}
               </div>
 
               <div className="mb-8 relative z-10">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-6xl font-extrabold">{plan.monthlyDisplay}€</span>
+                  <span className="text-6xl font-extrabold">{formatMoney(plan.monthlyPrice)}€</span>
                   <span className="text-gray-400">/ mois</span>
                 </div>
                 
                 {billingCycle === "YEARLY" ? (
                   <div className="mt-2 text-sm text-gray-400">
-                    Facturé {plan.amountDueNow}€ par an
+                    Facturé {formatMoney(plan.amountDueNow)}€ aujourd'hui pour 12 mois
                   </div>
                 ) : (
                   <div className="mt-2 text-sm text-gray-400">
-                    Engagement 2 mois minimum
+                    Facturé {formatMoney(plan.amountDueNow)}€ aujourd'hui puis chaque mois
                   </div>
                 )}
 
                 <div className="mt-6 p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-gray-300 text-sm">Prix par jour</span>
-                    <span className="font-bold">{plan.perDay}€</span>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-300 text-sm">Prix public sans abonnement</span>
+                    <span className="font-bold">{formatMoney(plan.publicMonthlyPrice)}€ / mois</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-300 text-sm">Prix par crédit</span>
+                    <span className="font-bold">{formatMoney(plan.effectiveCreditPrice)}€</span>
                   </div>
                   <div className="flex justify-between items-center text-green-400">
-                    <span className="text-sm font-bold">Économie annuelle</span>
-                    <span className="font-bold">-{plan.totalSavingsYearly}€ 💰</span>
+                    <span className="text-sm font-bold">Remise réelle</span>
+                    <span className="font-bold">-{Math.round(plan.effectiveDiscount * 100)}%</span>
                   </div>
                 </div>
+                {plan.guardApplied && (
+                  <p className="mt-3 text-xs text-orange-200 bg-orange-500/10 border border-orange-400/20 rounded-xl p-3">
+                    Prix plancher appliqué : cette formule ne descend jamais sous {formatMoney(plan.service.minimumCreditPrice)}€ par crédit.
+                  </p>
+                )}
               </div>
 
               <ul className="space-y-4 mb-10 text-gray-300 text-sm relative z-10">
@@ -270,20 +256,26 @@ export default function SubscriptionPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  Supplément jeune animal OFFERT 🐾
+                  Factures disponibles dans votre profil et dans Stripe
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  {billingCycle === "YEARLY" ? "Engagement 12 mois" : "Engagement 2 mois min."}
+                  Résiliation à échéance après {billingCycle === "YEARLY" ? "12 mois" : "2 mois"}
                 </li>
               </ul>
 
+              {billingChangeBlocked && (
+                <div className="mb-5 bg-yellow-400/10 border border-yellow-300/20 text-yellow-100 rounded-2xl p-4 text-sm">
+                  Pour éviter une double facturation, le passage mensuel/annuel se fait à la fin de la période déjà payée.
+                </div>
+              )}
+
               <Button 
                 onClick={handleSubscribe}
-                disabled={loading}
+                disabled={loading || Boolean(billingChangeBlocked)}
                 className="w-full h-16 rounded-2xl bg-white text-gray-900 font-bold text-lg hover:bg-orange-50 transition-colors shadow-lg relative z-10"
               >
-                {loading ? "Traitement..." : (existingSubscription ? "Mettre à jour mon offre" : (billingCycle === "YEARLY" ? "Payer l'année" : "M'abonner"))}
+                {loading ? "Traitement..." : (existingSubscription ? "Programmer la nouvelle formule" : (billingCycle === "YEARLY" ? "Payer l'année" : "M'abonner"))}
               </Button>
             </div>
           </motion.div>

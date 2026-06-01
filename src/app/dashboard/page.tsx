@@ -161,14 +161,14 @@ function DashboardContent() {
             </motion.p>
           </div>
           
-          {data?.portalUrl && isSubscribed && (
+          {isSubscribed && (
             <motion.a
-              href={data.portalUrl}
+              href="/profile"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-orange-600 bg-white px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-all self-start md:self-end"
             >
-              ⚙️ Gérer mon abonnement
+              ⚙️ Abonnement, factures, résiliation
             </motion.a>
           )}
         </div>
@@ -255,8 +255,8 @@ function DashboardContent() {
                   <Link href="/booking" className="flex-1 text-center bg-white text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors shadow-lg">
                     Réserver avec mes crédits
                   </Link>
-                  {data?.portalUrl && (
-                    <a href={data.portalUrl} className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white font-bold text-lg">
+                  {isSubscribed && (
+                    <a href="/profile" className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white font-bold text-lg">
                       ⚙️
                     </a>
                   )}

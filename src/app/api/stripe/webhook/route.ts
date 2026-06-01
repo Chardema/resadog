@@ -246,9 +246,19 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           return;
       }
 
-      // Créer l'abonnement en base
-      await prisma.userSubscription.create({
-          data: {
+      // Créer ou synchroniser l'abonnement en base. Le webhook peut arriver après une réparation côté dashboard.
+      await prisma.userSubscription.upsert({
+          where: { userId: metadata.userId },
+          update: {
+              stripeSubscriptionId: subscriptionId,
+              status: "ACTIVE",
+              serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
+              daysPerWeek: parseInt(metadata.daysPerWeek),
+              creditsPerMonth: parseInt(metadata.creditsPerMonth),
+              price: session.amount_total ? session.amount_total / 100 : 0,
+              billingPeriod: metadata.billingCycle === "YEARLY" ? "YEARLY" : "MONTHLY",
+          },
+          create: {
               userId: metadata.userId,
               stripeSubscriptionId: subscriptionId,
               status: "ACTIVE",
@@ -260,16 +270,22 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           }
       });
 
-      // Créditer le premier lot
-      await prisma.creditBatch.create({
-          data: {
-              userId: metadata.userId,
-              amount: parseInt(metadata.creditsPerMonth),
-              remaining: parseInt(metadata.creditsPerMonth),
-              serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
-              expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
-          }
+      // Créditer le premier lot une seule fois.
+      const existingCreditBatches = await prisma.creditBatch.count({
+          where: { userId: metadata.userId },
       });
+
+      if (existingCreditBatches === 0) {
+          await prisma.creditBatch.create({
+              data: {
+                  userId: metadata.userId,
+                  amount: parseInt(metadata.creditsPerMonth),
+                  remaining: parseInt(metadata.creditsPerMonth),
+                  serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
+                  expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
+              }
+          });
+      }
 
       return;
   }
