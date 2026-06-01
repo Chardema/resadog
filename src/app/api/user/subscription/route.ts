@@ -98,8 +98,8 @@ export async function GET() {
           amountPaid: (invoice.amount_paid || 0) / 100,
           amountDue: (invoice.amount_due || 0) / 100,
           createdAt: new Date(invoice.created * 1000),
-          hostedInvoiceUrl: invoice.hosted_invoice_url,
-          invoicePdf: invoice.invoice_pdf,
+          hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
+          invoicePdf: invoice.invoice_pdf ?? null,
         }));
     } catch (e) {
       console.error("Erreur récupération factures Stripe:", e);
