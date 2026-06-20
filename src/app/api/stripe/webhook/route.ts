@@ -226,11 +226,11 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     });
   }
 
-  // Marquer les réservations comme payées mais en attente de validation admin
+  // Le statut métier est piloté par l'admin. Le webhook confirme uniquement
+  // que le paiement a été capturé, sans écraser CONFIRMED par une valeur obsolète.
   await prisma.booking.updateMany({
     where: { id: { in: bookingIds } },
     data: {
-      status: "PENDING", // Reste en attente de validation manuelle
       depositPaid: true,
     },
   });
