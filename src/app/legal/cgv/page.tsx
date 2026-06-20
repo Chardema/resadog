@@ -26,6 +26,7 @@ export default function CGVPage() {
             <ul className="list-disc pl-5 space-y-2 mt-4">
               <li><strong>Plus de 48h avant :</strong> Remboursement intégral (ou libération de l'empreinte bancaire).</li>
               <li><strong>Moins de 48h avant :</strong> 50% du montant total sera retenu à titre de dédommagement.</li>
+              <li><strong>Paiement par crédit à moins de 48h :</strong> le crédit utilisé n'est pas restitué.</li>
               <li><strong>Non présentation :</strong> La totalité du séjour est due.</li>
             </ul>
           </section>

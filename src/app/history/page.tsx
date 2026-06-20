@@ -48,6 +48,10 @@ export default function HistoryPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
+  const [cancelConfirmed, setCancelConfirmed] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -77,6 +81,28 @@ export default function HistoryPage() {
     if (filter === "active") return ["PENDING", "CONFIRMED", "IN_PROGRESS"].includes(b.status);
     return b.status === filter;
   });
+
+  const cancelBooking = async () => {
+    if (!bookingToCancel || !cancelConfirmed) return;
+    setCancelLoading(true);
+    setCancelError("");
+    try {
+      const response = await fetch(`/api/bookings/${bookingToCancel.id}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmed: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Annulation impossible");
+      setBookingToCancel(null);
+      setCancelConfirmed(false);
+      await fetchBookings();
+    } catch (error) {
+      setCancelError(error instanceof Error ? error.message : "Erreur de connexion");
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   if (status === "loading" || isLoading) {
     return (
@@ -192,11 +218,63 @@ export default function HistoryPage() {
                       >
                         {statusInfo.label}
                       </span>
+                      {["PENDING", "CONFIRMED"].includes(booking.status) && new Date(booking.startDate) > new Date() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBookingToCancel(booking);
+                            setCancelConfirmed(false);
+                            setCancelError("");
+                          }}
+                          className="text-sm font-bold text-red-600 hover:text-red-800"
+                        >
+                          Annuler
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
               );
             })}
+          </div>
+        )}
+
+        {bookingToCancel && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+            <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-2xl">
+              <h2 className="text-xl font-bold text-gray-900">Annuler cette réservation ?</h2>
+              <p className="mt-3 text-sm text-gray-600">
+                Plus de 48 h avant la prestation, le paiement ou les crédits sont restitués intégralement.
+                À moins de 48 h, 50% du paiement est retenu et un crédit utilisé n'est pas restitué.
+              </p>
+              <label className="mt-5 flex items-start gap-3 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={cancelConfirmed}
+                  onChange={(event) => setCancelConfirmed(event.target.checked)}
+                  className="mt-1"
+                />
+                Je confirme l'annulation de cette réservation.
+              </label>
+              {cancelError && <p className="mt-3 text-sm font-semibold text-red-600">{cancelError}</p>}
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={cancelBooking}
+                  disabled={!cancelConfirmed || cancelLoading}
+                  className="h-11 flex-1 rounded-lg bg-red-600 px-4 font-bold text-white disabled:opacity-40"
+                >
+                  {cancelLoading ? "Annulation..." : "Confirmer l'annulation"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBookingToCancel(null)}
+                  className="h-11 rounded-lg border border-gray-200 px-4 font-bold text-gray-700"
+                >
+                  Garder
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>

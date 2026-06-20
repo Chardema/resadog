@@ -199,3 +199,33 @@ export const sendPaymentFailedEmail = async (
     console.error("Erreur envoi email paiement échoué:", error);
   }
 };
+
+export const sendPasswordResetEmail = async (
+  email: string,
+  userName: string,
+  resetUrl: string
+) => {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("RESEND_API_KEY manquante. Email de réinitialisation non envoyé.");
+    return;
+  }
+
+  try {
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: "Réinitialiser votre mot de passe La Patte Dorée",
+      html: `
+        <div style="font-family: sans-serif; color: #333;">
+          <h1>Bonjour ${escapeHtml(userName)},</h1>
+          <p>Vous avez demandé un nouveau mot de passe.</p>
+          <p><a href="${escapeHtml(resetUrl)}">Choisir un nouveau mot de passe</a></p>
+          <p>Ce lien expire dans une heure. Ignorez cet email si vous n'êtes pas à l'origine de la demande.</p>
+        </div>
+      `,
+      replyTo: ADMIN_EMAIL,
+    });
+  } catch (error) {
+    console.error("Email de réinitialisation non envoyé:", error);
+  }
+};
