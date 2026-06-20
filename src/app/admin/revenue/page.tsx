@@ -14,8 +14,11 @@ export default function AdminRevenuePage() {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/signin");
-    }
-    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SITTER") {
+    } else if (
+      status === "authenticated" &&
+      session.user.role !== "ADMIN" &&
+      session.user.role !== "SITTER"
+    ) {
       router.push("/dashboard");
     }
   }, [session, status, router]);
