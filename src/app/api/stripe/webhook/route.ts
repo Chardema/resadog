@@ -155,20 +155,28 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
     // Notifier le client par email
     if (subscription.user.email) {
-        await sendPaymentFailedEmail(
-            subscription.user.email,
-            subscription.user.name || 'Client'
-        );
+        try {
+            await sendPaymentFailedEmail(
+                subscription.user.email,
+                subscription.user.name || 'Client'
+            );
+        } catch (emailError) {
+            console.error("Email d'échec de paiement non envoyé:", emailError);
+        }
     }
 
     // Notifier l'admin
-    await sendAdminNotification(
-        `⚠️ Paiement échoué`,
-        subscription.user.name || 'Client',
-        `Abonnement ${subscriptionId}`,
-        `Statut: PAST_DUE`,
-        subscription.price
-    );
+    try {
+        await sendAdminNotification(
+            `⚠️ Paiement échoué`,
+            subscription.user.name || 'Client',
+            `Abonnement ${subscriptionId}`,
+            `Statut: PAST_DUE`,
+            subscription.price
+        );
+    } catch (emailError) {
+        console.error("Notification admin d'échec non envoyée:", emailError);
+    }
 }
 
 // Helper to extract booking IDs
@@ -300,6 +308,23 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
+  const paymentIntentId = typeof session.payment_intent === "string"
+    ? session.payment_intent
+    : session.payment_intent?.id;
+
+  if (!paymentIntentId) {
+    throw new Error("PaymentIntent absent de la session Checkout terminée");
+  }
+
+  await prisma.payment.updateMany({
+    where: { bookingId: { in: bookingIds } },
+    data: {
+      stripePaymentId: paymentIntentId,
+      stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id,
+      status: "PROCESSING",
+    },
+  });
+
   // Incrémenter le coupon si utilisé (le code est stocké dans les metadata)
   const promoCode = session.metadata?.promoCode;
   if (promoCode) {
@@ -321,19 +346,23 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
             ? booking.pets.map(p => p.name).join(", ") 
             : (booking.pet?.name || "Animal");
 
-        await sendBookingRequestEmail(
-          booking.client.email,
-          booking.client.name || "Client",
-          petsName
-        );
+        try {
+          await sendBookingRequestEmail(
+            booking.client.email,
+            booking.client.name || "Client",
+            petsName
+          );
 
-        await sendAdminNotification(
-          petsName,
-          booking.client.name || "Client",
-          new Date(booking.startDate).toLocaleDateString("fr-FR"),
-          new Date(booking.endDate).toLocaleDateString("fr-FR"),
-          booking.totalPrice
-        );
+          await sendAdminNotification(
+            petsName,
+            booking.client.name || "Client",
+            new Date(booking.startDate).toLocaleDateString("fr-FR"),
+            new Date(booking.endDate).toLocaleDateString("fr-FR"),
+            booking.totalPrice
+          );
+        } catch (emailError) {
+          console.error(`Notifications non envoyées pour la réservation ${id}:`, emailError);
+        }
       } else {
         console.error(`❌ Réservation ${id} introuvable en base !`);
       }

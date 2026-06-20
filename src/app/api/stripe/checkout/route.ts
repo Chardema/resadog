@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
           await prisma.payment.update({
             where: { id: booking.payment.id },
             data: {
-              stripePaymentId: checkoutSession.payment_intent as string,
+              stripePaymentId: null,
               status: "PROCESSING",
             },
           });
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
               amount: booking.totalPrice,
               currency: "eur",
               status: "PROCESSING",
-              stripePaymentId: checkoutSession.payment_intent as string,
+              stripePaymentId: null,
               stripeCustomerId: stripeCustomerId!,
             },
           });

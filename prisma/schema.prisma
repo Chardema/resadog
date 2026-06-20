@@ -221,7 +221,7 @@ model Payment {
   amount            Float
   currency          String        @default("eur")
   status            PaymentStatus @default(PENDING)
-  stripePaymentId   String?       @unique
+  stripePaymentId   String?
   stripeCustomerId  String?
   paymentMethod     String?
   paidAt            DateTime?

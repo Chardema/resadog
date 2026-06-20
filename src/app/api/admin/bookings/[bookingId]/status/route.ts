@@ -47,6 +47,29 @@ export async function PATCH(
       );
     }
 
+    if (booking.status === status) {
+      return NextResponse.json({ success: true, booking, unchanged: true });
+    }
+
+    if (booking.status === "CANCELLED") {
+      return NextResponse.json(
+        { error: "Une réservation annulée ne peut pas être réactivée" },
+        { status: 409 }
+      );
+    }
+
+    // Une réservation payante ne doit jamais être confirmée sans autorisation Stripe.
+    if (
+      status === "CONFIRMED" &&
+      booking.creditsUsed === 0 &&
+      (!booking.payment || !booking.payment.stripePaymentId)
+    ) {
+      return NextResponse.json(
+        { error: "Aucune autorisation Stripe n'est rattachée à cette réservation" },
+        { status: 409 }
+      );
+    }
+
     // Gestion de la CONFIRMATION (Capture de l'argent)
     if (status === "CONFIRMED" && booking.payment?.stripePaymentId) {
       try {
@@ -66,21 +89,42 @@ export async function PATCH(
             : (booking.pet?.name || "Votre compagnon");
 
           // Envoyer email de confirmation
-          await sendBookingConfirmationEmail(
-            booking.client.email,
-            booking.client.name || "Client",
-            {
-              petName: petsName,
-              startDate: new Date(booking.startDate).toLocaleDateString("fr-FR"),
-              endDate: new Date(booking.endDate).toLocaleDateString("fr-FR"),
-              totalPrice: booking.totalPrice
-            }
+          try {
+            await sendBookingConfirmationEmail(
+              booking.client.email,
+              booking.client.name || "Client",
+              {
+                petName: petsName,
+                startDate: new Date(booking.startDate).toLocaleDateString("fr-FR"),
+                endDate: new Date(booking.endDate).toLocaleDateString("fr-FR"),
+                totalPrice: booking.totalPrice
+              }
+            );
+          } catch (emailError) {
+            console.error("Paiement capturé, mais email de confirmation non envoyé:", emailError);
+          }
+        } else if (paymentIntent.status !== 'succeeded') {
+          return NextResponse.json(
+            { error: `Le paiement Stripe ne peut pas être capturé (statut: ${paymentIntent.status})` },
+            { status: 409 }
           );
         }
       } catch (err) {
         console.error("Erreur capture Stripe:", err);
         return NextResponse.json({ error: "Impossible de capturer le paiement" }, { status: 400 });
       }
+    }
+
+    if (
+      status === "CANCELLED" &&
+      booking.creditsUsed === 0 &&
+      booking.payment?.status === "PROCESSING" &&
+      !booking.payment.stripePaymentId
+    ) {
+      return NextResponse.json(
+        { error: "Impossible d'annuler proprement : autorisation Stripe introuvable" },
+        { status: 409 }
+      );
     }
 
     // Gestion du remboursement des CRÉDITS
@@ -104,6 +148,10 @@ export async function PATCH(
         if (paymentIntent.status === 'requires_capture') {
            // Annuler l'empreinte (Le client n'est pas débité)
            await stripe.paymentIntents.cancel(booking.payment.stripePaymentId);
+           await prisma.payment.update({
+             where: { id: booking.payment.id },
+             data: { status: "REFUNDED", refundedAt: new Date(), refundAmount: 0 },
+           });
         } else if (paymentIntent.status === 'succeeded') {
            // Rembourser via Stripe
            const refund = await stripe.refunds.create({
@@ -122,6 +170,10 @@ export async function PATCH(
         }
       } catch (stripeError) {
         console.error("Erreur remboursement Stripe:", stripeError);
+        return NextResponse.json(
+          { error: "Impossible de libérer ou rembourser le paiement Stripe" },
+          { status: 502 }
+        );
       }
     }
 
