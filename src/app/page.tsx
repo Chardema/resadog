@@ -76,7 +76,16 @@ export default function Home() {
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="mb-6 inline-flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-full px-4 py-1.5 text-orange-700 text-sm font-medium shadow-sm"
+            className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-950 px-4 py-2 text-sm font-bold text-white shadow-sm"
+          >
+            <Award className="h-4 w-4 text-emerald-300" aria-hidden="true" />
+            Professionnelle titulaire de l’ACACED
+          </motion.div>
+
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-100 bg-orange-50 px-4 py-1.5 text-sm font-medium text-orange-700 shadow-sm"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
@@ -191,6 +200,7 @@ export default function Home() {
             <div className="flex-1 relative z-10">
               <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-3xl mb-4">🏠</div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Hébergement Familial</h3>
+              <p className="mb-3 text-sm font-bold text-orange-700">Chien 24€ · Chat 20€ / nuit</p>
               <p className="text-gray-600 leading-relaxed mb-6">
                 Votre compagnon vit avec nous, dans la maison. Pas de box, accès jardin illimité et
                 séances de câlins sur le canapé. C'est comme chez vous, en mieux.
@@ -241,6 +251,7 @@ export default function Home() {
           >
             <div className="text-5xl mb-4 filter drop-shadow-lg">🐱</div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Visites à domicile</h3>
+            <p className="mb-2 text-sm font-bold text-orange-700">Chien 15€ · Chat 14€ / 30 min</p>
             <p className="text-gray-600 text-sm">Pour les chats et les chiens indépendants.</p>
           </motion.div>
 
@@ -253,6 +264,7 @@ export default function Home() {
                 <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center text-4xl flex-shrink-0">☀️</div>
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-1">Garderie de Jour</h3>
+                  <p className="mb-2 text-sm font-bold text-orange-700">Chien 25€ · Chat 22€ / jour</p>
                   <p className="text-gray-600">
                     Déposez-le le matin, récupérez-le le soir. Idéal pour vos journées de travail.
                     Socialisation et jeux garantis.
