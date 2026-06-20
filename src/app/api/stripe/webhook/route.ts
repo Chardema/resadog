@@ -191,7 +191,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   const bookingIds = getBookingIds(paymentIntent.metadata);
 
   if (bookingIds.length === 0) {
-    console.error("Pas de bookingIds dans les metadata du PaymentIntent");
+    // Les PaymentIntents d'abonnement n'ont pas de réservation associée.
     return;
   }
 

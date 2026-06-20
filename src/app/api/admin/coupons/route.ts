@@ -73,14 +73,14 @@ export async function POST(request: NextRequest) {
       message: `Code promo ${coupon.code} créé avec succès`
     });
   } catch (error) {
-    console.error("Erreur lors de la création du coupon:", error);
-
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0]?.message || "Coupon invalide" },
         { status: 400 }
       );
     }
+
+    console.error("Erreur lors de la création du coupon:", error);
 
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Une erreur est survenue" },

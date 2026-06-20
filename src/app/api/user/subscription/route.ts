@@ -49,7 +49,14 @@ export async function GET() {
           }
           cancelAtPeriodEnd = stripeSub.cancel_at_period_end;
       } catch (e) {
-          console.error("Erreur récupération abonnement Stripe:", e);
+          if (e instanceof Stripe.errors.StripeError && (e.statusCode === 404 || e.code === "resource_missing")) {
+            await prisma.userSubscription.update({
+              where: { id: subscription.id },
+              data: { status: "CANCELED_REMOTE" },
+            });
+          } else {
+            console.error("Erreur récupération abonnement Stripe:", e);
+          }
       }
 
       // Calcul engagement (clone pour éviter la mutation)
