@@ -14,6 +14,7 @@ interface Booking {
   status: string;
   serviceType: string;
   serviceDetails?: {
+    serviceAddress?: string;
     visitSlots?: {
       date: string;
       startTime: string;
@@ -171,6 +172,9 @@ export default function HistoryPage() {
                           <p className="text-xs text-blue-700 font-medium mt-1">
                             {visitSlots.length} passage{visitSlots.length > 1 ? "s" : ""} · prochain : {new Date(visitSlots[0].date).toLocaleDateString("fr-FR")} à {visitSlots[0].startTime} ({visitSlots[0].duration} min)
                           </p>
+                        )}
+                        {booking.serviceDetails?.serviceAddress && (
+                          <p className="mt-1 text-xs text-gray-600">Adresse : {booking.serviceDetails.serviceAddress}</p>
                         )}
                       </div>
                     </div>

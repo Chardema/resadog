@@ -1225,6 +1225,12 @@ export default function BookingPage() {
                     <h2 className="text-2xl font-bold text-gray-900">Derniers détails 📝</h2>
                     <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100">
                         <h3 className="font-bold text-orange-900 mb-4">Récapitulatif</h3>
+                        {isHourlyService(formData.serviceType) && (
+                          <div className="mb-4 rounded-xl border border-orange-200 bg-white/80 px-4 py-3 text-sm text-gray-700">
+                            <span className="font-bold text-gray-900">Adresse : </span>
+                            {formData.serviceAddress}
+                          </div>
+                        )}
                         <div className="space-y-4 text-sm text-gray-700">
                             {formData.petIds.map(id => {
                                 const pet = pets.find(p => p.id === id);

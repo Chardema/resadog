@@ -19,6 +19,7 @@ interface Booking {
   creditsUsed: number;
   serviceType: string;
   serviceDetails?: {
+    serviceAddress?: string;
     visitSlots?: {
       date: string;
       startTime: string;
@@ -299,6 +300,11 @@ export default function AdminBookingsPage() {
                             ))}
                             {visitSlots.length > 4 && <p>+ {visitSlots.length - 4} autre{visitSlots.length - 4 > 1 ? "s" : ""}</p>}
                           </div>
+                        )}
+                        {booking.serviceDetails?.serviceAddress && (
+                          <p className="mt-2 text-xs font-medium text-gray-700">
+                            Adresse : {booking.serviceDetails.serviceAddress}
+                          </p>
                         )}
                       </div>
                       <div>
