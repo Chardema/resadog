@@ -300,7 +300,9 @@ export default function BookingPage() {
   const [error, setError] = useState("");
 
   // Configuration dates
-  const [useSameDates, setUseSameDates] = useState(true);
+  // Une réservation multi-animaux utilise un planning commun afin qu'un paiement
+  // corresponde toujours à une seule réservation atomique.
+  const useSameDates = true;
 
   // Validation légale
   const [legalAccepted, setLegalAccepted] = useState(false);
@@ -1093,12 +1095,6 @@ export default function BookingPage() {
               >
                  <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold text-gray-900">3. Quand ? 📅</h2>
-                    {formData.petIds.length > 1 && (
-                        <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full">
-                            <label htmlFor="same-dates" className="text-sm font-medium cursor-pointer text-gray-900">Mêmes dates</label>
-                            <input id="same-dates" type="checkbox" checked={useSameDates} onChange={(e) => setUseSameDates(e.target.checked)} className="w-5 h-5 accent-orange-600" />
-                        </div>
-                    )}
                  </div>
 
                  <div className="bg-gray-50 p-6 rounded-3xl space-y-6">

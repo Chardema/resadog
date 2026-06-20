@@ -25,6 +25,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (bookingIds.length > 1) {
+      return NextResponse.json(
+        { error: "Le paiement groupé de réservations séparées est désactivé pour éviter une capture ou un remboursement incohérent." },
+        { status: 400 }
+      );
+    }
+
     // Charger les réservations avec l'utilisateur
     const bookings = await prisma.booking.findMany({
       where: { 
