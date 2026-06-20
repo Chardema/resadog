@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { calculateCouponDiscount } from "@/lib/coupon-pricing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -103,21 +104,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculer la réduction
-    let discountAmount = 0;
-    if (coupon.discountType === "PERCENTAGE") {
-      discountAmount = (totalAmount * coupon.discountValue) / 100;
-    } else {
-      // Pour le montant fixe, on multiplie par la durée si elle est fournie
-      // Cela permet d'adapter la réduction au nombre de nuitées
-      const multiplier = duration && duration > 0 ? duration : 1;
-      discountAmount = coupon.discountValue * multiplier;
-    }
-
-    // Ne pas permettre une réduction supérieure au total
-    discountAmount = Math.min(discountAmount, totalAmount);
-
-    const finalAmount = Math.max(0, totalAmount - discountAmount);
+    const { discountAmount, finalAmount, capped } = calculateCouponDiscount({
+      totalAmount,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue,
+      quantity: duration,
+    });
 
     return NextResponse.json({
       success: true,
@@ -130,9 +122,12 @@ export async function POST(request: NextRequest) {
       originalAmount: totalAmount,
       discountAmount: discountAmount,
       finalAmount: finalAmount,
-      message: coupon.discountType === "PERCENTAGE"
-        ? `Réduction de ${coupon.discountValue}% appliquée`
-        : `Réduction de ${coupon.discountValue}€${duration && duration > 1 ? " / nuit" : ""} appliquée`,
+      capped,
+      message: capped
+        ? `Réduction plafonnée à ${discountAmount}€`
+        : coupon.discountType === "PERCENTAGE"
+          ? `Réduction de ${coupon.discountValue}% appliquée`
+          : `Réduction de ${discountAmount}€ appliquée`,
     });
   } catch (error) {
     console.error("Erreur lors de la validation du coupon:", error);

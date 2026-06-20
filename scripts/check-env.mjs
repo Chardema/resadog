@@ -32,6 +32,17 @@ const required = [
   "ADMIN_EMAIL",
 ];
 
+if (target === "production") {
+  required.push(
+    "BUSINESS_LEGAL_NAME",
+    "BUSINESS_SIRET",
+    "BUSINESS_ADDRESS",
+    "SUPPORT_EMAIL",
+    "CONSUMER_MEDIATOR_NAME",
+    "CONSUMER_MEDIATOR_URL"
+  );
+}
+
 required.forEach(requireEnv);
 
 if (!get("AUTH_SECRET") && !get("NEXTAUTH_SECRET")) {
@@ -41,6 +52,8 @@ if (!get("AUTH_SECRET") && !get("NEXTAUTH_SECRET")) {
 warnEnv("DEV_EMAIL");
 warnEnv("RESEND_FROM");
 warnEnv("RESEND_BUG_FROM");
+warnEnv("NEXT_PUBLIC_ACACED_NUMBER");
+warnEnv("PROFESSIONAL_INSURANCE");
 
 const nextAuthUrl = get("NEXTAUTH_URL");
 if (target === "production" && nextAuthUrl) {
@@ -54,8 +67,13 @@ if (target === "production" && nextAuthUrl) {
 }
 
 const stripeSecret = get("STRIPE_SECRET_KEY");
-if (target === "production" && stripeSecret?.startsWith("sk_test_")) {
-  results.push({ level: "warning", message: "STRIPE_SECRET_KEY est une cle de test Stripe" });
+if (target === "production" && stripeSecret && !stripeSecret.startsWith("sk_live_")) {
+  results.push({ level: "error", message: "STRIPE_SECRET_KEY doit etre une cle live Stripe (sk_live_)" });
+}
+
+const stripeWebhookSecret = get("STRIPE_WEBHOOK_SECRET");
+if (stripeWebhookSecret && !stripeWebhookSecret.startsWith("whsec_")) {
+  results.push({ level: "error", message: "STRIPE_WEBHOOK_SECRET doit commencer par whsec_" });
 }
 
 const cronSecret = get("CRON_SECRET");
@@ -66,6 +84,16 @@ if (cronSecret && cronSecret.length < 24) {
 const adminEmail = get("ADMIN_EMAIL");
 if (adminEmail && !adminEmail.includes("@")) {
   results.push({ level: "error", message: "ADMIN_EMAIL ne ressemble pas a une adresse email" });
+}
+
+const siret = get("BUSINESS_SIRET")?.replace(/\s/g, "");
+if (siret && !/^\d{14}$/.test(siret)) {
+  results.push({ level: "error", message: "BUSINESS_SIRET doit contenir 14 chiffres" });
+}
+
+const mediatorUrl = get("CONSUMER_MEDIATOR_URL");
+if (mediatorUrl && !mediatorUrl.startsWith("https://")) {
+  results.push({ level: "error", message: "CONSUMER_MEDIATOR_URL doit commencer par https://" });
 }
 
 const resendFrom = get("RESEND_FROM");

@@ -60,26 +60,15 @@ export async function GET() {
       isLocked = new Date() < commitmentEndsAt;
 
       if (user?.stripeCustomerId) {
-          const configuration = await stripe.billingPortal.configurations.create({
-            business_profile: {
-              headline: "Paiement et factures La Meute",
-            },
-            features: {
-              customer_update: {
-                enabled: true,
-                allowed_updates: ["email", "address", "phone"],
-              },
-              invoice_history: { enabled: true },
-              payment_method_update: { enabled: true },
-            },
-          });
-
+        try {
           const portalSession = await stripe.billingPortal.sessions.create({
               customer: user.stripeCustomerId,
               return_url: `${process.env.NEXTAUTH_URL}/profile`,
-              configuration: configuration.id,
           });
           portalUrl = portalSession.url;
+        } catch (error) {
+          console.error("Erreur création portail Stripe:", error);
+        }
       }
   }
 

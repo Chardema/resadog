@@ -19,6 +19,7 @@ export function Footer() {
               Service de garde d'animaux premium avec suivi en temps réel. 
               Offrez à vos compagnons des vacances aussi belles que les vôtres.
             </p>
+            <p className="mt-3 text-sm font-semibold text-emerald-700">Professionnelle titulaire de l’ACACED</p>
           </div>
 
           {/* Liens Rapides */}
@@ -36,6 +37,7 @@ export function Footer() {
           <div>
             <h3 className="font-bold text-gray-900 mb-4">Légal</h3>
             <ul className="space-y-2 text-sm text-gray-600">
+              <li><Link href="/legal/mentions-legales" className="hover:text-orange-600 transition-colors">Mentions légales</Link></li>
               <li><Link href="/legal/cgv" className="hover:text-orange-600 transition-colors">CGV & Annulation</Link></li>
               <li><Link href="/legal/confidentialite" className="hover:text-orange-600 transition-colors">Politique de Confidentialité</Link></li>
               <li><Link href="/legal/cookies" className="hover:text-orange-600 transition-colors">Cookies</Link></li>

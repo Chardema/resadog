@@ -5,9 +5,16 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AppNav } from "@/components/layout/AppNav";
 import { useSession } from "next-auth/react";
+import { calculateSubscriptionPlan } from "@/lib/subscription-pricing";
 
 export default function ConceptPage() {
   const { data: session } = useSession();
+  const example = calculateSubscriptionPlan({
+    serviceType: "DAY_CARE",
+    daysPerWeek: 2,
+    petCount: 1,
+    billingCycle: "MONTHLY",
+  });
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] selection:bg-orange-200">
@@ -62,7 +69,7 @@ export default function ConceptPage() {
             {
               icon: "🪙",
               title: "2. Recevez vos crédits",
-              desc: "Chaque mois, vos crédits sont ajoutés à votre compte. 1 Crédit = 1 Jour de garde ou 1 Promenade."
+              desc: "Chaque mois, vos crédits sont ajoutés à votre compte. Un crédit correspond à une prestation du service souscrit."
             },
             {
               icon: "📅",
@@ -113,11 +120,11 @@ export default function ConceptPage() {
                 <div className="space-y-4 mb-8">
                   <div className="flex justify-between items-center text-gray-300">
                     <span>Prix par jour (chien)</span>
-                    <span className="font-mono">23€</span>
+                    <span className="font-mono">{example.service.unitPrice}€</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-300">
                     <span>8 jours / mois</span>
-                    <span className="font-mono">184€</span>
+                    <span className="font-mono">{example.publicMonthlyPrice}€</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-300">
                     <span>Paiement</span>
@@ -131,7 +138,7 @@ export default function ConceptPage() {
                 <div className="pt-6 border-t border-white/10">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400">Total mensuel</span>
-                    <span className="text-2xl font-bold">184€</span>
+                    <span className="text-2xl font-bold">{example.publicMonthlyPrice}€</span>
                   </div>
                 </div>
               </div>
@@ -145,7 +152,7 @@ export default function ConceptPage() {
                 <div className="space-y-4 mb-8">
                   <div className="flex justify-between items-center text-orange-100">
                     <span>Prix par jour</span>
-                    <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded">~19€</span>
+                    <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded">{example.effectiveCreditPrice.toFixed(2).replace(".", ",")}€</span>
                   </div>
                   <div className="flex justify-between items-center text-orange-100">
                     <span>Paiement</span>
@@ -156,21 +163,17 @@ export default function ConceptPage() {
                     <span>Illimité</span>
                   </div>
                   <div className="flex justify-between items-center text-orange-100">
-                    <span>Supplément jeune animal</span>
-                    <span className="font-bold bg-white text-orange-600 px-2 py-0.5 rounded">OFFERT</span>
-                  </div>
-                  <div className="flex justify-between items-center text-orange-100">
-                    <span>Tarif chat</span>
-                    <span>Dès 12€/visite</span>
+                    <span>Service des crédits</span>
+                    <span className="font-bold bg-white text-orange-600 px-2 py-0.5 rounded">GARDERIE</span>
                   </div>
                 </div>
                 <div className="pt-6 border-t border-white/20">
                   <div className="flex justify-between items-center">
                     <span className="text-orange-100">Total mensuel</span>
-                    <span className="text-3xl font-extrabold">~149€</span>
+                    <span className="text-3xl font-extrabold">{example.monthlyPrice}€</span>
                   </div>
                   <div className="mt-2 text-right text-xs font-bold text-white/80">
-                    Économisez jusqu'à 420€ / an ! 💰
+                    Économie : {example.totalSavingsYearly}€ / an
                   </div>
                 </div>
               </div>
@@ -185,7 +188,7 @@ export default function ConceptPage() {
             {[
               { q: "Est-ce que je peux annuler quand je veux ?", a: "Oui ! L'abonnement mensuel est sans engagement au-delà des 2 premiers mois. L'annuel vous engage sur 12 mois en échange d'un tarif imbattable." },
               { q: "Si je pars en vacances ?", a: "Pas de panique ! Vos crédits sont valables à vie ! Vous pouvez les cumuler pour une plus grosse garde le mois suivant." },
-              { q: "Ça marche pour plusieurs animaux ?", a: "Absolument. Vous pouvez prendre un abonnement 'Multi-animaux' et utiliser vos crédits indifféremment." },
+              { q: "Ça marche pour plusieurs animaux ?", a: "Oui. Le nombre de crédits tient compte du nombre d'animaux. Les crédits restent réservés au service choisi : promenade ou garderie." },
             ].map((faq, i) => (
               <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                 <h4 className="font-bold text-gray-900 mb-2">{faq.q}</h4>

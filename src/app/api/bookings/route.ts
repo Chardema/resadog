@@ -4,6 +4,10 @@ import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 import { rateLimit } from "@/lib/rate-limit";
 import { buildSpecialRequests, extractServiceDetails, stripServiceDetails } from "@/lib/booking-details";
+import { calculateBookingPrice } from "@/lib/pricing";
+import { calculateCouponDiscount } from "@/lib/coupon-pricing";
+
+class BookingInputError extends Error {}
 
 // Helper pour parser une date ISO string en UTC (format YYYY-MM-DD)
 function parseUTCDate(dateString: string): Date {
@@ -36,19 +40,22 @@ const visitSlotSchema = z.object({
 // Schéma de validation pour la création de réservation
 const createBookingSchema = z.object({
   petIds: z.array(z.string()).min(1, "Au moins un animal est requis"),
+  pricingPetIds: z.array(z.string()).min(1).optional(),
   startDate: z.string().min(1, "La date de début est requise"),
   endDate: z.string().min(1, "La date de fin est requise"),
   startTime: z.string().optional(), // Heure de dépôt (HH:mm)
   endTime: z.string().optional(),   // Heure de récupération (HH:mm)
   serviceType: z.enum(["BOARDING", "DAY_CARE", "DROP_IN", "DOG_WALKING"]),
-  totalPrice: z.number().nonnegative("Le prix doit être positif ou zéro"),
-  depositAmount: z.number().nonnegative("Le montant doit être positif ou zéro"),
+  // Conservés temporairement pour les anciens clients, mais jamais utilisés côté serveur.
+  totalPrice: z.number().nonnegative().optional(),
+  depositAmount: z.number().nonnegative().optional(),
   notes: z.string().optional(),
   promoCode: z.string().optional(),
   paymentMethod: z.enum(["PAYPAL", "WERO", "BANK_TRANSFER"]).optional(),
   useCredits: z.boolean().optional(),
   serviceDetails: z.object({
     visitSlots: z.array(visitSlotSchema).optional(),
+    serviceAddress: z.string().trim().min(8).max(300).optional(),
   }).optional(),
 });
 
@@ -85,13 +92,12 @@ export async function POST(request: NextRequest) {
 
     const {
       petIds,
+      pricingPetIds,
       startDate,
       endDate,
       startTime,
       endTime,
       serviceType,
-      totalPrice,
-      depositAmount,
       notes,
       promoCode,
       paymentMethod,
@@ -101,6 +107,7 @@ export async function POST(request: NextRequest) {
 
     const isHourlyService = serviceType === "DROP_IN" || serviceType === "DOG_WALKING";
     const visitSlots = serviceDetails?.visitSlots || [];
+    const pricingContextIds = pricingPetIds || petIds;
 
     // Convertir les dates en UTC pour éviter les problèmes de fuseau horaire
     const start = parseUTCDate(startDate);
@@ -122,6 +129,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (isHourlyService && !serviceDetails?.serviceAddress) {
+      return NextResponse.json(
+        { error: "Indiquez l'adresse complète où la prestation doit avoir lieu" },
+        { status: 400 }
+      );
+    }
+
     const selectedDateKeys = isHourlyService
       ? [...new Set(visitSlots.map((slot) => slot.date))].sort()
       : getDateKeysInRange(start, end);
@@ -137,33 +151,86 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier que TOUS les animaux appartiennent bien à l'utilisateur
-    const pets = await prisma.pet.findMany({
+    const contextPetsFromDb = await prisma.pet.findMany({
       where: {
-        id: { in: petIds },
+        id: { in: pricingContextIds },
         ownerId: session.user.id,
       },
     });
 
-    if (pets.length !== petIds.length) {
+    if (contextPetsFromDb.length !== pricingContextIds.length || petIds.some((id) => !pricingContextIds.includes(id))) {
       return NextResponse.json(
         { error: "Certains animaux n'existent pas ou ne vous appartiennent pas" },
         { status: 404 }
       );
     }
 
+    const pricingContextPets = pricingContextIds
+      .map((id) => contextPetsFromDb.find((pet) => pet.id === id))
+      .filter((pet) => pet !== undefined);
+    const pets = petIds
+      .map((id) => pricingContextPets.find((pet) => pet.id === id))
+      .filter((pet) => pet !== undefined);
+
+    const priceResult = calculateBookingPrice({
+      serviceType,
+      pets,
+      pricingContextPets,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      visitSlots,
+    });
+
+    if (priceResult.total <= 0) {
+      return NextResponse.json({ error: "Le tarif de cette réservation est invalide" }, { status: 400 });
+    }
+
+    let finalTotal = priceResult.total;
+    if (promoCode && !useCredits) {
+      if (pricingContextIds.length !== petIds.length) {
+        return NextResponse.json(
+          { error: "Les codes promo nécessitent des dates communes à tous les animaux" },
+          { status: 400 }
+        );
+      }
+
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: promoCode.toUpperCase() },
+      });
+      const now = new Date();
+
+      if (!coupon || !coupon.isActive) throw new BookingInputError("Code promo invalide ou inactif");
+      if (coupon.validFrom && now < coupon.validFrom) throw new BookingInputError("Ce code promo n'est pas encore valide");
+      if (coupon.validUntil && now > coupon.validUntil) throw new BookingInputError("Ce code promo a expiré");
+      if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) throw new BookingInputError("Ce code promo a atteint sa limite d'utilisation");
+      if (coupon.minAmount && priceResult.total < coupon.minAmount) throw new BookingInputError(`Montant minimum de ${coupon.minAmount}€ requis`);
+      if (coupon.restrictedTo.length > 0 && !coupon.restrictedTo.includes(session.user.email || "")) throw new BookingInputError("Ce code promo n'est pas valide pour votre compte");
+      if (coupon.applicableServices.length > 0 && !coupon.applicableServices.includes(serviceType)) throw new BookingInputError("Ce code promo n'est pas valide pour ce service");
+
+      finalTotal = calculateCouponDiscount({
+        totalAmount: priceResult.total,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        quantity: priceResult.quantity,
+      }).finalAmount;
+    }
+
     // Gestion des CRÉDITS
     let creditsToDeduct = 0;
     if (useCredits) {
-        const duration = isHourlyService
-          ? visitSlots.length
-          : serviceType === "DAY_CARE"
-            ? selectedDateKeys.length
-            : Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) || 1;
-        creditsToDeduct = duration * petIds.length;
+        if (serviceType !== "DOG_WALKING" && serviceType !== "DAY_CARE") {
+          return NextResponse.json(
+            { error: "Les crédits sont utilisables uniquement pour le service souscrit" },
+            { status: 400 }
+          );
+        }
+        creditsToDeduct = priceResult.quantity * petIds.length;
 
         // Check balance
         const batches = await prisma.creditBatch.findMany({
-            where: { userId: session.user.id, remaining: { gt: 0 } },
+            where: { userId: session.user.id, serviceType, remaining: { gt: 0 } },
             orderBy: { expiresAt: 'asc' }
         });
         const totalAvailable = batches.reduce((acc, b) => acc + b.remaining, 0);
@@ -242,7 +309,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Transaction atomique : créer la réservation + déduire crédits + incrémenter coupon
+    // Transaction atomique : créer la réservation et déduire les crédits.
     const booking = await prisma.$transaction(async (tx) => {
       const newBooking = await tx.booking.create({
         data: {
@@ -252,12 +319,15 @@ export async function POST(request: NextRequest) {
           endTime: endTime || null,
           status: "PENDING",
           serviceType,
-          totalPrice: useCredits ? 0 : totalPrice,
+          totalPrice: useCredits ? 0 : finalTotal,
           depositPaid: useCredits ? true : false,
-          depositAmount: useCredits ? 0 : depositAmount,
+          depositAmount: useCredits ? 0 : finalTotal,
           creditsUsed: useCredits ? creditsToDeduct : 0,
           specialRequests: buildSpecialRequests(notes, serviceDetails),
-          notes: paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
+          notes: [
+            paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
+            promoCode && !useCredits ? `Code promo: ${promoCode.toUpperCase()}` : null,
+          ].filter(Boolean).join("\n") || null,
           clientId: session.user.id,
           pets: {
             connect: petIds.map((id) => ({ id })),
@@ -270,21 +340,17 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Incrémenter le coupon uniquement pour les paiements par crédits (pas de checkout Stripe)
-      // Pour les paiements Stripe, le coupon sera incrémenté dans le webhook checkout.session.completed
-      if (promoCode && useCredits) {
-        await tx.coupon.updateMany({
-          where: { code: promoCode.toUpperCase(), isActive: true },
-          data: { currentUses: { increment: 1 } },
-        });
-      }
-
       // Déduire les crédits (FIFO par date d'expiration)
       if (useCredits && creditsToDeduct > 0) {
         const batches = await tx.creditBatch.findMany({
-          where: { userId: session.user.id, remaining: { gt: 0 } },
+          where: { userId: session.user.id, serviceType, remaining: { gt: 0 } },
           orderBy: { expiresAt: 'asc' },
         });
+
+        const availableInTransaction = batches.reduce((sum, batch) => sum + batch.remaining, 0);
+        if (availableInTransaction < creditsToDeduct) {
+          throw new BookingInputError("Crédits insuffisants");
+        }
 
         let remainingToDeduct = creditsToDeduct;
         for (const batch of batches) {
@@ -330,6 +396,10 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    if (error instanceof BookingInputError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json(

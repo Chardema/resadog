@@ -9,6 +9,22 @@ const updateProfileSchema = z.object({
   image: z.string().url().optional().nullable(),
 });
 
+export async function GET() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, name: true, email: true, phone: true, image: true },
+  });
+
+  if (!user) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
+  return NextResponse.json({ user });
+}
+
 export async function PUT(request: Request) {
   try {
     const session = await auth();
@@ -33,6 +49,7 @@ export async function PUT(request: Request) {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         image: user.image,
       },
       message: "Profil mis à jour avec succès!",

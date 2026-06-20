@@ -4,11 +4,10 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ total: 0 });
+  if (!session?.user?.id) {
+    return NextResponse.json({ total: 0, byService: { DOG_WALKING: 0, DAY_CARE: 0 } });
+  }
 
-  // Récupérer les lots de crédits actifs
-  // Note: On pourrait filtrer par serviceType, mais pour l'instant les crédits sont universels
-  // ou on filtre côté client. Simplifions : universels.
   const creditBatches = await prisma.creditBatch.findMany({
     where: {
       userId: session.user.id,
@@ -18,6 +17,10 @@ export async function GET() {
   });
 
   const total = creditBatches.reduce((acc, batch) => acc + batch.remaining, 0);
+  const byService = creditBatches.reduce<Record<string, number>>((acc, batch) => {
+    acc[batch.serviceType] = (acc[batch.serviceType] || 0) + batch.remaining;
+    return acc;
+  }, { DOG_WALKING: 0, DAY_CARE: 0 });
 
-  return NextResponse.json({ total });
+  return NextResponse.json({ total, byService });
 }

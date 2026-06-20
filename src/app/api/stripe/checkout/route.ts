@@ -17,7 +17,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     // Accept either single bookingId (for backward compat) or array of bookingIds
     const bookingIds = body.bookingIds || (body.bookingId ? [body.bookingId] : []);
-    const promoCode = body.promoCode || "";
 
     if (bookingIds.length === 0) {
       return NextResponse.json(
@@ -46,6 +45,12 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Le code appliqué vient de la réservation calculée par le serveur, jamais du navigateur.
+    const appliedPromoCodes = [...new Set(bookings
+      .map((booking) => booking.notes?.match(/(?:^|\n)Code promo: ([A-Z0-9_-]+)/)?.[1])
+      .filter((code): code is string => Boolean(code)))];
+    const promoCode = appliedPromoCodes.length === 1 ? appliedPromoCodes[0] : "";
 
     // Check if any already paid
     for (const booking of bookings) {

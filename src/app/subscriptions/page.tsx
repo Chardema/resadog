@@ -121,7 +121,7 @@ export default function SubscriptionPage() {
               onClick={() => setBillingCycle("YEARLY")}
               className={`relative z-10 px-6 py-2 rounded-full text-sm font-bold transition-colors flex items-center gap-2 ${billingCycle === "YEARLY" ? "text-white" : "text-gray-500 hover:text-gray-900"}`}
             >
-              Annuel <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">-20%</span>
+              Annuel <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">prix annuel</span>
             </button>
           </div>
         </div>
@@ -183,6 +183,7 @@ export default function SubscriptionPage() {
               </div>
               <p className="text-center text-sm text-gray-500 mt-3">
                 Soit <strong>{plan.creditsPerMonth} crédits</strong> par mois
+                {billingCycle === "YEARLY" && <span className="block">({plan.creditsPerMonth * 12} crédités après le paiement annuel)</span>}
               </p>
             </div>
           </motion.div>

@@ -32,6 +32,14 @@ ADMIN_EMAIL
 RESEND_FROM
 DEV_EMAIL
 RESEND_BUG_FROM
+BUSINESS_LEGAL_NAME
+BUSINESS_SIRET
+BUSINESS_ADDRESS
+SUPPORT_EMAIL
+CONSUMER_MEDIATOR_NAME
+CONSUMER_MEDIATOR_URL
+NEXT_PUBLIC_ACACED_NUMBER (facultatif)
+PROFESSIONAL_INSURANCE (recommande)
 ```
 
 Points d'attention :
@@ -39,9 +47,20 @@ Points d'attention :
 - `NEXTAUTH_URL` doit etre l'URL publique en `https`.
 - `CRON_SECRET` doit etre long et aleatoire.
 - `RESEND_FROM` doit utiliser un domaine verifie dans Resend pour eviter les blocages d'envoi.
-- En production, preferer une cle Stripe live. Une cle `sk_test_` est acceptable uniquement pour une recette Stripe non publique.
+- En production, `STRIPE_SECRET_KEY` doit commencer par `sk_live_`. Une cle `sk_test_` bloque le preflight.
 
-## 3. Stripe
+## 3. Passage de Stripe en reel
+
+1. Terminer l'activation du compte Stripe : identite de l'entreprise, representant, compte bancaire et informations publiques.
+2. Basculer Stripe en mode reel puis recuperer la cle secrete `sk_live_`.
+3. Activer et configurer le portail client Stripe en mode reel (moyens de paiement et historique des factures).
+4. Creer en mode reel le webhook `https://resadog.vercel.app/api/stripe/webhook` et copier son secret `whsec_`.
+5. Remplacer les variables dans l'environnement **Production** de Vercel.
+6. Redeployer : les variables modifiees ne s'appliquent pas aux deploiements deja construits.
+7. Ne pas reutiliser les identifiants Stripe de test. Clients, abonnements, moyens de paiement et factures test n'existent pas en mode reel.
+8. Effectuer une vraie petite transaction, puis verifier capture, annulation/remboursement, facture et webhooks dans Stripe.
+
+## 4. Stripe
 
 Endpoint webhook :
 
@@ -74,7 +93,7 @@ Flux annulation :
 - Si le paiement est encore autorise, l'autorisation est annulee.
 - Si le paiement est deja capture, Stripe lance un remboursement.
 
-## 4. Cron Vercel
+## 5. Cron Vercel
 
 `vercel.json` planifie :
 
@@ -91,7 +110,7 @@ Authorization: Bearer ${CRON_SECRET}
 
 Verifier dans Vercel que les crons sont actifs apres deploiement.
 
-## 5. UploadThing
+## 6. UploadThing
 
 Verifier :
 
@@ -100,7 +119,7 @@ Verifier :
 - les permissions du projet UploadThing
 - un upload depuis une page qui utilise les pieces jointes ou les documents animaux
 
-## 6. Emails
+## 7. Emails
 
 Verifier :
 
@@ -117,7 +136,17 @@ Tests attendus :
 - email d'echec de paiement abonnement
 - rapport de bug vers l'adresse dev
 
-## 7. Recette fonctionnelle apres deploiement
+## 8. Conformite avant ouverture
+
+- entreprise declaree via le guichet unique et SIRET affiche dans les mentions legales
+- activite de garde declaree a l'autorite competente lorsque requis
+- ACACED a jour pour les categories d'animaux accueillies
+- assurance responsabilite civile professionnelle adaptee
+- mediateur de la consommation designe et affiche sur le site et dans les CGV
+- protocole sanitaire, veterinaire referent et registre des animaux en place
+- CGV, confidentialite, cookies et coordonnees professionnelles relus avec les informations reelles
+
+## 9. Recette fonctionnelle apres deploiement
 
 Tester comme un utilisateur standard :
 
@@ -126,6 +155,7 @@ Tester comme un utilisateur standard :
 - creer une reservation de promenade
 - creer une garderie avec plusieurs dates
 - creer une visite a domicile avec plusieurs dates, plusieurs passages dans la journee et duree 30 min / 1 h
+- verifier que l'adresse de prestation est obligatoire
 - verifier le recapitulatif et le detail du prix avant paiement
 - appliquer un coupon valide et un coupon invalide
 - passer par Stripe Checkout
@@ -145,9 +175,13 @@ Tester les abonnements :
 - creer un abonnement promenade
 - creer un abonnement garderie
 - verifier les credits attribues
+- verifier qu'un paiement annuel attribue bien 12 mois de credits en une fois
+- verifier qu'un credit promenade ne peut pas payer une garderie, et inversement
+- programmer une resiliation, confirmer une seconde fois, puis annuler la resiliation
+- ouvrir et telecharger une facture
 - simuler un renouvellement et un paiement echoue via Stripe
 
-## 8. Deploiement
+## 10. Deploiement
 
 Flux standard :
 
@@ -163,7 +197,7 @@ Suivi :
 2. Verifier que le build passe en `READY`.
 3. Tester [https://resadog.vercel.app](https://resadog.vercel.app).
 
-## 9. Rollback
+## 11. Rollback
 
 Deux options :
 

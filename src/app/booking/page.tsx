@@ -72,6 +72,7 @@ type DateConfig = {
 
 const hourlyServiceTypes = ["DROP_IN", "DOG_WALKING"];
 const isHourlyService = (serviceType: string) => hourlyServiceTypes.includes(serviceType);
+const isSubscriptionService = (serviceType: string) => serviceType === "DOG_WALKING" || serviceType === "DAY_CARE";
 const defaultVisitDuration = () => 30;
 const defaultVisitTime = "09:00";
 const boardingCheckoutTime = "10:00";
@@ -326,6 +327,7 @@ export default function BookingPage() {
     serviceType: "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING";
     notes: string;
     promoCode: string;
+    serviceAddress: string;
     // Default dates
     startDate: string;
     endDate: string;
@@ -336,6 +338,7 @@ export default function BookingPage() {
     serviceType: "BOARDING",
     notes: "",
     promoCode: "",
+    serviceAddress: "",
     startDate: "",
     endDate: "",
     startTime: "18:00",
@@ -370,7 +373,8 @@ export default function BookingPage() {
   }, [formData.petIds, useSameDates]); // Re-sync when switching mode
 
   // Crédits utilisateur
-  const [userCredits, setUserCredits] = useState(0);
+  const [creditBalances, setCreditBalances] = useState<Record<string, number>>({});
+  const userCredits = creditBalances[formData.serviceType] || 0;
 
   useEffect(() => {
     const fetchCredits = async () => {
@@ -378,7 +382,7 @@ export default function BookingPage() {
         const res = await fetch("/api/user/credits");
         if (res.ok) {
           const data = await res.json();
-          setUserCredits(data.total);
+          setCreditBalances(data.byService || {});
         }
       } catch (e) {}
     };
@@ -742,6 +746,11 @@ export default function BookingPage() {
   const validateCoupon = async () => {
       const price = calculateTotalPrice();
 
+      if (!useSameDates) {
+          setCouponStatus(p => ({ ...p, error: "Un code promo nécessite des dates communes à tous les animaux" }));
+          return;
+      }
+
       if (!formData.promoCode) {
           setCouponStatus(p => ({ ...p, error: "Code requis" }));
           return;
@@ -792,6 +801,7 @@ export default function BookingPage() {
 
         bookingsToCreate.push({
             petIds: formData.petIds,
+            pricingPetIds: formData.petIds,
             startDate,
             endDate,
             startTime: formData.startTime,
@@ -802,7 +812,9 @@ export default function BookingPage() {
             notes: formData.notes,
             useCredits: payWithCredits,
             promoCode: formData.promoCode,
-            serviceDetails: isHourlyService(formData.serviceType) ? { visitSlots: getValidVisitSlots(visitSlots) } : undefined,
+            serviceDetails: isHourlyService(formData.serviceType)
+              ? { visitSlots: getValidVisitSlots(visitSlots), serviceAddress: formData.serviceAddress }
+              : undefined,
         });
     } else {
         const totalRaw = calculateTotalPrice();
@@ -825,6 +837,7 @@ export default function BookingPage() {
 
             bookingsToCreate.push({
                 petIds: [petId],
+                pricingPetIds: formData.petIds,
                 startDate,
                 endDate,
                 startTime: config.startTime,
@@ -835,7 +848,9 @@ export default function BookingPage() {
                 notes: formData.notes,
                 useCredits: payWithCredits,
                 promoCode: formData.promoCode,
-                serviceDetails: isHourlyService(formData.serviceType) ? { visitSlots: getValidVisitSlots(config.visitSlots) } : undefined,
+                serviceDetails: isHourlyService(formData.serviceType)
+                  ? { visitSlots: getValidVisitSlots(config.visitSlots), serviceAddress: formData.serviceAddress }
+                  : undefined,
             });
         }
     }
@@ -1116,6 +1131,21 @@ export default function BookingPage() {
                          </div>
                      )}
 
+                     {isHourlyService(formData.serviceType) && (
+                       <div className="space-y-2">
+                         <Label htmlFor="service-address">Adresse de la prestation</Label>
+                         <Input
+                           id="service-address"
+                           autoComplete="street-address"
+                           value={formData.serviceAddress}
+                           onChange={(e) => setFormData({ ...formData, serviceAddress: e.target.value })}
+                           placeholder="Numéro, rue, code postal et ville"
+                           className="h-12 bg-white"
+                         />
+                         <p className="text-xs text-gray-500">Utilisée uniquement pour organiser cette visite ou promenade.</p>
+                       </div>
+                     )}
+
                      {availabilityStatus.message && (
                         <div className={`text-center text-sm font-bold ${availabilityStatus.available ? "text-green-600" : "text-red-500"}`}>
                           {availabilityStatus.checking ? "Vérification..." : availabilityStatus.message}
@@ -1163,7 +1193,7 @@ export default function BookingPage() {
                                  </div>
                                  {couponStatus.applied && couponStatus.data && (
                                    <p className="text-green-400 text-xs font-bold">
-                                     -{couponStatus.data.coupon.discountType === "PERCENTAGE" ? `${couponStatus.data.coupon.discountValue}%` : `${couponStatus.data.coupon.discountValue}€`}
+                                     -{formatPrice(couponStatus.data.discountAmount)}€
                                    </p>
                                  )}
                                  {couponStatus.error && (
@@ -1176,7 +1206,7 @@ export default function BookingPage() {
 
                  <div className="flex gap-4">
                   <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-14 rounded-xl">Retour</Button>
-                  <Button type="button" onClick={goNext} disabled={!availabilityStatus.available || calculateTotalPrice() === 0} className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600">Récapitulatif</Button>
+                  <Button type="button" onClick={goNext} disabled={!availabilityStatus.available || calculateTotalPrice() === 0 || (isHourlyService(formData.serviceType) && formData.serviceAddress.trim().length < 8)} className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600">Récapitulatif</Button>
                 </div>
               </motion.div>
             )}
@@ -1312,7 +1342,7 @@ export default function BookingPage() {
                             </div>
 
                             {/* Crédits */}
-                            {userCredits > 0 && (
+                            {isSubscriptionService(formData.serviceType) && userCredits > 0 && (
                                 <div className="mt-4 p-4 bg-gray-900 rounded-xl text-white">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="font-bold">Vos crédits : {userCredits}</span>
@@ -1335,7 +1365,7 @@ export default function BookingPage() {
                     </div>
 
                     {/* Upsell Abonnement */}
-                    {!couponStatus.applied && userCredits < calculateCreditCost() && (
+                    {isSubscriptionService(formData.serviceType) && !couponStatus.applied && userCredits < calculateCreditCost() && (
                         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-6 text-white shadow-lg">
                             <div className="absolute top-0 right-0 -mr-8 -mt-8 h-24 w-24 rounded-full bg-white/10 blur-xl" />
 
@@ -1344,8 +1374,7 @@ export default function BookingPage() {
                                     <p className="text-xs font-bold uppercase tracking-wider text-orange-400">Bon plan</p>
                                     <h4 className="text-lg font-bold">Payer moins cher ?</h4>
                                     <p className="text-sm text-gray-300 mt-1">
-                                        Avec l'abonnement, cette réservation vous coûterait <span className="font-bold text-white">~{formatPrice(calculateTotalPrice() * 0.8)}€</span>
-                                        {pets.some(p => formData.petIds.includes(p.id) && typeof p.age === 'number' && p.age < 1) && " (supplément jeune animal offert !)"}.
+                                        Les crédits du service choisi offrent jusqu'à 20% de réduction sur le tarif public.
                                     </p>
                                 </div>
                                 <Button size="sm" onClick={() => setShowUpsellModal(true)} className="whitespace-nowrap bg-white text-gray-900 hover:bg-orange-50">

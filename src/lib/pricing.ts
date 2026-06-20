@@ -1,5 +1,5 @@
 /**
- * Système de tarification centralisé — aligné sur les tarifs Rover.
+ * Système de tarification centralisé.
  *
  * Variables de prix :
  * 1. Type de service (BOARDING, DAY_CARE, DROP_IN, DOG_WALKING)
@@ -60,27 +60,27 @@ interface PriceEntry {
 // Tarifs par service et espèce
 const PRICING: Record<string, Record<Species, PriceEntry>> = {
   BOARDING: {
-    DOG: { base: 20, additional: 17, young: 22, highSeason: 24 },
-    CAT: { base: 18, additional: 12, young: 20, highSeason: 22 },
+    DOG: { base: 24, additional: 18, young: 27, highSeason: 29 },
+    CAT: { base: 20, additional: 14, young: 23, highSeason: 25 },
   },
   DAY_CARE: {
-    DOG: { base: 23, additional: 20, young: 26, highSeason: 28 },
-    CAT: { base: 20, additional: 16, young: 22, highSeason: 24 },
+    DOG: { base: 25, additional: 20, young: 28, highSeason: 30 },
+    CAT: { base: 22, additional: 17, young: 25, highSeason: 27 },
   },
   DROP_IN: {
-    DOG: { base: 13, additional: 11, young: 15, highSeason: 17 },
-    CAT: { base: 12, additional: 6, young: 14, highSeason: 15 },
+    DOG: { base: 15, additional: 10, young: 17, highSeason: 18 },
+    CAT: { base: 14, additional: 8, young: 16, highSeason: 17 },
   },
   DOG_WALKING: {
-    DOG: { base: 10, additional: 8, young: 11, highSeason: 13 },
-    CAT: { base: 10, additional: 8, young: 11, highSeason: 13 }, // Promenade chat = même tarif
+    DOG: { base: 12, additional: 9, young: 14, highSeason: 15 },
+    CAT: { base: 12, additional: 9, young: 14, highSeason: 15 },
   },
 };
 
 // Extra durée (pour visites et promenades)
 export const EXTRA_DURATION = {
-  DROP_IN: { baseDuration: 30, extraRate: 8, increment: 30 },     // +8€ par 30 min
-  DOG_WALKING: { baseDuration: 30, extraRate: 6, increment: 30 }, // +6€ par 30 min
+  DROP_IN: { baseDuration: 30, extraRate: 9, increment: 30 },
+  DOG_WALKING: { baseDuration: 30, extraRate: 7, increment: 30 },
 };
 
 // --- CALCUL DE PRIX ---
@@ -183,5 +183,106 @@ export function getServiceDisplayPrice(serviceType: string): {
     dogPrice: dog?.base || 0,
     catPrice: cat?.base || 0,
     unit: units[serviceType] || "unité",
+  };
+}
+
+type BookingPet = {
+  id: string;
+  species: Species;
+  age?: number | null;
+};
+
+type BookingVisitSlot = {
+  date: string;
+  startTime: string;
+  duration: number;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const BOARDING_CHECKOUT_MINUTES = 10 * 60;
+
+function parseDateKey(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12));
+}
+
+function calendarDayDifference(startDate: string, endDate: string) {
+  return Math.round((parseDateKey(endDate).getTime() - parseDateKey(startDate).getTime()) / DAY_MS);
+}
+
+function timeToMinutes(value?: string) {
+  if (!value) return 0;
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+/**
+ * Authoritative booking calculation. The API must use this result instead of
+ * trusting a total sent by the browser.
+ */
+export function calculateBookingPrice(input: {
+  serviceType: string;
+  pets: BookingPet[];
+  pricingContextPets?: BookingPet[];
+  startDate: string;
+  endDate: string;
+  startTime?: string;
+  endTime?: string;
+  visitSlots?: BookingVisitSlot[];
+}) {
+  const contextPets = input.pricingContextPets?.length ? input.pricingContextPets : input.pets;
+  const hourly = input.serviceType === "DROP_IN" || input.serviceType === "DOG_WALKING";
+  const slots = input.visitSlots || [];
+  const highSeason = hourly
+    ? slots.some((slot) => isHighSeasonRange(slot.date, slot.date))
+    : isHighSeasonRange(input.startDate, input.endDate);
+
+  let quantity = 0;
+  if (hourly) {
+    quantity = slots.length;
+  } else if (input.serviceType === "DAY_CARE") {
+    quantity = calendarDayDifference(input.startDate, input.endDate) + 1;
+  } else {
+    quantity = calendarDayDifference(input.startDate, input.endDate);
+  }
+
+  let total = 0;
+  const pets = input.pets.map((pet) => {
+    const sameSpecies = contextPets.filter((candidate) => candidate.species === pet.species);
+    const isAdditional = sameSpecies.findIndex((candidate) => candidate.id === pet.id) > 0;
+    const unit = getUnitPrice(input.serviceType, {
+      species: pet.species,
+      isYoung: typeof pet.age === "number" && pet.age < 1,
+      isAdditional,
+      isHighSeason: highSeason,
+    });
+
+    let petTotal = unit.price * Math.max(0, quantity);
+
+    if (input.serviceType === "BOARDING") {
+      const checkoutOverrunMinutes = timeToMinutes(input.endTime) - BOARDING_CHECKOUT_MINUTES;
+      if (checkoutOverrunMinutes > 8 * 60) petTotal += unit.price;
+      else if (checkoutOverrunMinutes > 2 * 60) petTotal += Math.round(unit.price * 0.5);
+    }
+
+    total += petTotal;
+    return { petId: pet.id, unitPrice: unit.price, quantity, total: petTotal, lines: unit.lines };
+  });
+
+  let durationExtra = 0;
+  if (hourly && input.pets.length > 0) {
+    const extra = EXTRA_DURATION[input.serviceType as keyof typeof EXTRA_DURATION];
+    durationExtra = slots.reduce((sum, slot) => {
+      const extraMinutes = Math.max(0, slot.duration - extra.baseDuration);
+      return sum + Math.ceil(extraMinutes / extra.increment) * extra.extraRate;
+    }, 0);
+    total += durationExtra;
+  }
+
+  return {
+    total: Math.round(total * 100) / 100,
+    quantity,
+    durationExtra,
+    pets,
   };
 }

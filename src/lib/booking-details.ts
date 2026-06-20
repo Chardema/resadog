@@ -6,6 +6,7 @@ export type VisitSlot = {
 
 export type BookingServiceDetails = {
   visitSlots?: VisitSlot[];
+  serviceAddress?: string;
 };
 
 const DETAILS_START = "[RESADOG_SERVICE_DETAILS]";
@@ -17,10 +18,11 @@ export function buildSpecialRequests(
 ) {
   const cleanedNotes = notes?.trim() || "";
   const visitSlots = serviceDetails?.visitSlots?.filter((slot) => slot.date) || [];
+  const serviceAddress = serviceDetails?.serviceAddress?.trim() || undefined;
 
-  if (visitSlots.length === 0) return cleanedNotes || null;
+  if (visitSlots.length === 0 && !serviceAddress) return cleanedNotes || null;
 
-  const detailsBlock = `${DETAILS_START}${JSON.stringify({ visitSlots })}${DETAILS_END}`;
+  const detailsBlock = `${DETAILS_START}${JSON.stringify({ visitSlots, serviceAddress })}${DETAILS_END}`;
   return [cleanedNotes, detailsBlock].filter(Boolean).join("\n\n");
 }
 
@@ -39,7 +41,10 @@ export function extractServiceDetails(
       typeof slot.startTime === "string" &&
       typeof slot.duration === "number"
     );
-    return visitSlots?.length ? { visitSlots } : null;
+    const serviceAddress = typeof parsed.serviceAddress === "string"
+      ? parsed.serviceAddress.trim()
+      : undefined;
+    return visitSlots?.length || serviceAddress ? { visitSlots, serviceAddress } : null;
   } catch {
     return null;
   }

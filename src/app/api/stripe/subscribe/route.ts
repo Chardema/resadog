@@ -60,6 +60,16 @@ export async function POST(request: NextRequest) {
     });
 
     if (
+      existingSubscription?.stripeSubscriptionId &&
+      !["ACTIVE", "CANCELED", "CANCELED_REMOTE"].includes(existingSubscription.status)
+    ) {
+      return NextResponse.json(
+        { error: "Régularisez d'abord l'abonnement existant depuis votre profil." },
+        { status: 409 }
+      );
+    }
+
+    if (
       existingSubscription &&
       existingSubscription.status === "ACTIVE" &&
       existingSubscription.billingPeriod !== billingCycle
@@ -92,6 +102,12 @@ export async function POST(request: NextRequest) {
     if (existingSubscription && existingSubscription.status === 'ACTIVE' && existingSubscription.stripeSubscriptionId) {
         // 1. Récupérer l'abonnement Stripe actuel pour avoir l'ID de l'item
         const stripeSub = await stripe.subscriptions.retrieve(existingSubscription.stripeSubscriptionId);
+        if (stripeSub.cancel_at_period_end) {
+          return NextResponse.json(
+            { error: "Annulez d'abord la résiliation programmée depuis votre profil." },
+            { status: 409 }
+          );
+        }
         const itemId = stripeSub.items.data[0].id;
 
         // 2. Mettre à jour l'abonnement Stripe

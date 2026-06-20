@@ -42,6 +42,7 @@ export default function CGVPage() {
             <ul className="list-disc pl-5">
               <li>Nous nous engageons à assurer le bien-être, la sécurité et l'hygiène de l'animal confié.</li>
               <li>En cas d'urgence médicale, nous nous engageons à contacter le propriétaire et/ou le vétérinaire référent immédiatement.</li>
+              <li>Les prestations sont encadrées par une professionnelle titulaire de l’ACACED.</li>
             </ul>
           </section>
 
@@ -58,15 +59,23 @@ export default function CGVPage() {
             <p className="mb-2"><strong>Fonctionnement :</strong></p>
             <ul className="list-disc pl-5 mb-4">
               <li>L'abonnement donne droit à un nombre défini de crédits mensuels.</li>
-              <li>1 Crédit = 1 Jour de garde ou 1 Promenade (peu importe le type).</li>
+              <li>Un crédit correspond à une prestation du service souscrit. Les crédits promenade et garderie ne sont pas interchangeables.</li>
               <li>Les crédits ont une durée de validité illimitée tant que le compte est actif.</li>
             </ul>
             <p className="mb-2"><strong>Engagement et Résiliation :</strong></p>
             <ul className="list-disc pl-5">
               <li>Formule Mensuelle : Engagement minimum de 2 mois. Résiliable ensuite à tout moment sans frais.</li>
-              <li>Formule Annuelle : Engagement ferme de 12 mois, payé en une fois ou mensuellement selon l'offre.</li>
+              <li>Formule Annuelle : Engagement ferme de 12 mois, payé en une fois.</li>
               <li>Toute période commencée est due. Les crédits non utilisés restent acquis.</li>
             </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">6. Réclamation et médiation</h2>
+            <p>
+              Toute réclamation doit d'abord être adressée à La Patte Dorée. En l'absence de solution amiable,
+              le consommateur peut saisir gratuitement le médiateur de la consommation indiqué dans les mentions légales du site.
+            </p>
           </section>
 
         </div>

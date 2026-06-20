@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelConfirmed, setCancelConfirmed] = useState(false);
   const [subscriptionMessage, setSubscriptionMessage] = useState("");
+  const [profileMessage, setProfileMessage] = useState("");
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   
   const [formData, setFormData] = useState({
@@ -31,12 +32,7 @@ export default function ProfilePage() {
     if (status === "unauthenticated") {
       router.push("/auth/signin");
     } else if (session?.user) {
-      setFormData({
-        name: session.user.name || "",
-        email: session.user.email || "",
-        phone: "", // À récupérer via API si stocké
-        image: session.user.image || "",
-      });
+      fetchProfile();
       fetchSubscription();
     }
   }, [status, session, router]);
@@ -51,14 +47,40 @@ export default function ProfilePage() {
       } catch (e) {}
   };
 
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch("/api/user/profile");
+      const data = await res.json();
+      if (!res.ok) return;
+      setFormData({
+        name: data.user.name || "",
+        email: data.user.email || "",
+        phone: data.user.phone || "",
+        image: data.user.image || "",
+      });
+    } catch {}
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulation mise à jour (à connecter à une API réelle /api/user/profile)
-    await new Promise(r => setTimeout(r, 1000));
-    await update({ name: formData.name });
-    setIsEditing(false);
-    setIsLoading(false);
+    setProfileMessage("");
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: formData.name, phone: formData.phone, image: formData.image || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Impossible d'enregistrer le profil");
+      await update({ name: data.user.name });
+      setProfileMessage("Informations enregistrées.");
+      setIsEditing(false);
+    } catch (error) {
+      setProfileMessage(error instanceof Error ? error.message : "Erreur de connexion");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatMoney = (amount: number) =>
@@ -181,6 +203,7 @@ export default function ProfilePage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                {profileMessage && <p className="text-sm font-medium text-gray-600">{profileMessage}</p>}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label>Nom complet</Label>

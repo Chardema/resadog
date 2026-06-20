@@ -12,14 +12,14 @@ export const SUBSCRIPTION_SERVICES: Record<SubscriptionServiceType, ServiceConfi
   DOG_WALKING: {
     label: "Promenade",
     creditLabel: "promenade",
-    unitPrice: 10,
-    minimumCreditPrice: 8,
+    unitPrice: 12,
+    minimumCreditPrice: 10,
   },
   DAY_CARE: {
     label: "Garderie",
     creditLabel: "jour de garderie",
-    unitPrice: 23,
-    minimumCreditPrice: 18,
+    unitPrice: 25,
+    minimumCreditPrice: 20,
   },
 };
 

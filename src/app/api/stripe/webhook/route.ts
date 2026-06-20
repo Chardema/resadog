@@ -32,11 +32,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, duplicate: true });
     }
 
-    // Enregistrer l'événement AVANT le traitement pour éviter les doublons en cas de retry
-    await prisma.stripeWebhookEvent.create({
-      data: { id: event.id, type: event.type },
-    });
-
     // Gérer les événements Stripe
     switch (event.type) {
       case "payment_intent.succeeded":
@@ -70,6 +65,12 @@ export async function POST(request: NextRequest) {
       default:
         break;
     }
+
+    // Un événement n'est considéré comme traité qu'une fois toutes ses actions terminées.
+    // En cas d'erreur, Stripe peut ainsi le renvoyer sans qu'il soit perdu.
+    await prisma.stripeWebhookEvent.create({
+      data: { id: event.id, type: event.type },
+    });
 
     return NextResponse.json({ received: true });
   } catch (error) {
@@ -118,11 +119,14 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
         });
 
         if (subscription) {
+            const creditsGranted = subscription.billingPeriod === "YEARLY"
+                ? subscription.creditsPerMonth * 12
+                : subscription.creditsPerMonth;
             await prisma.creditBatch.create({
                 data: {
                     userId: subscription.userId,
-                    amount: subscription.creditsPerMonth,
-                    remaining: subscription.creditsPerMonth,
+                    amount: creditsGranted,
+                    remaining: creditsGranted,
                     serviceType: subscription.serviceType,
                     expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
                 }
@@ -252,6 +256,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           update: {
               stripeSubscriptionId: subscriptionId,
               status: "ACTIVE",
+              createdAt: new Date(),
               serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
               daysPerWeek: parseInt(metadata.daysPerWeek),
               creditsPerMonth: parseInt(metadata.creditsPerMonth),
@@ -270,22 +275,19 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           }
       });
 
-      // Créditer le premier lot une seule fois.
-      const existingCreditBatches = await prisma.creditBatch.count({
-          where: { userId: metadata.userId },
+      // checkout.session.completed est idempotent au niveau de l'événement : ce lot
+      // correspond toujours au premier paiement de ce nouvel abonnement.
+      const monthlyCredits = parseInt(metadata.creditsPerMonth);
+      const creditsGranted = metadata.billingCycle === "YEARLY" ? monthlyCredits * 12 : monthlyCredits;
+      await prisma.creditBatch.create({
+          data: {
+              userId: metadata.userId,
+              amount: creditsGranted,
+              remaining: creditsGranted,
+              serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
+              expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
+          }
       });
-
-      if (existingCreditBatches === 0) {
-          await prisma.creditBatch.create({
-              data: {
-                  userId: metadata.userId,
-                  amount: parseInt(metadata.creditsPerMonth),
-                  remaining: parseInt(metadata.creditsPerMonth),
-                  serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
-                  expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
-              }
-          });
-      }
 
       return;
   }

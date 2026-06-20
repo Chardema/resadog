@@ -7,6 +7,7 @@ import { SignOutButton } from "@/components/auth/SignOutButton";
 import { useRef } from "react";
 import { ReviewsSection } from "@/components/home/ReviewsSection";
 import { Button } from "@/components/ui/button";
+import { Award, HeartPulse, ShieldCheck } from "lucide-react";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -151,6 +152,28 @@ export default function Home() {
         </motion.div>
       </main>
 
+      <section className="border-y border-emerald-900 bg-emerald-950 text-white">
+        <div className="container mx-auto grid gap-8 px-6 py-10 md:grid-cols-[1.4fr_1fr] md:items-center">
+          <div>
+            <div className="mb-3 flex items-center gap-3 text-emerald-200">
+              <Award className="h-6 w-6" aria-hidden="true" />
+              <span className="text-sm font-bold uppercase">Compétence professionnelle</span>
+            </div>
+            <h2 className="text-2xl font-bold md:text-3xl">Garde encadrée par une titulaire de l’ACACED</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-100">
+              Une prise en charge fondée sur la connaissance des besoins biologiques, physiologiques et comportementaux des chiens et des chats.
+            </p>
+            {process.env.NEXT_PUBLIC_ACACED_NUMBER && (
+              <p className="mt-2 text-xs text-emerald-300">Attestation n° {process.env.NEXT_PUBLIC_ACACED_NUMBER}</p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-emerald-300" /> Bien-être et sécurité</div>
+            <div className="flex items-center gap-3"><HeartPulse className="h-5 w-5 text-emerald-300" /> Besoins individualisés</div>
+          </div>
+        </div>
+      </section>
+
       {/* Bento Grid Services Section */}
       <section className="container mx-auto px-6 py-24">
         <div className="mb-12">
@@ -206,8 +229,8 @@ export default function Home() {
               </p>
             </div>
             <div className="mt-8 pt-8 border-t border-white/10">
-              <p className="text-3xl font-bold">dès 10€</p>
-              <p className="text-gray-400 text-sm">la balade</p>
+              <p className="text-3xl font-bold">dès 12€</p>
+              <p className="text-gray-400 text-sm">30 minutes</p>
             </div>
           </motion.div>
 
@@ -283,10 +306,10 @@ export default function Home() {
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { icon: "🪙", title: "1 Crédit = 1 Jour", desc: "Utilisez vos crédits pour n'importe quelle prestation." },
+                { icon: "🪙", title: "Crédits dédiés", desc: "1 crédit vaut une prestation du service choisi." },
                 { icon: "🔄", title: "Reportable", desc: "Vos crédits ont une validité illimitée." },
-                { icon: "🐾", title: "Jeune Animal Offert", desc: "Le supplément jeune animal est 100% offert pour les membres." },
-                { icon: "📉", title: "-20% Garanti", desc: "Le tarif le plus bas, toute l'année, même en vacances." }
+                { icon: "🐾", title: "Prix prévisible", desc: "Le coût du pack est détaillé avant le paiement." },
+                { icon: "📉", title: "Jusqu'à -20%", desc: "La remise réelle dépend du rythme et de la formule." }
               ].map((feature, i) => (
                 <motion.div
                   key={i}
@@ -334,18 +357,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer Minimaliste */}
-      <footer className="border-t border-gray-200 bg-white py-12">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🐾</span>
-            <span className="font-bold text-gray-900">La Patte Dorée</span>
-          </div>
-          <p className="text-gray-500 text-sm">
-            © 2026 - Fait avec ❤️ pour vos compagnons.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
