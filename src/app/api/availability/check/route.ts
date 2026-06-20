@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     const existingBookings = await prisma.booking.findMany({
       where: {
         status: { in: ["CONFIRMED", "IN_PROGRESS"] },
-        // serviceType: serviceType as any, // Optionnel: décommenter si on peut avoir plusieurs types de services en parallèle
+        serviceType: serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
         OR: [
           {
             AND: [
