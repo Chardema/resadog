@@ -146,7 +146,10 @@ export default function AdminCouponsPage() {
               </div>
               <div>
                 <Label>Valeur</Label>
-                <Input type="number" value={formData.discountValue} onChange={e => setFormData({...formData, discountValue: parseFloat(e.target.value)})} required min="0" />
+                <Input type="number" value={formData.discountValue} onChange={e => setFormData({...formData, discountValue: parseFloat(e.target.value)})} required min="0" max={formData.discountType === "PERCENTAGE" ? 20 : undefined} />
+                {formData.discountType === "PERCENTAGE" && (
+                  <p className="mt-1 text-xs text-gray-500">Maximum 20% pour préserver le prix plancher.</p>
+                )}
               </div>
               <div>
                 <Label>Montant Min. Commande (€)</Label>

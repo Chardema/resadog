@@ -14,6 +14,14 @@ const couponSchema = z.object({
   validUntil: z.string().optional(),
   restrictedTo: z.array(z.string().email()).optional(),
   applicableServices: z.array(z.enum(["BOARDING", "DAY_CARE", "DROP_IN", "DOG_WALKING"])).optional(),
+}).superRefine((coupon, context) => {
+  if (coupon.discountType === "PERCENTAGE" && coupon.discountValue > 20) {
+    context.addIssue({
+      code: "custom",
+      path: ["discountValue"],
+      message: "Une remise en pourcentage ne peut pas dépasser 20%",
+    });
+  }
 });
 
 // Créer un nouveau coupon
@@ -66,6 +74,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Erreur lors de la création du coupon:", error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0]?.message || "Coupon invalide" },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Une erreur est survenue" },

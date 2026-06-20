@@ -140,6 +140,16 @@ export async function POST(request: NextRequest) {
       ? [...new Set(visitSlots.map((slot) => slot.date))].sort()
       : getDateKeysInRange(start, end);
 
+    const todayInParis = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Paris",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    if (selectedDateKeys.some((dateKey) => dateKey < todayInParis)) {
+      return NextResponse.json({ error: "Une réservation ne peut pas commencer dans le passé" }, { status: 400 });
+    }
+
     if (isHourlyService && selectedDateKeys.some((dateKey) => {
       const slotDate = parseUTCDate(dateKey);
       return slotDate < start || slotDate > end;
