@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { CalendarOff, LoaderCircle, RotateCcw } from "lucide-react";
 
 interface Availability {
   id: string;
@@ -16,6 +17,13 @@ interface Availability {
   notes?: string | null;
 }
 
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function AdminCalendarPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -23,6 +31,11 @@ export default function AdminCalendarPage() {
   const [selectedServiceType, setSelectedServiceType] = useState<"BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING">("BOARDING");
   const [availabilities, setAvailabilities] = useState<Record<string, Availability>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [vacationStart, setVacationStart] = useState("");
+  const [vacationEnd, setVacationEnd] = useState("");
+  const [vacationLabel, setVacationLabel] = useState("");
+  const [vacationAction, setVacationAction] = useState<"BLOCK" | "RESTORE" | null>(null);
+  const [vacationFeedback, setVacationFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -37,11 +50,11 @@ export default function AdminCalendarPage() {
     fetchAvailabilities();
   }, [selectedMonth, selectedServiceType]);
 
-  const fetchAvailabilities = async () => {
+  const fetchAvailabilities = async (monthToFetch = selectedMonth) => {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `/api/admin/availability?month=${selectedMonth.getMonth() + 1}&year=${selectedMonth.getFullYear()}&serviceType=${selectedServiceType}`
+        `/api/admin/availability?month=${monthToFetch.getMonth() + 1}&year=${monthToFetch.getFullYear()}&serviceType=${selectedServiceType}`
       );
 
       if (response.ok) {
@@ -161,6 +174,51 @@ export default function AdminCalendarPage() {
     }
   };
 
+  const handleVacation = async (action: "BLOCK" | "RESTORE") => {
+    if (!vacationStart || !vacationEnd || vacationEnd < vacationStart) {
+      setVacationFeedback({ type: "error", message: "Sélectionnez une période valide." });
+      return;
+    }
+
+    try {
+      setVacationAction(action);
+      setVacationFeedback(null);
+      const response = await fetch("/api/admin/availability", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDate: vacationStart,
+          endDate: vacationEnd,
+          action,
+          label: vacationLabel,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "La période n'a pas pu être modifiée.");
+      }
+
+      const [selectedYear, selectedMonthNumber] = vacationStart.split("-").map(Number);
+      const vacationMonth = new Date(selectedYear, selectedMonthNumber - 1, 1);
+      setSelectedMonth(vacationMonth);
+      await fetchAvailabilities(vacationMonth);
+      setVacationFeedback({
+        type: "success",
+        message: action === "BLOCK"
+          ? `${data.affectedDates} jour(s) bloqué(s) pour tous les services.`
+          : "La période est rouverte et les blocages manuels ont été conservés.",
+      });
+    } catch (error) {
+      setVacationFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Une erreur est survenue.",
+      });
+    } finally {
+      setVacationAction(null);
+    }
+  };
+
   const monthNames = [
     "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
     "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
@@ -231,6 +289,80 @@ export default function AdminCalendarPage() {
               Définissez vos disponibilités pour les réservations
             </p>
           </div>
+
+          <section className="mb-6 border-y border-orange-200 bg-white px-6 py-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-3">
+              <CalendarOff className="h-5 w-5 text-orange-700" aria-hidden="true" />
+              <h2 className="text-lg font-bold text-gray-900">Mode vacances</h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.3fr]">
+              <label className="text-sm font-semibold text-gray-800">
+                Du
+                <input
+                  type="date"
+                  value={vacationStart}
+                  min={formatDateInput(new Date())}
+                  onChange={(event) => {
+                    setVacationStart(event.target.value);
+                    if (!vacationEnd || vacationEnd < event.target.value) {
+                      setVacationEnd(event.target.value);
+                    }
+                  }}
+                  className="mt-1 block h-11 w-full rounded-md border border-gray-300 bg-white px-3 font-normal text-gray-900"
+                />
+              </label>
+              <label className="text-sm font-semibold text-gray-800">
+                Au
+                <input
+                  type="date"
+                  value={vacationEnd}
+                  min={vacationStart || formatDateInput(new Date())}
+                  onChange={(event) => setVacationEnd(event.target.value)}
+                  className="mt-1 block h-11 w-full rounded-md border border-gray-300 bg-white px-3 font-normal text-gray-900"
+                />
+              </label>
+              <label className="text-sm font-semibold text-gray-800">
+                Libellé (facultatif)
+                <input
+                  type="text"
+                  value={vacationLabel}
+                  maxLength={120}
+                  onChange={(event) => setVacationLabel(event.target.value)}
+                  placeholder="Vacances d'été"
+                  className="mt-1 block h-11 w-full rounded-md border border-gray-300 bg-white px-3 font-normal text-gray-900"
+                />
+              </label>
+            </div>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                onClick={() => handleVacation("BLOCK")}
+                disabled={vacationAction !== null}
+                className="bg-red-700 text-white hover:bg-red-800"
+              >
+                {vacationAction === "BLOCK" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CalendarOff className="h-4 w-4" />}
+                Activer les vacances
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleVacation("RESTORE")}
+                disabled={vacationAction !== null}
+                className="border-gray-300"
+              >
+                {vacationAction === "RESTORE" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                Retirer les vacances
+              </Button>
+            </div>
+            {vacationFeedback && (
+              <p
+                role="status"
+                className={`mt-4 text-sm font-semibold ${vacationFeedback.type === "success" ? "text-green-700" : "text-red-700"}`}
+              >
+                {vacationFeedback.message}
+              </p>
+            )}
+          </section>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
