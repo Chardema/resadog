@@ -45,11 +45,15 @@ function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     if (status === "unauthenticated") {
       router.push("/auth/signin");
     } else if (status === "authenticated") {
-      fetchDashboardData();
+      fetchDashboardData(controller.signal);
     }
+
+    return () => controller.abort();
   }, [status, router]);
 
   useEffect(() => {
@@ -80,11 +84,11 @@ function DashboardContent() {
     }
   }, [searchParams, router]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (signal?: AbortSignal) => {
     try {
       const [bookingsRes, subRes] = await Promise.all([
-        fetch("/api/bookings"),
-        fetch("/api/user/subscription")
+        fetch("/api/bookings", { signal }),
+        fetch("/api/user/subscription", { signal })
       ]);
 
       if (bookingsRes.ok && subRes.ok) {
@@ -110,7 +114,9 @@ function DashboardContent() {
         });
       }
     } catch (error) {
-      console.error("Erreur chargement dashboard:", error);
+      if (!signal?.aborted) {
+        console.error("Erreur chargement dashboard:", error);
+      }
     } finally {
       setIsLoading(false);
     }
