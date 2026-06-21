@@ -28,6 +28,7 @@ type ExistingSubscription = {
   serviceType: ServiceType;
   daysPerWeek: number;
   creditsPerMonth: number;
+  petCount: number;
 };
 
 const formatMoney = (amount: number) =>
@@ -42,6 +43,7 @@ export default function SubscriptionPage() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("MONTHLY");
   const [loading, setLoading] = useState(false);
   const [existingSubscription, setExistingSubscription] = useState<ExistingSubscription | null>(null);
+  const [subscriptionLoaded, setSubscriptionLoaded] = useState(false);
   const [cancellationScheduled, setCancellationScheduled] = useState(false);
   const [error, setError] = useState("");
 
@@ -58,10 +60,13 @@ export default function SubscriptionPage() {
           setCancellationScheduled(Boolean(result.cancelAtPeriodEnd));
           setServiceType(result.subscription.serviceType);
           setDaysPerWeek(result.subscription.daysPerWeek);
+          setPetCount(result.subscription.petCount || 1);
           setBillingCycle(result.subscription.billingPeriod);
         }
       } catch {
         if (!controller.signal.aborted) setError("Impossible de charger votre abonnement.");
+      } finally {
+        if (!controller.signal.aborted) setSubscriptionLoaded(true);
       }
     };
 
@@ -73,6 +78,7 @@ export default function SubscriptionPage() {
   const billingChangeBlocked = Boolean(
     existingSubscription && existingSubscription.billingPeriod !== billingCycle
   );
+  const subscriptionLoading = status === "authenticated" && !subscriptionLoaded;
   const savings = Math.max(0, plan.publicMonthlyPrice - plan.monthlyPrice);
 
   const handleSubscribe = async () => {
@@ -326,11 +332,14 @@ export default function SubscriptionPage() {
               <Button
                 type="button"
                 onClick={handleSubscribe}
-                disabled={loading || billingChangeBlocked || cancellationScheduled}
+                disabled={loading || subscriptionLoading || billingChangeBlocked || cancellationScheduled}
                 className="h-12 w-full bg-white text-base font-bold text-gray-950 hover:bg-orange-50"
               >
-                {loading ? (
-                  <><LoaderCircle className="h-5 w-5 animate-spin" /> Préparation</>
+                {loading || subscriptionLoading ? (
+                  <>
+                    <LoaderCircle className="h-5 w-5 animate-spin" />
+                    {loading ? "Préparation" : "Chargement de votre formule"}
+                  </>
                 ) : (
                   <>
                     {existingSubscription ? "Enregistrer la formule" : "Continuer vers le paiement"}

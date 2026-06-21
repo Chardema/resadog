@@ -28,6 +28,7 @@ export async function GET() {
   let cancellationEffectiveAt = null;
   let cancelAtPeriodEnd = false;
   let isLocked = false;
+  let petCount = 1;
   let invoices: {
     id: string;
     number: string | null;
@@ -49,6 +50,10 @@ export async function GET() {
             currentPeriodEnd = new Date(firstItem.current_period_end * 1000);
           }
           cancelAtPeriodEnd = stripeSub.cancel_at_period_end || Boolean(stripeSub.cancel_at);
+          const stripePetCount = Number(stripeSub.metadata.petCount || 1);
+          petCount = Number.isInteger(stripePetCount)
+            ? Math.min(3, Math.max(1, stripePetCount))
+            : 1;
           cancellationEffectiveAt = stripeSub.cancel_at
             ? new Date(stripeSub.cancel_at * 1000)
             : stripeSub.cancel_at_period_end
@@ -110,7 +115,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    subscription,
+    subscription: subscription ? { ...subscription, petCount } : null,
     credits: totalCredits,
     portalUrl,
     commitmentEndsAt,

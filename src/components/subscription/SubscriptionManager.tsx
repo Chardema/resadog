@@ -20,6 +20,7 @@ type Subscription = {
   billingPeriod: "MONTHLY" | "YEARLY";
   daysPerWeek: number;
   creditsPerMonth: number;
+  petCount?: number;
   price: number;
 };
 
@@ -223,7 +224,7 @@ export function SubscriptionManager() {
 
           <div className="p-5 sm:p-6">
             <p className="text-sm text-gray-600">
-              {subscription.daysPerWeek} jour{subscription.daysPerWeek > 1 ? "s" : ""}/semaine · {subscription.creditsPerMonth} crédits par mois
+              {subscription.daysPerWeek} jour{subscription.daysPerWeek > 1 ? "s" : ""}/semaine · {subscription.petCount || 1} {subscription.petCount && subscription.petCount > 1 ? "animaux" : "animal"} · {subscription.creditsPerMonth} crédits par mois
             </p>
 
             {message && (
