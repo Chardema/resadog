@@ -269,7 +269,7 @@ function DashboardContent() {
                     </p>
                   </div>
                   <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                    {data?.subscription.billingPeriod === "YEARLY" ? "Annuel" : "Mensuel"}
+                    {data?.subscription?.billingPeriod === "YEARLY" ? "Annuel" : "Mensuel"}
                   </div>
                 </div>
                 
