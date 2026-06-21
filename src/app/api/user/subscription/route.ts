@@ -232,7 +232,9 @@ export async function POST(request: NextRequest) {
     const stripeSubscription = await stripe.subscriptions.update(
       subscription.stripeSubscriptionId,
       action === "resume"
-        ? { cancel_at_period_end: false, cancel_at: "" }
+        ? currentStripeSubscription.cancel_at
+          ? { cancel_at: "" }
+          : { cancel_at_period_end: false }
         : cancellationDuringCommitment
           ? { cancel_at: commitmentEndTimestamp }
           : { cancel_at_period_end: true }
