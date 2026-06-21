@@ -1,7 +1,25 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { PawPrint } from "lucide-react";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const pathname = usePathname();
+  const { status } = useSession();
+  const authenticatedAppPath = [
+    "/dashboard",
+    "/booking",
+    "/history",
+    "/pets",
+    "/profile",
+    "/subscriptions",
+    "/admin",
+  ].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+
+  if (authenticatedAppPath && status !== "unauthenticated") return null;
 
   return (
     <footer className="bg-white border-t border-orange-100 py-12 mt-auto">
@@ -10,13 +28,13 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                🐾
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-600 text-white shadow-md">
+                <PawPrint className="h-4 w-4" />
               </div>
               <span className="text-xl font-bold text-gray-900">La Patte Dorée</span>
             </Link>
             <p className="text-gray-500 text-sm max-w-xs">
-              Service de garde d'animaux premium avec suivi en temps réel. 
+              Service de garde d’animaux premium avec suivi en temps réel.
               Offrez à vos compagnons des vacances aussi belles que les vôtres.
             </p>
             <p className="mt-3 text-sm font-semibold text-emerald-700">Professionnelle titulaire de l’ACACED</p>

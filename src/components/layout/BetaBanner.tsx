@@ -4,8 +4,8 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Bug, CheckCircle2, X } from "lucide-react";
 
 export function BetaBanner() {
   const pathname = usePathname();
@@ -33,7 +33,7 @@ export function BetaBanner() {
           setDescription("");
         }, 2000);
       }
-    } catch (e) {
+    } catch {
       alert("Erreur lors de l'envoi.");
     } finally {
       setSending(false);
@@ -42,16 +42,15 @@ export function BetaBanner() {
 
   return (
     <>
-      {/* Banner Fixe en bas à droite (au-dessus du footer/nav mobile) */}
-      <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-2">
-        <div className="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-lg border border-yellow-500 animate-pulse">
-          🚧 VERSION BETA
-        </div>
+      <div className="fixed bottom-20 right-3 z-40 md:bottom-6 md:right-6">
         <Button 
           onClick={() => setIsOpen(true)}
-          className="bg-red-600 hover:bg-red-700 text-white shadow-xl rounded-full px-6 h-12 font-bold flex items-center gap-2"
+          size="icon"
+          aria-label="Signaler un problème"
+          title="Signaler un problème"
+          className="h-11 w-11 rounded-full border border-gray-200 bg-white text-gray-700 shadow-lg hover:bg-gray-50"
         >
-          🐞 Signaler un bug
+          <Bug className="h-5 w-5" />
         </Button>
       </div>
 
@@ -66,13 +65,15 @@ export function BetaBanner() {
               className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl"
             >
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-gray-900">Signaler un problème 🐛</h3>
-                <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                <h3 className="text-xl font-bold text-gray-900">Signaler un problème</h3>
+                <button onClick={() => setIsOpen(false)} aria-label="Fermer" className="p-2 text-gray-500 hover:text-gray-700">
+                  <X className="h-5 w-5" />
+                </button>
               </div>
 
               {success ? (
                 <div className="text-center py-8 text-green-600">
-                  <p className="text-4xl mb-2">✅</p>
+                  <CheckCircle2 className="mx-auto mb-2 h-10 w-10" />
                   <p className="font-bold">Merci ! Le message a été envoyé.</p>
                 </div>
               ) : (
