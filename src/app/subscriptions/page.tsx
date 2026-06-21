@@ -1,287 +1,350 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { AppNav } from "@/components/layout/AppNav";
-import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  CalendarClock,
+  Check,
+  LoaderCircle,
+  Minus,
+  PawPrint,
+  Plus,
+  ShieldCheck,
+  Sun,
+} from "lucide-react";
+import { AppNav } from "@/components/layout/AppNav";
+import { Button } from "@/components/ui/button";
 import { calculateSubscriptionPlan } from "@/lib/subscription-pricing";
 
+type ServiceType = "DOG_WALKING" | "DAY_CARE";
+type BillingCycle = "MONTHLY" | "YEARLY";
+
+type ExistingSubscription = {
+  status: string;
+  billingPeriod: BillingCycle;
+  serviceType: ServiceType;
+  daysPerWeek: number;
+  creditsPerMonth: number;
+};
+
+const formatMoney = (amount: number) =>
+  amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export default function SubscriptionPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
-  
-  const [serviceType, setServiceType] = useState<"DOG_WALKING" | "DAY_CARE">("DOG_WALKING");
+  const [serviceType, setServiceType] = useState<ServiceType>("DOG_WALKING");
   const [daysPerWeek, setDaysPerWeek] = useState(2);
   const [petCount, setPetCount] = useState(1);
-  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("MONTHLY");
   const [loading, setLoading] = useState(false);
-  const [existingSubscription, setExistingSubscription] = useState<any>(null);
+  const [existingSubscription, setExistingSubscription] = useState<ExistingSubscription | null>(null);
+  const [cancellationScheduled, setCancellationScheduled] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-      if (session) {
-          fetch("/api/user/subscription")
-            .then(res => res.json())
-            .then(data => {
-                if (data.subscription && data.subscription.status === 'ACTIVE') {
-                    setExistingSubscription(data.subscription);
-                }
-            });
-      }
-  }, [session]);
+    if (status !== "authenticated") return;
 
-  const plan = calculateSubscriptionPlan({
-    serviceType,
-    daysPerWeek,
-    petCount,
-    billingCycle,
-  });
-  const billingChangeBlocked =
-    existingSubscription && existingSubscription.billingPeriod !== billingCycle;
-  const formatMoney = (amount: number) =>
-    amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const controller = new AbortController();
+    const loadSubscription = async () => {
+      try {
+        const response = await fetch("/api/user/subscription", { signal: controller.signal });
+        const result = await response.json();
+        if (result.subscription?.status === "ACTIVE") {
+          setExistingSubscription(result.subscription);
+          setCancellationScheduled(Boolean(result.cancelAtPeriodEnd));
+          setServiceType(result.subscription.serviceType);
+          setDaysPerWeek(result.subscription.daysPerWeek);
+          setBillingCycle(result.subscription.billingPeriod);
+        }
+      } catch {
+        if (!controller.signal.aborted) setError("Impossible de charger votre abonnement.");
+      }
+    };
+
+    loadSubscription();
+    return () => controller.abort();
+  }, [status]);
+
+  const plan = calculateSubscriptionPlan({ serviceType, daysPerWeek, petCount, billingCycle });
+  const billingChangeBlocked = Boolean(
+    existingSubscription && existingSubscription.billingPeriod !== billingCycle
+  );
+  const savings = Math.max(0, plan.publicMonthlyPrice - plan.monthlyPrice);
 
   const handleSubscribe = async () => {
     if (!session) {
       router.push("/auth/signin?callbackUrl=/subscriptions");
       return;
     }
-    
+
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/stripe/subscribe", {
+      const response = await fetch("/api/stripe/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ serviceType, daysPerWeek, petCount, billingCycle }),
       });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setError(data.error || "Erreur lors de la création de l'abonnement");
+      const result = await response.json();
+      if (!response.ok || !result.url) {
+        throw new Error(result.error || "Impossible de préparer le paiement.");
       }
-    } catch (e) {
-      setError("Erreur de connexion");
-    } finally {
+      window.location.assign(result.url);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Erreur de connexion.");
       setLoading(false);
     }
   };
 
+  const updateNumber = (value: number, delta: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, value + delta));
+
   return (
-    <div className="min-h-screen bg-[#FDFbf7] pb-24">
+    <div className="min-h-screen bg-gray-50 pb-24 md:pb-12">
       <AppNav userName={session?.user?.name} />
-      
-      <div className="container mx-auto px-6 pt-32 max-w-4xl">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-4">
-            Abonnements <span className="text-orange-600">La Meute</span> 🐺
-          </h1>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Rejoignez le club et profitez de tarifs exclusifs toute l'année.
+
+      <main className={`mx-auto max-w-5xl px-4 sm:px-6 ${session ? "pt-6 md:pt-32" : "pt-24 md:pt-32"}`}>
+        <header className="mb-6 max-w-2xl">
+          <p className="text-sm font-bold text-orange-700">Club La Meute</p>
+          <h1 className="mt-2 text-3xl font-bold text-gray-950 sm:text-4xl">Une formule adaptée à votre rythme</h1>
+          <p className="mt-3 text-base leading-7 text-gray-600">
+            Des crédits pour vos promenades ou garderies, avec un prix clair avant paiement.
           </p>
-        </motion.div>
+        </header>
 
         {existingSubscription && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-800 p-5 mb-8 rounded-2xl shadow-sm">
-                <div>
-                    <p className="font-bold">Vous êtes déjà membre du club ! ⚡</p>
-                    <p className="text-sm mt-1">Vous pouvez ajuster le service, les jours et le nombre d'animaux sans débit immédiat. La nouvelle formule s'appliquera au prochain renouvellement.</p>
-                </div>
+          <div className="mb-5 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-950">
+            <CalendarClock className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="font-bold">
+                {cancellationScheduled ? "Une fin d'abonnement est déjà programmée" : "Vous avez déjà un abonnement actif"}
+              </p>
+              <p className="mt-1 text-sm leading-6">
+                {cancellationScheduled
+                  ? "Annulez d'abord la résiliation depuis votre profil pour modifier la formule."
+                  : "Les modifications de service s'appliquent au prochain renouvellement, sans débit immédiat."}
+              </p>
+              <Link href="/profile#subscription" className="mt-2 inline-flex min-h-10 items-center text-sm font-bold underline underline-offset-4">
+                Gérer mon abonnement
+              </Link>
             </div>
+          </div>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 mb-8 rounded-2xl text-sm font-semibold">
+          <div role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
             {error}
           </div>
         )}
 
-        {/* Billing Cycle Toggle */}
-        <div className="flex justify-center mb-12">
-          <div className="bg-white p-1 rounded-full border border-gray-200 shadow-sm flex relative">
-            <motion.div 
-              className="absolute top-1 bottom-1 bg-gray-900 rounded-full shadow-md z-0"
-              initial={false}
-              animate={{ 
-                x: billingCycle === "MONTHLY" ? 0 : "100%", 
-                width: "50%" 
-              }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            />
-            <button
-              onClick={() => setBillingCycle("MONTHLY")}
-              className={`relative z-10 px-6 py-2 rounded-full text-sm font-bold transition-colors ${billingCycle === "MONTHLY" ? "text-white" : "text-gray-500 hover:text-gray-900"}`}
-            >
-              Mensuel
-            </button>
-            <button
-              onClick={() => setBillingCycle("YEARLY")}
-              className={`relative z-10 px-6 py-2 rounded-full text-sm font-bold transition-colors flex items-center gap-2 ${billingCycle === "YEARLY" ? "text-white" : "text-gray-500 hover:text-gray-900"}`}
-            >
-              Annuel <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">prix annuel</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6 md:gap-12 items-start">
-          {/* Configurator */}
-          <motion.div 
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="space-y-8 bg-white p-4 sm:p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-gray-100"
+        <div className="mb-5 grid grid-cols-2 rounded-lg border border-gray-200 bg-white p-1" aria-label="Période de facturation">
+          <button
+            type="button"
+            onClick={() => setBillingCycle("MONTHLY")}
+            className={`min-h-11 rounded-md px-3 text-sm font-bold ${
+              billingCycle === "MONTHLY" ? "bg-gray-950 text-white" : "text-gray-600"
+            }`}
+            aria-pressed={billingCycle === "MONTHLY"}
           >
+            Mensuel
+          </button>
+          <button
+            type="button"
+            onClick={() => setBillingCycle("YEARLY")}
+            className={`min-h-11 rounded-md px-3 text-sm font-bold ${
+              billingCycle === "YEARLY" ? "bg-gray-950 text-white" : "text-gray-600"
+            }`}
+            aria-pressed={billingCycle === "YEARLY"}
+          >
+            Annuel
+          </button>
+        </div>
+        <p className="-mt-2 mb-5 text-center text-xs font-medium text-gray-500">
+          {billingCycle === "YEARLY" ? "Paiement unique pour 12 mois" : "Engagement initial de 2 mois"}
+        </p>
+
+        <div className="grid items-start gap-5 lg:grid-cols-[1fr_0.9fr]">
+          <section className="rounded-lg border border-gray-200 bg-white p-5 sm:p-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-4">1. Quel service ?</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <h2 className="text-lg font-bold text-gray-950">Service</h2>
+              <div className="mt-3 grid grid-cols-2 gap-3">
                 <button
+                  type="button"
                   onClick={() => setServiceType("DOG_WALKING")}
-                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${serviceType === "DOG_WALKING" ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-gray-300"}`}
+                  className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border-2 p-3 text-sm font-bold ${
+                    serviceType === "DOG_WALKING"
+                      ? "border-orange-600 bg-orange-50 text-orange-800"
+                      : "border-gray-200 text-gray-700"
+                  }`}
+                  aria-pressed={serviceType === "DOG_WALKING"}
                 >
-                  <span className="text-3xl">🐾</span>
-                  <span className="font-bold text-gray-700">Promenade</span>
+                  <PawPrint className="h-5 w-5" />
+                  Promenade
                 </button>
                 <button
+                  type="button"
                   onClick={() => setServiceType("DAY_CARE")}
-                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${serviceType === "DAY_CARE" ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-gray-300"}`}
+                  className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border-2 p-3 text-sm font-bold ${
+                    serviceType === "DAY_CARE"
+                      ? "border-orange-600 bg-orange-50 text-orange-800"
+                      : "border-gray-200 text-gray-700"
+                  }`}
+                  aria-pressed={serviceType === "DAY_CARE"}
                 >
-                  <span className="text-3xl">☀️</span>
-                  <span className="font-bold text-gray-700">Garderie</span>
+                  <Sun className="h-5 w-5" />
+                  Garderie
                 </button>
               </div>
             </div>
 
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-4">2. Combien d'animaux ?</h3>
-              <div className="flex gap-4">
-                {[1, 2, 3].map((count) => (
-                  <button
-                    key={count}
-                    onClick={() => setPetCount(count)}
-                    className={`flex-1 p-3 rounded-xl font-bold transition-all border-2 ${petCount === count ? "border-orange-500 bg-orange-50 text-orange-700" : "border-gray-100 text-gray-500 hover:border-gray-300"}`}
+            <div className="mt-6 border-t border-gray-100 pt-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-bold text-gray-950">Nombre d’animaux</h2>
+                  <p className="mt-1 text-sm text-gray-500">De 1 à 3 animaux</p>
+                </div>
+                <div className="flex items-center gap-2" aria-label={`${petCount} animaux`}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setPetCount(updateNumber(petCount, -1, 1, 3))}
+                    disabled={petCount === 1}
+                    aria-label="Retirer un animal"
+                    className="border-gray-300"
                   >
-                    {count} {count > 1 ? "Animaux" : "Animal"}
-                  </button>
-                ))}
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-10 text-center text-xl font-bold text-gray-950">{petCount}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setPetCount(updateNumber(petCount, 1, 1, 3))}
+                    disabled={petCount === 3}
+                    aria-label="Ajouter un animal"
+                    className="border-gray-300"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-4">3. Jours par semaine ?</h3>
-              <div className="flex justify-between bg-gray-100 p-2 rounded-2xl">
-                {[1, 2, 3, 4, 5].map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setDaysPerWeek(d)}
-                    className={`w-12 h-12 rounded-xl font-bold transition-all ${daysPerWeek === d ? "bg-white text-orange-600 shadow-md scale-110" : "text-gray-500 hover:text-gray-700"}`}
+            <div className="mt-5 border-t border-gray-100 pt-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-bold text-gray-950">Jours par semaine</h2>
+                  <p className="mt-1 text-sm text-gray-500">{plan.creditsPerMonth} crédits chaque mois</p>
+                </div>
+                <div className="flex items-center gap-2" aria-label={`${daysPerWeek} jours par semaine`}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setDaysPerWeek(updateNumber(daysPerWeek, -1, 1, 5))}
+                    disabled={daysPerWeek === 1}
+                    aria-label="Retirer un jour"
+                    className="border-gray-300"
                   >
-                    {d}
-                  </button>
-                ))}
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-10 text-center text-xl font-bold text-gray-950">{daysPerWeek}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setDaysPerWeek(updateNumber(daysPerWeek, 1, 1, 5))}
+                    disabled={daysPerWeek === 5}
+                    aria-label="Ajouter un jour"
+                    className="border-gray-300"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <p className="text-center text-sm text-gray-500 mt-3">
-                Soit <strong>{plan.creditsPerMonth} crédits</strong> par mois
-                {billingCycle === "YEARLY" && <span className="block">({plan.creditsPerMonth * 12} crédités après le paiement annuel)</span>}
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-lg border border-gray-800 bg-gray-950 text-white lg:sticky lg:top-28">
+            <div className="p-5 sm:p-6">
+              <p className="text-xs font-bold uppercase text-orange-300">
+                {billingCycle === "YEARLY" ? "Paiement annuel" : "Paiement mensuel"}
+              </p>
+              <h2 className="mt-2 text-xl font-bold">
+                {serviceType === "DOG_WALKING" ? "Promenade" : "Garderie"} · {petCount} {petCount > 1 ? "animaux" : "animal"}
+              </h2>
+
+              <div className="mt-5 flex items-end gap-2">
+                <span className="text-4xl font-bold sm:text-5xl">{formatMoney(plan.monthlyPrice)} €</span>
+                <span className="pb-1 text-sm text-gray-400">/mois</span>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-gray-300">
+                {billingCycle === "YEARLY"
+                  ? `${formatMoney(plan.amountDueNow)} € prélevés aujourd’hui pour 12 mois.`
+                  : `${formatMoney(plan.amountDueNow)} € prélevés aujourd’hui, puis chaque mois.`}
               </p>
             </div>
-          </motion.div>
 
-          {/* Pricing Card */}
-          <motion.div 
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="relative"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-[3rem] blur-xl opacity-20 transform rotate-3" />
-            <div className="bg-gray-900 text-white p-5 sm:p-8 md:p-10 rounded-[2.5rem] relative shadow-2xl overflow-hidden">
-              <div className="absolute top-0 right-0 bg-white/10 w-32 h-32 rounded-full blur-2xl -mr-10 -mt-10" />
-              
-              <div className="flex justify-between items-start mb-8 relative z-10">
-                <div>
-                  <p className="text-orange-300 font-medium mb-1 uppercase text-xs tracking-wider">
-                    {billingCycle === "YEARLY" ? "Paiement Annuel" : "Paiement Mensuel"}
-                  </p>
-                  <h2 className="text-2xl font-bold">{serviceType === "DOG_WALKING" ? "Promenade" : "Garderie"} x{petCount}</h2>
-                  <p className="text-gray-400 text-sm">{daysPerWeek} jours / semaine</p>
-                </div>
-                {billingCycle === "YEARLY" && (
-                  <div className="bg-white/10 text-orange-200 px-3 py-1 rounded-full text-xs font-bold border border-white/10">
-                    Annuel
-                  </div>
-                )}
+            <div className="border-y border-white/10 bg-white/5 px-5 py-4 sm:px-6">
+              <div className="flex justify-between gap-4 text-sm">
+                <span className="text-gray-400">Crédits inclus</span>
+                <span className="font-bold">{billingCycle === "YEARLY" ? plan.creditsPerMonth * 12 : plan.creditsPerMonth}</span>
               </div>
-
-              <div className="mb-8 relative z-10">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-6xl font-extrabold">{formatMoney(plan.monthlyPrice)}€</span>
-                  <span className="text-gray-400">/ mois</span>
-                </div>
-                
-                {billingCycle === "YEARLY" ? (
-                  <div className="mt-2 text-sm text-gray-400">
-                    Facturé {formatMoney(plan.amountDueNow)}€ aujourd'hui pour 12 mois
-                  </div>
-                ) : (
-                  <div className="mt-2 text-sm text-gray-400">
-                    Facturé {formatMoney(plan.amountDueNow)}€ aujourd'hui puis chaque mois
-                  </div>
-                )}
-
-                <div className="mt-6 p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300 text-sm">Prix public sans abonnement</span>
-                    <span className="font-bold">{formatMoney(plan.publicMonthlyPrice)}€ / mois</span>
-                  </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300 text-sm">Prix par crédit</span>
-                    <span className="font-bold">{formatMoney(plan.effectiveCreditPrice)}€</span>
-                  </div>
-                  <div className="flex justify-between items-center text-green-400">
-                    <span className="text-sm font-bold">Remise réelle</span>
-                    <span className="font-bold">-{Math.round(plan.effectiveDiscount * 100)}%</span>
-                  </div>
-                </div>
-                {plan.guardApplied && (
-                  <p className="mt-3 text-xs text-orange-200 bg-orange-500/10 border border-orange-400/20 rounded-xl p-3">
-                    Prix plancher appliqué : cette formule ne descend jamais sous {formatMoney(plan.service.minimumCreditPrice)}€ par crédit.
-                  </p>
-                )}
+              <div className="mt-3 flex justify-between gap-4 text-sm">
+                <span className="text-gray-400">Prix par crédit</span>
+                <span className="font-bold">{formatMoney(plan.effectiveCreditPrice)} €</span>
               </div>
-
-              <ul className="space-y-4 mb-10 text-gray-300 text-sm relative z-10">
-                <li className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  {plan.creditsPerMonth} crédits validité illimitée
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  Factures disponibles dans votre profil et dans Stripe
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold">✓</span>
-                  Résiliation à échéance après {billingCycle === "YEARLY" ? "12 mois" : "2 mois"}
-                </li>
-              </ul>
-
-              {billingChangeBlocked && (
-                <div className="mb-5 bg-yellow-400/10 border border-yellow-300/20 text-yellow-100 rounded-2xl p-4 text-sm">
-                  Pour éviter une double facturation, le passage mensuel/annuel se fait à la fin de la période déjà payée.
-                </div>
-              )}
-
-              <Button 
-                onClick={handleSubscribe}
-                disabled={loading || Boolean(billingChangeBlocked)}
-                className="w-full h-16 rounded-2xl bg-white text-gray-900 font-bold text-lg hover:bg-orange-50 transition-colors shadow-lg relative z-10"
-              >
-                {loading ? "Traitement..." : (existingSubscription ? "Programmer la nouvelle formule" : (billingCycle === "YEARLY" ? "Payer l'année" : "M'abonner"))}
-              </Button>
+              <div className="mt-3 flex justify-between gap-4 text-sm text-emerald-300">
+                <span>Économie mensuelle</span>
+                <span className="font-bold">{formatMoney(savings)} €</span>
+              </div>
             </div>
-          </motion.div>
+
+            <ul className="space-y-3 p-5 text-sm text-gray-300 sm:p-6">
+              <li className="flex gap-3"><Check className="h-5 w-5 shrink-0 text-emerald-400" /> Crédits sans date d’expiration</li>
+              <li className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-emerald-400" /> Paiement sécurisé par Stripe</li>
+              <li className="flex gap-3"><CalendarClock className="h-5 w-5 shrink-0 text-emerald-400" /> Résiliation programmable dès l’inscription</li>
+            </ul>
+
+            {billingChangeBlocked && (
+              <div className="mx-5 mb-4 rounded-md border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-amber-100 sm:mx-6">
+                Le changement mensuel/annuel sera disponible à la fin de la période déjà payée.
+              </div>
+            )}
+            {cancellationScheduled && (
+              <div className="mx-5 mb-4 rounded-md border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-amber-100 sm:mx-6">
+                Annulez la résiliation programmée depuis votre profil avant de changer de formule.
+              </div>
+            )}
+
+            <div className="border-t border-white/10 p-5 sm:p-6">
+              <Button
+                type="button"
+                onClick={handleSubscribe}
+                disabled={loading || billingChangeBlocked || cancellationScheduled}
+                className="h-12 w-full bg-white text-base font-bold text-gray-950 hover:bg-orange-50"
+              >
+                {loading ? (
+                  <><LoaderCircle className="h-5 w-5 animate-spin" /> Préparation</>
+                ) : (
+                  <>
+                    {existingSubscription ? "Enregistrer la formule" : "Continuer vers le paiement"}
+                    <ArrowRight className="h-5 w-5" />
+                  </>
+                )}
+              </Button>
+              <p className="mt-3 text-center text-xs leading-5 text-gray-400">
+                Le montant et la fréquence sont confirmés une dernière fois avant paiement.
+              </p>
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

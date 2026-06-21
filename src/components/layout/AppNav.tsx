@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { cn } from "@/lib/utils";
+import { CalendarPlus, Home, PawPrint, Shield, UserRound } from "lucide-react";
 
 interface AppNavProps {
   userName?: string | null;
@@ -20,14 +21,14 @@ export function AppNav({ userName }: AppNavProps) {
   const isAuthenticated = Boolean(finalUserName || session?.user?.id);
 
   const navLinks = [
-    { href: "/dashboard", label: "Accueil", icon: "🏠" },
-    { href: "/booking", label: "Réserver", icon: "📅" },
-    { href: "/pets", label: "Animaux", icon: "🐾" },
-    { href: "/profile", label: "Profil", icon: "👤" },
+    { href: "/dashboard", label: "Accueil", icon: Home },
+    { href: "/booking", label: "Réserver", icon: CalendarPlus },
+    { href: "/pets", label: "Animaux", icon: PawPrint },
+    { href: "/profile", label: "Profil", icon: UserRound },
   ];
 
   if (userRole === "ADMIN" || userRole === "SITTER") {
-    navLinks.push({ href: "/admin/dashboard", label: "Admin", icon: "⚡" });
+    navLinks.push({ href: "/admin/dashboard", label: "Admin", icon: Shield });
   }
 
   if (!isAuthenticated) {
@@ -35,15 +36,16 @@ export function AppNav({ userName }: AppNavProps) {
       <motion.header
         initial={{ y: -80 }}
         animate={{ y: 0 }}
-        className="fixed top-4 left-4 right-4 z-50"
+        className="fixed left-2 right-2 top-2 z-50 sm:left-4 sm:right-4 sm:top-4"
       >
-        <div className="mx-auto max-w-5xl bg-white/85 backdrop-blur-xl border border-white/60 shadow-lg shadow-orange-900/5 rounded-full px-3 py-2 flex items-center justify-between gap-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white/95 px-2 py-2 shadow-lg shadow-orange-900/5 backdrop-blur-xl sm:rounded-full sm:px-3">
           <Link href="/" className="flex items-center gap-2 group min-w-0">
-            <div className="bg-gradient-to-br from-orange-400 to-amber-600 text-white w-9 h-9 rounded-full flex items-center justify-center text-sm shadow-md group-hover:rotate-12 transition-transform">
-              🐾
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-orange-600 text-white shadow-sm sm:rounded-full">
+              <PawPrint className="h-5 w-5" />
             </div>
-            <span className="font-bold text-gray-800 tracking-tight truncate">
-              La Patte Dorée
+            <span className="hidden truncate font-bold text-gray-900 min-[350px]:inline">
+              <span className="sm:hidden">La Patte</span>
+              <span className="hidden sm:inline">La Patte Dorée</span>
             </span>
           </Link>
 
@@ -62,18 +64,19 @@ export function AppNav({ userName }: AppNavProps) {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <Link
               href="/auth/signin"
-              className="px-3 sm:px-4 py-2 rounded-full text-sm font-bold text-gray-700 hover:bg-white/70 transition-colors"
+              className="px-3 py-2 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 sm:rounded-full sm:px-4"
             >
               Connexion
             </Link>
             <Link
               href="/auth/signup"
-              className="px-3 sm:px-4 py-2 rounded-full text-sm font-bold bg-gray-900 text-white hover:bg-orange-600 transition-colors"
+              className="rounded-md bg-gray-950 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-orange-600 sm:rounded-full sm:px-4"
             >
-              S'inscrire
+              <span className="sm:hidden">Créer</span>
+              <span className="hidden sm:inline">S’inscrire</span>
             </Link>
           </div>
         </div>
@@ -101,7 +104,8 @@ export function AppNav({ userName }: AppNavProps) {
           {/* Links */}
           <div className="flex items-center bg-gray-100/50 rounded-full p-1">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+              const Icon = link.icon;
               return (
                 <Link
                   key={link.href}
@@ -120,7 +124,7 @@ export function AppNav({ userName }: AppNavProps) {
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
-                  <span className="relative z-10">{link.icon}</span>
+                  <Icon className="relative z-10 h-4 w-4" />
                   <span className="relative z-10">{link.label}</span>
                 </Link>
               );
@@ -142,30 +146,30 @@ export function AppNav({ userName }: AppNavProps) {
       </motion.div>
 
       {/* --- MOBILE NAV (Fixed Bottom) --- */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe-area-inset-bottom">
-        <div className="bg-white/90 backdrop-blur-xl border-t border-orange-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-2 pt-1 px-2">
-          <div className="flex justify-around items-center">
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+        <nav aria-label="Navigation principale" className="border-t border-gray-200 bg-white/95 px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-xl">
+          <div className="flex items-stretch justify-around">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+              const Icon = link.icon;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all duration-300 active:scale-95",
-                    isActive ? "text-orange-600" : "text-gray-400 hover:text-gray-600"
+                    "relative flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-md px-1 py-1.5 transition-colors active:bg-gray-100",
+                    isActive ? "text-orange-700" : "text-gray-500"
                   )}
+                  aria-current={isActive ? "page" : undefined}
                 >
-                  <div className={cn("text-2xl mb-0.5 transition-transform", isActive && "-translate-y-1")}>
-                    {link.icon}
-                  </div>
-                  <span className={cn("text-xs font-bold", isActive ? "opacity-100" : "opacity-0 scale-0 h-0 overflow-hidden")}>
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                  <span className={cn("text-[10px] font-semibold leading-none", isActive && "font-bold")}>
                     {link.label}
                   </span>
                   {isActive && (
                     <motion.div 
                       layoutId="nav-pill-mobile"
-                      className="w-1 h-1 bg-orange-500 rounded-full mt-1"
+                      className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-orange-600"
                     />
                   )}
                 </Link>
@@ -174,7 +178,7 @@ export function AppNav({ userName }: AppNavProps) {
             
             {/* Mobile User/Menu trigger could go here if needed, but Profile tab covers it */}
           </div>
-        </div>
+        </nav>
       </div>
     </>
   );

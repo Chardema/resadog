@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     if (existingSubscription && existingSubscription.status === 'ACTIVE' && existingSubscription.stripeSubscriptionId) {
         // 1. Récupérer l'abonnement Stripe actuel pour avoir l'ID de l'item
         const stripeSub = await stripe.subscriptions.retrieve(existingSubscription.stripeSubscriptionId);
-        if (stripeSub.cancel_at_period_end) {
+        if (stripeSub.cancel_at_period_end || stripeSub.cancel_at) {
           return NextResponse.json(
             { error: "Annulez d'abord la résiliation programmée depuis votre profil." },
             { status: 409 }

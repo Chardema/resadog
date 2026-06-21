@@ -1,450 +1,207 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { Check, Mail, Pencil, Phone, UserRound, X } from "lucide-react";
 import { AppNav } from "@/components/layout/AppNav";
+import { SubscriptionManager } from "@/components/subscription/SubscriptionManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+type ProfileForm = {
+  name: string;
+  email: string;
+  phone: string;
+  image: string;
+};
+
+const emptyProfile: ProfileForm = { name: "", email: "", phone: "", image: "" };
+
 export default function ProfilePage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [subscriptionActionLoading, setSubscriptionActionLoading] = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [cancelConfirmed, setCancelConfirmed] = useState(false);
-  const [subscriptionMessage, setSubscriptionMessage] = useState("");
-  const [profileMessage, setProfileMessage] = useState("");
-  const [subscriptionData, setSubscriptionData] = useState<any>(null);
-  
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    image: "",
-  });
+  const [message, setMessage] = useState("");
+  const [savedProfile, setSavedProfile] = useState<ProfileForm>(emptyProfile);
+  const [formData, setFormData] = useState<ProfileForm>(emptyProfile);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/signin");
-    } else if (session?.user) {
-      fetchProfile();
-      fetchSubscription();
+      return;
     }
-  }, [status, session, router]);
 
-  const fetchSubscription = async () => {
+    if (status !== "authenticated") return;
+
+    const controller = new AbortController();
+    const loadProfile = async () => {
       try {
-          const res = await fetch("/api/user/subscription");
-          if (res.ok) {
-              const data = await res.json();
-              setSubscriptionData(data);
-          }
-      } catch (e) {}
-  };
+        const response = await fetch("/api/user/profile", { signal: controller.signal });
+        const result = await response.json();
+        if (!response.ok) return;
+        const profile = {
+          name: result.user.name || "",
+          email: result.user.email || "",
+          phone: result.user.phone || "",
+          image: result.user.image || "",
+        };
+        setSavedProfile(profile);
+        setFormData(profile);
+      } catch {
+        if (!controller.signal.aborted) setMessage("Impossible de charger le profil.");
+      }
+    };
 
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch("/api/user/profile");
-      const data = await res.json();
-      if (!res.ok) return;
-      setFormData({
-        name: data.user.name || "",
-        email: data.user.email || "",
-        phone: data.user.phone || "",
-        image: data.user.image || "",
-      });
-    } catch {}
-  };
+    loadProfile();
+    return () => controller.abort();
+  }, [status, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setProfileMessage("");
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setMessage("");
+
     try {
-      const res = await fetch("/api/user/profile", {
+      const response = await fetch("/api/user/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: formData.name, phone: formData.phone, image: formData.image || null }),
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone,
+          image: formData.image || null,
+        }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Impossible d'enregistrer le profil");
-      await update({ name: data.user.name });
-      setProfileMessage("Informations enregistrées.");
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Impossible d'enregistrer le profil.");
+      const profile = { ...formData, name: result.user.name };
+      setSavedProfile(profile);
+      setFormData(profile);
+      await update({ name: result.user.name });
+      setMessage("Informations enregistrées.");
       setIsEditing(false);
     } catch (error) {
-      setProfileMessage(error instanceof Error ? error.message : "Erreur de connexion");
+      setMessage(error instanceof Error ? error.message : "Erreur de connexion.");
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
-  const formatMoney = (amount: number) =>
-    amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  const manageSubscription = async (action: "cancel_at_period_end" | "resume") => {
-    setSubscriptionActionLoading(true);
-    setSubscriptionMessage("");
-
-    try {
-      const res = await fetch("/api/user/subscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setSubscriptionMessage(data.error || "Impossible de modifier l'abonnement.");
-        return;
-      }
-
-      setSubscriptionMessage(
-        action === "cancel_at_period_end"
-          ? "Résiliation programmée à la fin de la période payée."
-          : "Résiliation annulée, votre abonnement continue."
-      );
-      setShowCancelConfirm(false);
-      setCancelConfirmed(false);
-      await fetchSubscription();
-    } catch (e) {
-      setSubscriptionMessage("Erreur de connexion.");
-    } finally {
-      setSubscriptionActionLoading(false);
-    }
-  };
-
-  if (status === "loading") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">👤</div>;
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-orange-600" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#FDFbf7] pb-20">
+    <div className="min-h-screen bg-gray-50 pb-24 md:pb-10">
       <AppNav userName={session?.user?.name} />
 
-      {/* Background Decor */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[20%] right-[10%] w-[500px] h-[500px] bg-blue-100/30 rounded-full blur-[120px]" />
-      </div>
+      <main className="mx-auto max-w-4xl px-4 pt-6 sm:px-6 md:pt-32">
+        <header className="mb-6 flex items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xl font-bold text-orange-700">
+            {formData.name?.charAt(0).toUpperCase() || <UserRound className="h-6 w-6" />}
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-bold text-gray-950 sm:text-3xl">
+              {formData.name || "Mon profil"}
+            </h1>
+            <p className="truncate text-sm text-gray-500">{formData.email}</p>
+          </div>
+        </header>
 
-      <div className="container mx-auto px-6 pt-32 max-w-4xl relative z-10">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-10 text-center md:text-left"
-        >
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Mon Profil 👤</h1>
-          <p className="text-gray-500 text-lg">Gérez vos informations personnelles</p>
-        </motion.div>
+        <div className="space-y-5">
+          <SubscriptionManager />
 
-        <div className="grid md:grid-cols-3 gap-8">
-          
-          {/* Carte Identité (Gauche) */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className="md:col-span-1"
-          >
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] border border-gray-100 text-center relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-orange-400 to-amber-500" />
-              
-              <div className="relative mt-8 mb-4">
-                <div className="w-32 h-32 mx-auto bg-white p-1 rounded-full shadow-xl">
-                  {formData.image ? (
-                    <img src={formData.image} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-orange-100 flex items-center justify-center text-4xl font-bold text-orange-600">
-                      {formData.name?.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                {isEditing && (
-                  <button className="absolute bottom-0 right-1/2 translate-x-12 bg-gray-900 text-white p-2 rounded-full shadow-lg hover:bg-orange-600 transition-colors text-xs">
-                    📷
-                  </button>
-                )}
+          <section className="rounded-lg border border-gray-200 bg-white">
+            <div className="flex items-center justify-between gap-4 border-b border-gray-100 p-5 sm:p-6">
+              <div>
+                <p className="text-sm font-semibold text-gray-500">Compte</p>
+                <h2 className="mt-1 text-xl font-bold text-gray-950">Mes informations</h2>
               </div>
-
-              <h2 className="text-2xl font-bold text-gray-900 mb-1">{formData.name}</h2>
-              <p className="text-gray-500 text-sm mb-6">{formData.email}</p>
-
-              <div className="flex justify-center gap-2 flex-wrap">
-                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
-                  Client Vérifié
-                </span>
-                {subscriptionData?.subscription && (
-                    <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm">
-                    <span>⚡</span> Membre Club
-                    </span>
-                )}
-              </div>
+              {!isEditing && (
+                <Button type="button" variant="outline" onClick={() => setIsEditing(true)} className="h-10 border-gray-300">
+                  <Pencil className="h-4 w-4" />
+                  Modifier
+                </Button>
+              )}
             </div>
-          </motion.div>
 
-          {/* Formulaire & Abo (Droite) */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="md:col-span-2 space-y-8"
-          >
-            {/* Infos Perso */}
-            <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-gray-100">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-xl font-bold text-gray-900">Informations</h3>
-                {!isEditing && (
-                  <Button variant="outline" onClick={() => setIsEditing(true)} className="rounded-xl">
-                    Modifier
+            <form onSubmit={handleSubmit} className="p-5 sm:p-6">
+              {message && (
+                <p role="status" className="mb-4 rounded-md bg-gray-50 p-3 text-sm font-medium text-gray-700">
+                  {message}
+                </p>
+              )}
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="profile-name" className="flex items-center gap-2 text-gray-700">
+                    <UserRound className="h-4 w-4" /> Nom complet
+                  </Label>
+                  <Input
+                    id="profile-name"
+                    value={formData.name}
+                    onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+                    disabled={!isEditing}
+                    className="h-12 rounded-md border-gray-300 bg-white disabled:bg-gray-50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="profile-email" className="flex items-center gap-2 text-gray-700">
+                    <Mail className="h-4 w-4" /> Email
+                  </Label>
+                  <Input
+                    id="profile-email"
+                    value={formData.email}
+                    disabled
+                    className="h-12 rounded-md border-gray-200 bg-gray-50 text-gray-500"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="profile-phone" className="flex items-center gap-2 text-gray-700">
+                    <Phone className="h-4 w-4" /> Téléphone
+                  </Label>
+                  <Input
+                    id="profile-phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(event) => setFormData({ ...formData, phone: event.target.value })}
+                    disabled={!isEditing}
+                    placeholder="06 00 00 00 00"
+                    className="h-12 rounded-md border-gray-300 bg-white disabled:bg-gray-50"
+                  />
+                </div>
+              </div>
+
+              {isEditing && (
+                <div className="mt-6 grid grid-cols-2 gap-3 border-t border-gray-100 pt-5 sm:flex sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setFormData(savedProfile);
+                      setIsEditing(false);
+                      setMessage("");
+                    }}
+                    className="h-11 border-gray-300"
+                  >
+                    <X className="h-4 w-4" /> Annuler
                   </Button>
-                )}
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {profileMessage && <p className="text-sm font-medium text-gray-600">{profileMessage}</p>}
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label>Nom complet</Label>
-                    <Input 
-                      value={formData.name} 
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      disabled={!isEditing}
-                      className="bg-gray-50 border-gray-200 h-12 rounded-xl focus:ring-orange-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input 
-                      value={formData.email} 
-                      disabled={true} // Email souvent non modifiable
-                      className="bg-gray-100 border-gray-200 h-12 rounded-xl text-gray-500 cursor-not-allowed"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Téléphone</Label>
-                    <Input 
-                      value={formData.phone} 
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      disabled={!isEditing}
-                      placeholder="+33 6..."
-                      className="bg-gray-50 border-gray-200 h-12 rounded-xl focus:ring-orange-500"
-                    />
-                  </div>
+                  <Button type="submit" disabled={isSaving} className="h-11 bg-gray-950 text-white hover:bg-orange-600">
+                    <Check className="h-4 w-4" />
+                    {isSaving ? "Enregistrement" : "Enregistrer"}
+                  </Button>
                 </div>
-
-                {isEditing && (
-                  <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
-                    <Button type="button" variant="ghost" onClick={() => setIsEditing(false)} className="h-12 rounded-xl">
-                      Annuler
-                    </Button>
-                    <Button type="submit" disabled={isLoading} className="bg-gray-900 hover:bg-orange-600 text-white h-12 rounded-xl px-8 shadow-lg">
-                      {isLoading ? "Enregistrement..." : "Sauvegarder"}
-                    </Button>
-                  </div>
-                )}
-              </form>
-            </div>
-
-            {/* Section Abonnement */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-gray-700 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
-                
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 relative z-10">
-                    <div>
-                        <h3 className="text-xl font-bold mb-2">Mon Abonnement</h3>
-                        {subscriptionData?.subscription ? (
-                            <div className="space-y-1">
-                                <p className="text-orange-400 font-medium">Formule {subscriptionData.subscription.serviceType === "DOG_WALKING" ? "Promenade" : "Garderie"}</p>
-                                <p className="text-sm text-gray-400">
-                                    {subscriptionData.subscription.daysPerWeek} jours/semaine • {subscriptionData.subscription.creditsPerMonth} crédits/mois
-                                </p>
-                                <p className="text-sm text-gray-400">
-                                    Montant : {formatMoney(subscriptionData.subscription.price)}€ / {subscriptionData.subscription.billingPeriod === "YEARLY" ? "an" : "mois"}
-                                </p>
-                                <p className="text-sm text-gray-400">
-                                    Statut : {subscriptionData.subscription.status === 'ACTIVE' 
-                                        ? (subscriptionData.cancelAtPeriodEnd ? "Résiliation demandée" : "Actif") 
-                                        : subscriptionData.subscription.status}
-                                </p>
-                                {subscriptionData.currentPeriodEnd && (
-                                    <p className="text-sm text-gray-400">
-                                        {subscriptionData.cancelAtPeriodEnd ? "Prend fin le" : "Prochain renouvellement le"} : {new Date(subscriptionData.currentPeriodEnd).toLocaleDateString("fr-FR")}
-                                    </p>
-                                )}
-                                {subscriptionData.commitmentEndsAt && new Date(subscriptionData.commitmentEndsAt) > new Date() && (
-                                    <p className="text-xs text-orange-300 mt-1 font-semibold">
-                                        🔒 Engagement jusqu'au {new Date(subscriptionData.commitmentEndsAt).toLocaleDateString("fr-FR")}
-                                    </p>
-                                )}
-                                {subscriptionData.cancelAtPeriodEnd && (
-                                    <p className="text-xs text-yellow-200 mt-2 font-semibold">
-                                        Votre abonnement restera actif jusqu'à la date de fin. Les crédits déjà acquis restent utilisables.
-                                    </p>
-                                )}
-                            </div>
-                        ) : (
-                            <p className="text-gray-400 text-sm max-w-md">
-                                Vous n'avez pas encore d'abonnement actif. Rejoignez le club pour économiser sur vos gardes !
-                            </p>
-                        )}
-                    </div>
-                    {subscriptionData?.subscription ? (
-                        <div className={`${subscriptionData.cancelAtPeriodEnd ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"} px-3 py-1 rounded-full text-xs font-bold border`}>
-                            {subscriptionData.cancelAtPeriodEnd ? "FIN PROGRAMMÉE" : "ACTIF"}
-                        </div>
-                    ) : (
-                        <div className="bg-white/10 text-gray-400 px-3 py-1 rounded-full text-xs font-bold">
-                            INACTIF
-                        </div>
-                    )}
-                </div>
-
-                {subscriptionMessage && (
-                    <div className="relative z-10 mt-6 bg-white/10 border border-white/10 rounded-2xl p-4 text-sm text-orange-100">
-                        {subscriptionMessage}
-                    </div>
-                )}
-
-                <div className="relative z-10 mt-8 grid gap-4 md:grid-cols-3">
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                        <p className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Résiliation</p>
-                        <p className="text-sm text-gray-300">
-                            {subscriptionData?.isLocked
-                                ? "Disponible après la période d'engagement."
-                                : "Se programme à la fin de la période payée, jamais en coupure immédiate."}
-                        </p>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                        <p className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Factures</p>
-                        <p className="text-sm text-gray-300">
-                            Les dernières factures sont listées ici et restent aussi accessibles via Stripe.
-                        </p>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                        <p className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Crédits</p>
-                        <p className="text-sm text-gray-300">
-                            Les crédits obtenus restent utilisables, même après une résiliation à échéance.
-                        </p>
-                    </div>
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap gap-4 relative z-10">
-                    {subscriptionData?.subscription ? (
-                        <>
-                            <Button onClick={() => router.push('/subscriptions')} className="bg-orange-500 hover:bg-orange-600 text-white h-12 rounded-xl px-6 font-bold">
-                                Changer de formule
-                            </Button>
-                            {subscriptionData.cancelAtPeriodEnd ? (
-                                <Button
-                                  onClick={() => manageSubscription("resume")}
-                                  disabled={subscriptionActionLoading}
-                                  className="bg-green-500 hover:bg-green-600 text-white h-12 rounded-xl px-6 font-bold"
-                                >
-                                  Garder mon abonnement
-                                </Button>
-                            ) : (
-                                <Button
-                                  onClick={() => {
-                                    setShowCancelConfirm(true);
-                                    setSubscriptionMessage("");
-                                  }}
-                                  disabled={subscriptionActionLoading || subscriptionData.isLocked}
-                                  variant="outline"
-                                  className="bg-transparent border-white/20 text-white hover:bg-white/10 h-12 rounded-xl px-6 font-bold"
-                                >
-                                  Résilier à échéance
-                                </Button>
-                            )}
-                            {subscriptionData.portalUrl && (
-                                <a href={subscriptionData.portalUrl} className="bg-white text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-orange-50 transition-colors">
-                                    Moyen de paiement Stripe
-                                </a>
-                            )}
-                        </>
-                    ) : (
-                        <Button onClick={() => router.push('/subscriptions')} className="bg-orange-500 hover:bg-orange-600 text-white h-12 rounded-xl px-6 font-bold">
-                            Découvrir les offres
-                        </Button>
-                    )}
-                </div>
-
-                {showCancelConfirm && subscriptionData?.subscription && !subscriptionData.cancelAtPeriodEnd && (
-                    <div className="relative z-10 mt-6 bg-red-500/10 border border-red-300/20 rounded-2xl p-5">
-                        <p className="font-bold text-red-100 mb-2">Confirmer la résiliation à échéance</p>
-                        <p className="text-sm text-red-100/80 mb-4">
-                            Aucun arrêt immédiat : l'abonnement reste actif jusqu'au {subscriptionData.currentPeriodEnd ? new Date(subscriptionData.currentPeriodEnd).toLocaleDateString("fr-FR") : "prochain renouvellement"}. Les crédits déjà obtenus restent utilisables.
-                        </p>
-                        <label className="flex items-start gap-3 text-sm text-red-50 mb-4 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={cancelConfirmed}
-                              onChange={(event) => setCancelConfirmed(event.target.checked)}
-                              className="mt-1"
-                            />
-                            <span>Je confirme vouloir programmer la résiliation à la fin de la période payée.</span>
-                        </label>
-                        <div className="flex flex-wrap gap-3">
-                            <Button
-                              onClick={() => manageSubscription("cancel_at_period_end")}
-                              disabled={!cancelConfirmed || subscriptionActionLoading}
-                              variant="destructive"
-                              className="h-11 rounded-xl px-5 font-bold"
-                            >
-                              Confirmer la résiliation
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={() => {
-                                setShowCancelConfirm(false);
-                                setCancelConfirmed(false);
-                              }}
-                              variant="outline"
-                              className="h-11 rounded-xl px-5 font-bold bg-transparent border-white/20 text-white hover:bg-white/10"
-                            >
-                              Garder mon abonnement
-                            </Button>
-                        </div>
-                    </div>
-                )}
-
-                {subscriptionData?.invoices?.length > 0 && (
-                    <div className="relative z-10 mt-8 pt-6 border-t border-white/10">
-                        <h4 className="font-bold mb-4">Dernières factures</h4>
-                        <div className="space-y-3">
-                            {subscriptionData.invoices.map((invoice: any) => (
-                                <div key={invoice.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/5 border border-white/10 rounded-2xl p-4">
-                                    <div>
-                                        <p className="font-bold text-sm">{invoice.number || "Facture Stripe"}</p>
-                                        <p className="text-xs text-gray-400">
-                                            {new Date(invoice.createdAt).toLocaleDateString("fr-FR")} • {invoice.status}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-bold">{formatMoney(invoice.amountPaid || invoice.amountDue)}€</span>
-                                        {invoice.hostedInvoiceUrl && (
-                                            <a href={invoice.hostedInvoiceUrl} className="text-sm font-bold text-orange-300 hover:text-orange-200">
-                                                Voir
-                                            </a>
-                                        )}
-                                        {invoice.invoicePdf && (
-                                            <a href={invoice.invoicePdf} className="text-sm font-bold text-orange-300 hover:text-orange-200">
-                                                PDF
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-          </motion.div>
-
+              )}
+            </form>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { useEffect, useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import { AppNav } from "@/components/layout/AppNav";
 import confetti from "canvas-confetti";
+import { X } from "lucide-react";
 
 interface Booking {
   id: string;
@@ -27,9 +28,13 @@ interface Booking {
 interface DashboardData {
   upcomingBookings: Booking[];
   credits: number;
-  subscription: any;
+  subscription: {
+    status: string;
+    billingPeriod: "MONTHLY" | "YEARLY";
+  } | null;
   portalUrl: string | null;
   currentPeriodEnd: string | null;
+  cancellationEffectiveAt: string | null;
   cancelAtPeriodEnd: boolean;
   stats: {
     totalBookings: number;
@@ -43,6 +48,7 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSubscriptionSuccess, setShowSubscriptionSuccess] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -58,6 +64,7 @@ function DashboardContent() {
 
   useEffect(() => {
     if (searchParams.get("subscription") === "success") {
+      setShowSubscriptionSuccess(true);
       confetti({
         particleCount: 150,
         spread: 70,
@@ -95,10 +102,10 @@ function DashboardContent() {
         const bookingsData = await bookingsRes.json();
         const subData = await subRes.json();
         
-        const bookings = bookingsData.bookings || [];
+        const bookings: Booking[] = Array.isArray(bookingsData.bookings) ? bookingsData.bookings : [];
         const now = new Date();
-        const upcoming = bookings.filter((b: any) => new Date(b.endDate) >= now);
-        const totalSpent = bookings.reduce((acc: number, b: any) => acc + (b.totalPrice || 0), 0);
+        const upcoming = bookings.filter((booking) => new Date(booking.endDate) >= now);
+        const totalSpent = bookings.reduce((total, booking) => total + (booking.totalPrice || 0), 0);
 
         setData({
           upcomingBookings: upcoming,
@@ -106,6 +113,7 @@ function DashboardContent() {
           subscription: subData.subscription,
           portalUrl: subData.portalUrl,
           currentPeriodEnd: subData.currentPeriodEnd,
+          cancellationEffectiveAt: subData.cancellationEffectiveAt,
           cancelAtPeriodEnd: subData.cancelAtPeriodEnd,
           stats: {
             totalBookings: bookings.length,
@@ -141,19 +149,19 @@ function DashboardContent() {
       <AppNav userName={session?.user?.name} />
 
       {/* Decorative Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 z-0 hidden pointer-events-none overflow-hidden md:block">
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-orange-200/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-200/20 rounded-full blur-[100px]" />
       </div>
 
-      <main className="container mx-auto px-6 pt-32 relative z-10">
+      <main className="container relative z-10 mx-auto px-4 pt-6 sm:px-6 md:pt-32">
         {/* Header */}
-        <div className="mb-10 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+        <div className="mb-6 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between">
           <div>
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2"
+              className="mb-1 text-2xl font-extrabold text-gray-900 sm:text-3xl md:mb-2 md:text-5xl"
             >
               Bon retour, <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-600">{session?.user?.name?.split(' ')[0]}</span> 👋
             </motion.h1>
@@ -161,7 +169,7 @@ function DashboardContent() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-xl text-gray-500"
+              className="text-base text-gray-500 md:text-xl"
             >
               Votre espace personnel
             </motion.p>
@@ -169,10 +177,10 @@ function DashboardContent() {
           
           {isSubscribed && (
             <motion.a
-              href="/profile"
+              href="/profile#subscription"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-orange-600 bg-white px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-all self-start md:self-end"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm transition-colors hover:text-orange-700 md:w-auto md:self-end"
             >
               ⚙️ Abonnement, factures, résiliation
             </motion.a>
@@ -180,19 +188,27 @@ function DashboardContent() {
         </div>
 
         {/* Subscription Messages */}
-        {searchParams.get("subscription") === "success" && (
+        {showSubscriptionSuccess && (
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-green-100 border border-green-200 text-green-800 px-6 py-4 rounded-2xl mb-8 flex flex-col md:flex-row items-center justify-between shadow-sm gap-4 text-center md:text-left"
+            className="relative mb-5 flex flex-col items-stretch justify-between gap-4 rounded-lg border border-green-200 bg-green-50 px-4 py-4 text-left text-green-900 shadow-sm md:mb-8 md:flex-row md:items-center md:px-6"
           >
             <div>
-              <p className="font-bold text-lg">🎉 Félicitations ! Vous avez rejoint le club !</p>
+              <p className="pr-8 text-lg font-bold">Abonnement activé</p>
               <p className="text-sm text-green-700">Vos crédits sont disponibles. Vous pouvez dès maintenant réserver sans sortir votre carte bancaire.</p>
             </div>
-            <Link href="/booking" className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition-colors whitespace-nowrap">
+            <Link href="/booking" className="inline-flex min-h-11 items-center justify-center rounded-md bg-green-700 px-4 py-2 text-sm font-bold text-white hover:bg-green-800">
               Utiliser mes crédits
             </Link>
+            <button
+              type="button"
+              onClick={() => setShowSubscriptionSuccess(false)}
+              aria-label="Fermer le message"
+              className="absolute right-3 top-3 p-1 text-green-800"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </motion.div>
         )}
 
@@ -204,10 +220,10 @@ function DashboardContent() {
             >
                 <div>
                     <p className="font-bold">Résiliation en cours ⏳</p>
-                    <p className="text-sm text-yellow-700">Votre abonnement se terminera le {new Date(data.currentPeriodEnd!).toLocaleDateString("fr-FR")}. Vos crédits resteront utilisables ensuite.</p>
+                    <p className="text-sm text-yellow-700">Votre abonnement se terminera le {new Date(data.cancellationEffectiveAt || data.currentPeriodEnd!).toLocaleDateString("fr-FR")}. Vos crédits resteront utilisables ensuite.</p>
                 </div>
-                <Link href="/subscriptions" className="bg-yellow-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-yellow-700 transition-colors whitespace-nowrap">
-                    Reprendre l'offre
+                <Link href="/profile#subscription" className="bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-bold hover:bg-yellow-800 transition-colors whitespace-nowrap">
+                    Gérer la résiliation
                 </Link>
             </motion.div>
         )}
@@ -229,7 +245,7 @@ function DashboardContent() {
         )}
 
         {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
           
           {/* Card 1: Crédits & Abonnement */}
           {isSubscribed ? (
@@ -238,7 +254,7 @@ function DashboardContent() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
               whileHover={{ scale: 1.02 }}
-              className="md:col-span-2 bg-gradient-to-br from-gray-900 to-gray-800 rounded-[2rem] p-8 text-white shadow-xl shadow-gray-900/20 relative overflow-hidden group"
+              className="group relative overflow-hidden rounded-lg bg-gray-950 p-5 text-white shadow-lg md:col-span-2 md:rounded-[2rem] md:p-8"
             >
               <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-150" />
               <div className="relative z-10 flex flex-col h-full justify-between">
@@ -247,7 +263,7 @@ function DashboardContent() {
                     <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl mb-4">
                       🪙
                     </div>
-                    <h2 className="text-3xl font-bold mb-1">{data?.credits} Crédits</h2>
+                    <h2 className="mb-1 text-2xl font-bold md:text-3xl">{data?.credits} Crédits</h2>
                     <p className="text-gray-400 text-sm">
                       Disponibles pour vos réservations
                     </p>
@@ -262,7 +278,7 @@ function DashboardContent() {
                     Réserver avec mes crédits
                   </Link>
                   {isSubscribed && (
-                    <a href="/profile" className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white font-bold text-lg">
+                    <a href="/profile#subscription" aria-label="Gérer l'abonnement" className="px-4 py-3 rounded-md bg-white/10 hover:bg-white/20 transition-colors text-white font-bold text-lg">
                       ⚙️
                     </a>
                   )}
