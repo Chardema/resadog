@@ -6,6 +6,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { buildSpecialRequests, extractServiceDetails, stripServiceDetails } from "@/lib/booking-details";
 import { calculateBookingPrice } from "@/lib/pricing";
 import { calculateCouponDiscount } from "@/lib/coupon-pricing";
+import { Prisma } from "@prisma/client";
 
 class BookingInputError extends Error {}
 
@@ -319,8 +320,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Transaction atomique : créer la réservation et déduire les crédits.
-    const booking = await prisma.$transaction(async (tx) => {
+    // Le niveau Serializable empêche deux réservations simultanées de dépenser
+    // le même solde de crédits.
+    const createBooking = () => prisma.$transaction(async (tx) => {
       const newBooking = await tx.booking.create({
         data: {
           startDate: start,
@@ -375,7 +377,19 @@ export async function POST(request: NextRequest) {
       }
 
       return newBooking;
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    let booking: Awaited<ReturnType<typeof createBooking>> | undefined;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        booking = await createBooking();
+        break;
+      } catch (error) {
+        const retryable = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
+        if (!retryable || attempt === 2) throw error;
+      }
+    }
+    if (!booking) throw new Error("La transaction de réservation n'a pas abouti");
 
     return NextResponse.json({
       success: true,

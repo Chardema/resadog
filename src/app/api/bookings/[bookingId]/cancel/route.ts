@@ -74,10 +74,18 @@ export async function POST(
 
         if (paymentIntent.status === "requires_capture") {
           if (freeCancellation) {
-            await stripe.paymentIntents.cancel(paymentIntent.id);
+            await stripe.paymentIntents.cancel(
+              paymentIntent.id,
+              {},
+              { idempotencyKey: `booking:${booking.id}:release-authorization` }
+            );
           } else {
             const amountToCapture = Math.round(paymentIntent.amount * 0.5);
-            await stripe.paymentIntents.capture(paymentIntent.id, { amount_to_capture: amountToCapture });
+            await stripe.paymentIntents.capture(
+              paymentIntent.id,
+              { amount_to_capture: amountToCapture },
+              { idempotencyKey: `booking:${booking.id}:late-cancellation-capture` }
+            );
             amountRetained = amountToCapture / 100;
           }
         } else if (paymentIntent.status === "succeeded") {
@@ -85,7 +93,10 @@ export async function POST(
             ? paymentIntent.amount_received
             : Math.round(paymentIntent.amount_received * 0.5);
           if (refundCents > 0) {
-            await stripe.refunds.create({ payment_intent: paymentIntent.id, amount: refundCents });
+            await stripe.refunds.create(
+              { payment_intent: paymentIntent.id, amount: refundCents },
+              { idempotencyKey: `booking:${booking.id}:cancellation-refund` }
+            );
             amountRefunded = refundCents / 100;
             amountRetained = paymentIntent.amount_received / 100 - amountRefunded;
           }

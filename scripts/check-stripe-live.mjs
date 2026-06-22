@@ -1,0 +1,63 @@
+import { config } from "dotenv";
+import Stripe from "stripe";
+
+config({ path: ".env", quiet: true });
+config({ path: ".env.local", override: true, quiet: true });
+
+const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+const appUrl = process.env.NEXTAUTH_URL?.trim()?.replace(/\/$/, "");
+
+if (!secretKey?.startsWith("sk_live_") || !appUrl) {
+  console.error("ERREUR - clés Stripe Live ou NEXTAUTH_URL absentes");
+  process.exit(1);
+}
+
+const requiredEvents = [
+  "checkout.session.completed",
+  "customer.subscription.deleted",
+  "customer.subscription.updated",
+  "invoice.payment_failed",
+  "invoice.payment_succeeded",
+  "payment_intent.payment_failed",
+  "payment_intent.succeeded",
+];
+
+try {
+  const stripe = new Stripe(secretKey);
+  const [account, webhookEndpoints] = await Promise.all([
+    stripe.accounts.retrieve(),
+    stripe.webhookEndpoints.list({ limit: 100 }),
+  ]);
+
+  const errors = [];
+  if (!account.charges_enabled) errors.push("les paiements Live ne sont pas activés");
+  if (!account.payouts_enabled) errors.push("les versements Stripe ne sont pas activés");
+  if (!account.details_submitted) errors.push("le dossier du compte Stripe est incomplet");
+
+  const webhookUrl = `${appUrl}/api/stripe/webhook`;
+  const endpoint = webhookEndpoints.data.find(
+    (candidate) => candidate.url.replace(/\/$/, "") === webhookUrl
+  );
+
+  if (!endpoint || endpoint.status !== "enabled") {
+    errors.push(`webhook Live actif introuvable pour ${webhookUrl}`);
+  } else if (!endpoint.enabled_events.includes("*")) {
+    const missingEvents = requiredEvents.filter(
+      (eventName) => !endpoint.enabled_events.includes(eventName)
+    );
+    if (missingEvents.length > 0) {
+      errors.push(`événements webhook manquants : ${missingEvents.join(", ")}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    for (const error of errors) console.error(`ERREUR - ${error}`);
+    process.exit(1);
+  }
+
+  console.log("OK - compte Stripe Live et webhook de production opérationnels");
+} catch (error) {
+  const message = error instanceof Error ? error.message : "erreur Stripe inconnue";
+  console.error(`ERREUR - vérification Stripe Live impossible : ${message}`);
+  process.exit(1);
+}

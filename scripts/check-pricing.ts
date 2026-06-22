@@ -13,6 +13,7 @@ const assert = (condition: boolean, message: string) => {
 
 const dog = { id: "dog-1", species: "DOG" as const, age: 4 };
 const secondDog = { id: "dog-2", species: "DOG" as const, age: 3 };
+const cat = { id: "cat-1", species: "CAT" as const, age: 2 };
 const visitSlots = [
   { date: "2026-09-10", startTime: "09:00", duration: 30 },
   { date: "2026-09-11", startTime: "18:00", duration: 60 },
@@ -27,6 +28,54 @@ assert(
     visitSlots,
   }).total === 39,
   "Deux visites de 30 et 60 minutes doivent coûter 39€ pour un chien"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "DROP_IN",
+    pets: [dog],
+    startDate: "2026-09-10",
+    endDate: "2026-09-10",
+    visitSlots: [
+      { date: "2026-09-10", startTime: "08:00", duration: 30 },
+      { date: "2026-09-10", startTime: "13:00", duration: 30 },
+      { date: "2026-09-10", startTime: "19:00", duration: 60 },
+    ],
+  }).total === 54,
+  "Trois passages le même jour doivent inclure chaque passage et le supplément de 60 minutes"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "DOG_WALKING",
+    pets: [dog],
+    startDate: "2026-09-10",
+    endDate: "2026-09-10",
+    visitSlots: [{ date: "2026-09-10", startTime: "09:00", duration: 60 }],
+  }).total === 19,
+  "Une promenade de 60 minutes doit inclure le supplément de durée"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "BOARDING",
+    pets: [cat],
+    startDate: "2026-09-10",
+    endDate: "2026-09-12",
+    endTime: "15:00",
+  }).total === 50,
+  "Un hébergement chat de deux nuits avec départ après 12h doit inclure une demi-journée"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "DROP_IN",
+    pets: [dog],
+    startDate: "2026-07-10",
+    endDate: "2026-07-10",
+    visitSlots: [{ date: "2026-07-10", startTime: "09:00", duration: 30 }],
+  }).total === 18,
+  "Une visite en haute saison doit appliquer le tarif haute saison"
 );
 
 assert(

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "check:env": "node scripts/check-env.mjs",
+    "check:live": "CHECK_ENV_TARGET=production node scripts/check-env.mjs && node scripts/check-stripe-live.mjs",
     "check:pricing": "tsx scripts/check-pricing.ts",
     "preflight": "npm run check:env && npm run check:pricing && npm run lint && npm run build",
     "postinstall": "prisma generate",

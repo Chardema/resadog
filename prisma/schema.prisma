@@ -29,21 +29,21 @@ model User {
   autoApplyCouponId String? // Coupon appliqué automatiquement
 
   // Stripe (système "Uber" avec carte enregistrée)
-  stripeCustomerId   String? @unique // ID du Customer dans Stripe
-  paymentMethodId    String?         // ID du moyen de paiement par défaut
-  cardLast4          String?         // 4 derniers chiffres de la carte
-  cardBrand          String?         // Marque de la carte (Visa, Mastercard, etc.)
+  stripeCustomerId String? @unique // ID du Customer dans Stripe
+  paymentMethodId  String? // ID du moyen de paiement par défaut
+  cardLast4        String? // 4 derniers chiffres de la carte
+  cardBrand        String? // Marque de la carte (Visa, Mastercard, etc.)
 
   // Relations
-  accounts      Account[]
-  sessions      Session[]
-  pets          Pet[]
-  bookings      Booking[]
-  messages      Message[]
-  notifications Notification[]
-  subscription  UserSubscription?
-  creditBatches CreditBatch[]
-  autoApplyCoupon Coupon? @relation("UserAutoApplyCoupon", fields: [autoApplyCouponId], references: [id], onDelete: SetNull)
+  accounts        Account[]
+  sessions        Session[]
+  pets            Pet[]
+  bookings        Booking[]
+  messages        Message[]
+  notifications   Notification[]
+  subscription    UserSubscription?
+  creditBatches   CreditBatch[]
+  autoApplyCoupon Coupon?           @relation("UserAutoApplyCoupon", fields: [autoApplyCouponId], references: [id], onDelete: SetNull)
 
   @@index([email])
   @@index([autoApplyCouponId])
@@ -99,41 +99,41 @@ model VerificationToken {
 // ============================================
 
 model Pet {
-  id              String   @id @default(cuid())
-  name            String
-  species         Species  @default(DOG)
-  breed           String?
-  age             Float?
-  weight          Float?
-  gender          Gender?
-  spayedNeutered  Boolean?
-  imageUrl        String?
-  microchipNumber String?
-  insuranceInfo   String?  @db.Text
-  allergies       String?  @db.Text
-  medicalInfo     String?  @db.Text
-  behaviorNotes   String?  @db.Text
-  feedingSchedule String?  @db.Text
-  medications     String?  @db.Text
-  vetInfo         String?  @db.Text
-  emergencyContact String? @db.Text
-  lastVetVisit    DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String    @id @default(cuid())
+  name             String
+  species          Species   @default(DOG)
+  breed            String?
+  age              Float?
+  weight           Float?
+  gender           Gender?
+  spayedNeutered   Boolean?
+  imageUrl         String?
+  microchipNumber  String?
+  insuranceInfo    String?   @db.Text
+  allergies        String?   @db.Text
+  medicalInfo      String?   @db.Text
+  behaviorNotes    String?   @db.Text
+  feedingSchedule  String?   @db.Text
+  medications      String?   @db.Text
+  vetInfo          String?   @db.Text
+  emergencyContact String?   @db.Text
+  lastVetVisit     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  ownerId      String
-  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId        String
+  owner          User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   legacyBookings Booking[]
-  bookings     Booking[]     @relation("BookingPets")
+  bookings       Booking[]      @relation("BookingPets")
   journalEntries JournalEntry[]
-  vaccines     Vaccine[]
+  vaccines       Vaccine[]
 
   @@index([ownerId])
 }
 
 model Vaccine {
   id          String    @id @default(cuid())
-  name        String    // Rage, CHPL, Leucose, Typhus, etc.
+  name        String // Rage, CHPL, Leucose, Typhus, etc.
   dateGiven   DateTime
   expiryDate  DateTime?
   batchNumber String?
@@ -141,8 +141,8 @@ model Vaccine {
   notes       String?   @db.Text
   createdAt   DateTime  @default(now())
 
-  petId       String
-  pet         Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  petId String
+  pet   Pet    @relation(fields: [petId], references: [id], onDelete: Cascade)
 
   @@index([petId])
   @@index([expiryDate])
@@ -164,32 +164,33 @@ enum Gender {
 // ============================================
 
 model Booking {
-  id              String        @id @default(cuid())
-  startDate       DateTime
-  endDate         DateTime
-  startTime       String?       // Heure de dépôt (format HH:mm)
-  endTime         String?       // Heure de récupération (format HH:mm)
-  status          BookingStatus @default(PENDING)
-  serviceType     ServiceType
-  totalPrice      Float
-  depositPaid     Boolean       @default(false)
-  depositAmount   Float?
-  creditsUsed     Int           @default(0)
-  notes           String?       @db.Text
-  specialRequests String?       @db.Text
-  cancellationReason String?    @db.Text
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                 String        @id @default(cuid())
+  startDate          DateTime
+  endDate            DateTime
+  startTime          String? // Heure de dépôt (format HH:mm)
+  endTime            String? // Heure de récupération (format HH:mm)
+  status             BookingStatus @default(PENDING)
+  serviceType        ServiceType
+  totalPrice         Float
+  depositPaid        Boolean       @default(false)
+  depositAmount      Float?
+  creditsUsed        Int           @default(0)
+  notes              String?       @db.Text
+  specialRequests    String?       @db.Text
+  cancellationReason String?       @db.Text
+  couponRedeemedAt   DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  clientId     String
-  client       User          @relation(fields: [clientId], references: [id])
-  petId        String?
-  pet          Pet?          @relation(fields: [petId], references: [id])
-  pets         Pet[]         @relation("BookingPets")
-  payment      Payment?
+  clientId          String
+  client            User               @relation(fields: [clientId], references: [id])
+  petId             String?
+  pet               Pet?               @relation(fields: [petId], references: [id])
+  pets              Pet[]              @relation("BookingPets")
+  payment           Payment?
   additionalCharges AdditionalCharge[]
-  journalEntries JournalEntry[]
-  messages     Message[]
+  journalEntries    JournalEntry[]
+  messages          Message[]
 
   @@index([clientId])
   @@index([petId])
@@ -206,10 +207,10 @@ enum BookingStatus {
 }
 
 enum ServiceType {
-  BOARDING        // Pension complète
-  DAY_CARE        // Visite de jour
-  DROP_IN         // Visite rapide
-  DOG_WALKING     // Promenade uniquement
+  BOARDING // Pension complète
+  DAY_CARE // Visite de jour
+  DROP_IN // Visite rapide
+  DOG_WALKING // Promenade uniquement
 }
 
 // ============================================
@@ -217,18 +218,18 @@ enum ServiceType {
 // ============================================
 
 model Payment {
-  id                String        @id @default(cuid())
-  amount            Float
-  currency          String        @default("eur")
-  status            PaymentStatus @default(PENDING)
-  stripePaymentId   String?
-  stripeCustomerId  String?
-  paymentMethod     String?
-  paidAt            DateTime?
-  refundedAt        DateTime?
-  refundAmount      Float?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id               String        @id @default(cuid())
+  amount           Float
+  currency         String        @default("eur")
+  status           PaymentStatus @default(PENDING)
+  stripePaymentId  String?
+  stripeCustomerId String?
+  paymentMethod    String?
+  paidAt           DateTime?
+  refundedAt       DateTime?
+  refundAmount     Float?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   bookingId String  @unique
   booking   Booking @relation(fields: [bookingId], references: [id])
@@ -239,15 +240,15 @@ model Payment {
 
 // Suppléments facturés après la réservation (retards, extras, etc.)
 model AdditionalCharge {
-  id               String              @id @default(cuid())
-  amount           Float                // Montant du supplément
-  reason           String               // Raison (ex: "Retard de 4h", "Médicaments urgents")
-  description      String?       @db.Text // Description détaillée
-  status           PaymentStatus        @default(PENDING)
-  stripePaymentId  String?       @unique // ID du PaymentIntent Stripe
-  chargedAt        DateTime?            // Date de débit réussi
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id              String        @id @default(cuid())
+  amount          Float // Montant du supplément
+  reason          String // Raison (ex: "Retard de 4h", "Médicaments urgents")
+  description     String?       @db.Text // Description détaillée
+  status          PaymentStatus @default(PENDING)
+  stripePaymentId String?       @unique // ID du PaymentIntent Stripe
+  chargedAt       DateTime? // Date de débit réussi
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   bookingId String
   booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
@@ -270,19 +271,19 @@ enum PaymentStatus {
 // ============================================
 
 model JournalEntry {
-  id          String         @id @default(cuid())
-  entryType   JournalType
-  title       String
-  content     String         @db.Text
-  timestamp   DateTime       @default(now())
-  mediaUrls   String[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id        String      @id @default(cuid())
+  entryType JournalType
+  title     String
+  content   String      @db.Text
+  timestamp DateTime    @default(now())
+  mediaUrls String[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
-  bookingId   String
-  booking     Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  petId       String
-  pet         Pet            @relation(fields: [petId], references: [id])
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  petId     String
+  pet       Pet     @relation(fields: [petId], references: [id])
 
   @@index([bookingId])
   @@index([petId])
@@ -290,16 +291,16 @@ model JournalEntry {
 }
 
 enum JournalType {
-  FEEDING      // Repas
-  WALK         // Promenade
-  PLAYTIME     // Temps de jeu
-  BATHROOM     // Pipi/Caca
-  MEDICATION   // Médicaments
-  NAP          // Sieste
-  PHOTO        // Photo
-  VIDEO        // Vidéo
-  NOTE         // Note générale
-  VET_VISIT    // Visite vétérinaire
+  FEEDING // Repas
+  WALK // Promenade
+  PLAYTIME // Temps de jeu
+  BATHROOM // Pipi/Caca
+  MEDICATION // Médicaments
+  NAP // Sieste
+  PHOTO // Photo
+  VIDEO // Vidéo
+  NOTE // Note générale
+  VET_VISIT // Visite vétérinaire
 }
 
 // ============================================
@@ -314,9 +315,9 @@ model Message {
   createdAt DateTime @default(now())
 
   senderId  String
-  sender    User     @relation(fields: [senderId], references: [id])
+  sender    User    @relation(fields: [senderId], references: [id])
   bookingId String
-  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])
   @@index([senderId])
@@ -361,14 +362,14 @@ enum NotificationType {
 // ============================================
 
 model Availability {
-  id           String        @id @default(cuid())
-  date         DateTime
-  serviceType  ServiceType   // Type de service concerné
-  available    Boolean       @default(true)
-  maxSlots     Int           @default(1)
-  notes        String?       @db.Text
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id          String      @id @default(cuid())
+  date        DateTime
+  serviceType ServiceType // Type de service concerné
+  available   Boolean     @default(true)
+  maxSlots    Int         @default(1)
+  notes       String?     @db.Text
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@unique([date, serviceType]) // Une date peut avoir plusieurs disponibilités (une par type de service)
   @@index([date])
@@ -380,35 +381,35 @@ model Availability {
 // ============================================
 
 model Coupon {
-  id              String       @id @default(cuid())
-  code            String       @unique  // Code promo (ex: LANCEMENT, VIP23)
-  description     String?                // Description pour l'admin
-  discountType    DiscountType           // PERCENTAGE ou FIXED_AMOUNT
-  discountValue   Float                  // Valeur de la réduction (% ou €)
-  isActive        Boolean      @default(true)
+  id            String       @id @default(cuid())
+  code          String       @unique // Code promo (ex: LANCEMENT, VIP23)
+  description   String? // Description pour l'admin
+  discountType  DiscountType // PERCENTAGE ou FIXED_AMOUNT
+  discountValue Float // Valeur de la réduction (% ou €)
+  isActive      Boolean      @default(true)
 
   // Restrictions
-  minAmount       Float?                 // Montant minimum pour utiliser le code
-  maxUses         Int?                   // Nombre max d'utilisations (null = illimité)
-  currentUses     Int          @default(0)
-  validFrom       DateTime?              // Date de début de validité
-  validUntil      DateTime?              // Date de fin de validité
-  restrictedTo    String[]               // Emails autorisés (vide = tout le monde)
-  applicableServices ServiceType[]       // Services autorisés (vide = tous)
+  minAmount          Float? // Montant minimum pour utiliser le code
+  maxUses            Int? // Nombre max d'utilisations (null = illimité)
+  currentUses        Int           @default(0)
+  validFrom          DateTime? // Date de début de validité
+  validUntil         DateTime? // Date de fin de validité
+  restrictedTo       String[] // Emails autorisés (vide = tout le monde)
+  applicableServices ServiceType[] // Services autorisés (vide = tous)
 
   // Relations
-  usersAutoApply  User[]       @relation("UserAutoApplyCoupon") // Users qui ont ce coupon en auto
+  usersAutoApply User[] @relation("UserAutoApplyCoupon") // Users qui ont ce coupon en auto
 
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([code])
   @@index([isActive])
 }
 
 enum DiscountType {
-  PERCENTAGE    // Réduction en pourcentage (ex: 20%)
-  FIXED_AMOUNT  // Réduction fixe (ex: 7€)
+  PERCENTAGE // Réduction en pourcentage (ex: 20%)
+  FIXED_AMOUNT // Réduction fixe (ex: 7€)
 }
 
 // ============================================
@@ -418,18 +419,18 @@ enum DiscountType {
 model UserSubscription {
   id                   String        @id @default(cuid())
   stripeSubscriptionId String?       @unique
-  status               String        // ACTIVE, PAST_DUE, CANCELED
+  status               String // ACTIVE, PAST_DUE, CANCELED
   serviceType          ServiceType
   billingPeriod        BillingPeriod @default(MONTHLY)
   daysPerWeek          Int
   creditsPerMonth      Int
   price                Float
-  
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
 
-  userId               String        @unique
-  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum BillingPeriod {
@@ -438,15 +439,16 @@ enum BillingPeriod {
 }
 
 model CreditBatch {
-  id          String      @id @default(cuid())
-  amount      Int
-  remaining   Int
-  serviceType ServiceType
-  expiresAt   DateTime
-  createdAt   DateTime    @default(now())
+  id             String      @id @default(cuid())
+  stripeSourceId String?     @unique
+  amount         Int
+  remaining      Int
+  serviceType    ServiceType
+  expiresAt      DateTime
+  createdAt      DateTime    @default(now())
 
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
@@ -461,7 +463,7 @@ model Review {
   source    ReviewSource
   author    String
   rating    Int          @default(5) // 1-5
-  date      String       // Date affichée (ex: "14 août 2024")
+  date      String // Date affichée (ex: "14 août 2024")
   content   String       @db.Text
   isActive  Boolean      @default(true)
   order     Int          @default(0) // Ordre d'affichage
@@ -484,9 +486,14 @@ enum ReviewSource {
 // ============================================
 
 model StripeWebhookEvent {
-  id        String   @id // Stripe event ID (evt_xxx)
-  type      String
-  createdAt DateTime @default(now())
+  id           String    @id // Stripe event ID (evt_xxx)
+  type         String
+  status       String    @default("PROCESSING")
+  attemptToken String
+  processedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([createdAt])
+  @@index([status, updatedAt])
 }

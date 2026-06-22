@@ -3,10 +3,14 @@ import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
 import { sendBookingRequestEmail, sendAdminNotification, sendPaymentFailedEmail } from "@/lib/email";
 import Stripe from "stripe";
+import { Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(request: NextRequest) {
+  let claimedEvent: { id: string; attemptToken: string } | null = null;
+
   try {
     const body = await request.text();
     const signature = request.headers.get("stripe-signature")!;
@@ -23,14 +27,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Idempotency: vérifier si cet événement a déjà été traité
-    const existingEvent = await prisma.stripeWebhookEvent.findUnique({
-      where: { id: event.id },
-    });
-
-    if (existingEvent) {
+    const claim = await claimWebhookEvent(event);
+    if (claim === "PROCESSED") {
       return NextResponse.json({ received: true, duplicate: true });
     }
+    if (claim === "PROCESSING") {
+      return NextResponse.json({ error: "Événement déjà en cours de traitement" }, { status: 409 });
+    }
+    claimedEvent = { id: event.id, attemptToken: claim };
 
     // Gérer les événements Stripe
     switch (event.type) {
@@ -66,20 +70,62 @@ export async function POST(request: NextRequest) {
         break;
     }
 
-    // Un événement n'est considéré comme traité qu'une fois toutes ses actions terminées.
-    // En cas d'erreur, Stripe peut ainsi le renvoyer sans qu'il soit perdu.
-    await prisma.stripeWebhookEvent.create({
-      data: { id: event.id, type: event.type },
+    const completed = await prisma.stripeWebhookEvent.updateMany({
+      where: { id: event.id, attemptToken: claim, status: "PROCESSING" },
+      data: { status: "PROCESSED", processedAt: new Date() },
     });
+    if (completed.count !== 1) throw new Error(`Verrou webhook perdu pour ${event.id}`);
 
     return NextResponse.json({ received: true });
   } catch (error) {
+    if (claimedEvent) {
+      await prisma.stripeWebhookEvent.deleteMany({
+        where: claimedEvent,
+      }).catch((cleanupError) => console.error("Nettoyage du verrou webhook impossible:", cleanupError));
+    }
     console.error("Erreur dans le webhook Stripe:", error);
     return NextResponse.json(
       { error: "Erreur du webhook" },
       { status: 500 }
     );
   }
+}
+
+async function claimWebhookEvent(event: Stripe.Event): Promise<string | "PROCESSED" | "PROCESSING"> {
+  const attemptToken = randomUUID();
+
+  try {
+    await prisma.stripeWebhookEvent.create({
+      data: {
+        id: event.id,
+        type: event.type,
+        status: "PROCESSING",
+        attemptToken,
+      },
+    });
+    return attemptToken;
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+      throw error;
+    }
+  }
+
+  const existing = await prisma.stripeWebhookEvent.findUnique({ where: { id: event.id } });
+  if (!existing) throw new Error(`Événement webhook ${event.id} introuvable après conflit`);
+  if (existing.status === "PROCESSED") return "PROCESSED";
+
+  const staleBefore = new Date(Date.now() - 5 * 60 * 1000);
+  const reclaimed = await prisma.stripeWebhookEvent.updateMany({
+    where: {
+      id: event.id,
+      status: "PROCESSING",
+      attemptToken: existing.attemptToken,
+      updatedAt: { lte: staleBefore },
+    },
+    data: { attemptToken },
+  });
+
+  return reclaimed.count === 1 ? attemptToken : "PROCESSING";
 }
 
 // ... (existing helper functions) ...
@@ -122,8 +168,11 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
             const creditsGranted = subscription.billingPeriod === "YEARLY"
                 ? subscription.creditsPerMonth * 12
                 : subscription.creditsPerMonth;
-            await prisma.creditBatch.create({
-                data: {
+            await prisma.creditBatch.upsert({
+                where: { stripeSourceId: invoice.id },
+                update: {},
+                create: {
+                    stripeSourceId: invoice.id,
                     userId: subscription.userId,
                     amount: creditsGranted,
                     remaining: creditsGranted,
@@ -287,8 +336,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       // correspond toujours au premier paiement de ce nouvel abonnement.
       const monthlyCredits = parseInt(metadata.creditsPerMonth);
       const creditsGranted = metadata.billingCycle === "YEARLY" ? monthlyCredits * 12 : monthlyCredits;
-      await prisma.creditBatch.create({
-          data: {
+      await prisma.creditBatch.upsert({
+          where: { stripeSourceId: session.id },
+          update: {},
+          create: {
+              stripeSourceId: session.id,
               userId: metadata.userId,
               amount: creditsGranted,
               remaining: creditsGranted,
@@ -328,9 +380,17 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   // Incrémenter le coupon si utilisé (le code est stocké dans les metadata)
   const promoCode = session.metadata?.promoCode;
   if (promoCode) {
-    await prisma.coupon.updateMany({
-      where: { code: promoCode.toUpperCase(), isActive: true },
-      data: { currentUses: { increment: 1 } },
+    await prisma.$transaction(async (tx) => {
+      const redeemed = await tx.booking.updateMany({
+        where: { id: { in: bookingIds }, couponRedeemedAt: null },
+        data: { couponRedeemedAt: new Date() },
+      });
+      if (redeemed.count > 0) {
+        await tx.coupon.updateMany({
+          where: { code: promoCode.toUpperCase(), isActive: true },
+          data: { currentUses: { increment: redeemed.count } },
+        });
+      }
     });
   }
 

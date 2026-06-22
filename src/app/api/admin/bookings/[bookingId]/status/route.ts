@@ -76,7 +76,11 @@ export async function PATCH(
         const paymentIntent = await stripe.paymentIntents.retrieve(booking.payment.stripePaymentId);
         
         if (paymentIntent.status === 'requires_capture') {
-          await stripe.paymentIntents.capture(booking.payment.stripePaymentId);
+          await stripe.paymentIntents.capture(
+            booking.payment.stripePaymentId,
+            {},
+            { idempotencyKey: `booking:${booking.id}:confirmation-capture` }
+          );
           
           await prisma.payment.update({
             where: { id: booking.payment.id },
@@ -147,16 +151,21 @@ export async function PATCH(
 
         if (paymentIntent.status === 'requires_capture') {
            // Annuler l'empreinte (Le client n'est pas débité)
-           await stripe.paymentIntents.cancel(booking.payment.stripePaymentId);
+           await stripe.paymentIntents.cancel(
+             booking.payment.stripePaymentId,
+             {},
+             { idempotencyKey: `booking:${booking.id}:release-authorization` }
+           );
            await prisma.payment.update({
              where: { id: booking.payment.id },
              data: { status: "REFUNDED", refundedAt: new Date(), refundAmount: 0 },
            });
         } else if (paymentIntent.status === 'succeeded') {
            // Rembourser via Stripe
-           const refund = await stripe.refunds.create({
-             payment_intent: booking.payment.stripePaymentId,
-           });
+           await stripe.refunds.create(
+             { payment_intent: booking.payment.stripePaymentId },
+             { idempotencyKey: `booking:${booking.id}:cancellation-refund` }
+           );
    
            // Mettre à jour le statut du paiement
            await prisma.payment.update({

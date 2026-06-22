@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'meganemelique36@gmail.com';
 const DEV_EMAIL = process.env.DEV_EMAIL || 'christo59@pm.me';
 const APP_URL = process.env.NEXTAUTH_URL || 'https://resadog.vercel.app';
@@ -27,7 +27,7 @@ export const sendBookingConfirmationEmail = async (
     totalPrice: number;
   }
 ) => {
-  if (!process.env.RESEND_API_KEY) {
+  if (!resend) {
     console.warn("⚠️ RESEND_API_KEY manquante. Email non envoyé.");
     return;
   }
@@ -67,7 +67,7 @@ export const sendBookingRequestEmail = async (
   userName: string,
   petName: string
 ) => {
-  if (!process.env.RESEND_API_KEY) {
+  if (!resend) {
     console.warn("⚠️ RESEND_API_KEY manquante. Email non envoyé.");
     return;
   }
@@ -100,7 +100,7 @@ export const sendAdminNotification = async (
   endDate: string,
   totalPrice: number
 ) => {
-  if (!process.env.RESEND_API_KEY) {
+  if (!resend) {
     console.warn("⚠️ RESEND_API_KEY manquante. Email non envoyé.");
     return;
   }
@@ -133,7 +133,7 @@ export const sendBugReport = async (
   description: string,
   path: string
 ) => {
-  if (!process.env.RESEND_API_KEY) {
+  if (!resend) {
     console.warn("⚠️ RESEND_API_KEY manquante. Email bug non envoyé.");
     return;
   }
@@ -167,7 +167,7 @@ export const sendPaymentFailedEmail = async (
   email: string,
   userName: string
 ) => {
-  if (!process.env.RESEND_API_KEY) {
+  if (!resend) {
     console.warn("⚠️ RESEND_API_KEY manquante. Email non envoyé.");
     return;
   }
@@ -205,13 +205,12 @@ export const sendPasswordResetEmail = async (
   userName: string,
   resetUrl: string
 ) => {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("RESEND_API_KEY manquante. Email de réinitialisation non envoyé.");
-    return;
+  if (!resend) {
+    throw new Error("RESEND_API_KEY manquante");
   }
 
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: EMAIL_FROM,
       to: email,
       subject: "Réinitialiser votre mot de passe La Patte Dorée",
@@ -225,7 +224,9 @@ export const sendPasswordResetEmail = async (
       `,
       replyTo: ADMIN_EMAIL,
     });
+    if (result.error) throw result.error;
   } catch (error) {
     console.error("Email de réinitialisation non envoyé:", error);
+    throw error;
   }
 };
