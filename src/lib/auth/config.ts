@@ -30,9 +30,10 @@ export const authConfig = {
       async authorize(credentials) {
         try {
           const { email, password } = loginSchema.parse(credentials);
+          const normalizedEmail = email.trim().toLowerCase();
 
-          const user = await prisma.user.findUnique({
-            where: { email },
+          const user = await prisma.user.findFirst({
+            where: { email: { equals: normalizedEmail, mode: "insensitive" } },
           });
 
           if (!user || !user.passwordHash) {

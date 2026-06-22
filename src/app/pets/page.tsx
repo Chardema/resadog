@@ -21,6 +21,7 @@ export default function PetsPage() {
   const { data: session, status } = useSession();
   const [pets, setPets] = useState<Pet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -49,6 +50,7 @@ export default function PetsPage() {
       return;
     }
 
+    setDeleteError("");
     try {
       const response = await fetch(`/api/pets/${id}`, {
         method: "DELETE",
@@ -56,9 +58,13 @@ export default function PetsPage() {
 
       if (response.ok) {
         setPets(pets.filter((p) => p.id !== id));
+      } else {
+        const data = await response.json().catch(() => null);
+        setDeleteError(data?.error || "Impossible de supprimer ce profil.");
       }
     } catch (error) {
       console.error("Erreur:", error);
+      setDeleteError("Erreur de connexion. Réessayez dans quelques instants.");
     }
   };
 
@@ -80,6 +86,11 @@ export default function PetsPage() {
       </div>
 
       <div className="container mx-auto px-6 pt-32 relative z-10">
+        {deleteError && (
+          <div role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            {deleteError}
+          </div>
+        )}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
           <div>
             <motion.h1 
@@ -112,7 +123,7 @@ export default function PetsPage() {
           >
             <div className="text-8xl mb-6 grayscale opacity-50">🐾</div>
             <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              C'est un peu vide ici...
+              C&apos;est un peu vide ici...
             </h3>
             <p className="text-gray-500 mb-8 max-w-md mx-auto">
               Ajoutez le profil de votre premier compagnon pour pouvoir effectuer des réservations plus rapidement.

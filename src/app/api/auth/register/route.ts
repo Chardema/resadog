@@ -7,7 +7,7 @@ import { rateLimit } from "@/lib/rate-limit";
 const registerSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Email invalide"),
-  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+  password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
   phone: z.string().optional(),
 });
 
@@ -28,9 +28,12 @@ export async function POST(request: Request) {
     // Validation des données
     const validatedData = registerSchema.parse(body);
 
-    // Vérifier si l'email existe déjà
-    const existingUser = await prisma.user.findUnique({
-      where: { email: validatedData.email },
+    const normalizedEmail = validatedData.email.trim().toLowerCase();
+
+    // PostgreSQL compare les chaînes avec leur casse par défaut. Cette recherche
+    // empêche donc la création de deux comptes pour le même email.
+    const existingUser = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
     });
 
     if (existingUser) {
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
     const user = await prisma.user.create({
       data: {
         name: validatedData.name,
-        email: validatedData.email,
+        email: normalizedEmail,
         passwordHash,
         phone: validatedData.phone,
         role: "CLIENT", // Par défaut, les nouveaux utilisateurs sont des clients

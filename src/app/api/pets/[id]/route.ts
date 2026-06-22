@@ -112,10 +112,10 @@ export async function PUT(
     const validatedData = updatePetSchema.parse(body);
 
     // Nettoyer les données - retirer imageUrl si vide
-    const cleanedData: any = { ...validatedData };
-    if (cleanedData.imageUrl === "") {
-      delete cleanedData.imageUrl;
-    }
+    const cleanedData = {
+      ...validatedData,
+      imageUrl: validatedData.imageUrl || undefined,
+    };
 
     const pet = await prisma.pet.update({
       where: { id },
@@ -175,6 +175,21 @@ export async function DELETE(
       return NextResponse.json(
         { error: "Non autorisé" },
         { status: 403 }
+      );
+    }
+
+    const linkedBookings = await prisma.booking.count({
+      where: {
+        OR: [
+          { petId: id },
+          { pets: { some: { id } } },
+        ],
+      },
+    });
+    if (linkedBookings > 0) {
+      return NextResponse.json(
+        { error: "Ce profil est lié à une réservation et doit être conservé dans l'historique." },
+        { status: 409 }
       );
     }
 
