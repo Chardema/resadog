@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { AppNav } from "@/components/layout/AppNav";
+import { formatPetAge } from "@/lib/pets";
 
 interface Pet {
   id: string;
@@ -172,7 +173,7 @@ export default function PetsPage() {
                     {pet.name}
                   </h3>
                   <p className="text-gray-500 font-medium">
-                    {pet.breed || "Race inconnue"} • {pet.age ? `${pet.age} ans` : "Âge inconnu"}
+                    {pet.breed || "Race inconnue"} • {formatPetAge(pet.age)}
                   </p>
                 </div>
 

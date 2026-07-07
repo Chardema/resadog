@@ -18,14 +18,14 @@ export const SERVICE_LABELS: Record<AppServiceType, string> = {
 
 export const SERVICE_UNITS: Record<AppServiceType, string> = {
   BOARDING: "nuit",
-  HOUSE_SITTING: "nuit",
+  HOUSE_SITTING: "jour",
   DAY_CARE: "jour",
   DROP_IN: "visite",
   DOG_WALKING: "promenade",
 };
 
 export const HOURLY_SERVICE_TYPES = ["DROP_IN", "DOG_WALKING"] as const;
-export const OVERNIGHT_SERVICE_TYPES = ["BOARDING", "HOUSE_SITTING"] as const;
+export const OVERNIGHT_SERVICE_TYPES = ["BOARDING"] as const;
 
 export function isHourlyServiceType(serviceType: string): serviceType is (typeof HOURLY_SERVICE_TYPES)[number] {
   return HOURLY_SERVICE_TYPES.includes(serviceType as (typeof HOURLY_SERVICE_TYPES)[number]);

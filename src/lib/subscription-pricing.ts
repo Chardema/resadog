@@ -19,9 +19,9 @@ export const SUBSCRIPTION_SERVICES: Record<SubscriptionServiceType, ServiceConfi
   },
   HOUSE_SITTING: {
     label: "Garde au domicile",
-    creditLabel: "nuit au domicile",
-    unitPrice: 38,
-    minimumCreditPrice: 34,
+    creditLabel: "jour au domicile",
+    unitPrice: 30,
+    minimumCreditPrice: 27,
   },
   DAY_CARE: {
     label: "Garderie",

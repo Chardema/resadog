@@ -124,6 +124,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (serviceType === "DAY_CARE" && startDate !== endDate) {
+      return NextResponse.json(
+        { error: "La garderie de jour se réserve sur une seule journée. Pour plusieurs jours avec nuit, choisissez l'hébergement." },
+        { status: 400 }
+      );
+    }
+
     if (isHourlyService && visitSlots.length === 0) {
       return NextResponse.json(
         { error: "Ajoutez au moins un passage avec une date, une heure et une durée" },

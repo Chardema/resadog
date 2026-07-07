@@ -140,9 +140,9 @@ assert(
     serviceType: "DAY_CARE",
     pets: [dog],
     startDate: "2026-09-10",
-    endDate: "2026-09-12",
-  }).total === 75,
-  "Trois jours de garderie doivent coûter 75€"
+    endDate: "2026-09-10",
+  }).total === 25,
+  "Une garderie de jour doit coûter 25€ pour un chien"
 );
 
 assert(
@@ -152,8 +152,8 @@ assert(
     startDate: "2026-09-10",
     endDate: "2026-09-12",
     endTime: "10:00",
-  }).total === 76,
-  "Deux nuits de garde au domicile doivent coûter 76€ pour un chien"
+  }).total === 90,
+  "Trois jours de garde au domicile doivent coûter 90€ pour un chien"
 );
 
 assert(
@@ -163,19 +163,19 @@ assert(
     startDate: "2026-07-10",
     endDate: "2026-07-12",
     endTime: "10:00",
-  }).total === 90,
-  "Deux nuits de garde au domicile en haute saison doivent coûter 90€ pour un chien"
+  }).total === 108,
+  "Trois jours de garde au domicile en haute saison doivent coûter 108€ pour un chien"
 );
 
 assert(
   calculateBookingPrice({
     serviceType: "HOUSE_SITTING",
-    pets: [dog],
+    pets: [cat],
     startDate: "2026-09-10",
-    endDate: "2026-09-12",
-    endTime: "15:00",
-  }).total === 95,
-  "La garde au domicile doit appliquer la demi-journée en cas de départ tardif"
+    endDate: "2026-09-10",
+    endTime: "18:00",
+  }).total === 26,
+  "Une journée de garde au domicile doit coûter 26€ pour un chat"
 );
 
 const services = Object.keys(SUBSCRIPTION_SERVICES) as SubscriptionServiceType[];

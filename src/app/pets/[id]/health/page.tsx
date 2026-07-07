@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { AppNav } from "@/components/layout/AppNav";
 import { use } from "react";
+import { formatPetAge } from "@/lib/pets";
 
 interface Pet {
   id: string;
@@ -254,7 +255,7 @@ export default function PetHealthPage({ params }: { params: Promise<{ id: string
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { label: "Poids", value: pet.weight ? `${pet.weight} kg` : "—", icon: "⚖️", color: "bg-blue-50 text-blue-700" },
-                  { label: "Âge", value: pet.age ? `${pet.age} ans` : "—", icon: "🎂", color: "bg-purple-50 text-purple-700" },
+                  { label: "Âge", value: pet.age === undefined || pet.age === null ? "—" : formatPetAge(pet.age), icon: "🎂", color: "bg-purple-50 text-purple-700" },
                   { label: "Stérilisé", value: pet.spayedNeutered ? "Oui ✓" : "Non", icon: "✂️", color: pet.spayedNeutered ? "bg-green-50 text-green-700" : "bg-orange-50 text-orange-700" },
                   { label: "Vaccins", value: `${vaccines.length}`, icon: "💉", color: expiredVaccines.length > 0 ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700" },
                 ].map((stat, i) => (
@@ -398,7 +399,7 @@ export default function PetHealthPage({ params }: { params: Promise<{ id: string
                         />
                       </div>
                       <div>
-                        <label className="text-sm text-gray-600 font-medium block mb-1">Date d'administration *</label>
+                        <label className="text-sm text-gray-600 font-medium block mb-1">Date d&apos;administration *</label>
                         <input
                           required
                           type="date"

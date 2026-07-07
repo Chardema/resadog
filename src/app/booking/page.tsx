@@ -22,6 +22,7 @@ import {
   isOvernightServiceType,
   type AppServiceType,
 } from "@/lib/services";
+import { formatPetAge } from "@/lib/pets";
 
 type ServiceOption = {
   value: AppServiceType;
@@ -46,10 +47,10 @@ const serviceTypes: ServiceOption[] = [
   {
     value: "HOUSE_SITTING",
     name: "Garde au domicile",
-    unit: "nuit",
-    description: "Nous gardons votre compagnon chez vous, avec présence au domicile.",
+    unit: "jour",
+    description: "Nous gardons votre compagnon chez vous sur une ou plusieurs journées.",
     icon: "🛏️",
-    maxHours: 24,
+    maxHours: 12,
     maxPets: 3,
   },
   {
@@ -117,7 +118,7 @@ const boardingCheckoutTime = "10:00";
 
 const serviceDefaultTimes: Record<string, { startTime: string; endTime: string }> = {
   BOARDING: { startTime: "18:00", endTime: boardingCheckoutTime },
-  HOUSE_SITTING: { startTime: "18:00", endTime: boardingCheckoutTime },
+  HOUSE_SITTING: { startTime: "09:00", endTime: "18:00" },
   DAY_CARE: { startTime: "09:00", endTime: "18:00" },
   DROP_IN: { startTime: defaultVisitTime, endTime: defaultVisitTime },
   DOG_WALKING: { startTime: defaultVisitTime, endTime: defaultVisitTime },
@@ -215,6 +216,7 @@ const formatDateKeyRanges = (dateKeys?: string[]) => {
 // --- COMPOSANT DATE SELECTOR EXTRAIT ---
 const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, onChange: (c: DateConfig) => void, serviceType: string }) => {
     const isHourly = isHourlyService(serviceType);
+    const isDayCare = serviceType === "DAY_CARE";
     const today = new Date().toISOString().split("T")[0];
     const [batchStartDate, setBatchStartDate] = useState("");
     const [batchEndDate, setBatchEndDate] = useState("");
@@ -496,6 +498,43 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, o
         );
     }
 
+    if (isDayCare) {
+        const selectedDate = config.startDate || config.endDate;
+        const setSingleDate = (date: string) => onChange({
+          ...config,
+          startDate: date,
+          endDate: date,
+        });
+
+        return (
+          <div className="space-y-3">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <Label>Jour de garderie</Label>
+                <Input
+                  type="date"
+                  className="bg-white"
+                  value={selectedDate}
+                  onChange={(e) => setSingleDate(e.target.value)}
+                  min={today}
+                />
+              </div>
+              <div>
+                <Label>Arrivée</Label>
+                <Input type="time" className="bg-white" value={config.startTime} onChange={(e) => onChange({ ...config, startTime: e.target.value, endDate: config.startDate || selectedDate })} />
+              </div>
+              <div>
+                <Label>Départ</Label>
+                <Input type="time" className="bg-white" value={config.endTime} onChange={(e) => onChange({ ...config, endTime: e.target.value, endDate: config.startDate || selectedDate })} />
+              </div>
+            </div>
+            <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+              La garderie de jour est verrouillée sur une seule journée. Pour plusieurs jours avec nuit, choisissez l&apos;hébergement.
+            </div>
+          </div>
+        );
+    }
+
     return (
        <div className="grid md:grid-cols-2 gap-4">
            <div>
@@ -727,6 +766,7 @@ export default function BookingPage() {
         ...prev,
         startTime: defaultTimes.startTime,
         endTime: defaultTimes.endTime,
+        endDate: formData.serviceType === "DAY_CARE" ? prev.startDate : prev.endDate,
       }));
     }
 
@@ -743,6 +783,12 @@ export default function BookingPage() {
     });
     setPetConfigs(newConfigs);
   }, [formData.serviceType]);
+
+  useEffect(() => {
+    if (formData.serviceType !== "DAY_CARE") return;
+    if (!formData.startDate || formData.endDate === formData.startDate) return;
+    setFormData((prev) => ({ ...prev, endDate: prev.startDate }));
+  }, [formData.serviceType, formData.startDate, formData.endDate]);
 
   // Check Availability
   useEffect(() => {
@@ -971,18 +1017,18 @@ export default function BookingPage() {
             : Math.max(0, ...Object.values(petConfigs).map(c => getValidVisitSlots(c.visitSlots).length));
       }
 
-      // Services à la date : nuits pour l'hébergement/garde au domicile, jours pour la garderie.
+      // Services à la date : nuits pour l'hébergement, jours pour garderie/garde au domicile.
       const config = useSameDates
         ? { startDate: formData.startDate, endDate: formData.endDate }
         : Object.values(petConfigs)[0]; // Take first as approx if varying
 
       if (!config?.startDate || !config?.endDate) return 1;
 
-      if (formData.serviceType === "DAY_CARE") {
-        return getInclusiveCalendarDayCount(config.startDate, config.endDate) || 1;
+      if (isOvernightServiceType(formData.serviceType)) {
+        return getCalendarDayDifference(config.startDate, config.endDate) || 1;
       }
 
-      return getCalendarDayDifference(config.startDate, config.endDate) || 1;
+      return getInclusiveCalendarDayCount(config.startDate, config.endDate) || 1;
   };
 
   const formatPrice = (value: number | undefined | null) => {
@@ -1017,6 +1063,7 @@ export default function BookingPage() {
       }
 
       if (!formData.startDate || !formData.endDate) return "Dates non renseignées";
+      if (formData.serviceType === "DAY_CARE") return formData.startDate;
       return `${formData.startDate} au ${formData.endDate}`;
   };
 
@@ -1415,6 +1462,9 @@ export default function BookingPage() {
                         >
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isSelected ? "bg-orange-100" : "bg-gray-100"}`}>{isSelected ? "✅" : "🐾"}</div>
                           <span className={`font-bold text-sm ${isSelected ? "text-gray-900" : "text-gray-500"}`}>{pet.name}</span>
+                          <span className="text-xs text-gray-500 leading-tight">
+                            {pet.breed || "Race inconnue"} · {formatPetAge(pet.age)}
+                          </span>
                         </div>
                       )})}
                     </div>
@@ -1541,7 +1591,7 @@ export default function BookingPage() {
                                 )}
                              </div>
                          </div>
-                         {(isOvernightServiceType(formData.serviceType) || formData.serviceType === "DAY_CARE") && (
+                         {!isHourlyService(formData.serviceType) && (
                              <div className="flex flex-col items-end gap-1">
                                  <div className="flex gap-2">
                                      <Input

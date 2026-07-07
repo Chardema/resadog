@@ -66,8 +66,8 @@ const PRICING: Record<string, Record<Species, PriceEntry>> = {
     CAT: { base: 20, additional: 14, young: 23, highSeason: 25 },
   },
   HOUSE_SITTING: {
-    DOG: { base: 38, additional: 24, young: 42, highSeason: 45 },
-    CAT: { base: 32, additional: 18, young: 36, highSeason: 39 },
+    DOG: { base: 30, additional: 18, young: 33, highSeason: 36 },
+    CAT: { base: 26, additional: 14, young: 29, highSeason: 31 },
   },
   DAY_CARE: {
     DOG: { base: 25, additional: 20, young: 28, highSeason: 30 },
@@ -297,10 +297,10 @@ export function calculateBookingPrice(input: {
   let quantity = 0;
   if (hourly) {
     quantity = slots.length;
-  } else if (input.serviceType === "DAY_CARE") {
-    quantity = calendarDayDifference(input.startDate, input.endDate) + 1;
-  } else {
+  } else if (isOvernightServiceType(input.serviceType)) {
     quantity = calendarDayDifference(input.startDate, input.endDate);
+  } else {
+    quantity = calendarDayDifference(input.startDate, input.endDate) + 1;
   }
 
   let total = 0;
@@ -324,9 +324,9 @@ export function calculateBookingPrice(input: {
         addRateGroup(rateGroups, getRateLabel(unit.lines), unit.price, "base", slot.date);
       });
     } else {
-      const dateKeys = input.serviceType === "DAY_CARE"
-        ? calendarDateKeys(input.startDate, input.endDate, true)
-        : calendarDateKeys(input.startDate, input.endDate, false);
+      const dateKeys = isOvernightServiceType(input.serviceType)
+        ? calendarDateKeys(input.startDate, input.endDate, false)
+        : calendarDateKeys(input.startDate, input.endDate, true);
 
       dateKeys.forEach((dateKey) => {
         const unit = getUnitPrice(input.serviceType, {
