@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, MessageCircleQuestion, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -306,6 +307,11 @@ export default function BookingPage() {
 
   // Validation légale
   const [legalAccepted, setLegalAccepted] = useState(false);
+  const [priceIssueOpen, setPriceIssueOpen] = useState(false);
+  const [priceIssueDescription, setPriceIssueDescription] = useState("");
+  const [priceIssueSending, setPriceIssueSending] = useState(false);
+  const [priceIssueSent, setPriceIssueSent] = useState(false);
+  const [priceIssueError, setPriceIssueError] = useState("");
 
   // Modale Upsell
   const [showUpsellModal, setShowUpsellModal] = useState(false);
@@ -731,6 +737,68 @@ export default function BookingPage() {
         .sort(([a], [b]) => Number(a) - Number(b))
         .map(([duration, count]) => `${count} x ${duration} min`)
         .join(" · ");
+  };
+
+  const getBookingDateSummary = () => {
+      if (isHourlyService(formData.serviceType)) {
+          const dates = getUniqueVisitDates(visitSlots);
+          if (dates.length === 0) return "Dates non renseignées";
+          return dates.length === 1 ? dates[0] : `${dates[0]} au ${dates[dates.length - 1]}`;
+      }
+
+      if (!formData.startDate || !formData.endDate) return "Dates non renseignées";
+      return `${formData.startDate} au ${formData.endDate}`;
+  };
+
+  const buildPriceIssueDescription = () => {
+      const selectedService = getSelectedService();
+      const selectedPets = pets
+        .filter((pet) => formData.petIds.includes(pet.id))
+        .map((pet) => `${pet.name} (${pet.species === "CAT" ? "chat" : "chien"})`)
+        .join(", ") || "Aucun animal sélectionné";
+      const total = couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice();
+      const slotSummary = isHourlyService(formData.serviceType)
+        ? `\nPassages: ${getValidVisitSlots(visitSlots).map((slot) => `${slot.date} ${slot.startTime} ${slot.duration}min`).join(", ")}`
+        : "";
+
+      return [
+        "Question client sur le tarif affiché.",
+        `Service: ${selectedService?.name || formData.serviceType}`,
+        `Animaux: ${selectedPets}`,
+        `Dates: ${getBookingDateSummary()}`,
+        `Total affiché: ${formatPrice(total)}€`,
+        couponStatus.applied && couponStatus.data ? `Code promo: ${couponStatus.data.coupon.code}` : "Code promo: aucun",
+        slotSummary.trim(),
+        priceIssueDescription.trim() ? `Message client: ${priceIssueDescription.trim()}` : "Message client: non renseigné",
+      ].filter(Boolean).join("\n");
+  };
+
+  const submitPriceIssue = async () => {
+      setPriceIssueSending(true);
+      setPriceIssueError("");
+
+      try {
+        const res = await fetch("/api/report-bug", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            description: buildPriceIssueDescription(),
+            path: "/booking#pricing-question",
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || "Le message n'a pas pu être envoyé.");
+        }
+
+        setPriceIssueSent(true);
+        setPriceIssueDescription("");
+      } catch (error) {
+        setPriceIssueError(error instanceof Error ? error.message : "Le message n'a pas pu être envoyé.");
+      } finally {
+        setPriceIssueSending(false);
+      }
   };
 
   const togglePet = (id: string) => {
@@ -1328,6 +1396,30 @@ export default function BookingPage() {
                                 <strong className="text-xl text-green-600">{formatPrice(couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice())}€</strong>
                             </div>
 
+                            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="font-bold">Un doute sur ce tarif ?</p>
+                                        <p className="mt-1 text-xs leading-5 text-amber-800">
+                                            Envoyez le récapitulatif à l'équipe avant de payer. La réservation ne sera pas validée tant que vous ne cliquez pas sur le paiement.
+                                        </p>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setPriceIssueOpen(true);
+                                        setPriceIssueSent(false);
+                                        setPriceIssueError("");
+                                      }}
+                                      className="h-11 shrink-0 border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+                                    >
+                                      <MessageCircleQuestion className="h-4 w-4" />
+                                      Question tarif
+                                    </Button>
+                                </div>
+                            </div>
+
                             {/* Crédits */}
                             {isSubscriptionService(formData.serviceType) && userCredits > 0 && (
                                 <div className="mt-4 p-4 bg-gray-900 rounded-xl text-white">
@@ -1403,6 +1495,103 @@ export default function BookingPage() {
           </form>
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {priceIssueOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold text-orange-700">Question tarif</p>
+                  <h3 className="mt-1 text-xl font-bold text-gray-950">Le total semble incorrect ?</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPriceIssueOpen(false)}
+                  aria-label="Fermer"
+                  className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {priceIssueSent ? (
+                <div className="py-8 text-center text-green-700">
+                  <CheckCircle2 className="mx-auto mb-3 h-10 w-10" />
+                  <p className="font-bold">Message envoyé.</p>
+                  <p className="mt-2 text-sm text-gray-600">
+                    L'équipe pourra vérifier le calcul avec le détail de votre réservation.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => setPriceIssueOpen(false)}
+                    className="mt-5 bg-gray-900 text-white hover:bg-orange-600"
+                  >
+                    Fermer
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
+                    <div className="flex justify-between gap-3">
+                      <span>Service</span>
+                      <strong className="text-right text-gray-950">{getSelectedService()?.name}</strong>
+                    </div>
+                    <div className="mt-2 flex justify-between gap-3">
+                      <span>Dates</span>
+                      <strong className="text-right text-gray-950">{getBookingDateSummary()}</strong>
+                    </div>
+                    <div className="mt-2 flex justify-between gap-3">
+                      <span>Total affiché</span>
+                      <strong className="text-right text-green-700">
+                        {formatPrice(couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice())}€
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Ce qui vous semble incorrect</Label>
+                    <textarea
+                      className="mt-2 h-28 w-full resize-none rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="Exemple : j'ai choisi une date hors haute saison, ou le supplément 1h me semble doublé..."
+                      value={priceIssueDescription}
+                      onChange={(event) => setPriceIssueDescription(event.target.value)}
+                    />
+                  </div>
+
+                  {priceIssueError && (
+                    <p className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700">{priceIssueError}</p>
+                  )}
+
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setPriceIssueOpen(false)}
+                      className="flex-1"
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={submitPriceIssue}
+                      disabled={priceIssueSending}
+                      className="flex-1 bg-orange-600 text-white hover:bg-orange-700"
+                    >
+                      {priceIssueSending ? "Envoi..." : "Envoyer"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
