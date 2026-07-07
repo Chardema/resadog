@@ -112,6 +112,7 @@ export interface PriceRateGroup {
   quantity: number;
   total: number;
   type: PriceLine["type"];
+  dateKeys: string[];
 }
 
 export function getUnitPrice(
@@ -250,11 +251,18 @@ function getRateLabel(lines: PriceLine[]) {
   return lines.map((line) => line.label).join(" + ");
 }
 
-function addRateGroup(groups: PriceRateGroup[], label: string, unitPrice: number, type: PriceLine["type"] = "base") {
+function addRateGroup(
+  groups: PriceRateGroup[],
+  label: string,
+  unitPrice: number,
+  type: PriceLine["type"] = "base",
+  dateKey?: string
+) {
   const existing = groups.find((group) => group.label === label && group.unitPrice === unitPrice && group.type === type);
   if (existing) {
     existing.quantity += 1;
     existing.total += unitPrice;
+    if (dateKey) existing.dateKeys.push(dateKey);
     return;
   }
 
@@ -264,6 +272,7 @@ function addRateGroup(groups: PriceRateGroup[], label: string, unitPrice: number
     quantity: 1,
     total: unitPrice,
     type,
+    dateKeys: dateKey ? [dateKey] : [],
   });
 }
 
@@ -312,7 +321,7 @@ export function calculateBookingPrice(input: {
           ...petInput,
           isHighSeason: isHighSeasonRange(slot.date, slot.date),
         });
-        addRateGroup(rateGroups, getRateLabel(unit.lines), unit.price);
+        addRateGroup(rateGroups, getRateLabel(unit.lines), unit.price, "base", slot.date);
       });
     } else {
       const dateKeys = input.serviceType === "DAY_CARE"
@@ -324,7 +333,7 @@ export function calculateBookingPrice(input: {
           ...petInput,
           isHighSeason: isHighSeasonRange(dateKey, dateKey),
         });
-        addRateGroup(rateGroups, getRateLabel(unit.lines), unit.price);
+        addRateGroup(rateGroups, getRateLabel(unit.lines), unit.price, "base", dateKey);
       });
     }
 
@@ -338,11 +347,11 @@ export function calculateBookingPrice(input: {
       });
       if (checkoutOverrunMinutes > 8 * 60) {
         petTotal += checkoutUnit.price;
-        addRateGroup(rateGroups, `Journée supplémentaire (${getRateLabel(checkoutUnit.lines)})`, checkoutUnit.price, "surcharge");
+        addRateGroup(rateGroups, `Journée supplémentaire (${getRateLabel(checkoutUnit.lines)})`, checkoutUnit.price, "surcharge", input.endDate);
       } else if (checkoutOverrunMinutes > 2 * 60) {
         const halfDayPrice = Math.round(checkoutUnit.price * 0.5);
         petTotal += halfDayPrice;
-        addRateGroup(rateGroups, `Demi-journée (${getRateLabel(checkoutUnit.lines)})`, halfDayPrice, "surcharge");
+        addRateGroup(rateGroups, `Demi-journée (${getRateLabel(checkoutUnit.lines)})`, halfDayPrice, "surcharge", input.endDate);
       }
     }
 

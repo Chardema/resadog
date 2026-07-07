@@ -72,6 +72,7 @@ type DisplayPriceLine = PriceLine & {
   unitPrice?: number;
   quantity?: number;
   total?: number;
+  dateKeys?: string[];
 };
 
 type DateConfig = {
@@ -144,6 +145,46 @@ const getInclusiveCalendarDayCount = (startDate: string, endDate: string) => {
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
+
+const dateKeyToLocalDate = (dateKey: string) => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, day, 12);
+};
+
+const localDateToDateKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const formatShortDate = (dateKey: string) =>
+  dateKeyToLocalDate(dateKey).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+  });
+
+const formatDateKeyRanges = (dateKeys?: string[]) => {
+  const sortedKeys = [...new Set(dateKeys || [])].sort();
+  if (sortedKeys.length === 0) return "";
+
+  const ranges: string[] = [];
+  let start = sortedKeys[0];
+  let previous = sortedKeys[0];
+
+  sortedKeys.slice(1).forEach((key) => {
+    const expectedNext = new Date(dateKeyToLocalDate(previous));
+    expectedNext.setDate(expectedNext.getDate() + 1);
+
+    if (key === localDateToDateKey(expectedNext)) {
+      previous = key;
+      return;
+    }
+
+    ranges.push(start === previous ? formatShortDate(start) : `${formatShortDate(start)} au ${formatShortDate(previous)}`);
+    start = key;
+    previous = key;
+  });
+
+  ranges.push(start === previous ? formatShortDate(start) : `${formatShortDate(start)} au ${formatShortDate(previous)}`);
+  return ranges.join(", ");
+};
 
 // --- COMPOSANT DATE SELECTOR EXTRAIT ---
 const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, onChange: (c: DateConfig) => void, serviceType: string }) => {
@@ -712,6 +753,7 @@ export default function BookingPage() {
           unitPrice: group.unitPrice,
           quantity: group.quantity,
           total: group.total,
+          dateKeys: group.dateKeys,
         })),
       ];
 
@@ -1410,12 +1452,25 @@ export default function BookingPage() {
                                             )}
                                           </div>
 
-                                          {rateLines.map((line, idx) => (
-                                            <div key={`${line.label}-${idx}`} className="flex justify-between gap-4 text-xs text-gray-700">
-                                              <span>{line.quantity || 1} {details.breakdown} x {line.label}</span>
-                                              <span>{formatPrice(line.total || line.amount)}€</span>
-                                            </div>
-                                          ))}
+                                          {rateLines.map((line, idx) => {
+                                            const dateSummary = formatDateKeyRanges(line.dateKeys);
+                                            return (
+                                              <div key={`${line.label}-${idx}`} className="flex items-start justify-between gap-4 text-xs text-gray-700">
+                                                <div className="min-w-0">
+                                                  <p className="font-semibold text-gray-900">{line.label}</p>
+                                                  <p className="mt-0.5 text-gray-500">
+                                                    {line.quantity || 1} {details.breakdown} x {formatPrice(line.unitPrice || 0)}€
+                                                  </p>
+                                                  {dateSummary && (
+                                                    <p className="mt-0.5 text-orange-700">
+                                                      Dates concernées : {dateSummary}
+                                                    </p>
+                                                  )}
+                                                </div>
+                                                <span className="shrink-0 font-semibold text-gray-900">{formatPrice(line.total || line.amount)}€</span>
+                                              </div>
+                                            );
+                                          })}
 
                                           {isHourlyService(formData.serviceType) && getHourlyDurationSummary() && (
                                             <div className="text-xs text-gray-500">
@@ -1572,6 +1627,25 @@ export default function BookingPage() {
                                     Voir les abonnements
                                   </Link>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {!subscriptionComparison && calculateTotalPrice() > 0 && (
+                        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Abonnement</p>
+                                <h4 className="mt-1 text-lg font-bold text-gray-950">
+                                  Pas de formule applicable à ce service
+                                </h4>
+                                <p className="mt-1 text-sm leading-6 text-gray-600">
+                                  Les crédits Club La Meute couvrent les promenades et les garderies. Pour {formData.serviceType === "BOARDING" ? "un hébergement" : "une visite à domicile"}, le paiement direct reste le tarif de référence.
+                                </p>
+                              </div>
+                              <Link href="/subscriptions" className="shrink-0 rounded-lg border border-gray-300 px-4 py-3 text-center text-sm font-bold text-gray-900 hover:bg-gray-50">
+                                Voir les formules
+                              </Link>
                             </div>
                         </div>
                     )}
