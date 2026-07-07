@@ -3,6 +3,13 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
 import { sendBookingConfirmationEmail } from "@/lib/email";
+import { z } from "zod";
+
+const statusUpdateSchema = z.object({
+  status: z.enum(["CONFIRMED", "CANCELLED"]),
+  reason: z.string().trim().max(500).optional(),
+  confirmed: z.boolean().optional(),
+});
 
 export async function PATCH(
   request: NextRequest,
@@ -20,12 +27,11 @@ export async function PATCH(
     }
 
     const { bookingId } = await params;
-    const body = await request.json();
-    const { status } = body;
+    const { status, reason, confirmed } = statusUpdateSchema.parse(await request.json());
 
-    if (!["CONFIRMED", "CANCELLED"].includes(status)) {
+    if (status === "CANCELLED" && confirmed !== true) {
       return NextResponse.json(
-        { error: "Statut invalide" },
+        { error: "Confirmation de refus requise" },
         { status: 400 }
       );
     }
@@ -119,18 +125,6 @@ export async function PATCH(
       }
     }
 
-    if (
-      status === "CANCELLED" &&
-      booking.creditsUsed === 0 &&
-      booking.payment?.status === "PROCESSING" &&
-      !booking.payment.stripePaymentId
-    ) {
-      return NextResponse.json(
-        { error: "Impossible d'annuler proprement : autorisation Stripe introuvable" },
-        { status: 409 }
-      );
-    }
-
     // Gestion du remboursement des CRÉDITS
     if (status === "CANCELLED" && booking.creditsUsed > 0) {
         await prisma.creditBatch.create({
@@ -145,7 +139,20 @@ export async function PATCH(
     }
 
     // Gestion de l'annulation et du remboursement Stripe (ou libération empreinte)
-    if (status === "CANCELLED" && booking.payment?.stripePaymentId) {
+    if (status === "CANCELLED" && booking.payment) {
+      if (!booking.payment.stripePaymentId) {
+        if (booking.payment.status === "SUCCEEDED") {
+          return NextResponse.json(
+            { error: "Paiement marqué encaissé mais identifiant Stripe absent : remboursement manuel requis avant annulation." },
+            { status: 409 }
+          );
+        }
+
+        await prisma.payment.update({
+          where: { id: booking.payment.id },
+          data: { status: "REFUNDED", refundedAt: new Date(), refundAmount: 0 },
+        });
+      } else {
       try {
         const paymentIntent = await stripe.paymentIntents.retrieve(booking.payment.stripePaymentId);
 
@@ -176,6 +183,25 @@ export async function PATCH(
                refundAmount: booking.payment.amount,
              },
            });
+        } else if (paymentIntent.status === 'canceled') {
+           await prisma.payment.update({
+             where: { id: booking.payment.id },
+             data: { status: "REFUNDED", refundedAt: new Date(), refundAmount: 0 },
+           });
+        } else if (
+          paymentIntent.status === 'requires_payment_method' ||
+          paymentIntent.status === 'requires_confirmation' ||
+          paymentIntent.status === 'requires_action'
+        ) {
+           await prisma.payment.update({
+             where: { id: booking.payment.id },
+             data: { status: "REFUNDED", refundedAt: new Date(), refundAmount: 0 },
+           });
+        } else {
+          return NextResponse.json(
+            { error: `Le paiement Stripe ne peut pas être annulé maintenant (statut: ${paymentIntent.status}). Réessayez ou traitez-le depuis Stripe.` },
+            { status: 409 }
+          );
         }
       } catch (stripeError) {
         console.error("Erreur remboursement Stripe:", stripeError);
@@ -184,12 +210,18 @@ export async function PATCH(
           { status: 502 }
         );
       }
+      }
     }
 
     // Mettre à jour la réservation
     const updatedBooking = await prisma.booking.update({
       where: { id: bookingId },
-      data: { status },
+      data: {
+        status,
+        cancellationReason: status === "CANCELLED"
+          ? reason || "Refusée par l'équipe"
+          : null,
+      },
     });
 
     return NextResponse.json({
@@ -197,6 +229,13 @@ export async function PATCH(
       booking: updatedBooking,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0]?.message || "Données invalides" },
+        { status: 400 }
+      );
+    }
+
     console.error("Erreur lors de la mise à jour du statut:", error);
     return NextResponse.json(
       { error: "Une erreur est survenue" },
