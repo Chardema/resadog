@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppNav } from "@/components/layout/AppNav";
-import { getUnitPrice, getServiceDisplayPrice, isHighSeasonRange, EXTRA_DURATION, type Species, type PriceLine } from "@/lib/pricing";
+import { calculateBookingPrice, getServiceDisplayPrice, EXTRA_DURATION, type Species, type PriceLine } from "@/lib/pricing";
 
 const serviceTypes = [
   {
@@ -60,6 +60,12 @@ type VisitSlot = {
   date: string;
   startTime: string;
   duration: number;
+};
+
+type DisplayPriceLine = PriceLine & {
+  unitPrice?: number;
+  quantity?: number;
+  total?: number;
 };
 
 type DateConfig = {
@@ -128,12 +134,6 @@ const getCalendarDayDifference = (startDate: string, endDate: string) => {
 const getInclusiveCalendarDayCount = (startDate: string, endDate: string) => {
   const diff = getCalendarDayDifference(startDate, endDate);
   return diff >= 0 ? diff + 1 : 0;
-};
-
-const timeToMinutes = (time: string) => {
-  const [hours, minutes] = time.split(":").map(Number);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return 0;
-  return hours * 60 + minutes;
 };
 
 // --- COMPOSANT DATE SELECTOR EXTRAIT ---
@@ -565,15 +565,6 @@ export default function BookingPage() {
 
   const getSelectedService = () => serviceTypes.find(s => s.value === formData.serviceType);
 
-  // Détermine si un animal est "supplémentaire" (pas le premier de son espèce)
-  const getAdditionalStatus = (petId: string): boolean => {
-    const selectedPets = pets.filter(p => formData.petIds.includes(p.id));
-    const pet = selectedPets.find(p => p.id === petId);
-    if (!pet) return false;
-    const sameSpecies = selectedPets.filter(p => p.species === pet.species);
-    return sameSpecies.indexOf(pet) > 0;
-  };
-
   const getPrimarySelectedPetId = () => {
     return formData.petIds[0] || null;
   };
@@ -581,97 +572,104 @@ export default function BookingPage() {
   // Retourne le détail du prix pour UN animal donné
   const calculatePriceDetailForPet = (config: DateConfig, pet: Pet) => {
       const service = getSelectedService();
-      if (!service) return { total: 0, breakdown: "Service inconnu", isPuppy: false, surchargeTotal: 0, quantity: 0, unitPrice: 0, priceLines: [] as PriceLine[] };
+      const emptyDetail = {
+        total: 0,
+        breakdown: service?.unit || "unité",
+        isPuppy: false,
+        surchargeTotal: 0,
+        quantity: 0,
+        unitPrice: 0,
+        priceLines: [] as DisplayPriceLine[],
+      };
+      if (!service) return emptyDetail;
 
       const isYoung = pet.age !== undefined && pet.age !== null && pet.age < 1;
-      const isAdditional = getAdditionalStatus(pet.id);
 
-      // Déterminer si haute saison
-      let highSeason = false;
-      if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-        const validSlots = getValidVisitSlots(config.visitSlots);
-        highSeason = validSlots.some(d => isHighSeasonRange(d.date, d.date));
-      } else if (config.startDate && config.endDate) {
-        highSeason = isHighSeasonRange(config.startDate, config.endDate);
-      }
-
-      const { price: unitPrice, lines: priceLines } = getUnitPrice(formData.serviceType, {
-        species: pet.species || "DOG",
-        isYoung,
-        isAdditional,
-        isHighSeason: highSeason,
-      });
-
-      let total = 0;
       let breakdown = "";
-      let quantity = 0;
+      const validSlots = getValidVisitSlots(config.visitSlots);
+      let startDate = config.startDate;
+      let endDate = config.endDate;
 
       if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
-          const validSlots = getValidVisitSlots(config.visitSlots);
-          const visits = validSlots.length;
-          const extra = EXTRA_DURATION[formData.serviceType as "DROP_IN" | "DOG_WALKING"];
-          const appliesSharedDurationExtra = !useSameDates || getPrimarySelectedPetId() === pet.id;
-
-          let subTotal = 0;
-          let extraDurationTotal = 0;
-          validSlots.forEach(item => {
-              subTotal += unitPrice;
-              if (extra && appliesSharedDurationExtra) {
-                const extraTime = item.duration - extra.baseDuration;
-                if (extraTime > 0) {
-                  const extraIncrements = Math.ceil(extraTime / extra.increment);
-                  extraDurationTotal += extraIncrements * extra.extraRate;
-                }
-              }
-          });
-
-          total = subTotal + extraDurationTotal;
-          if (extraDurationTotal > 0) {
-            priceLines.push({ label: "Durée prolongée", amount: extraDurationTotal, type: "surcharge" });
-          }
-          breakdown = "visites";
-          quantity = visits;
-
+          if (validSlots.length === 0) return { ...emptyDetail, isPuppy: isYoung };
+          const dates = getUniqueVisitDates(validSlots);
+          startDate = dates[0];
+          endDate = dates[dates.length - 1];
+          breakdown = formData.serviceType === "DOG_WALKING" ? "promenades" : "visites";
       } else {
-          if (!config.startDate || !config.endDate) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
+          if (!config.startDate || !config.endDate) return { ...emptyDetail, isPuppy: isYoung };
 
           const start = new Date(`${config.startDate}T${config.startTime}`);
           const end = new Date(`${config.endDate}T${config.endTime}`);
 
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return { ...emptyDetail, isPuppy: isYoung };
 
           const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-          if (totalHours <= 0) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
+          if (totalHours <= 0) return { ...emptyDetail, isPuppy: isYoung };
 
           if (formData.serviceType === "BOARDING") {
-              const baseNights = getCalendarDayDifference(config.startDate, config.endDate);
-              if (baseNights <= 0) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
-
-              total = baseNights * unitPrice;
-              const checkoutOverrunHours = (timeToMinutes(config.endTime) - timeToMinutes(boardingCheckoutTime)) / 60;
-
-              if (checkoutOverrunHours > 8) {
-                total += unitPrice;
-                priceLines.push({ label: `Journée supplémentaire (> 8h après ${boardingCheckoutTime})`, amount: unitPrice, type: "surcharge" });
-              } else if (checkoutOverrunHours > 2) {
-                const half = Math.round(unitPrice * 0.5);
-                total += half;
-                priceLines.push({ label: `Demi-journée (2-8h après ${boardingCheckoutTime})`, amount: half, type: "surcharge" });
-              }
+              if (getCalendarDayDifference(config.startDate, config.endDate) <= 0) return { ...emptyDetail, isPuppy: isYoung };
               breakdown = "nuits";
-              quantity = baseNights;
           } else {
-              // DAY_CARE
-              const days = getInclusiveCalendarDayCount(config.startDate, config.endDate);
-              if (days <= 0) return { total: 0, breakdown: "", isPuppy: isYoung, surchargeTotal: 0, quantity: 0, unitPrice, priceLines };
-
-              total = days * unitPrice;
+              if (getInclusiveCalendarDayCount(config.startDate, config.endDate) <= 0) return { ...emptyDetail, isPuppy: isYoung };
               breakdown = "jours";
-              quantity = days;
           }
       }
 
-      return { total, breakdown, isPuppy: isYoung, surchargeTotal: 0, quantity, unitPrice, priceLines };
+      const pricingContextPets = pets
+        .filter((candidate) => formData.petIds.includes(candidate.id))
+        .map((candidate) => ({
+          id: candidate.id,
+          species: candidate.species || "DOG",
+          age: candidate.age,
+        }));
+      const priceResult = calculateBookingPrice({
+        serviceType: formData.serviceType,
+        pets: [{
+          id: pet.id,
+          species: pet.species || "DOG",
+          age: pet.age,
+        }],
+        pricingContextPets,
+        startDate,
+        endDate,
+        startTime: config.startTime,
+        endTime: config.endTime,
+        visitSlots: validSlots,
+      });
+      const petPrice = priceResult.pets[0];
+      if (!petPrice) return { ...emptyDetail, isPuppy: isYoung };
+
+      const appliesSharedDurationExtra = !isHourlyService(formData.serviceType) ||
+        !useSameDates ||
+        getPrimarySelectedPetId() === pet.id;
+      const durationExtraTotal = isHourlyService(formData.serviceType) && appliesSharedDurationExtra
+        ? priceResult.durationExtra
+        : 0;
+      const priceLines: DisplayPriceLine[] = [
+        ...(petPrice.rateGroups || []).map((group) => ({
+          label: group.label,
+          amount: group.total,
+          type: group.type,
+          unitPrice: group.unitPrice,
+          quantity: group.quantity,
+          total: group.total,
+        })),
+      ];
+
+      if (durationExtraTotal > 0) {
+        priceLines.push({ label: "Durée prolongée", amount: durationExtraTotal, type: "surcharge", total: durationExtraTotal });
+      }
+
+      return {
+        total: petPrice.total + durationExtraTotal,
+        breakdown,
+        isPuppy: isYoung,
+        surchargeTotal: 0,
+        quantity: petPrice.quantity,
+        unitPrice: petPrice.unitPrice,
+        priceLines,
+      };
   };
 
   const calculateTotalPrice = () => {
@@ -1237,14 +1235,12 @@ export default function BookingPage() {
 
                                 const details = calculatePriceDetailForPet(config, pet);
                                 const selectedSlots = getValidVisitSlots(config.visitSlots);
-                                const baseTotal = details.unitPrice * details.quantity;
+                                const rateLines = details.priceLines?.filter((line) => line.type === "base") || [];
                                 const durationExtraTotal = details.priceLines?.find((line) => line.label === "Durée prolongée")?.amount || 0;
                                 const otherSurchargeLines = details.priceLines?.filter((line) =>
                                   line.type === "surcharge" &&
-                                  line.label !== "Durée prolongée" &&
-                                  line.label !== "Majoration haute saison"
+                                  line.label !== "Durée prolongée"
                                 ) || [];
-                                const baseLine = details.priceLines?.find((line) => line.type === "base" || line.label.includes("haute saison"));
 
                                 return (
                                     <div key={id} className="border-b border-orange-200 pb-4">
@@ -1261,23 +1257,12 @@ export default function BookingPage() {
                                             )}
                                           </div>
 
-                                          {baseLine && (
-                                            <div className="flex justify-between gap-4 text-xs text-gray-600">
-                                              <span>{baseLine.label}</span>
-                                              <span>{formatPrice(details.unitPrice)}€ / {getSelectedService()?.unit}</span>
+                                          {rateLines.map((line, idx) => (
+                                            <div key={`${line.label}-${idx}`} className="flex justify-between gap-4 text-xs text-gray-700">
+                                              <span>{line.quantity || 1} {details.breakdown} x {line.label}</span>
+                                              <span>{formatPrice(line.total || line.amount)}€</span>
                                             </div>
-                                          )}
-
-                                          {details.priceLines?.some((line) => line.label === "Majoration haute saison") && (
-                                            <div className="text-xs text-orange-600">
-                                              Majoration haute saison incluse dans le prix unitaire.
-                                            </div>
-                                          )}
-
-                                          <div className="flex justify-between gap-4 text-xs text-gray-700">
-                                            <span>{details.quantity} {details.breakdown} x {formatPrice(details.unitPrice)}€</span>
-                                            <span>{formatPrice(details.unitPrice * details.quantity)}€</span>
-                                          </div>
+                                          ))}
 
                                           {isHourlyService(formData.serviceType) && getHourlyDurationSummary() && (
                                             <div className="text-xs text-gray-500">
@@ -1301,7 +1286,7 @@ export default function BookingPage() {
 
                                           <div className="flex justify-between gap-4 pt-2 border-t border-orange-100 text-sm font-bold text-gray-900">
                                             <span>Sous-total {pet.name}</span>
-                                            <span>{formatPrice(baseTotal + durationExtraTotal + otherSurchargeLines.reduce((sum, line) => sum + line.amount, 0))}€</span>
+                                            <span>{formatPrice(details.total)}€</span>
                                           </div>
                                         </div>
 

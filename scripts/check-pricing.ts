@@ -81,6 +81,52 @@ assert(
 assert(
   calculateBookingPrice({
     serviceType: "DROP_IN",
+    pets: [dog],
+    startDate: "2026-06-30",
+    endDate: "2026-07-01",
+    visitSlots: [
+      { date: "2026-06-30", startTime: "09:00", duration: 30 },
+      { date: "2026-07-01", startTime: "09:00", duration: 30 },
+    ],
+  }).total === 33,
+  "Une visite à cheval normal/haute saison doit facturer chaque passage à son tarif"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "DAY_CARE",
+    pets: [dog],
+    startDate: "2026-06-30",
+    endDate: "2026-07-01",
+  }).total === 55,
+  "Une garderie à cheval normal/haute saison doit facturer chaque jour à son tarif"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "BOARDING",
+    pets: [dog],
+    startDate: "2026-06-30",
+    endDate: "2026-07-02",
+    endTime: "10:00",
+  }).total === 53,
+  "Un hébergement à cheval normal/haute saison doit facturer chaque nuit à son tarif"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "BOARDING",
+    pets: [dog],
+    startDate: "2026-08-31",
+    endDate: "2026-09-02",
+    endTime: "15:00",
+  }).total === 65,
+  "La demi-journée de départ doit utiliser le tarif du jour de départ"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "DROP_IN",
     pets: [dog, secondDog],
     startDate: "2026-09-10",
     endDate: "2026-09-11",

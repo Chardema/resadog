@@ -38,7 +38,7 @@ export function isHighSeason(date: Date): boolean {
 export function isHighSeasonRange(startDate: string, endDate: string): boolean {
   const start = new Date(startDate);
   const end = new Date(endDate);
-  let current = new Date(start);
+  const current = new Date(start);
   while (current <= end) {
     if (isHighSeason(current)) return true;
     current.setDate(current.getDate() + 1);
@@ -104,6 +104,14 @@ export interface PriceLine {
   label: string;
   amount: number;
   type: "base" | "surcharge" | "discount" | "info";
+}
+
+export interface PriceRateGroup {
+  label: string;
+  unitPrice: number;
+  quantity: number;
+  total: number;
+  type: PriceLine["type"];
 }
 
 export function getUnitPrice(
@@ -206,6 +214,28 @@ function parseDateKey(value: string) {
   return new Date(Date.UTC(year, month - 1, day, 12));
 }
 
+function toDateKey(date: Date) {
+  return date.toISOString().split("T")[0];
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
+function calendarDateKeys(startDate: string, endDate: string, inclusiveEnd: boolean) {
+  const days: string[] = [];
+  const totalDays = calendarDayDifference(startDate, endDate) + (inclusiveEnd ? 1 : 0);
+  const start = parseDateKey(startDate);
+
+  for (let index = 0; index < totalDays; index += 1) {
+    days.push(toDateKey(addDays(start, index)));
+  }
+
+  return days;
+}
+
 function calendarDayDifference(startDate: string, endDate: string) {
   return Math.round((parseDateKey(endDate).getTime() - parseDateKey(startDate).getTime()) / DAY_MS);
 }
@@ -214,6 +244,27 @@ function timeToMinutes(value?: string) {
   if (!value) return 0;
   const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;
+}
+
+function getRateLabel(lines: PriceLine[]) {
+  return lines.map((line) => line.label).join(" + ");
+}
+
+function addRateGroup(groups: PriceRateGroup[], label: string, unitPrice: number, type: PriceLine["type"] = "base") {
+  const existing = groups.find((group) => group.label === label && group.unitPrice === unitPrice && group.type === type);
+  if (existing) {
+    existing.quantity += 1;
+    existing.total += unitPrice;
+    return;
+  }
+
+  groups.push({
+    label,
+    unitPrice,
+    quantity: 1,
+    total: unitPrice,
+    type,
+  });
 }
 
 /**
@@ -233,9 +284,6 @@ export function calculateBookingPrice(input: {
   const contextPets = input.pricingContextPets?.length ? input.pricingContextPets : input.pets;
   const hourly = input.serviceType === "DROP_IN" || input.serviceType === "DOG_WALKING";
   const slots = input.visitSlots || [];
-  const highSeason = hourly
-    ? slots.some((slot) => isHighSeasonRange(slot.date, slot.date))
-    : isHighSeasonRange(input.startDate, input.endDate);
 
   let quantity = 0;
   if (hourly) {
@@ -250,23 +298,72 @@ export function calculateBookingPrice(input: {
   const pets = input.pets.map((pet) => {
     const sameSpecies = contextPets.filter((candidate) => candidate.species === pet.species);
     const isAdditional = sameSpecies.findIndex((candidate) => candidate.id === pet.id) > 0;
-    const unit = getUnitPrice(input.serviceType, {
+    const petInput = {
       species: pet.species,
       isYoung: typeof pet.age === "number" && pet.age < 1,
       isAdditional,
-      isHighSeason: highSeason,
-    });
+    };
 
-    let petTotal = unit.price * Math.max(0, quantity);
+    const rateGroups: PriceRateGroup[] = [];
+
+    if (hourly) {
+      slots.forEach((slot) => {
+        const unit = getUnitPrice(input.serviceType, {
+          ...petInput,
+          isHighSeason: isHighSeasonRange(slot.date, slot.date),
+        });
+        addRateGroup(rateGroups, getRateLabel(unit.lines), unit.price);
+      });
+    } else {
+      const dateKeys = input.serviceType === "DAY_CARE"
+        ? calendarDateKeys(input.startDate, input.endDate, true)
+        : calendarDateKeys(input.startDate, input.endDate, false);
+
+      dateKeys.forEach((dateKey) => {
+        const unit = getUnitPrice(input.serviceType, {
+          ...petInput,
+          isHighSeason: isHighSeasonRange(dateKey, dateKey),
+        });
+        addRateGroup(rateGroups, getRateLabel(unit.lines), unit.price);
+      });
+    }
+
+    let petTotal = rateGroups.reduce((sum, group) => sum + group.total, 0);
 
     if (input.serviceType === "BOARDING") {
       const checkoutOverrunMinutes = timeToMinutes(input.endTime) - BOARDING_CHECKOUT_MINUTES;
-      if (checkoutOverrunMinutes > 8 * 60) petTotal += unit.price;
-      else if (checkoutOverrunMinutes > 2 * 60) petTotal += Math.round(unit.price * 0.5);
+      const checkoutUnit = getUnitPrice(input.serviceType, {
+        ...petInput,
+        isHighSeason: isHighSeasonRange(input.endDate, input.endDate),
+      });
+      if (checkoutOverrunMinutes > 8 * 60) {
+        petTotal += checkoutUnit.price;
+        addRateGroup(rateGroups, `Journée supplémentaire (${getRateLabel(checkoutUnit.lines)})`, checkoutUnit.price, "surcharge");
+      } else if (checkoutOverrunMinutes > 2 * 60) {
+        const halfDayPrice = Math.round(checkoutUnit.price * 0.5);
+        petTotal += halfDayPrice;
+        addRateGroup(rateGroups, `Demi-journée (${getRateLabel(checkoutUnit.lines)})`, halfDayPrice, "surcharge");
+      }
     }
 
     total += petTotal;
-    return { petId: pet.id, unitPrice: unit.price, quantity, total: petTotal, lines: unit.lines };
+    const baseGroups = rateGroups.filter((group) => group.type === "base");
+    const baseTotal = baseGroups.reduce((sum, group) => sum + group.total, 0);
+    const unitPrice = baseGroups.length === 1
+      ? baseGroups[0].unitPrice
+      : Math.round((baseTotal / Math.max(1, quantity)) * 100) / 100;
+    return {
+      petId: pet.id,
+      unitPrice,
+      quantity,
+      total: petTotal,
+      lines: rateGroups.map((group) => ({
+        label: group.label,
+        amount: group.total,
+        type: group.type,
+      })),
+      rateGroups,
+    };
   });
 
   let durationExtra = 0;
