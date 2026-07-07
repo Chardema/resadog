@@ -11,6 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppNav } from "@/components/layout/AppNav";
 import { calculateBookingPrice, getServiceDisplayPrice, EXTRA_DURATION, type Species, type PriceLine } from "@/lib/pricing";
+import {
+  calculateSubscriptionPlan,
+  type SubscriptionBillingCycle,
+  type SubscriptionServiceType,
+} from "@/lib/subscription-pricing";
 
 const serviceTypes = [
   {
@@ -136,6 +141,9 @@ const getInclusiveCalendarDayCount = (startDate: string, endDate: string) => {
   const diff = getCalendarDayDifference(startDate, endDate);
   return diff >= 0 ? diff + 1 : 0;
 };
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
 
 // --- COMPOSANT DATE SELECTOR EXTRAIT ---
 const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, onChange: (c: DateConfig) => void, serviceType: string }) => {
@@ -406,6 +414,50 @@ export default function BookingPage() {
       // Boarding/Daycare = 1 credit per day per pet
       const duration = calculateMaxDuration();
       return duration * formData.petIds.length;
+  };
+
+  const getSubscriptionComparison = () => {
+      if (!isSubscriptionService(formData.serviceType)) return null;
+      if (formData.petIds.length === 0 || formData.petIds.length > 3) return null;
+
+      const creditCost = calculateCreditCost();
+      const cashTotal = couponStatus.applied && couponStatus.data
+        ? couponStatus.data.finalAmount
+        : calculateTotalPrice();
+
+      if (creditCost <= 0 || cashTotal <= 0) return null;
+
+      const petCount = formData.petIds.length;
+      const serviceType = formData.serviceType as SubscriptionServiceType;
+      const recommendedDaysPerWeek = clamp(Math.ceil(creditCost / (4 * petCount)), 1, 5);
+      const buildPlan = (billingCycle: SubscriptionBillingCycle) => {
+        const plan = calculateSubscriptionPlan({
+          serviceType,
+          daysPerWeek: recommendedDaysPerWeek,
+          petCount,
+          billingCycle,
+        });
+        const equivalentReservationCost = plan.effectiveCreditPrice * creditCost;
+        return {
+          ...plan,
+          equivalentReservationCost,
+          savingsOnReservation: Math.max(0, cashTotal - equivalentReservationCost),
+        };
+      };
+
+      const monthly = buildPlan("MONTHLY");
+      const yearly = buildPlan("YEARLY");
+
+      return {
+        creditCost,
+        cashTotal,
+        petCount,
+        serviceType,
+        serviceLabel: formData.serviceType === "DOG_WALKING" ? "promenade" : "garderie",
+        recommendedDaysPerWeek,
+        monthly,
+        yearly,
+      };
   };
 
   // Coupons
@@ -958,6 +1010,7 @@ export default function BookingPage() {
 
   const selectedPetsList = pets.filter(p => formData.petIds.includes(p.id));
   const currentPetName = selectedPetsList.length > 0 ? selectedPetsList.map(p => p.name).join(", ") : "votre compagnon";
+  const subscriptionComparison = getSubscriptionComparison();
 
   // Navigation helpers
   const goNext = () => { setDirection(1); setStep(step + 1); };
@@ -1036,32 +1089,64 @@ export default function BookingPage() {
                             <p className="text-gray-500">Comparez et économisez sur cette réservation</p>
                         </div>
 
+                        {subscriptionComparison ? (
+                          <>
                         <div className="grid grid-cols-2 gap-4 text-center mb-8">
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                <p className="text-sm text-gray-500 mb-1">Prix Standard</p>
-                                <p className="text-xl font-bold text-gray-900 line-through decoration-red-400 decoration-2">{formatPrice(calculateTotalPrice())}€</p>
+                                <p className="text-sm text-gray-500 mb-1">Paiement direct</p>
+                                <p className="text-xl font-bold text-gray-900">{formatPrice(subscriptionComparison.cashTotal)}€</p>
+                                <p className="mt-1 text-[10px] text-gray-500">Cette réservation seule</p>
                             </div>
                             <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
-                                <p className="text-sm text-orange-600 font-bold mb-1">Prix Abonné</p>
-                                <p className="text-2xl font-bold text-orange-700">{formatPrice(calculateTotalPrice() * 0.8)}€</p>
-                                <p className="text-[10px] text-orange-600 mt-1">Soit 20% d'économie</p>
+                                <p className="text-sm text-orange-600 font-bold mb-1">Avec abonnement</p>
+                                <p className="text-2xl font-bold text-orange-700">{formatPrice(subscriptionComparison.monthly.equivalentReservationCost)}€</p>
+                                <p className="mt-1 text-[10px] text-orange-600">
+                                  {subscriptionComparison.creditCost} crédits x {formatPrice(subscriptionComparison.monthly.effectiveCreditPrice)}€
+                                </p>
                             </div>
+                        </div>
+
+                        <div className="mb-8 rounded-2xl border border-orange-100 bg-orange-50/60 p-4 text-sm text-gray-700">
+                          <div className="flex justify-between gap-4">
+                            <span>Formule conseillée</span>
+                            <strong className="text-right text-gray-950">
+                              {subscriptionComparison.recommendedDaysPerWeek} jour{subscriptionComparison.recommendedDaysPerWeek > 1 ? "s" : ""}/semaine
+                            </strong>
+                          </div>
+                          <div className="mt-2 flex justify-between gap-4">
+                            <span>Coût de la formule</span>
+                            <strong className="text-right text-gray-950">
+                              {formatPrice(subscriptionComparison.monthly.monthlyPrice)}€/mois
+                            </strong>
+                          </div>
+                          <div className="mt-2 flex justify-between gap-4 text-green-700">
+                            <span>Économie sur cette réservation</span>
+                            <strong className="text-right">
+                              {formatPrice(subscriptionComparison.monthly.savingsOnReservation)}€
+                            </strong>
+                          </div>
                         </div>
 
                         <div className="space-y-3 mb-8">
                             <div className="flex items-center gap-3 text-sm text-gray-700">
                                 <span className="text-green-500 font-bold">✓</span>
-                                <span>Paiement par crédits simplifié</span>
+                                <span>{subscriptionComparison.monthly.creditsPerMonth} crédits inclus chaque mois</span>
                             </div>
                             <div className="flex items-center gap-3 text-sm text-gray-700">
                                 <span className="text-green-500 font-bold">✓</span>
-                                <span>Supplément jeune animal OFFERT 🐾</span>
+                                <span>Prix par crédit : {formatPrice(subscriptionComparison.monthly.effectiveCreditPrice)}€ au lieu du tarif à la carte</span>
                             </div>
                             <div className="flex items-center gap-3 text-sm text-gray-700">
                                 <span className="text-green-500 font-bold">✓</span>
-                                <span>Validité des crédits illimitée</span>
+                                <span>Option annuelle : {formatPrice(subscriptionComparison.yearly.amountDueNow)}€ pour {subscriptionComparison.yearly.creditsPerMonth * 12} crédits</span>
                             </div>
                         </div>
+                          </>
+                        ) : (
+                          <div className="mb-8 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                            Finalisez vos dates pour comparer le paiement direct avec les formules Club La Meute.
+                          </div>
+                        )}
 
                         <Link href="/subscriptions">
                             <Button className="w-full h-12 bg-gray-900 hover:bg-orange-600 text-white font-bold rounded-xl shadow-lg">
@@ -1444,21 +1529,49 @@ export default function BookingPage() {
                     </div>
 
                     {/* Upsell Abonnement */}
-                    {isSubscriptionService(formData.serviceType) && !couponStatus.applied && userCredits < calculateCreditCost() && (
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 p-6 text-white shadow-lg">
-                            <div className="absolute top-0 right-0 -mr-8 -mt-8 h-24 w-24 rounded-full bg-white/10 blur-xl" />
-
-                            <div className="relative z-10 flex items-center justify-between gap-4">
-                                <div>
+                    {subscriptionComparison && userCredits < calculateCreditCost() && (
+                        <div className="relative overflow-hidden rounded-2xl bg-gray-950 p-6 text-white shadow-lg">
+                            <div className="relative z-10 space-y-5">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                  <div>
                                     <p className="text-xs font-bold uppercase tracking-wider text-orange-400">Bon plan</p>
-                                    <h4 className="text-lg font-bold">Payer moins cher ?</h4>
+                                    <h4 className="text-lg font-bold">Comparer avant de payer</h4>
                                     <p className="text-sm text-gray-300 mt-1">
-                                        Les crédits du service choisi offrent jusqu'à 20% de réduction sur le tarif public.
+                                        Cette réservation coûte {formatPrice(subscriptionComparison.cashTotal)}€ en paiement direct. Avec une formule, elle consommerait {subscriptionComparison.creditCost} crédits.
                                     </p>
+                                  </div>
+                                  <Button size="sm" onClick={() => setShowUpsellModal(true)} className="whitespace-nowrap bg-white text-gray-900 hover:bg-orange-50">
+                                      Détail
+                                  </Button>
                                 </div>
-                                <Button size="sm" onClick={() => setShowUpsellModal(true)} className="whitespace-nowrap bg-white text-gray-900 hover:bg-orange-50">
-                                    Voir les offres →
-                                </Button>
+
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <div className="rounded-xl border border-white/10 bg-white/10 p-4">
+                                    <p className="text-xs text-gray-300">Paiement direct</p>
+                                    <p className="mt-1 text-2xl font-bold">{formatPrice(subscriptionComparison.cashTotal)}€</p>
+                                    {couponStatus.applied && (
+                                      <p className="mt-1 text-xs text-gray-400">Code promo inclus</p>
+                                    )}
+                                  </div>
+                                  <div className="rounded-xl border border-orange-300/40 bg-orange-300/10 p-4">
+                                    <p className="text-xs text-orange-200">Équivalent abonnement</p>
+                                    <p className="mt-1 text-2xl font-bold text-orange-100">
+                                      {formatPrice(subscriptionComparison.monthly.equivalentReservationCost)}€
+                                    </p>
+                                    <p className="mt-1 text-xs text-orange-100">
+                                      soit {formatPrice(subscriptionComparison.monthly.savingsOnReservation)}€ d&apos;économie
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-gray-200 sm:flex-row sm:items-center sm:justify-between">
+                                  <span>
+                                    Formule conseillée : {subscriptionComparison.recommendedDaysPerWeek} jour{subscriptionComparison.recommendedDaysPerWeek > 1 ? "s" : ""}/semaine, {subscriptionComparison.monthly.creditsPerMonth} crédits/mois.
+                                  </span>
+                                  <Link href="/subscriptions" className="shrink-0 rounded-lg bg-white px-4 py-2 text-center text-sm font-bold text-gray-950 hover:bg-orange-50">
+                                    Voir les abonnements
+                                  </Link>
+                                </div>
                             </div>
                         </div>
                     )}
