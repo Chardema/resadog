@@ -221,6 +221,24 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, o
     const [batchVisitsPerDay, setBatchVisitsPerDay] = useState(1);
     const [batchDuration, setBatchDuration] = useState(defaultVisitDuration());
     const [batchTimes, setBatchTimes] = useState<string[]>([defaultVisitTime, "13:00", "18:00"]);
+    const [batchMode, setBatchMode] = useState<"REPLACE" | "APPEND">("REPLACE");
+
+    const selectedSlotItems = config.visitSlots
+      .map((slot, index) => ({ slot, index }))
+      .filter(({ slot }) => slot.date)
+      .sort((a, b) => `${a.slot.date}T${a.slot.startTime}`.localeCompare(`${b.slot.date}T${b.slot.startTime}`));
+    const selectedDateCount = new Set(selectedSlotItems.map(({ slot }) => slot.date)).size;
+    const groupedSlots = selectedSlotItems.reduce<Record<string, typeof selectedSlotItems>>((acc, item) => {
+      acc[item.slot.date] = acc[item.slot.date] || [];
+      acc[item.slot.date].push(item);
+      return acc;
+    }, {});
+
+    const quickPresets = [
+      { label: "Matin", visits: 1, times: ["09:00"] },
+      { label: "Matin + midi", visits: 2, times: ["09:00", "13:00"] },
+      { label: "Matin + midi + soir", visits: 3, times: ["09:00", "13:00", "18:00"] },
+    ];
 
     const updateVisitSlot = (idx: number, changes: Partial<VisitSlot>) => {
       onChange({
@@ -231,7 +249,15 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, o
 
     const removeVisitSlot = (idx: number) => {
       const nextSlots = config.visitSlots.filter((_, i) => i !== idx);
-      onChange({ ...config, visitSlots: nextSlots.length > 0 ? nextSlots : [createEmptyVisitSlot()] });
+      onChange({ ...config, visitSlots: nextSlots });
+    };
+
+    const normalizeVisitSlots = (slots: VisitSlot[]) => {
+      const byKey = new Map<string, VisitSlot>();
+      slots
+        .filter((slot) => slot.date)
+        .forEach((slot) => byKey.set(`${slot.date}-${slot.startTime}`, slot));
+      return sortVisitSlots([...byKey.values()]);
     };
 
     const addRangeSlots = () => {
@@ -247,13 +273,93 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, o
       );
 
       const existingSlots = config.visitSlots.filter((slot) => slot.date);
-      onChange({ ...config, visitSlots: sortVisitSlots([...existingSlots, ...newSlots]) });
+      onChange({
+        ...config,
+        visitSlots: normalizeVisitSlots(batchMode === "APPEND" ? [...existingSlots, ...newSlots] : newSlots),
+      });
+    };
+
+    const addSingleSlot = (date?: string) => {
+      const slotDate = date || batchStartDate || today;
+      onChange({
+        ...config,
+        visitSlots: normalizeVisitSlots([
+          ...config.visitSlots,
+          {
+            date: slotDate,
+            startTime: batchTimes[0] || defaultVisitTime,
+            duration: batchDuration,
+          },
+        ]),
+      });
+    };
+
+    const updateAllDurations = (duration: number) => {
+      onChange({
+        ...config,
+        visitSlots: config.visitSlots.map((slot) => ({ ...slot, duration })),
+      });
+    };
+
+    const applyPreset = (preset: { visits: number; times: string[] }) => {
+      setBatchVisitsPerDay(preset.visits);
+      setBatchTimes((times) => {
+        const next = [...times];
+        preset.times.forEach((time, index) => {
+          next[index] = time;
+        });
+        return next;
+      });
     };
 
     if (isHourly) {
         return (
            <div className="space-y-5">
-               <div className="rounded-2xl border border-orange-100 bg-white p-4 space-y-4">
+               <div className="rounded-2xl border border-orange-100 bg-white p-4 space-y-4 shadow-sm">
+                   <div>
+                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                       <div>
+                         <p className="text-sm font-bold text-gray-950">Planning rapide</p>
+                         <p className="mt-1 text-xs leading-5 text-gray-500">
+                           Choisissez une période et un rythme, le site crée tous les passages.
+                         </p>
+                       </div>
+                       <div className="grid grid-cols-2 rounded-lg border border-gray-200 bg-gray-50 p-1 text-xs font-bold">
+                         <button
+                           type="button"
+                           onClick={() => setBatchMode("REPLACE")}
+                           className={`rounded-md px-3 py-2 ${batchMode === "REPLACE" ? "bg-gray-950 text-white" : "text-gray-600"}`}
+                         >
+                           Remplacer
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => setBatchMode("APPEND")}
+                           className={`rounded-md px-3 py-2 ${batchMode === "APPEND" ? "bg-gray-950 text-white" : "text-gray-600"}`}
+                         >
+                           Ajouter
+                         </button>
+                       </div>
+                     </div>
+
+                     <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                       {quickPresets.map((preset) => (
+                         <button
+                           key={preset.label}
+                           type="button"
+                           onClick={() => applyPreset(preset)}
+                           className={`rounded-lg border px-3 py-2 text-left text-sm font-bold transition ${
+                             batchVisitsPerDay === preset.visits
+                               ? "border-orange-500 bg-orange-50 text-orange-800"
+                               : "border-gray-200 text-gray-700 hover:border-gray-300"
+                           }`}
+                         >
+                           {preset.label}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+
                    <div className="grid md:grid-cols-2 gap-3">
                        <div>
                            <Label>Du</Label>
@@ -268,7 +374,7 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, o
                        </div>
                    </div>
 
-                   <div className="grid md:grid-cols-3 gap-3">
+                   <div className="grid md:grid-cols-[1fr_1fr_1.1fr] gap-3">
                        <div>
                            <Label>Passages / jour</Label>
                            <select
@@ -294,7 +400,7 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, o
                        </div>
                        <div className="flex items-end">
                            <Button type="button" className="w-full bg-orange-500 hover:bg-orange-600" onClick={addRangeSlots} disabled={!batchStartDate}>
-                             Ajouter
+                             {batchMode === "REPLACE" ? "Générer le planning" : "Ajouter à la sélection"}
                            </Button>
                        </div>
                    </div>
@@ -318,29 +424,73 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, o
                    </div>
                </div>
 
-               <div className="space-y-2">
-                   <div className="flex items-center justify-between">
-                       <Label>Passages sélectionnés</Label>
-                       <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...config, visitSlots: [...config.visitSlots, createEmptyVisitSlot()] })}>
-                         + Passage
-                       </Button>
+               <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                       <div>
+                         <p className="text-sm font-bold text-gray-950">Passages sélectionnés</p>
+                         <p className="mt-1 text-xs text-gray-500">
+                           {selectedSlotItems.length > 0
+                             ? `${selectedSlotItems.length} passage${selectedSlotItems.length > 1 ? "s" : ""} sur ${selectedDateCount} jour${selectedDateCount > 1 ? "s" : ""}`
+                             : "Aucun passage généré pour le moment."}
+                         </p>
+                       </div>
+                       <div className="flex flex-wrap gap-2">
+                         <Button type="button" variant="outline" size="sm" onClick={() => updateAllDurations(30)} disabled={selectedSlotItems.length === 0}>
+                           Tout 30 min
+                         </Button>
+                         <Button type="button" variant="outline" size="sm" onClick={() => updateAllDurations(60)} disabled={selectedSlotItems.length === 0}>
+                           Tout 1 h
+                         </Button>
+                         <Button type="button" variant="outline" size="sm" onClick={() => addSingleSlot()}>
+                           + Passage
+                         </Button>
+                         <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...config, visitSlots: [] })} disabled={selectedSlotItems.length === 0}>
+                           Vider
+                         </Button>
+                       </div>
                    </div>
 
-                   {config.visitSlots.map((item, idx) => (
-                      <div key={idx} className="grid grid-cols-2 md:grid-cols-[1fr_92px_92px_44px] gap-2 items-center">
-                          <Input type="date" min={today} className="bg-white col-span-2 md:col-span-1" value={item.date} onChange={(e) => updateVisitSlot(idx, { date: e.target.value })} />
-                          <Input type="time" className="bg-white" value={item.startTime} onChange={(e) => updateVisitSlot(idx, { startTime: e.target.value })} />
-                          <select
-                            className="h-10 rounded-md border border-gray-200 bg-white px-2 text-sm"
-                            value={item.duration}
-                            onChange={(e) => updateVisitSlot(idx, { duration: Number(e.target.value) })}
-                          >
-                            <option value={30}>30 min</option>
-                            <option value={60}>1 h</option>
-                          </select>
-                          <Button type="button" variant="outline" className="col-span-2 md:col-span-1" onClick={() => removeVisitSlot(idx)}>×</Button>
-                      </div>
-                   ))}
+                   {selectedSlotItems.length === 0 ? (
+                     <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-center text-sm text-gray-600">
+                       Choisissez une période puis cliquez sur “Générer le planning”.
+                     </div>
+                   ) : (
+                     <div className="mt-4 space-y-3">
+                       {Object.entries(groupedSlots).map(([date, items]) => (
+                         <div key={date} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                           <div className="mb-3 flex items-center justify-between gap-3">
+                             <p className="font-bold text-gray-950">{formatShortDate(date)}</p>
+                             <Button type="button" variant="ghost" size="sm" onClick={() => addSingleSlot(date)}>
+                               + ce jour
+                             </Button>
+                           </div>
+                           <div className="grid gap-2 sm:grid-cols-2">
+                             {items.map(({ slot, index }) => (
+                               <div key={`${slot.date}-${slot.startTime}-${index}`} className="grid grid-cols-[1fr_92px_40px] gap-2">
+                                 <Input
+                                   type="time"
+                                   className="bg-white"
+                                   value={slot.startTime}
+                                   onChange={(e) => updateVisitSlot(index, { startTime: e.target.value })}
+                                 />
+                                 <select
+                                   className="h-10 rounded-md border border-gray-200 bg-white px-2 text-sm"
+                                   value={slot.duration}
+                                   onChange={(e) => updateVisitSlot(index, { duration: Number(e.target.value) })}
+                                 >
+                                   <option value={30}>30 min</option>
+                                   <option value={60}>1 h</option>
+                                 </select>
+                                 <Button type="button" variant="outline" size="icon" onClick={() => removeVisitSlot(index)} aria-label="Supprimer ce passage">
+                                   ×
+                                 </Button>
+                               </div>
+                             ))}
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                   )}
                </div>
            </div>
         );
