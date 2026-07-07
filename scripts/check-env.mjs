@@ -39,7 +39,12 @@ if (target === "production") {
     "BUSINESS_ADDRESS",
     "SUPPORT_EMAIL",
     "CONSUMER_MEDIATOR_NAME",
-    "CONSUMER_MEDIATOR_URL"
+    "CONSUMER_MEDIATOR_URL",
+    "RESEND_FROM",
+    "RESEND_BUG_FROM",
+    "DEV_EMAIL",
+    "NEXT_PUBLIC_ACACED_NUMBER",
+    "PROFESSIONAL_INSURANCE"
   );
 }
 
@@ -49,11 +54,13 @@ if (!get("AUTH_SECRET") && !get("NEXTAUTH_SECRET")) {
   results.push({ level: "error", message: "AUTH_SECRET ou NEXTAUTH_SECRET est manquant" });
 }
 
-warnEnv("DEV_EMAIL");
-warnEnv("RESEND_FROM");
-warnEnv("RESEND_BUG_FROM");
-warnEnv("NEXT_PUBLIC_ACACED_NUMBER");
-warnEnv("PROFESSIONAL_INSURANCE");
+if (target !== "production") {
+  warnEnv("DEV_EMAIL");
+  warnEnv("RESEND_FROM");
+  warnEnv("RESEND_BUG_FROM");
+  warnEnv("NEXT_PUBLIC_ACACED_NUMBER");
+  warnEnv("PROFESSIONAL_INSURANCE");
+}
 
 const nextAuthUrl = get("NEXTAUTH_URL");
 if (target === "production" && nextAuthUrl) {
@@ -86,6 +93,11 @@ if (adminEmail && !adminEmail.includes("@")) {
   results.push({ level: "error", message: "ADMIN_EMAIL ne ressemble pas a une adresse email" });
 }
 
+const devEmail = get("DEV_EMAIL");
+if (devEmail && !devEmail.includes("@")) {
+  results.push({ level: "error", message: "DEV_EMAIL ne ressemble pas a une adresse email" });
+}
+
 const siret = get("BUSINESS_SIRET")?.replace(/\s/g, "");
 if (siret && !/^\d{14}$/.test(siret)) {
   results.push({ level: "error", message: "BUSINESS_SIRET doit contenir 14 chiffres" });
@@ -99,8 +111,16 @@ if (mediatorUrl && !mediatorUrl.startsWith("https://")) {
 const resendFrom = get("RESEND_FROM");
 if (target === "production" && (!resendFrom || resendFrom.includes("onboarding@resend.dev"))) {
   results.push({
-    level: "warning",
+    level: "error",
     message: "RESEND_FROM doit utiliser un domaine Resend verifie en production",
+  });
+}
+
+const resendBugFrom = get("RESEND_BUG_FROM");
+if (target === "production" && (!resendBugFrom || resendBugFrom.includes("onboarding@resend.dev"))) {
+  results.push({
+    level: "error",
+    message: "RESEND_BUG_FROM doit utiliser un domaine Resend verifie en production",
   });
 }
 

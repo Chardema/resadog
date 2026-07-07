@@ -24,15 +24,26 @@ const requiredEvents = [
 
 try {
   const stripe = new Stripe(secretKey);
-  const [account, webhookEndpoints] = await Promise.all([
+  const [account, webhookEndpoints, portalConfigurations] = await Promise.all([
     stripe.accounts.retrieve(),
     stripe.webhookEndpoints.list({ limit: 100 }),
+    stripe.billingPortal.configurations.list({ active: true, limit: 100 }),
   ]);
 
   const errors = [];
   if (!account.charges_enabled) errors.push("les paiements Live ne sont pas activés");
   if (!account.payouts_enabled) errors.push("les versements Stripe ne sont pas activés");
   if (!account.details_submitted) errors.push("le dossier du compte Stripe est incomplet");
+  if (portalConfigurations.data.length === 0) {
+    errors.push("aucune configuration active du portail client Stripe Live n'a été trouvée");
+  } else {
+    const invoiceHistoryEnabled = portalConfigurations.data.some(
+      (configuration) => configuration.features?.invoice_history?.enabled
+    );
+    if (!invoiceHistoryEnabled) {
+      errors.push("le portail client Stripe Live doit autoriser la consultation des factures");
+    }
+  }
 
   const webhookUrl = `${appUrl}/api/stripe/webhook`;
   const endpoint = webhookEndpoints.data.find(

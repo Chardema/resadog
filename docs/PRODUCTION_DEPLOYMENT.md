@@ -8,11 +8,14 @@ Depuis la racine du projet :
 
 ```bash
 npm run check:env
+npm run check:live
 npm run lint
 npm run build
 ```
 
 `npm run check:env` ne doit jamais afficher les valeurs des secrets. Il verifie uniquement que les variables attendues existent et que les valeurs de production les plus sensibles ont une forme coherente.
+
+`npm run check:live` est le feu vert avant ouverture publique : il doit passer avec les vraies variables de production, un compte Stripe Live active, un webhook Live actif et une configuration de portail client Stripe.
 
 ## 2. Variables Vercel
 
@@ -38,8 +41,8 @@ BUSINESS_ADDRESS
 SUPPORT_EMAIL
 CONSUMER_MEDIATOR_NAME
 CONSUMER_MEDIATOR_URL
-NEXT_PUBLIC_ACACED_NUMBER (facultatif)
-PROFESSIONAL_INSURANCE (recommande)
+NEXT_PUBLIC_ACACED_NUMBER
+PROFESSIONAL_INSURANCE
 ```
 
 Points d'attention :
@@ -47,18 +50,28 @@ Points d'attention :
 - `NEXTAUTH_URL` doit etre l'URL publique en `https`.
 - `CRON_SECRET` doit etre long et aleatoire.
 - `RESEND_FROM` doit utiliser un domaine verifie dans Resend pour eviter les blocages d'envoi.
+- `RESEND_BUG_FROM` doit aussi utiliser un domaine verifie : le bouton de signalement tarif/bug s'appuie dessus.
+- `NEXT_PUBLIC_ACACED_NUMBER` et `PROFESSIONAL_INSURANCE` sont obligatoires pour afficher les informations professionnelles reelles.
 - En production, `STRIPE_SECRET_KEY` doit commencer par `sk_live_`. Une cle `sk_test_` bloque le preflight.
 
 ## 3. Passage de Stripe en reel
 
 1. Terminer l'activation du compte Stripe : identite de l'entreprise, representant, compte bancaire et informations publiques.
 2. Basculer Stripe en mode reel puis recuperer la cle secrete `sk_live_`.
-3. Activer et configurer le portail client Stripe en mode reel (moyens de paiement et historique des factures).
+3. Activer et configurer le portail client Stripe en mode reel, au minimum avec l'historique des factures.
 4. Creer en mode reel le webhook `https://resadog.vercel.app/api/stripe/webhook` et copier son secret `whsec_`.
 5. Remplacer les variables dans l'environnement **Production** de Vercel.
 6. Redeployer : les variables modifiees ne s'appliquent pas aux deploiements deja construits.
 7. Ne pas reutiliser les identifiants Stripe de test. Clients, abonnements, moyens de paiement et factures test n'existent pas en mode reel.
-8. Effectuer une vraie petite transaction, puis verifier capture, annulation/remboursement, facture et webhooks dans Stripe.
+8. Lancer `npm run check:live` avec les variables Live.
+9. Effectuer une vraie petite transaction, puis verifier capture, annulation/remboursement, facture et webhooks dans Stripe.
+
+References Stripe utiles :
+
+- [Cles API Stripe](https://docs.stripe.com/keys)
+- [Checklist go-live Stripe](https://docs.stripe.com/get-started/checklist/go-live)
+- [Webhooks Stripe](https://docs.stripe.com/webhooks)
+- [Portail client Stripe](https://docs.stripe.com/customer-management)
 
 ## 4. Stripe
 
