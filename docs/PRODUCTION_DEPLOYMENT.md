@@ -17,6 +17,14 @@ npm run build
 
 `npm run check:live` est le feu vert avant ouverture publique : il doit passer avec les vraies variables de production, un compte Stripe Live active, un webhook Live actif et une configuration de portail client Stripe.
 
+Pour tester exactement les variables de Production Vercel :
+
+```bash
+vercel env pull .vercel/.env.production.local --environment=production
+CHECK_ENV_TARGET=production CHECK_ENV_FILE=.vercel/.env.production.local node scripts/check-env.mjs
+CHECK_ENV_FILE=.vercel/.env.production.local node scripts/check-stripe-live.mjs
+```
+
 ## 2. Variables Vercel
 
 Configurer ces variables dans Vercel, pour Production et Preview si besoin :

@@ -1,7 +1,11 @@
 import { config } from "dotenv";
 
-config({ path: ".env", quiet: true });
-config({ path: ".env.local", override: true, quiet: true });
+if (process.env.CHECK_ENV_FILE) {
+  config({ path: process.env.CHECK_ENV_FILE, override: true, quiet: true });
+} else {
+  config({ path: ".env", quiet: true });
+  config({ path: ".env.local", override: true, quiet: true });
+}
 
 const target = process.env.CHECK_ENV_TARGET || "production";
 const results = [];

@@ -1,14 +1,28 @@
 import { config } from "dotenv";
 import Stripe from "stripe";
 
-config({ path: ".env", quiet: true });
-config({ path: ".env.local", override: true, quiet: true });
+if (process.env.CHECK_ENV_FILE) {
+  config({ path: process.env.CHECK_ENV_FILE, override: true, quiet: true });
+} else {
+  config({ path: ".env", quiet: true });
+  config({ path: ".env.local", override: true, quiet: true });
+}
 
 const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
 const appUrl = process.env.NEXTAUTH_URL?.trim()?.replace(/\/$/, "");
 
-if (!secretKey?.startsWith("sk_live_") || !appUrl) {
-  console.error("ERREUR - clés Stripe Live ou NEXTAUTH_URL absentes");
+const bootstrapErrors = [];
+if (!secretKey) {
+  bootstrapErrors.push("STRIPE_SECRET_KEY est absente");
+} else if (!secretKey.startsWith("sk_live_")) {
+  bootstrapErrors.push("STRIPE_SECRET_KEY doit etre une cle Live (sk_live_)");
+}
+if (!appUrl) {
+  bootstrapErrors.push("NEXTAUTH_URL est absent");
+}
+
+if (bootstrapErrors.length > 0) {
+  for (const error of bootstrapErrors) console.error(`ERREUR - ${error}`);
   process.exit(1);
 }
 
