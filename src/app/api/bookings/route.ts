@@ -409,8 +409,6 @@ export async function POST(request: NextRequest) {
       message: "Réservation créée avec succès! En attente de confirmation du gardien.",
     });
   } catch (error) {
-    console.error("Erreur lors de la création de la réservation:", error);
-
     // Gérer les erreurs de validation Zod
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -425,6 +423,8 @@ export async function POST(request: NextRequest) {
     if (error instanceof BookingInputError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+
+    console.error("Erreur lors de la création de la réservation:", error);
 
     return NextResponse.json(
       {

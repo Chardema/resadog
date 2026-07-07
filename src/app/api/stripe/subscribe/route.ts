@@ -182,8 +182,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: checkoutSession.url });
 
   } catch (error) {
-    console.error("Erreur création abonnement:", error);
-
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
@@ -193,6 +191,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    console.error("Erreur création abonnement:", error);
 
     return NextResponse.json(
       { error: "Erreur serveur" },
