@@ -13,17 +13,42 @@ import { AppNav } from "@/components/layout/AppNav";
 import { calculateBookingPrice, getServiceDisplayPrice, EXTRA_DURATION, type Species, type PriceLine } from "@/lib/pricing";
 import {
   calculateSubscriptionPlan,
+  SUBSCRIPTION_SERVICES,
   type SubscriptionBillingCycle,
   type SubscriptionServiceType,
 } from "@/lib/subscription-pricing";
+import {
+  isHourlyServiceType,
+  isOvernightServiceType,
+  type AppServiceType,
+} from "@/lib/services";
 
-const serviceTypes = [
+type ServiceOption = {
+  value: AppServiceType;
+  name: string;
+  unit: string;
+  description: string;
+  icon: string;
+  maxHours?: number;
+  maxPets: number;
+};
+
+const serviceTypes: ServiceOption[] = [
   {
     value: "BOARDING",
     name: "Hébergement",
     unit: "nuit",
     description: "Votre compagnon vit avec nous, accès canapé et jardin inclus.",
     icon: "🏠",
+    maxHours: 24,
+    maxPets: 3,
+  },
+  {
+    value: "HOUSE_SITTING",
+    name: "Garde au domicile",
+    unit: "nuit",
+    description: "Nous gardons votre compagnon chez vous, avec présence au domicile.",
+    icon: "🛏️",
     maxHours: 24,
     maxPets: 3,
   },
@@ -83,15 +108,16 @@ type DateConfig = {
   visitSlots: VisitSlot[];
 };
 
-const hourlyServiceTypes = ["DROP_IN", "DOG_WALKING"];
-const isHourlyService = (serviceType: string) => hourlyServiceTypes.includes(serviceType);
-const isSubscriptionService = (serviceType: string) => serviceType === "DOG_WALKING" || serviceType === "DAY_CARE";
+const isHourlyService = isHourlyServiceType;
+const isSubscriptionService = (serviceType: string): serviceType is SubscriptionServiceType =>
+  serviceType in SUBSCRIPTION_SERVICES;
 const defaultVisitDuration = () => 30;
 const defaultVisitTime = "09:00";
 const boardingCheckoutTime = "10:00";
 
 const serviceDefaultTimes: Record<string, { startTime: string; endTime: string }> = {
   BOARDING: { startTime: "18:00", endTime: boardingCheckoutTime },
+  HOUSE_SITTING: { startTime: "18:00", endTime: boardingCheckoutTime },
   DAY_CARE: { startTime: "09:00", endTime: "18:00" },
   DROP_IN: { startTime: defaultVisitTime, endTime: defaultVisitTime },
   DOG_WALKING: { startTime: defaultVisitTime, endTime: defaultVisitTime },
@@ -381,7 +407,7 @@ export default function BookingPage() {
   // Formulaire Global (Default Config)
   const [formData, setFormData] = useState<{
     petIds: string[];
-    serviceType: "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING";
+    serviceType: AppServiceType;
     notes: string;
     promoCode: string;
     serviceAddress: string;
@@ -447,12 +473,12 @@ export default function BookingPage() {
   }, [session]);
 
   const calculateCreditCost = () => {
-      if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+      if (isHourlyService(formData.serviceType)) {
           return useSameDates
             ? getValidVisitSlots(visitSlots).length * formData.petIds.length
             : Object.values(petConfigs).reduce((sum, c) => sum + getValidVisitSlots(c.visitSlots).length, 0);
       }
-      // Boarding/Daycare = 1 credit per day per pet
+      // Services à la date = 1 crédit par unité tarifée et par animal.
       const duration = calculateMaxDuration();
       return duration * formData.petIds.length;
   };
@@ -494,7 +520,7 @@ export default function BookingPage() {
         cashTotal,
         petCount,
         serviceType,
-        serviceLabel: formData.serviceType === "DOG_WALKING" ? "promenade" : "garderie",
+        serviceLabel: SUBSCRIPTION_SERVICES[serviceType].creditLabel,
         recommendedDaysPerWeek,
         monthly,
         yearly,
@@ -597,13 +623,13 @@ export default function BookingPage() {
       setAvailabilityStatus(p => ({ ...p, checking: true }));
       let allAvailable = true;
       let globalMessage = "";
-      let allUnavailableDates: string[] = [];
+      const allUnavailableDates: string[] = [];
 
       for (const item of configsToCheck) {
           const { config } = item;
 
           // Validation de base des dates
-          if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+          if (isHourlyService(formData.serviceType)) {
               if (getValidVisitSlots(config.visitSlots).length === 0) {
                   // Pas bloquant si vide au début, mais bloquant pour la soumission
                   continue;
@@ -622,7 +648,7 @@ export default function BookingPage() {
 
           try {
              let datesToCheck: string[] = [];
-             if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+             if (isHourlyService(formData.serviceType)) {
                  datesToCheck = getUniqueVisitDates(config.visitSlots);
              } else {
                  datesToCheck = [config.startDate, config.endDate];
@@ -689,7 +715,7 @@ export default function BookingPage() {
       let startDate = config.startDate;
       let endDate = config.endDate;
 
-      if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+      if (isHourlyService(formData.serviceType)) {
           if (validSlots.length === 0) return { ...emptyDetail, isPuppy: isYoung };
           const dates = getUniqueVisitDates(validSlots);
           startDate = dates[0];
@@ -706,7 +732,7 @@ export default function BookingPage() {
           const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
           if (totalHours <= 0) return { ...emptyDetail, isPuppy: isYoung };
 
-          if (formData.serviceType === "BOARDING") {
+          if (isOvernightServiceType(formData.serviceType)) {
               if (getCalendarDayDifference(config.startDate, config.endDate) <= 0) return { ...emptyDetail, isPuppy: isYoung };
               breakdown = "nuits";
           } else {
@@ -789,13 +815,13 @@ export default function BookingPage() {
 
   // Helper pour calculer la durée (pour les coupons)
   const calculateMaxDuration = () => {
-      if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+      if (isHourlyService(formData.serviceType)) {
           return useSameDates
             ? getValidVisitSlots(visitSlots).length
             : Math.max(0, ...Object.values(petConfigs).map(c => getValidVisitSlots(c.visitSlots).length));
       }
 
-      // Boarding/Daycare: Calculate nights/days
+      // Services à la date : nuits pour l'hébergement/garde au domicile, jours pour la garderie.
       const config = useSameDates
         ? { startDate: formData.startDate, endDate: formData.endDate }
         : Object.values(petConfigs)[0]; // Take first as approx if varying
@@ -949,14 +975,14 @@ export default function BookingPage() {
     setIsLoading(true);
     setError("");
 
-    let bookingsToCreate = [];
+    const bookingsToCreate = [];
 
     if (useSameDates) {
         const price = couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice();
 
         let startDate = formData.startDate;
         let endDate = formData.endDate;
-        if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+        if (isHourlyService(formData.serviceType)) {
             const valid = getUniqueVisitDates(visitSlots);
             if (valid.length > 0) { startDate = valid[0]; endDate = valid[valid.length - 1]; }
         }
@@ -992,7 +1018,7 @@ export default function BookingPage() {
 
             let startDate = config.startDate;
             let endDate = config.endDate;
-            if (formData.serviceType === "DROP_IN" || formData.serviceType === "DOG_WALKING") {
+            if (isHourlyService(formData.serviceType)) {
                 const valid = getUniqueVisitDates(config.visitSlots);
                 if (valid.length > 0) { startDate = valid[0]; endDate = valid[valid.length - 1]; }
             }
@@ -1043,7 +1069,10 @@ export default function BookingPage() {
             window.location.href = dataCheckout.checkoutUrl;
         }
 
-    } catch (e: any) { setError(e.message); setIsLoading(false); }
+    } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Erreur de connexion");
+        setIsLoading(false);
+    }
   };
 
   const today = new Date().toISOString().split("T")[0];
@@ -1249,7 +1278,7 @@ export default function BookingPage() {
                       {serviceTypes.map((s) => {
                         const isDisabled = s.maxPets < formData.petIds.length;
                         return (
-                        <div key={s.value} onClick={() => !isDisabled && setFormData({ ...formData, serviceType: s.value as any })}
+                        <div key={s.value} onClick={() => !isDisabled && setFormData({ ...formData, serviceType: s.value })}
                           className={`relative p-6 rounded-2xl border-2 transition-all ${isDisabled ? "opacity-50 cursor-not-allowed bg-gray-50" : "cursor-pointer hover:border-gray-300"} ${!isDisabled && formData.serviceType === s.value ? "border-orange-500 bg-orange-50" : "border-gray-100"}`}
                         >
                           {isDisabled && <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full">Max {s.maxPets}</div>}
@@ -1362,7 +1391,7 @@ export default function BookingPage() {
                                 )}
                              </div>
                          </div>
-                         {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
+                         {(isOvernightServiceType(formData.serviceType) || formData.serviceType === "DAY_CARE") && (
                              <div className="flex flex-col items-end gap-1">
                                  <div className="flex gap-2">
                                      <Input
@@ -1541,7 +1570,7 @@ export default function BookingPage() {
                                     <div>
                                         <p className="font-bold">Un doute sur ce tarif ?</p>
                                         <p className="mt-1 text-xs leading-5 text-amber-800">
-                                            Envoyez le récapitulatif à l'équipe avant de payer. La réservation ne sera pas validée tant que vous ne cliquez pas sur le paiement.
+                                            Envoyez le récapitulatif à l&apos;équipe avant de payer. La réservation ne sera pas validée tant que vous ne cliquez pas sur le paiement.
                                         </p>
                                     </div>
                                     <Button
@@ -1631,16 +1660,16 @@ export default function BookingPage() {
                         </div>
                     )}
 
-                    {!subscriptionComparison && calculateTotalPrice() > 0 && (
+                    {!subscriptionComparison && calculateTotalPrice() > 0 && formData.petIds.length > 3 && (
                         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                               <div>
                                 <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Abonnement</p>
                                 <h4 className="mt-1 text-lg font-bold text-gray-950">
-                                  Pas de formule applicable à ce service
+                                  Formule personnalisée à demander
                                 </h4>
                                 <p className="mt-1 text-sm leading-6 text-gray-600">
-                                  Les crédits Club La Meute couvrent les promenades et les garderies. Pour {formData.serviceType === "BOARDING" ? "un hébergement" : "une visite à domicile"}, le paiement direct reste le tarif de référence.
+                                  Les abonnements standards couvrent jusqu&apos;à 3 animaux. Pour cette réservation, demandez une vérification avant de payer.
                                 </p>
                               </div>
                               <Link href="/subscriptions" className="shrink-0 rounded-lg border border-gray-300 px-4 py-3 text-center text-sm font-bold text-gray-900 hover:bg-gray-50">
@@ -1660,7 +1689,7 @@ export default function BookingPage() {
                             className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
                         />
                         <label htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
-                            J'accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions Générales de Vente</Link> et la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de Confidentialité</Link>. Je reconnais que l'annulation est gratuite jusqu'à 48h avant le début de la garde.
+                            J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions Générales de Vente</Link> et la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de Confidentialité</Link>. Je reconnais que l&apos;annulation est gratuite jusqu&apos;à 48h avant le début de la garde.
                         </label>
                     </div>
 
@@ -1712,7 +1741,7 @@ export default function BookingPage() {
                   <CheckCircle2 className="mx-auto mb-3 h-10 w-10" />
                   <p className="font-bold">Message envoyé.</p>
                   <p className="mt-2 text-sm text-gray-600">
-                    L'équipe pourra vérifier le calcul avec le détail de votre réservation.
+                    L&apos;équipe pourra vérifier le calcul avec le détail de votre réservation.
                   </p>
                   <Button
                     type="button"

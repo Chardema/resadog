@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
+import { SERVICE_TYPES, type AppServiceType } from "@/lib/services";
 
 export async function GET() {
   try {
@@ -30,7 +31,10 @@ export async function GET() {
     const metadata = stripeSub.metadata || {};
     // Tentative de synchronisation / auto-réparation
     // Si metadata incomplete, on essaie de déduire ou on met des défauts pour débloquer
-    const serviceType = (metadata.serviceType || "DOG_WALKING") as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING";
+    const metadataServiceType = metadata.serviceType || "DOG_WALKING";
+    const serviceType = (
+      SERVICE_TYPES.includes(metadataServiceType as AppServiceType) ? metadataServiceType : "DOG_WALKING"
+    ) as AppServiceType;
     const daysPerWeek = parseInt(metadata.daysPerWeek || "2");
     const creditsPerMonth = parseInt(metadata.creditsPerMonth || "8");
     const existingLocalSubscription = await prisma.userSubscription.findUnique({

@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { SERVICE_TYPES } from "@/lib/services";
+
+const emptyCreditBalances = () =>
+  Object.fromEntries(SERVICE_TYPES.map((serviceType) => [serviceType, 0]));
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ total: 0, byService: { DOG_WALKING: 0, DAY_CARE: 0 } });
+    return NextResponse.json({ total: 0, byService: emptyCreditBalances() });
   }
 
   const creditBatches = await prisma.creditBatch.findMany({
@@ -20,7 +24,7 @@ export async function GET() {
   const byService = creditBatches.reduce<Record<string, number>>((acc, batch) => {
     acc[batch.serviceType] = (acc[batch.serviceType] || 0) + batch.remaining;
     return acc;
-  }, { DOG_WALKING: 0, DAY_CARE: 0 });
+  }, emptyCreditBalances());
 
   return NextResponse.json({ total, byService });
 }

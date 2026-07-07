@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
+import { getServiceLabel } from "@/lib/services";
 
 interface Coupon {
   id: string;
@@ -199,7 +200,7 @@ export default function AdminClientsPage() {
             Gestion des Clients & VIP 👑
           </h1>
           <p className="text-gray-700 text-lg">
-            Gérez les codes promo, les statuts VIP et les crédits d'abonnement.
+            Gérez les codes promo, les statuts VIP et les crédits d&apos;abonnement.
           </p>
         </motion.div>
 
@@ -237,7 +238,7 @@ export default function AdminClientsPage() {
                     <Label>Type de réduction *</Label>
                     <select
                       value={couponForm.discountType}
-                      onChange={(e) => setCouponForm({ ...couponForm, discountType: e.target.value as any })}
+	                      onChange={(e) => setCouponForm({ ...couponForm, discountType: e.target.value as "FIXED_AMOUNT" | "PERCENTAGE" })}
                       className="w-full h-10 border-2 border-gray-200 rounded-lg px-3"
                     >
                       <option value="FIXED_AMOUNT">Montant fixe (€)</option>
@@ -361,7 +362,7 @@ export default function AdminClientsPage() {
                       <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex justify-between items-center">
                           <div>
                               <p className="text-sm font-bold text-yellow-800">Abonnement {client.subscription.billingPeriod === 'YEARLY' ? 'Annuel' : 'Mensuel'}</p>
-                              <p className="text-xs text-yellow-700">{client.subscription.serviceType}</p>
+                              <p className="text-xs text-yellow-700">{getServiceLabel(client.subscription.serviceType)}</p>
                           </div>
                           <Button 
                             variant="destructive" 

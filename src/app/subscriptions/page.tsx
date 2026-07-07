@@ -8,18 +8,24 @@ import {
   ArrowRight,
   CalendarClock,
   Check,
+  Home,
   LoaderCircle,
   Minus,
   PawPrint,
   Plus,
   ShieldCheck,
   Sun,
+  type LucideIcon,
 } from "lucide-react";
 import { AppNav } from "@/components/layout/AppNav";
 import { Button } from "@/components/ui/button";
-import { calculateSubscriptionPlan } from "@/lib/subscription-pricing";
+import {
+  calculateSubscriptionPlan,
+  SUBSCRIPTION_SERVICES,
+  type SubscriptionServiceType,
+} from "@/lib/subscription-pricing";
 
-type ServiceType = "DOG_WALKING" | "DAY_CARE";
+type ServiceType = SubscriptionServiceType;
 type BillingCycle = "MONTHLY" | "YEARLY";
 
 type ExistingSubscription = {
@@ -33,6 +39,14 @@ type ExistingSubscription = {
 
 const formatMoney = (amount: number) =>
   amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const serviceOptions: Array<{ value: ServiceType; icon: LucideIcon }> = [
+  { value: "BOARDING", icon: Home },
+  { value: "HOUSE_SITTING", icon: ShieldCheck },
+  { value: "DAY_CARE", icon: Sun },
+  { value: "DROP_IN", icon: CalendarClock },
+  { value: "DOG_WALKING", icon: PawPrint },
+];
 
 export default function SubscriptionPage() {
   const { data: session, status } = useSession();
@@ -118,7 +132,7 @@ export default function SubscriptionPage() {
           <p className="text-sm font-bold text-orange-700">Club La Meute</p>
           <h1 className="mt-2 text-3xl font-bold text-gray-950 sm:text-4xl">Une formule adaptée à votre rythme</h1>
           <p className="mt-3 text-base leading-7 text-gray-600">
-            Des crédits pour vos promenades ou garderies, avec un prix clair avant paiement.
+            Des crédits pour chaque service, avec un prix clair avant paiement.
           </p>
         </header>
 
@@ -177,33 +191,23 @@ export default function SubscriptionPage() {
           <section className="rounded-lg border border-gray-200 bg-white p-5 sm:p-6">
             <div>
               <h2 className="text-lg font-bold text-gray-950">Service</h2>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setServiceType("DOG_WALKING")}
-                  className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border-2 p-3 text-sm font-bold ${
-                    serviceType === "DOG_WALKING"
-                      ? "border-orange-600 bg-orange-50 text-orange-800"
-                      : "border-gray-200 text-gray-700"
-                  }`}
-                  aria-pressed={serviceType === "DOG_WALKING"}
-                >
-                  <PawPrint className="h-5 w-5" />
-                  Promenade
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setServiceType("DAY_CARE")}
-                  className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border-2 p-3 text-sm font-bold ${
-                    serviceType === "DAY_CARE"
-                      ? "border-orange-600 bg-orange-50 text-orange-800"
-                      : "border-gray-200 text-gray-700"
-                  }`}
-                  aria-pressed={serviceType === "DAY_CARE"}
-                >
-                  <Sun className="h-5 w-5" />
-                  Garderie
-                </button>
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {serviceOptions.map(({ value, icon: Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setServiceType(value)}
+                    className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border-2 p-3 text-sm font-bold ${
+                      serviceType === value
+                        ? "border-orange-600 bg-orange-50 text-orange-800"
+                        : "border-gray-200 text-gray-700"
+                    }`}
+                    aria-pressed={serviceType === value}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {SUBSCRIPTION_SERVICES[value].label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -244,17 +248,17 @@ export default function SubscriptionPage() {
             <div className="mt-5 border-t border-gray-100 pt-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="font-bold text-gray-950">Jours par semaine</h2>
+                  <h2 className="font-bold text-gray-950">Rythme hebdomadaire</h2>
                   <p className="mt-1 text-sm text-gray-500">{plan.creditsPerMonth} crédits chaque mois</p>
                 </div>
-                <div className="flex items-center gap-2" aria-label={`${daysPerWeek} jours par semaine`}>
+                <div className="flex items-center gap-2" aria-label={`${daysPerWeek} utilisations par semaine`}>
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
                     onClick={() => setDaysPerWeek(updateNumber(daysPerWeek, -1, 1, 5))}
                     disabled={daysPerWeek === 1}
-                    aria-label="Retirer un jour"
+                    aria-label="Retirer une utilisation"
                     className="border-gray-300"
                   >
                     <Minus className="h-4 w-4" />
@@ -266,7 +270,7 @@ export default function SubscriptionPage() {
                     size="icon"
                     onClick={() => setDaysPerWeek(updateNumber(daysPerWeek, 1, 1, 5))}
                     disabled={daysPerWeek === 5}
-                    aria-label="Ajouter un jour"
+                    aria-label="Ajouter une utilisation"
                     className="border-gray-300"
                   >
                     <Plus className="h-4 w-4" />
@@ -282,7 +286,7 @@ export default function SubscriptionPage() {
                 {billingCycle === "YEARLY" ? "Paiement annuel" : "Paiement mensuel"}
               </p>
               <h2 className="mt-2 text-xl font-bold">
-                {serviceType === "DOG_WALKING" ? "Promenade" : "Garderie"} · {petCount} {petCount > 1 ? "animaux" : "animal"}
+                {plan.service.label} · {petCount} {petCount > 1 ? "animaux" : "animal"}
               </h2>
 
               <div className="mt-5 flex items-end gap-2">

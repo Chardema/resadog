@@ -1,4 +1,6 @@
-export type SubscriptionServiceType = "DOG_WALKING" | "DAY_CARE";
+import type { AppServiceType } from "@/lib/services";
+
+export type SubscriptionServiceType = AppServiceType;
 export type SubscriptionBillingCycle = "MONTHLY" | "YEARLY";
 
 type ServiceConfig = {
@@ -9,17 +11,35 @@ type ServiceConfig = {
 };
 
 export const SUBSCRIPTION_SERVICES: Record<SubscriptionServiceType, ServiceConfig> = {
-  DOG_WALKING: {
-    label: "Promenade",
-    creditLabel: "promenade",
-    unitPrice: 12,
-    minimumCreditPrice: 10,
+  BOARDING: {
+    label: "Hébergement",
+    creditLabel: "nuit d'hébergement",
+    unitPrice: 24,
+    minimumCreditPrice: 22,
+  },
+  HOUSE_SITTING: {
+    label: "Garde au domicile",
+    creditLabel: "nuit au domicile",
+    unitPrice: 38,
+    minimumCreditPrice: 34,
   },
   DAY_CARE: {
     label: "Garderie",
     creditLabel: "jour de garderie",
     unitPrice: 25,
     minimumCreditPrice: 20,
+  },
+  DROP_IN: {
+    label: "Visite à domicile",
+    creditLabel: "visite",
+    unitPrice: 15,
+    minimumCreditPrice: 12,
+  },
+  DOG_WALKING: {
+    label: "Promenade",
+    creditLabel: "promenade",
+    unitPrice: 12,
+    minimumCreditPrice: 10,
   },
 };
 

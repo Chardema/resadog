@@ -2,13 +2,15 @@
  * Système de tarification centralisé.
  *
  * Variables de prix :
- * 1. Type de service (BOARDING, DAY_CARE, DROP_IN, DOG_WALKING)
+ * 1. Type de service (BOARDING, HOUSE_SITTING, DAY_CARE, DROP_IN, DOG_WALKING)
  * 2. Espèce (DOG / CAT)
  * 3. Premier animal vs animal supplémentaire
  * 4. Jeune animal (< 1 an)
  * 5. Haute saison
  * 6. Durée (extra temps pour visites/promenades)
  */
+
+import { isHourlyServiceType, isOvernightServiceType, SERVICE_UNITS } from "@/lib/services";
 
 // --- HAUTE SAISON ---
 // Périodes de haute saison (mois/jour début -> mois/jour fin)
@@ -62,6 +64,10 @@ const PRICING: Record<string, Record<Species, PriceEntry>> = {
   BOARDING: {
     DOG: { base: 24, additional: 18, young: 27, highSeason: 29 },
     CAT: { base: 20, additional: 14, young: 23, highSeason: 25 },
+  },
+  HOUSE_SITTING: {
+    DOG: { base: 38, additional: 24, young: 42, highSeason: 45 },
+    CAT: { base: 32, additional: 18, young: 36, highSeason: 39 },
   },
   DAY_CARE: {
     DOG: { base: 25, additional: 20, young: 28, highSeason: 30 },
@@ -182,16 +188,10 @@ export function getServiceDisplayPrice(serviceType: string): {
 } {
   const dog = PRICING[serviceType]?.DOG;
   const cat = PRICING[serviceType]?.CAT;
-  const units: Record<string, string> = {
-    BOARDING: "nuit",
-    DAY_CARE: "jour",
-    DROP_IN: "visite",
-    DOG_WALKING: "promenade",
-  };
   return {
     dogPrice: dog?.base || 0,
     catPrice: cat?.base || 0,
-    unit: units[serviceType] || "unité",
+    unit: SERVICE_UNITS[serviceType as keyof typeof SERVICE_UNITS] || "unité",
   };
 }
 
@@ -291,7 +291,7 @@ export function calculateBookingPrice(input: {
   visitSlots?: BookingVisitSlot[];
 }) {
   const contextPets = input.pricingContextPets?.length ? input.pricingContextPets : input.pets;
-  const hourly = input.serviceType === "DROP_IN" || input.serviceType === "DOG_WALKING";
+  const hourly = isHourlyServiceType(input.serviceType);
   const slots = input.visitSlots || [];
 
   let quantity = 0;
@@ -339,7 +339,7 @@ export function calculateBookingPrice(input: {
 
     let petTotal = rateGroups.reduce((sum, group) => sum + group.total, 0);
 
-    if (input.serviceType === "BOARDING") {
+    if (isOvernightServiceType(input.serviceType)) {
       const checkoutOverrunMinutes = timeToMinutes(input.endTime) - BOARDING_CHECKOUT_MINUTES;
       const checkoutUnit = getUnitPrice(input.serviceType, {
         ...petInput,

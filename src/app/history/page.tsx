@@ -29,6 +29,7 @@ interface Booking {
 
 const SERVICE_LABELS: Record<string, string> = {
   BOARDING: "Pension",
+  HOUSE_SITTING: "Garde au domicile",
   DAY_CARE: "Garderie",
   DROP_IN: "Visite",
   DOG_WALKING: "Promenade",
@@ -183,6 +184,7 @@ export default function HistoryPage() {
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
                         {booking.serviceType === "BOARDING" && "🏠"}
+                        {booking.serviceType === "HOUSE_SITTING" && "🛏️"}
                         {booking.serviceType === "DAY_CARE" && "☀️"}
                         {booking.serviceType === "DROP_IN" && "🚪"}
                         {booking.serviceType === "DOG_WALKING" && "🐾"}
@@ -245,7 +247,7 @@ export default function HistoryPage() {
               <h2 className="text-xl font-bold text-gray-900">Annuler cette réservation ?</h2>
               <p className="mt-3 text-sm text-gray-600">
                 Plus de 48 h avant la prestation, le paiement ou les crédits sont restitués intégralement.
-                À moins de 48 h, 50% du paiement est retenu et un crédit utilisé n'est pas restitué.
+                À moins de 48 h, 50% du paiement est retenu et un crédit utilisé n&apos;est pas restitué.
               </p>
               <label className="mt-5 flex items-start gap-3 text-sm text-gray-700">
                 <input
@@ -254,7 +256,7 @@ export default function HistoryPage() {
                   onChange={(event) => setCancelConfirmed(event.target.checked)}
                   className="mt-1"
                 />
-                Je confirme l'annulation de cette réservation.
+                Je confirme l&apos;annulation de cette réservation.
               </label>
               {cancelError && <p className="mt-3 text-sm font-semibold text-red-600">{cancelError}</p>}
               <div className="mt-6 flex gap-3">

@@ -3,10 +3,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
 import { calculateSubscriptionPlan } from "@/lib/subscription-pricing";
+import { SERVICE_TYPES } from "@/lib/services";
 import { z } from "zod";
 
 const subscribeSchema = z.object({
-  serviceType: z.enum(["DOG_WALKING", "DAY_CARE"]),
+  serviceType: z.enum(SERVICE_TYPES),
   daysPerWeek: z.number().int().min(1).max(5),
   petCount: z.number().int().min(1).max(3),
   billingCycle: z.enum(["MONTHLY", "YEARLY"]),

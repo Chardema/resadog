@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
 import { sendBookingRequestEmail, sendAdminNotification, sendPaymentFailedEmail } from "@/lib/email";
+import { SERVICE_TYPES, type AppServiceType } from "@/lib/services";
 import Stripe from "stripe";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+function getMetadataServiceType(serviceType: string | undefined): AppServiceType {
+  return SERVICE_TYPES.includes(serviceType as AppServiceType)
+    ? (serviceType as AppServiceType)
+    : "DOG_WALKING";
+}
 
 export async function POST(request: NextRequest) {
   let claimedEvent: { id: string; attemptToken: string } | null = null;
@@ -307,6 +314,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           return;
       }
 
+      const serviceType = getMetadataServiceType(metadata.serviceType);
+
       // Créer ou synchroniser l'abonnement en base. Le webhook peut arriver après une réparation côté dashboard.
       await prisma.userSubscription.upsert({
           where: { userId: metadata.userId },
@@ -314,7 +323,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
               stripeSubscriptionId: subscriptionId,
               status: "ACTIVE",
               createdAt: new Date(),
-              serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
+              serviceType,
               daysPerWeek: parseInt(metadata.daysPerWeek),
               creditsPerMonth: parseInt(metadata.creditsPerMonth),
               price: session.amount_total ? session.amount_total / 100 : 0,
@@ -324,7 +333,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
               userId: metadata.userId,
               stripeSubscriptionId: subscriptionId,
               status: "ACTIVE",
-              serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
+              serviceType,
               daysPerWeek: parseInt(metadata.daysPerWeek),
               creditsPerMonth: parseInt(metadata.creditsPerMonth),
               price: session.amount_total ? session.amount_total / 100 : 0,
@@ -344,7 +353,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
               userId: metadata.userId,
               amount: creditsGranted,
               remaining: creditsGranted,
-              serviceType: metadata.serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
+              serviceType,
               expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
           }
       });

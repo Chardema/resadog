@@ -145,6 +145,39 @@ assert(
   "Trois jours de garderie doivent coûter 75€"
 );
 
+assert(
+  calculateBookingPrice({
+    serviceType: "HOUSE_SITTING",
+    pets: [dog],
+    startDate: "2026-09-10",
+    endDate: "2026-09-12",
+    endTime: "10:00",
+  }).total === 76,
+  "Deux nuits de garde au domicile doivent coûter 76€ pour un chien"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "HOUSE_SITTING",
+    pets: [dog],
+    startDate: "2026-07-10",
+    endDate: "2026-07-12",
+    endTime: "10:00",
+  }).total === 90,
+  "Deux nuits de garde au domicile en haute saison doivent coûter 90€ pour un chien"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "HOUSE_SITTING",
+    pets: [dog],
+    startDate: "2026-09-10",
+    endDate: "2026-09-12",
+    endTime: "15:00",
+  }).total === 95,
+  "La garde au domicile doit appliquer la demi-journée en cas de départ tardif"
+);
+
 const services = Object.keys(SUBSCRIPTION_SERVICES) as SubscriptionServiceType[];
 const cycles: SubscriptionBillingCycle[] = ["MONTHLY", "YEARLY"];
 

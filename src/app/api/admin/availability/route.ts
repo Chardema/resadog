@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { SERVICE_TYPES, type AppServiceType } from "@/lib/services";
+import type { Prisma, ServiceType } from "@prisma/client";
 import { z } from "zod";
 
 const availabilitySchema = z.object({
   date: z.string().datetime(),
   available: z.boolean(),
-  serviceType: z.enum(["BOARDING", "DAY_CARE", "DROP_IN", "DOG_WALKING"]),
+  serviceType: z.enum(SERVICE_TYPES),
   maxSlots: z.number().int().min(0).max(10).optional(),
   notes: z.string().optional(),
 });
@@ -18,7 +20,6 @@ const vacationSchema = z.object({
   label: z.string().trim().max(120).optional(),
 });
 
-const SERVICE_TYPES = ["BOARDING", "DAY_CARE", "DROP_IN", "DOG_WALKING"] as const;
 const VACATION_PREFIX = "[VACATION]";
 const MAX_VACATION_DAYS = 120;
 
@@ -90,15 +91,15 @@ export async function GET(request: Request) {
     const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
 
     // Construire la requête avec ou sans filtre serviceType
-    const whereClause: any = {
+    const whereClause: Prisma.AvailabilityWhereInput = {
       date: {
         gte: startDate,
         lte: endDate,
       },
     };
 
-    if (serviceType) {
-      whereClause.serviceType = serviceType;
+    if (serviceType && SERVICE_TYPES.includes(serviceType as AppServiceType)) {
+      whereClause.serviceType = serviceType as ServiceType;
     }
 
     const availabilities = await prisma.availability.findMany({

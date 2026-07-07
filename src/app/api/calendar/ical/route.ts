@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
 
   const serviceLabels: Record<string, string> = {
     BOARDING: "Pension",
+    HOUSE_SITTING: "Garde au domicile",
     DAY_CARE: "Garderie",
     DROP_IN: "Visite",
     DOG_WALKING: "Promenade",

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { SERVICE_TYPES } from "@/lib/services";
 import { z } from "zod";
 
 const updateCreditsSchema = z.object({
   amount: z.number().int(), // Peut être négatif pour retirer
+  serviceType: z.enum(SERVICE_TYPES).default("DOG_WALKING"),
   reason: z.string().optional(),
 });
 
@@ -21,7 +23,7 @@ export async function POST(
 
     const { userId } = await params;
     const body = await request.json();
-    const { amount, reason } = updateCreditsSchema.parse(body);
+    const { amount, serviceType, reason } = updateCreditsSchema.parse(body);
 
     if (amount > 0) {
         // Ajouter des crédits (Nouveau Batch)
@@ -30,7 +32,7 @@ export async function POST(
                 userId,
                 amount,
                 remaining: amount,
-                serviceType: "DOG_WALKING", // Défaut, ou universel
+                serviceType,
                 expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 an
             }
         });

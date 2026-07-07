@@ -208,6 +208,7 @@ enum BookingStatus {
 
 enum ServiceType {
   BOARDING // Pension complète
+  HOUSE_SITTING // Garde au domicile du propriétaire
   DAY_CARE // Visite de jour
   DROP_IN // Visite rapide
   DOG_WALKING // Promenade uniquement

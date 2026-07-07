@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import type { AppServiceType } from "@/lib/services";
 
-interface Availability {
+type AvailabilityApiItem = {
   date: string;
   available: boolean;
-}
+};
 
-type ServiceType = "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING";
+type ServiceType = AppServiceType;
 
 export function AvailabilityCalendar() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -32,7 +33,7 @@ export function AvailabilityCalendar() {
         const data = await response.json();
         const availabilityMap: Record<string, boolean> = {};
 
-        data.availabilities.forEach((availability: any) => {
+        data.availabilities.forEach((availability: AvailabilityApiItem) => {
           const dateKey = availability.date.split("T")[0];
           availabilityMap[dateKey] = availability.available;
         });
@@ -79,12 +80,11 @@ export function AvailabilityCalendar() {
 
   const services = [
     { value: "BOARDING" as ServiceType, name: "Hébergement", icon: "🏠", color: "purple" },
+    { value: "HOUSE_SITTING" as ServiceType, name: "Garde au domicile", icon: "🛏️", color: "rose" },
     { value: "DAY_CARE" as ServiceType, name: "Garde de jour", icon: "☀️", color: "yellow" },
     { value: "DROP_IN" as ServiceType, name: "Visite", icon: "🚪", color: "blue" },
     { value: "DOG_WALKING" as ServiceType, name: "Promenade", icon: "🐾", color: "green" },
   ];
-
-  const selectedService = services.find(s => s.value === selectedServiceType);
 
   return (
     <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-orange-200">
@@ -99,7 +99,7 @@ export function AvailabilityCalendar() {
           <label className="block text-sm font-bold text-gray-900 mb-3">
             📋 Voir les disponibilités pour :
           </label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {services.map((service) => (
               <motion.button
                 key={service.value}
@@ -110,6 +110,8 @@ export function AvailabilityCalendar() {
                   selectedServiceType === service.value
                     ? service.color === "purple"
                       ? "border-purple-500 bg-gradient-to-br from-purple-100 to-purple-200 text-purple-900 shadow-md"
+                      : service.color === "rose"
+                      ? "border-rose-500 bg-gradient-to-br from-rose-100 to-rose-200 text-rose-900 shadow-md"
                       : service.color === "yellow"
                       ? "border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-900 shadow-md"
                       : service.color === "blue"
@@ -175,7 +177,7 @@ export function AvailabilityCalendar() {
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-white rounded border-2 border-orange-400"></div>
-          <span className="font-medium text-gray-700">Aujourd'hui</span>
+          <span className="font-medium text-gray-700">Aujourd&apos;hui</span>
         </div>
       </div>
 
@@ -235,7 +237,7 @@ export function AvailabilityCalendar() {
             <p className="text-sm text-gray-700 flex items-start gap-2">
               <span className="text-xl">💡</span>
               <span>
-                <span className="font-semibold">Astuce:</span> Cliquez sur "Nouvelle réservation" pour réserver aux dates disponibles en vert!
+                <span className="font-semibold">Astuce:</span> Cliquez sur &quot;Nouvelle réservation&quot; pour réserver aux dates disponibles en vert!
               </span>
             </p>
           </div>

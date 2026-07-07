@@ -13,10 +13,11 @@ import {
   WalletCards,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getServiceLabel, type AppServiceType } from "@/lib/services";
 
 type Subscription = {
   status: string;
-  serviceType: "DOG_WALKING" | "DAY_CARE";
+  serviceType: AppServiceType;
   billingPeriod: "MONTHLY" | "YEARLY";
   daysPerWeek: number;
   creditsPerMonth: number;
@@ -199,7 +200,7 @@ export function SubscriptionManager() {
             <div className="border-b border-r border-gray-100 p-4 sm:border-b-0">
               <p className="text-xs font-medium text-gray-500">Formule</p>
               <p className="mt-1 font-bold text-gray-950">
-                {subscription.serviceType === "DOG_WALKING" ? "Promenade" : "Garderie"}
+                {getServiceLabel(subscription.serviceType)}
               </p>
             </div>
             <div className="border-b border-gray-100 p-4 sm:border-b-0 sm:border-r">

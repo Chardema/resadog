@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { SERVICE_TYPES, type AppServiceType } from "@/lib/services";
 
 // Helper pour parser une date ISO string en UTC (format YYYY-MM-DD)
 function parseUTCDate(dateString: string): Date {
@@ -36,6 +37,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!SERVICE_TYPES.includes(serviceType as AppServiceType)) {
+      return NextResponse.json(
+        { error: "Le type de service est invalide" },
+        { status: 400 }
+      );
+    }
+
     // Parser les dates en UTC pour éviter les problèmes de fuseau horaire
     const start = parseUTCDate(startDate);
     const end = parseUTCDate(endDate);
@@ -46,7 +54,7 @@ export async function GET(request: NextRequest) {
       ? [...new Set(selectedDates)].sort().map(parseUTCDate)
       : (() => {
           const days = [];
-          let currentDate = new Date(start);
+          const currentDate = new Date(start);
           while (currentDate <= end) {
             days.push(new Date(currentDate));
             currentDate.setUTCDate(currentDate.getUTCDate() + 1);
@@ -67,7 +75,7 @@ export async function GET(request: NextRequest) {
           gte: startOfRange,
           lte: endOfRange,
         },
-        serviceType: serviceType as any, // Filtrer par type de service
+        serviceType: serviceType as AppServiceType,
       },
     });
 
@@ -76,7 +84,7 @@ export async function GET(request: NextRequest) {
     const existingBookings = await prisma.booking.findMany({
       where: {
         status: { in: ["CONFIRMED", "IN_PROGRESS"] },
-        serviceType: serviceType as "BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING",
+        serviceType: serviceType as AppServiceType,
         OR: [
           {
             AND: [
@@ -91,8 +99,6 @@ export async function GET(request: NextRequest) {
     // Vérifier quelles dates sont disponibles ou non
     const dateStatuses = daysToCheck.map((date) => {
       const dateKey = toDateKey(date);
-      const checkDate = new Date(dateKey); // Date normalisée minuit UTC
-
       // 1. Vérifier la table Availability (Priorité Admin)
       const adminAvailability = availabilities.find((a) => {
         const aDateKey = toDateKey(a.date);

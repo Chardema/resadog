@@ -6,6 +6,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { buildSpecialRequests, extractServiceDetails, stripServiceDetails } from "@/lib/booking-details";
 import { calculateBookingPrice } from "@/lib/pricing";
 import { calculateCouponDiscount } from "@/lib/coupon-pricing";
+import { isHourlyServiceType, isOvernightServiceType, SERVICE_TYPES } from "@/lib/services";
 import { Prisma } from "@prisma/client";
 
 class BookingInputError extends Error {}
@@ -46,7 +47,7 @@ const createBookingSchema = z.object({
   endDate: z.string().min(1, "La date de fin est requise"),
   startTime: z.string().optional(), // Heure de dépôt (HH:mm)
   endTime: z.string().optional(),   // Heure de récupération (HH:mm)
-  serviceType: z.enum(["BOARDING", "DAY_CARE", "DROP_IN", "DOG_WALKING"]),
+  serviceType: z.enum(SERVICE_TYPES),
   // Conservés temporairement pour les anciens clients, mais jamais utilisés côté serveur.
   totalPrice: z.number().nonnegative().optional(),
   depositAmount: z.number().nonnegative().optional(),
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
       serviceDetails,
     } = validatedData;
 
-    const isHourlyService = serviceType === "DROP_IN" || serviceType === "DOG_WALKING";
+    const isHourlyService = isHourlyServiceType(serviceType);
     const visitSlots = serviceDetails?.visitSlots || [];
     const pricingContextIds = pricingPetIds || petIds;
 
@@ -115,10 +116,10 @@ export async function POST(request: NextRequest) {
     const end = parseUTCDate(endDate);
 
     // Vérifier que la période est cohérente.
-    // La garderie peut être réservée sur une seule journée, contrairement à l'hébergement.
-    if (serviceType === "BOARDING" ? end <= start : end < start) {
+    // La garderie peut être réservée sur une seule journée, contrairement aux services à la nuit.
+    if (isOvernightServiceType(serviceType) ? end <= start : end < start) {
       return NextResponse.json(
-        { error: serviceType === "BOARDING" ? "La date de fin doit être après la date de début" : "La date de fin ne peut pas être avant la date de début" },
+        { error: isOvernightServiceType(serviceType) ? "La date de fin doit être après la date de début" : "La date de fin ne peut pas être avant la date de début" },
         { status: 400 }
       );
     }
@@ -231,12 +232,6 @@ export async function POST(request: NextRequest) {
     // Gestion des CRÉDITS
     let creditsToDeduct = 0;
     if (useCredits) {
-        if (serviceType !== "DOG_WALKING" && serviceType !== "DAY_CARE") {
-          return NextResponse.json(
-            { error: "Les crédits sont utilisables uniquement pour le service souscrit" },
-            { status: 400 }
-          );
-        }
         creditsToDeduct = priceResult.quantity * petIds.length;
 
         // Check balance

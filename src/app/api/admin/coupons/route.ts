@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { SERVICE_TYPES } from "@/lib/services";
 import { z } from "zod";
 
 const couponSchema = z.object({
@@ -13,7 +14,7 @@ const couponSchema = z.object({
   validFrom: z.string().optional(),
   validUntil: z.string().optional(),
   restrictedTo: z.array(z.string().email()).optional(),
-  applicableServices: z.array(z.enum(["BOARDING", "DAY_CARE", "DROP_IN", "DOG_WALKING"])).optional(),
+  applicableServices: z.array(z.enum(SERVICE_TYPES)).optional(),
 }).superRefine((coupon, context) => {
   if (coupon.discountType === "PERCENTAGE" && coupon.discountValue > 20) {
     context.addIssue({

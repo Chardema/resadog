@@ -94,6 +94,7 @@ const STATUS_META: Record<BookingStatus, { label: string; className: string }> =
 
 const SERVICE_LABELS: Record<string, string> = {
   BOARDING: "Hébergement",
+  HOUSE_SITTING: "Garde au domicile",
   DAY_CARE: "Garderie",
   DROP_IN: "Visite à domicile",
   DOG_WALKING: "Promenade",

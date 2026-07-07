@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { CalendarOff, LoaderCircle, RotateCcw } from "lucide-react";
+import type { AppServiceType } from "@/lib/services";
 
 interface Availability {
   id: string;
@@ -16,6 +17,8 @@ interface Availability {
   maxSlots: number;
   notes?: string | null;
 }
+
+type AvailabilityApiItem = Omit<Availability, "date"> & { date: string };
 
 function formatDateInput(date: Date) {
   const year = date.getFullYear();
@@ -28,7 +31,7 @@ export default function AdminCalendarPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
-  const [selectedServiceType, setSelectedServiceType] = useState<"BOARDING" | "DAY_CARE" | "DROP_IN" | "DOG_WALKING">("BOARDING");
+  const [selectedServiceType, setSelectedServiceType] = useState<AppServiceType>("BOARDING");
   const [availabilities, setAvailabilities] = useState<Record<string, Availability>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [vacationStart, setVacationStart] = useState("");
@@ -64,7 +67,7 @@ export default function AdminCalendarPage() {
         const data = await response.json();
         const availabilityMap: Record<string, Availability> = {};
 
-        data.availabilities.forEach((availability: any) => {
+        data.availabilities.forEach((availability: AvailabilityApiItem) => {
           // Utiliser directement la date ISO de la BDD (déjà en UTC)
           const dateKey = availability.date.split("T")[0];
           availabilityMap[dateKey] = {
@@ -378,7 +381,7 @@ export default function AdminCalendarPage() {
               <label className="block text-sm font-bold text-gray-900 mb-3">
                 📋 Type de service à gérer
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -391,6 +394,20 @@ export default function AdminCalendarPage() {
                 >
                   <div className="text-2xl mb-1">🏠</div>
                   <div>Hébergement</div>
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedServiceType("HOUSE_SITTING")}
+                  className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
+                    selectedServiceType === "HOUSE_SITTING"
+                      ? "border-rose-500 bg-gradient-to-br from-rose-100 to-rose-200 text-rose-900 shadow-md"
+                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="text-2xl mb-1">🛏️</div>
+                  <div>Garde au domicile</div>
                 </motion.button>
 
                 <motion.button

@@ -138,7 +138,7 @@ export default function AdminCouponsPage() {
                 <select 
                   className="w-full h-10 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:ring-orange-500 focus:border-orange-500"
                   value={formData.discountType}
-                  onChange={e => setFormData({...formData, discountType: e.target.value as any})}
+                  onChange={e => setFormData({...formData, discountType: e.target.value as "FIXED_AMOUNT" | "PERCENTAGE"})}
                 >
                   <option value="FIXED_AMOUNT">Montant Fixe (€)</option>
                   <option value="PERCENTAGE">Pourcentage (%)</option>
@@ -162,6 +162,7 @@ export default function AdminCouponsPage() {
               <div className="flex flex-wrap gap-3">
                 {[
                   { id: "BOARDING", label: "🏠 Hébergement" },
+                  { id: "HOUSE_SITTING", label: "🛏️ Garde au domicile" },
                   { id: "DAY_CARE", label: "☀️ Garderie" },
                   { id: "DROP_IN", label: "🚪 Visite" },
                   { id: "DOG_WALKING", label: "🐾 Promenade" },
