@@ -1,8 +1,6 @@
 import { requireAuth } from "@/lib/auth/protected-page";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/db/prisma";
-import { UserMenu } from "@/components/layout/UserMenu";
 import { AdminDashboardClient } from "@/components/admin/AdminDashboardClient";
 
 export default async function AdminDashboardPage() {

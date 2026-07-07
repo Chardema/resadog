@@ -1,8 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { UserMenu } from "@/components/layout/UserMenu";
+import {
+  ArrowRight,
+  CalendarClock,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Euro,
+  PawPrint,
+  ShieldCheck,
+  TicketPercent,
+  UsersRound,
+} from "lucide-react";
+import { getServiceLabel } from "@/lib/services";
 
 interface Stats {
   totalBookings: number;
@@ -13,11 +25,14 @@ interface Stats {
 
 interface Booking {
   id: string;
-  startDate: Date;
+  startDate: Date | string;
+  endDate: Date | string;
   status: string;
+  serviceType: string;
+  totalPrice: number;
   pets: { name: string }[];
   pet?: { name: string } | null;
-  client: { 
+  client: {
     name: string | null;
     subscription?: { status: string } | null;
   };
@@ -28,322 +43,295 @@ interface AdminDashboardClientProps {
   upcomingBookings: Booking[];
 }
 
+const formatMoney = (amount: number) =>
+  amount.toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+const formatDate = (value: Date | string) =>
+  new Date(value).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+  });
+
+const statusMeta: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "À traiter", className: "bg-amber-50 text-amber-800 ring-amber-200" },
+  CONFIRMED: { label: "Confirmée", className: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
+  IN_PROGRESS: { label: "En cours", className: "bg-blue-50 text-blue-800 ring-blue-200" },
+  COMPLETED: { label: "Terminée", className: "bg-gray-100 text-gray-700 ring-gray-200" },
+  CANCELLED: { label: "Annulée", className: "bg-red-50 text-red-800 ring-red-200" },
+};
+
+function getPetNames(booking: Booking) {
+  if (booking.pets.length > 0) return booking.pets.map((pet) => pet.name).join(", ");
+  return booking.pet?.name || "Animal non renseigné";
+}
+
 export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboardClientProps) {
+  const hasPendingBookings = stats.pendingBookings > 0;
+
+  const metrics = [
+    {
+      label: "Réservations",
+      value: stats.totalBookings.toString(),
+      detail: `${stats.pendingBookings} à traiter`,
+      href: "/admin/bookings",
+      icon: CalendarDays,
+    },
+    {
+      label: "Demandes en attente",
+      value: stats.pendingBookings.toString(),
+      detail: hasPendingBookings ? "Action requise" : "File claire",
+      href: "/admin/bookings?filter=pending",
+      icon: Clock3,
+      urgent: hasPendingBookings,
+    },
+    {
+      label: "Clients",
+      value: stats.totalClients.toString(),
+      detail: "Comptes clients",
+      href: "/admin/clients",
+      icon: UsersRound,
+    },
+    {
+      label: "Revenus encaissés",
+      value: `${formatMoney(stats.totalRevenue)} €`,
+      detail: "Paiements réussis",
+      href: "/admin/revenue",
+      icon: Euro,
+    },
+  ];
+
+  const actions = [
+    {
+      title: "Traiter les réservations",
+      description: "Accepter, refuser et vérifier les paiements.",
+      href: "/admin/bookings",
+      icon: CheckCircle2,
+      primary: true,
+    },
+    {
+      title: "Gérer le calendrier",
+      description: "Disponibilités, vacances et blocages.",
+      href: "/admin/calendar",
+      icon: CalendarClock,
+    },
+    {
+      title: "Suivre les clients",
+      description: "Abonnements, crédits et profils.",
+      href: "/admin/clients",
+      icon: UsersRound,
+    },
+    {
+      title: "Codes promo",
+      description: "Créer et contrôler les remises.",
+      href: "/admin/coupons",
+      icon: TicketPercent,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Navigation Admin */}
-      <motion.nav
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="bg-gradient-to-r from-amber-500 via-orange-600 to-yellow-600 text-white shadow-2xl"
-      >
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/admin/dashboard" className="flex items-center gap-3">
-              <motion.div
-                whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 0] }}
-                transition={{ duration: 0.5 }}
-                className="relative"
-              >
-                <div className="h-12 w-12 rounded-2xl bg-white/30 backdrop-blur-sm flex items-center justify-center font-bold text-2xl shadow-lg transform rotate-12">
-                  🐾
-                </div>
-                <div className="absolute -top-1 -right-1 text-yellow-200 text-xl animate-pulse">
-                  ✨
-                </div>
-              </motion.div>
+    <div className="space-y-6">
+      <section className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-orange-700">Administration</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
+            Vue d&apos;ensemble
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+            Pilotez les réservations, les disponibilités et les revenus depuis un espace aligné avec l&apos;expérience client.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link
+            href="/admin/bookings"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 text-sm font-semibold text-white transition hover:bg-orange-600"
+          >
+            Réservations
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/admin/calendar"
+            className="inline-flex h-11 items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+          >
+            Calendrier
+          </Link>
+        </div>
+      </section>
+
+      {hasPendingBookings && (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-3">
+              <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
               <div>
-                <span className="text-2xl font-bold">La Patte Dorée</span>
-                <p className="text-xs text-orange-200 font-medium">Dashboard Admin VIP</p>
+                <p className="font-bold">
+                  {stats.pendingBookings} demande{stats.pendingBookings > 1 ? "s" : ""} à traiter
+                </p>
+                <p className="mt-1 text-sm leading-6 text-amber-900">
+                  Traitez-les avant qu&apos;un client reste bloqué dans le paiement ou l&apos;attente de confirmation.
+                </p>
               </div>
+            </div>
+            <Link
+              href="/admin/bookings"
+              className="inline-flex h-9 items-center justify-center rounded-md bg-amber-900 px-3 text-sm font-semibold text-white transition hover:bg-amber-800"
+            >
+              Ouvrir
             </Link>
-            <UserMenu variant="dark" />
           </div>
-        </div>
-      </motion.nav>
+        </section>
+      )}
 
-      {/* Contenu principal */}
-      <div className="container mx-auto px-6 py-12">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-10"
-          >
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent mb-2">
-              Tableau de bord Gardien 🐾✨
-            </h1>
-            <p className="text-gray-700 text-lg">
-              Gérez vos réservations, disponibilités et revenus premium
-            </p>
-          </motion.div>
-
-          {/* Statistiques principales avec effets 3D */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: {},
-              visible: {
-                transition: {
-                  staggerChildren: 0.1,
-                },
-              },
-            }}
-            className="grid md:grid-cols-4 gap-6 mb-10"
-          >
-            {/* Card 1 - Réservations totales */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 30, rotateX: -15 },
-                visible: { opacity: 1, y: 0, rotateX: 0 },
-              }}
-              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
-              transition={{ duration: 0.3 }}
-              className="group bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 border-l-4 border-blue-500 transform-gpu"
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <Link
+              key={metric.label}
+              href={metric.href}
+              className={`rounded-lg border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                metric.urgent ? "border-amber-300 ring-1 ring-amber-200" : "border-gray-200"
+              }`}
             >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Réservations totales
-                </h3>
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.5 }}
-                  className="h-12 w-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg"
-                >
-                  <span className="text-2xl">📅</span>
-                </motion.div>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-500">{metric.label}</p>
+                  <p className="mt-2 text-2xl font-bold text-gray-950">{metric.value}</p>
+                </div>
+                <span className={`rounded-md p-2 ${metric.urgent ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-700"}`}>
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                </span>
               </div>
-              <p className="text-4xl font-bold text-gray-900 mb-1">{stats.totalBookings}</p>
-              <p className="text-sm text-gray-600">
-                {stats.pendingBookings} en attente
+              <p className={`mt-3 text-sm font-medium ${metric.urgent ? "text-amber-800" : "text-gray-500"}`}>
+                {metric.detail}
               </p>
-            </motion.div>
+            </Link>
+          );
+        })}
+      </section>
 
-            {/* Card 2 - En attente */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 30, rotateX: -15 },
-                visible: { opacity: 1, y: 0, rotateX: 0 },
-              }}
-              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
-              transition={{ duration: 0.3 }}
-              className="group bg-gradient-to-br from-white to-orange-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 border-l-4 border-orange-500 transform-gpu"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  En attente
-                </h3>
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.5 }}
-                  className="h-12 w-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg"
+      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <section className="rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-100 p-5">
+            <h2 className="text-lg font-bold text-gray-950">Actions rapides</h2>
+            <p className="mt-1 text-sm text-gray-600">Les tâches d&apos;exploitation les plus fréquentes.</p>
+          </div>
+          <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-1">
+            {actions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className={`group rounded-lg border p-4 transition hover:border-gray-300 hover:bg-gray-50 ${
+                    action.primary ? "border-gray-950 bg-gray-950 text-white hover:bg-gray-900" : "border-gray-200 bg-white text-gray-950"
+                  }`}
                 >
-                  <span className="text-2xl">⏳</span>
-                </motion.div>
-              </div>
-              <p className="text-4xl font-bold text-gray-900 mb-1">{stats.pendingBookings}</p>
-              <p className="text-sm text-gray-600">À confirmer</p>
-            </motion.div>
-
-            {/* Card 3 - Clients actifs */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 30, rotateX: -15 },
-                visible: { opacity: 1, y: 0, rotateX: 0 },
-              }}
-              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
-              transition={{ duration: 0.3 }}
-              className="group bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 border-l-4 border-green-500 transform-gpu"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Clients VIP
-                </h3>
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.5 }}
-                  className="h-12 w-12 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg"
-                >
-                  <span className="text-2xl">👥</span>
-                </motion.div>
-              </div>
-              <p className="text-4xl font-bold text-gray-900 mb-1">{stats.totalClients}</p>
-              <p className="text-sm text-gray-600">Clients enregistrés</p>
-            </motion.div>
-
-            {/* Card 4 - Revenus */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 30, rotateX: -15 },
-                visible: { opacity: 1, y: 0, rotateX: 0 },
-              }}
-              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
-              transition={{ duration: 0.3 }}
-              className="group bg-gradient-to-br from-white to-yellow-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 border-l-4 border-yellow-500 transform-gpu"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Revenus totaux
-                </h3>
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.5 }}
-                  className="h-12 w-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg"
-                >
-                  <span className="text-2xl">💰</span>
-                </motion.div>
-              </div>
-              <p className="text-4xl font-bold text-gray-900 mb-1">
-                {stats.totalRevenue.toFixed(2)} €
-              </p>
-              <p className="text-sm text-gray-600">Paiements réussis</p>
-            </motion.div>
-          </motion.div>
-
-          {/* Actions rapides et Réservations */}
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Actions rapides */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="bg-white rounded-2xl shadow-xl p-8"
-            >
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Actions rapides ⚡
-              </h2>
-              <div className="space-y-4">
-                <motion.div whileHover={{ x: 5 }} transition={{ duration: 0.2 }}>
-                  <Link
-                    href="/admin/calendar"
-                    className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 hover:border-blue-300 transition-all group"
-                  >
-                    <div className="h-14 w-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                      <span className="text-3xl">📅</span>
+                  <div className="flex items-start gap-3">
+                    <span className={`rounded-md p-2 ${action.primary ? "bg-white/10 text-white" : "bg-orange-50 text-orange-700"}`}>
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold">{action.title}</p>
+                      <p className={`mt-1 text-sm leading-5 ${action.primary ? "text-gray-300" : "text-gray-600"}`}>
+                        {action.description}
+                      </p>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-lg">Gérer mon calendrier</h3>
-                      <p className="text-sm text-gray-600">Définir mes disponibilités</p>
-                    </div>
-                  </Link>
-                </motion.div>
-
-                <motion.div whileHover={{ x: 5 }} transition={{ duration: 0.2 }}>
-                  <Link
-                    href="/admin/bookings"
-                    className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:border-orange-300 transition-all group"
-                  >
-                    <div className="h-14 w-14 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                      <span className="text-3xl">📋</span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-lg">Voir les réservations</h3>
-                      <p className="text-sm text-gray-600">Gérer les demandes</p>
-                    </div>
-                  </Link>
-                </motion.div>
-
-                <motion.div whileHover={{ x: 5 }} transition={{ duration: 0.2 }}>
-                  <Link
-                    href="/admin/revenue"
-                    className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-green-50 hover:to-green-100 hover:border-green-300 transition-all group"
-                  >
-                    <div className="h-14 w-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                      <span className="text-3xl">📊</span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-lg">Statistiques & Revenus</h3>
-                      <p className="text-sm text-gray-600">Analyser mes performances</p>
-                    </div>
-                  </Link>
-                </motion.div>
-              </div>
-            </motion.div>
-
-            {/* Prochaines réservations */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="bg-white rounded-2xl shadow-xl p-8"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Prochaines réservations 📅
-                </h2>
-                <Link href="/admin/bookings" className="text-sm font-semibold text-orange-600 hover:text-orange-700 hover:underline">
-                  Voir tout
+                    <ArrowRight className={`mt-1 h-4 w-4 shrink-0 transition group-hover:translate-x-0.5 ${action.primary ? "text-white" : "text-gray-400"}`} />
+                  </div>
                 </Link>
-              </div>
-              
-              {upcomingBookings.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-7xl mb-4 animate-bounce">📭</div>
-                  <p className="text-gray-700 font-semibold text-lg">Aucune réservation à venir</p>
-                  <p className="text-sm text-gray-500 mt-2">Les nouvelles demandes apparaîtront ici</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {upcomingBookings.map((booking, index) => {
-                    const petsName = booking.pets.length > 0 
-                      ? booking.pets.map(p => p.name).join(", ") 
-                      : (booking.pet?.name || "Inconnu");
-
-                    return (
-                    <motion.div
-                      key={booking.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      whileHover={{ x: 5, scale: 1.02 }}
-                    >
-                      <Link 
-                        href="/admin/bookings"
-                        className="block p-4 border-2 border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-orange-50 hover:to-yellow-50 hover:border-orange-300 transition-all cursor-pointer"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center text-2xl">
-                              🐾
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-gray-900">{petsName}</h3>
-                              <p className="text-sm text-gray-600">{booking.client.name}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-semibold text-gray-900">
-                              {new Date(booking.startDate).toLocaleDateString("fr-FR")}
-                            </p>
-                            <div className="flex flex-col items-end gap-1 mt-1">
-                              {booking.client.subscription?.status === 'ACTIVE' && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold shadow-sm">
-                                  ⚡ CLUB
-                                </span>
-                              )}
-                              <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                                booking.status === "PENDING" ? "bg-orange-100 text-orange-700" :
-                                booking.status === "CONFIRMED" ? "bg-green-100 text-green-700" :
-                                "bg-gray-100 text-gray-700"
-                              }`}>
-                                {booking.status === "PENDING" ? "En attente" :
-                                 booking.status === "CONFIRMED" ? "Confirmée" : booking.status}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                    </motion.div>
-                  )})}
-                </div>
-              )}
-            </motion.div>
+              );
+            })}
           </div>
-        </div>
+        </section>
+
+        <section className="rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-4 border-b border-gray-100 p-5">
+            <div>
+              <h2 className="text-lg font-bold text-gray-950">Prochaines réservations</h2>
+              <p className="mt-1 text-sm text-gray-600">Les 5 prochaines prestations à surveiller.</p>
+            </div>
+            <Link href="/admin/bookings" className="text-sm font-bold text-orange-700 hover:text-orange-800">
+              Voir tout
+            </Link>
+          </div>
+
+          {upcomingBookings.length === 0 ? (
+            <div className="p-10 text-center">
+              <PawPrint className="mx-auto h-9 w-9 text-gray-400" aria-hidden="true" />
+              <h3 className="mt-3 font-bold text-gray-950">Aucune réservation à venir</h3>
+              <p className="mt-1 text-sm text-gray-600">Les prochaines demandes apparaîtront ici.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {upcomingBookings.map((booking) => {
+                const meta = statusMeta[booking.status] || { label: booking.status, className: "bg-gray-100 text-gray-700 ring-gray-200" };
+                const isClub = booking.client.subscription?.status === "ACTIVE";
+
+                return (
+                  <Link
+                    key={booking.id}
+                    href="/admin/bookings"
+                    className="block p-4 transition hover:bg-gray-50 sm:p-5"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${meta.className}`}>
+                            {meta.label}
+                          </span>
+                          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                            {getServiceLabel(booking.serviceType)}
+                          </span>
+                          {isClub && (
+                            <span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-800 ring-1 ring-orange-200">
+                              Club
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-2 truncate font-bold text-gray-950">{getPetNames(booking)}</p>
+                        <p className="mt-1 truncate text-sm text-gray-600">
+                          {booking.client.name || "Client sans nom"}
+                        </p>
+                      </div>
+
+                      <div className="flex items-end justify-between gap-4 sm:block sm:text-right">
+                        <p className="text-sm font-bold text-gray-950">
+                          {formatDate(booking.startDate)} - {formatDate(booking.endDate)}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-gray-600">
+                          {formatMoney(booking.totalPrice)} €
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <Link href="/admin/calendar-sync" className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:bg-gray-50">
+          <CalendarClock className="h-5 w-5 text-gray-700" aria-hidden="true" />
+          <p className="mt-3 font-bold text-gray-950">Synchronisation calendrier</p>
+          <p className="mt-1 text-sm text-gray-600">Brancher le planning externe et éviter les doubles réservations.</p>
+        </Link>
+        <Link href="/admin/reviews" className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:bg-gray-50">
+          <ShieldCheck className="h-5 w-5 text-gray-700" aria-hidden="true" />
+          <p className="mt-3 font-bold text-gray-950">Avis clients</p>
+          <p className="mt-1 text-sm text-gray-600">Contrôler la preuve sociale affichée sur le site.</p>
+        </Link>
+        <Link href="/admin/revenue" className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:bg-gray-50">
+          <CreditCard className="h-5 w-5 text-gray-700" aria-hidden="true" />
+          <p className="mt-3 font-bold text-gray-950">Finance</p>
+          <p className="mt-1 text-sm text-gray-600">Suivre les paiements capturés et les revenus.</p>
+        </Link>
+      </section>
     </div>
   );
 }
