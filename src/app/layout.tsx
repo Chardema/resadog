@@ -10,9 +10,15 @@ import { CookieConsent } from "@/components/layout/CookieConsent";
 import { Footer } from "@/components/layout/Footer";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { coreKeywords, getLocalBusinessJsonLd, getSiteUrl, SITE_NAME } from "@/lib/seo";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import Script from "next/script";
 import { isLocale } from "@/lib/i18n";
-import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
+import { isGoogleConsentRequiredRegion } from "@/lib/google-consent";
+import {
+  GOOGLE_ANALYTICS_ID,
+  GOOGLE_CONSENT_BOOTSTRAP,
+  GOOGLE_TAG_CONFIGURATION,
+} from "@/lib/google-analytics";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -81,12 +87,11 @@ export default async function RootLayout({
 }>) {
   const cookieLocale = (await cookies()).get("site-locale")?.value;
   const initialLocale = isLocale(cookieLocale) ? cookieLocale : "fr";
+  const countryCode = (await headers()).get("x-vercel-ip-country");
+  const promptForGoogleConsent = isGoogleConsentRequiredRegion(countryCode);
 
   return (
     <html lang={initialLocale} className={`${geistSans.variable} ${geistMono.variable}`}>
-      <head>
-        <GoogleAnalytics />
-      </head>
       <body
         className="antialiased flex flex-col min-h-screen"
       >
@@ -97,12 +102,27 @@ export default async function RootLayout({
               {children}
             </div>
             <BetaBanner />
-            <CookieConsent />
+            <CookieConsent promptOnFirstVisit={promptForGoogleConsent} />
             <Footer />
             <LanguageSwitcher />
           </SessionProvider>
         </LanguageProvider>
       </body>
+      <Script
+        id="google-consent-default"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{ __html: GOOGLE_CONSENT_BOOTSTRAP }}
+      />
+      <Script
+        id="google-tag-manager"
+        strategy="beforeInteractive"
+        src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
+      />
+      <Script
+        id="google-tag-config"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{ __html: GOOGLE_TAG_CONFIGURATION }}
+      />
     </html>
   );
 }

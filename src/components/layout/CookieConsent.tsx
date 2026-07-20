@@ -19,12 +19,18 @@ declare global {
   }
 }
 
-export function CookieConsent() {
+type CookieConsentProps = {
+  promptOnFirstVisit: boolean;
+};
+
+export function CookieConsent({ promptOnFirstVisit }: CookieConsentProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setIsVisible(!localStorage.getItem(GOOGLE_CONSENT_STORAGE_KEY));
+      setIsVisible(
+        promptOnFirstVisit && !localStorage.getItem(GOOGLE_CONSENT_STORAGE_KEY)
+      );
     }, 0);
     const openSettings = () => setIsVisible(true);
     window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, openSettings);
@@ -32,7 +38,7 @@ export function CookieConsent() {
       window.clearTimeout(timer);
       window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, openSettings);
     };
-  }, []);
+  }, [promptOnFirstVisit]);
 
   const saveChoice = (choice: GoogleConsentChoice) => {
     localStorage.setItem(GOOGLE_CONSENT_STORAGE_KEY, choice);
