@@ -5092,5 +5092,81 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Votre offre de bienvenue est déjà associée à une autre réservation.": {
     "en": "Your welcome offer is already associated with another reservation.",
     "es": "Tu oferta de bienvenida ya está asociada a otra reserva."
+  },
+  "7. Contenus et services tiers": {
+    "en": "7. Third-party content and services",
+    "es": "7. Contenidos y servicios de terceros"
+  },
+  "Avis publié sur Google Maps": {
+    "en": "Review published on Google Maps",
+    "es": "Reseña publicada en Google Maps"
+  },
+  "avis publiés sur Google Maps": {
+    "en": "reviews published on Google Maps",
+    "es": "reseñas publicadas en Google Maps"
+  },
+  "Ces contenus sont soumis à la": {
+    "en": "This content is subject to the",
+    "es": "Este contenido está sujeto a la"
+  },
+  "conditions d'utilisation de Google Maps Platform": {
+    "en": "Google Maps Platform Terms of Service",
+    "es": "Condiciones del Servicio de Google Maps Platform"
+  },
+  "Erreur récupération avis Google Maps:": {
+    "en": "Error fetching Google Maps reviews:",
+    "es": "Error al obtener las reseñas de Google Maps:"
+  },
+  "et à la": {
+    "en": "and the",
+    "es": "y a la"
+  },
+  "étoiles sur 5": {
+    "en": "stars out of 5",
+    "es": "estrellas de 5"
+  },
+  "Google Maps": {
+    "en": "Google Maps",
+    "es": "Google Maps"
+  },
+  "Google Maps Platform :": {
+    "en": "Google Maps Platform:",
+    "es": "Google Maps Platform:"
+  },
+  "Les notes, avis et profils identifiés comme provenant de Google Maps sont fournis par Google Maps Platform. Leur consultation est soumise aux": {
+    "en": "Ratings, reviews and profiles identified as Google Maps content are provided by Google Maps Platform. Viewing them is subject to the",
+    "es": "Las valoraciones, reseñas y perfiles identificados como contenido de Google Maps son proporcionados por Google Maps Platform. Su consulta está sujeta a las"
+  },
+  "politique de confidentialité de Google": {
+    "en": "Google Privacy Policy",
+    "es": "Política de Privacidad de Google"
+  },
+  "Pour afficher la note et une sélection d'avis publics associés à La Patte Dorée. L'ouverture d'un profil, d'un avis ou le chargement d'une photo d'auteur peut entraîner une connexion aux services Google.": {
+    "en": "To display the rating and a selection of public reviews associated with La Patte Dorée. Opening a profile or review, or loading an author's photo, may connect your browser to Google services.",
+    "es": "Para mostrar la valoración y una selección de reseñas públicas asociadas a La Patte Dorée. Abrir un perfil o una reseña, o cargar la foto de un autor, puede conectar su navegador con los servicios de Google."
+  },
+  "Profil Google Maps": {
+    "en": "Google Maps profile",
+    "es": "Perfil de Google Maps"
+  },
+  "Sélection de cinq avis au maximum, classés par pertinence par Google Maps. Les avis ne sont pas vérifiés individuellement par Google, qui recherche et supprime les faux contenus identifiés.": {
+    "en": "A selection of up to five reviews, ranked by relevance by Google Maps. Reviews are not individually verified by Google, which looks for and removes identified fake content.",
+    "es": "Una selección de hasta cinco reseñas, ordenadas por relevancia por Google Maps. Google no verifica individualmente las reseñas, pero busca y elimina el contenido falso identificado."
+  },
+  "Traduit par Google": {
+    "en": "Translated by Google",
+    "es": "Traducido por Google"
+  },
+  "Visite :": {
+    "en": "Visit:",
+    "es": "Visita:"
+  },
+  "Voir l’avis original sur Google Maps ↗": {
+    "en": "View the original review on Google Maps ↗",
+    "es": "Ver la reseña original en Google Maps ↗"
+  },
+  "Voir tous les avis sur Google Maps →": {
+    "en": "View all reviews on Google Maps →",
+    "es": "Ver todas las reseñas en Google Maps →"
   }
 };

@@ -79,6 +79,31 @@ export default function CGVPage() {
             </p>
           </section>
 
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Contenus et services tiers</h2>
+            <p>
+              Les notes, avis et profils identifiés comme provenant de Google Maps sont fournis par Google Maps Platform.
+              Leur consultation est soumise aux{" "}
+              <a
+                href="https://cloud.google.com/maps-platform/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-orange-700 underline underline-offset-4"
+              >
+                conditions d&apos;utilisation de Google Maps Platform
+              </a>{" "}
+              et à la{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-orange-700 underline underline-offset-4"
+              >
+                politique de confidentialité de Google
+              </a>.
+            </p>
+          </section>
+
         </div>
       </div>
     </div>

@@ -33,8 +33,23 @@ export default function PrivacyPolicyPage() {
             <p>Nous ne vendons aucune donnée personnelle. Vos informations sont partagées uniquement avec :</p>
             <ul className="list-disc pl-5 space-y-1 mt-2">
               <li><strong>Stripe :</strong> Pour le traitement sécurisé des paiements et la gestion des abonnements récurrents.</li>
+              <li>
+                <strong>Google Maps Platform :</strong> Pour afficher la note et une sélection d&apos;avis publics associés à La Patte Dorée.
+                L&apos;ouverture d&apos;un profil, d&apos;un avis ou le chargement d&apos;une photo d&apos;auteur peut entraîner une connexion aux services Google.
+              </li>
               <li><strong>Autorités légales :</strong> Uniquement si requis par la loi.</li>
             </ul>
+            <p className="mt-4 text-sm">
+              Ces contenus sont soumis à la{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-orange-700 underline underline-offset-4"
+              >
+                politique de confidentialité de Google
+              </a>.
+            </p>
           </section>
 
           <section>

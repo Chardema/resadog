@@ -18,7 +18,7 @@ const ignoredSegments = ["/admin/"];
 const ignoredAttributes = new Set([
   "className", "href", "src", "type", "name", "value", "method", "action",
   "rel", "target", "role", "id", "htmlFor", "content", "property", "key",
-  "sizes", "strategy", "aria-live",
+  "sizes", "strategy", "aria-live", "translate",
 ]);
 const frenchSignal = /[àâçéèêëîïôùûüÿœæ]|\b(accueil|accepter|actif|âge|ajouter|animal|animaux|annuler|aucun|avec|avis|besoin|bienvenue|carte|chat|chien|choisir|collecte|compte|conditions|confidentialité|confirmer|connexion|cookies|créer|date|début|déconnexion|depuis|description|disponible|données|droits|durée|éditeur|email|enregistrer|envoyer|erreur|famille|fermer|fidélité|garde|garderie|gratuit|hébergement|historique|identification|informations|jour|médical|médicaments|merci|mois|mot|niveau|nom|nouveau|nuit|objet|paiement|partage|passage|pattes|poids|politique|pour|premium|prénom|prix|profil|promenade|race|récompense|réservation|réserver|responsabilité|retour|santé|sécurité|séjour|service|statut|supprimer|terminé|total|utilisation|utiliser|vaccin|vente|vétérinaire|visite|votre|vous)\b/i;
 
