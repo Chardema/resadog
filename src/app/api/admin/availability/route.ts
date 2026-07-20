@@ -4,6 +4,11 @@ import { prisma } from "@/lib/db/prisma";
 import { SERVICE_TYPES, type AppServiceType } from "@/lib/services";
 import type { Prisma, ServiceType } from "@prisma/client";
 import { z } from "zod";
+import {
+  getBookingDateKeys,
+  getBookingSlotsForDate,
+  getDateKeysInRange,
+} from "@/lib/booking-availability";
 
 const availabilitySchema = z.object({
   date: z.string().datetime(),
@@ -75,6 +80,8 @@ function getDateRange(startDate: Date, endDate: Date) {
 // Accessible à tous les utilisateurs (authentifiés ou non) pour voir les disponibilités
 export async function GET(request: Request) {
   try {
+    const session = await auth();
+    const canSeeBookingDetails = session?.user?.role === "ADMIN" || session?.user?.role === "SITTER";
     const { searchParams } = new URL(request.url);
     const month = searchParams.get("month");
     const year = searchParams.get("year");
@@ -87,8 +94,16 @@ export async function GET(request: Request) {
       );
     }
 
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+    const monthNumber = parseInt(month);
+    const yearNumber = parseInt(year);
+    const startDate = new Date(Date.UTC(yearNumber, monthNumber - 1, 1, 0, 0, 0, 0));
+    const endDate = new Date(Date.UTC(yearNumber, monthNumber, 0, 23, 59, 59, 999));
+    const monthDateKeys = new Set(
+      getDateKeysInRange(
+        new Date(Date.UTC(yearNumber, monthNumber - 1, 1, 12, 0, 0)),
+        new Date(Date.UTC(yearNumber, monthNumber, 0, 12, 0, 0))
+      )
+    );
 
     // Construire la requête avec ou sans filtre serviceType
     const whereClause: Prisma.AvailabilityWhereInput = {
@@ -109,7 +124,64 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json({ availabilities });
+    const bookedDates: Record<string, {
+      count: number;
+      bookings: Array<{
+        id: string;
+        clientName: string;
+        petNames: string;
+        timeLabel: string | null;
+      }>;
+    }> = {};
+
+    if (serviceType && SERVICE_TYPES.includes(serviceType as AppServiceType)) {
+      const confirmedBookings = await prisma.booking.findMany({
+        where: {
+          status: { in: ["ACCEPTING", "CANCELLING", "CONFIRMED", "IN_PROGRESS"] },
+          serviceType: serviceType as ServiceType,
+          startDate: { lte: endDate },
+          endDate: { gte: startDate },
+        },
+        include: {
+          client: { select: { name: true } },
+          pets: { select: { name: true } },
+          pet: { select: { name: true } },
+        },
+        orderBy: { startDate: "asc" },
+      });
+
+      for (const booking of confirmedBookings) {
+        for (const dateKey of getBookingDateKeys(booking)) {
+          if (!monthDateKeys.has(dateKey)) continue;
+
+          const slots = getBookingSlotsForDate(booking, dateKey);
+          const timeLabel = slots.length > 0
+            ? slots.map((slot) => `${slot.startTime} (${slot.duration} min)`).join(", ")
+            : [booking.startTime, booking.endTime].filter(Boolean).join(" - ") || null;
+          const petNames = canSeeBookingDetails
+            ? booking.pets.length > 0
+              ? booking.pets.map((pet) => pet.name).join(", ")
+              : booking.pet?.name || "Animal"
+            : "";
+
+          if (!bookedDates[dateKey]) {
+            bookedDates[dateKey] = { count: 0, bookings: [] };
+          }
+
+          bookedDates[dateKey].count += 1;
+          if (canSeeBookingDetails) {
+            bookedDates[dateKey].bookings.push({
+              id: booking.id,
+              clientName: booking.client.name || "Client",
+              petNames,
+              timeLabel,
+            });
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({ availabilities, bookedDates });
   } catch (error) {
     console.error("Erreur lors de la récupération des disponibilités:", error);
     return NextResponse.json(

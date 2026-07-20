@@ -29,15 +29,15 @@ const required = [
   "NEXTAUTH_URL",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
-  "CRON_SECRET",
   "UPLOADTHING_TOKEN",
   "UPLOADTHING_APP_ID",
-  "RESEND_API_KEY",
-  "ADMIN_EMAIL",
 ];
 
 if (target === "production") {
   required.push(
+    "CRON_SECRET",
+    "RESEND_API_KEY",
+    "ADMIN_EMAIL",
     "BUSINESS_LEGAL_NAME",
     "BUSINESS_SIRET",
     "BUSINESS_ADDRESS",
@@ -59,6 +59,9 @@ if (!get("AUTH_SECRET") && !get("NEXTAUTH_SECRET")) {
 }
 
 if (target !== "production") {
+  warnEnv("CRON_SECRET");
+  warnEnv("RESEND_API_KEY");
+  warnEnv("ADMIN_EMAIL");
   warnEnv("DEV_EMAIL");
   warnEnv("RESEND_FROM");
   warnEnv("RESEND_BUG_FROM");

@@ -36,7 +36,7 @@ export default function SignUpPage() {
         const data = await response.json();
         setError(data.error || "Une erreur est survenue");
       }
-    } catch (err) {
+    } catch {
       setError("Erreur de connexion au serveur");
     } finally {
       setIsLoading(false);

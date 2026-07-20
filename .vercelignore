@@ -1,0 +1,7 @@
+.env
+.env.*
+.vercel/.env*
+.git
+.next
+node_modules
+tmp

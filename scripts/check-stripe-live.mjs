@@ -28,6 +28,8 @@ if (bootstrapErrors.length > 0) {
 
 const requiredEvents = [
   "checkout.session.completed",
+  "checkout.session.expired",
+  "customer.subscription.created",
   "customer.subscription.deleted",
   "customer.subscription.updated",
   "invoice.payment_failed",

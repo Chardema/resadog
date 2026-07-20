@@ -45,16 +45,34 @@ export default function CookiesPage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Pas de cookies publicitaires</h2>
-            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
-              <p className="text-green-800 font-medium">
-                Nous respectons votre vie privée.
-              </p>
-              <p className="text-sm text-green-700 mt-1">
-                La Patte Dorée n'utilise aucun cookie tiers à des fins publicitaires, de traçage commercial ou de revente de données.
-                Nous utilisons uniquement ce qui est nécessaire pour prendre soin de vos animaux ! 🐾
-              </p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Mesure d’audience et des annonces</h2>
+            <p className="mb-4">
+              Avec votre accord uniquement, nous utilisons Google Analytics et la mesure Google Ads afin de comprendre
+              quelles pages sont consultées et si nos annonces permettent de trouver nos services. Le tag utilisé est
+              <span className="font-mono text-sm"> G-6HN68EFFPH</span>.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="py-2 font-bold">Nom</th>
+                    <th className="py-2 font-bold">Fonction</th>
+                    <th className="py-2 font-bold">Durée maximale</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-gray-100">
+                    <td className="py-3 font-mono text-sm text-orange-600">_ga / _ga_*</td>
+                    <td className="py-3">Mesure d’audience et attribution des campagnes Google.</td>
+                    <td className="py-3">13 mois</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
+            <p className="mt-4 text-sm text-gray-600">
+              Si vous refusez, ces stockages restent désactivés. Vous pouvez modifier votre choix à tout moment depuis
+              le lien « Gérer mes cookies » situé en bas du site. Nous ne revendons pas vos données.
+            </p>
           </section>
 
         </div>

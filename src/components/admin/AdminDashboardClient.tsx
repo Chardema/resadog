@@ -9,6 +9,7 @@ import {
   Clock3,
   CreditCard,
   Euro,
+  MessageSquareText,
   PawPrint,
   ShieldCheck,
   TicketPercent,
@@ -19,6 +20,9 @@ import { getServiceLabel } from "@/lib/services";
 interface Stats {
   totalBookings: number;
   pendingBookings: number;
+  confirmedBookings: number;
+  inProgressBookings: number;
+  completedBookings: number;
   totalClients: number;
   totalRevenue: number;
 }
@@ -41,6 +45,22 @@ interface Booking {
 interface AdminDashboardClientProps {
   stats: Stats;
   upcomingBookings: Booking[];
+  latestReviewResponses: ReviewResponse[];
+}
+
+interface ReviewResponse {
+  id: string;
+  submittedAt: string | null;
+  serviceRating: number | null;
+  serviceComment: string | null;
+  websiteRating: number | null;
+  websiteComment: string | null;
+  booking: {
+    id: string;
+    clientName: string | null;
+    clientEmail: string;
+    pets: string[];
+  };
 }
 
 const formatMoney = (amount: number) =>
@@ -57,6 +77,8 @@ const formatDate = (value: Date | string) =>
 
 const statusMeta: Record<string, { label: string; className: string }> = {
   PENDING: { label: "À traiter", className: "bg-amber-50 text-amber-800 ring-amber-200" },
+  ACCEPTING: { label: "Validation en cours", className: "bg-amber-50 text-amber-800 ring-amber-200" },
+  CANCELLING: { label: "Annulation en cours", className: "bg-orange-50 text-orange-800 ring-orange-200" },
   CONFIRMED: { label: "Confirmée", className: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
   IN_PROGRESS: { label: "En cours", className: "bg-blue-50 text-blue-800 ring-blue-200" },
   COMPLETED: { label: "Terminée", className: "bg-gray-100 text-gray-700 ring-gray-200" },
@@ -68,7 +90,7 @@ function getPetNames(booking: Booking) {
   return booking.pet?.name || "Animal non renseigné";
 }
 
-export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboardClientProps) {
+export function AdminDashboardClient({ stats, upcomingBookings, latestReviewResponses }: AdminDashboardClientProps) {
   const hasPendingBookings = stats.pendingBookings > 0;
 
   const metrics = [
@@ -119,7 +141,7 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
     },
     {
       title: "Suivre les clients",
-      description: "Abonnements, crédits et profils.",
+      description: "Premium, fidélité et profils.",
       href: "/admin/clients",
       icon: UsersRound,
     },
@@ -128,6 +150,33 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
       description: "Créer et contrôler les remises.",
       href: "/admin/coupons",
       icon: TicketPercent,
+    },
+  ];
+
+  const statusCards = [
+    {
+      label: "En attente",
+      value: stats.pendingBookings,
+      href: "/admin/bookings?filter=pending",
+      className: "border-amber-200 bg-amber-50 text-amber-950",
+    },
+    {
+      label: "Confirmées à venir",
+      value: stats.confirmedBookings,
+      href: "/admin/bookings?filter=confirmed",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-950",
+    },
+    {
+      label: "En cours",
+      value: stats.inProgressBookings,
+      href: "/admin/bookings",
+      className: "border-blue-200 bg-blue-50 text-blue-950",
+    },
+    {
+      label: "Terminées",
+      value: stats.completedBookings,
+      href: "/admin/bookings?filter=completed",
+      className: "border-gray-200 bg-gray-50 text-gray-950",
     },
   ];
 
@@ -211,6 +260,19 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
             </Link>
           );
         })}
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {statusCards.map((card) => (
+          <Link
+            key={card.label}
+            href={card.href}
+            className={`rounded-lg border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${card.className}`}
+          >
+            <p className="text-sm font-bold">{card.label}</p>
+            <p className="mt-2 text-3xl font-extrabold">{card.value}</p>
+          </Link>
+        ))}
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
@@ -314,6 +376,62 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
           )}
         </section>
       </div>
+
+      <section className="rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between gap-4 border-b border-gray-100 p-5">
+          <div>
+            <h2 className="text-lg font-bold text-gray-950">Dernières réponses d&apos;avis</h2>
+            <p className="mt-1 text-sm text-gray-600">Avis prestation et retour sur le site internet.</p>
+          </div>
+          <Link href="/admin/reviews" className="text-sm font-bold text-orange-700 hover:text-orange-800">
+            Voir tout
+          </Link>
+        </div>
+
+        {latestReviewResponses.length === 0 ? (
+          <div className="p-10 text-center">
+            <MessageSquareText className="mx-auto h-9 w-9 text-gray-400" aria-hidden="true" />
+            <h3 className="mt-3 font-bold text-gray-950">Aucune réponse reçue</h3>
+            <p className="mt-1 text-sm text-gray-600">Les retours clients apparaîtront ici après soumission du formulaire.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {latestReviewResponses.map((response) => (
+              <article key={response.id} className="p-4 sm:p-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-950">
+                      {response.booking.clientName || response.booking.clientEmail}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {response.booking.pets.length > 0 ? response.booking.pets.join(", ") : "Animal non renseigné"}
+                      {response.submittedAt ? ` · ${formatDate(response.submittedAt)}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs font-bold">
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800 ring-1 ring-emerald-200">
+                      Prestation {response.serviceRating || "-"} / 5
+                    </span>
+                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-800 ring-1 ring-blue-200">
+                      Site {response.websiteRating || "-"} / 5
+                    </span>
+                  </div>
+                </div>
+                {response.serviceComment && (
+                  <p className="mt-3 rounded-md bg-emerald-50 p-3 text-sm leading-6 text-emerald-950">
+                    &ldquo;{response.serviceComment}&rdquo;
+                  </p>
+                )}
+                {response.websiteComment && (
+                  <p className="mt-2 rounded-md bg-blue-50 p-3 text-sm leading-6 text-blue-950">
+                    Site : &ldquo;{response.websiteComment}&rdquo;
+                  </p>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
         <Link href="/admin/calendar-sync" className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:bg-gray-50">

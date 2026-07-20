@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { PawPrint } from "lucide-react";
+import { OPEN_COOKIE_SETTINGS_EVENT } from "@/lib/google-consent";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -24,12 +25,18 @@ export function Footer() {
   return (
     <footer className="bg-white border-t border-orange-100 py-12 mt-auto">
       <div className="container mx-auto px-6">
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-600 text-white shadow-md">
-                <PawPrint className="h-4 w-4" />
+              <div className="h-10 w-10 overflow-hidden rounded-full border border-orange-100 bg-[#FDFBF7] shadow-md">
+                <Image
+                  src="/logo-mark.png"
+                  width={40}
+                  height={40}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               </div>
               <span className="text-xl font-bold text-gray-900">La Patte Dorée</span>
             </Link>
@@ -51,6 +58,17 @@ export function Footer() {
             </ul>
           </div>
 
+          {/* Zone de service */}
+          <div>
+            <h3 className="font-bold text-gray-900 mb-4">Près de chez vous</h3>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li><Link href="/garde-chien-disneyland-paris" className="hover:text-orange-600 transition-colors">Autour de Disneyland Paris</Link></li>
+              <li><Link href="/garde-chat-77" className="hover:text-orange-600 transition-colors">Pour les chats</Link></li>
+              <li><Link href="/pension-chien-77" className="hover:text-orange-600 transition-colors">Hébergement familial</Link></li>
+              <li><Link href="/garde-animaux-seine-et-marne" className="hover:text-orange-600 transition-colors">Toutes nos zones</Link></li>
+            </ul>
+          </div>
+
           {/* Légal */}
           <div>
             <h3 className="font-bold text-gray-900 mb-4">Légal</h3>
@@ -59,6 +77,15 @@ export function Footer() {
               <li><Link href="/legal/cgv" className="hover:text-orange-600 transition-colors">CGV & Annulation</Link></li>
               <li><Link href="/legal/confidentialite" className="hover:text-orange-600 transition-colors">Politique de Confidentialité</Link></li>
               <li><Link href="/legal/cookies" className="hover:text-orange-600 transition-colors">Cookies</Link></li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_SETTINGS_EVENT))}
+                  className="hover:text-orange-600 transition-colors"
+                >
+                  Gérer mes cookies
+                </button>
+              </li>
             </ul>
           </div>
         </div>

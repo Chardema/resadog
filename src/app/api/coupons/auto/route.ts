@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 
 // Récupérer le coupon auto-appliqué de l'utilisateur connecté
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
 
@@ -39,6 +39,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) {
+      return NextResponse.json({ autoCoupon: null });
+    }
+
+    const userEmail = session.user.email?.toLowerCase() || "";
+    if (coupon.restrictedTo.length > 0 && !coupon.restrictedTo.map((email) => email.toLowerCase()).includes(userEmail)) {
       return NextResponse.json({ autoCoupon: null });
     }
 

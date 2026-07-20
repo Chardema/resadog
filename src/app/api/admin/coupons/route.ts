@@ -7,7 +7,7 @@ import { z } from "zod";
 const couponSchema = z.object({
   code: z.string().min(3).max(20).toUpperCase(),
   description: z.string().optional(),
-  discountType: z.enum(["PERCENTAGE", "FIXED_AMOUNT"]),
+  discountType: z.enum(["PERCENTAGE", "FIXED_AMOUNT", "CUSTOM_TOTAL"]),
   discountValue: z.number().positive(),
   minAmount: z.number().positive().optional(),
   maxUses: z.number().int().positive().optional(),
@@ -23,6 +23,18 @@ const couponSchema = z.object({
       message: "Une remise en pourcentage ne peut pas dépasser 20%",
     });
   }
+
+  if (coupon.discountType === "CUSTOM_TOTAL" && coupon.discountValue < 1) {
+    context.addIssue({
+      code: "custom",
+      path: ["discountValue"],
+      message: "Le tarif final personnalisé doit être d'au moins 1€",
+    });
+  }
+});
+
+const couponUpdateSchema = couponSchema.safeExtend({
+  id: z.string().min(1),
 });
 
 // Créer un nouveau coupon
@@ -91,7 +103,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Lister tous les coupons
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
 
@@ -147,11 +159,46 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const updateData =
+      body.code || body.discountType || body.discountValue !== undefined
+        ? couponUpdateSchema.parse({ ...body, id: couponId })
+        : null;
+
+    if (updateData) {
+      const existing = await prisma.coupon.findFirst({
+        where: {
+          code: updateData.code,
+          id: { not: couponId },
+        },
+      });
+
+      if (existing) {
+        return NextResponse.json(
+          { error: "Ce code promo existe déjà" },
+          { status: 400 }
+        );
+      }
+    }
+
     const coupon = await prisma.coupon.update({
       where: { id: couponId },
-      data: {
-        isActive: isActive !== undefined ? isActive : undefined,
-      },
+      data: updateData
+        ? {
+            code: updateData.code,
+            description: updateData.description,
+            discountType: updateData.discountType,
+            discountValue: updateData.discountValue,
+            minAmount: updateData.minAmount ?? null,
+            maxUses: updateData.maxUses ?? null,
+            validFrom: updateData.validFrom ? new Date(updateData.validFrom) : null,
+            validUntil: updateData.validUntil ? new Date(updateData.validUntil) : null,
+            restrictedTo: updateData.restrictedTo || [],
+            applicableServices: updateData.applicableServices || [],
+            isActive: isActive !== undefined ? isActive : undefined,
+          }
+        : {
+            isActive: isActive !== undefined ? isActive : undefined,
+          },
     });
 
     return NextResponse.json({
@@ -161,6 +208,51 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     console.error("Erreur lors de la mise à jour du coupon:", error);
+    return NextResponse.json(
+      { error: "Une erreur est survenue" },
+      { status: 500 }
+    );
+  }
+}
+
+// Supprimer complètement un coupon
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id || session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Accès non autorisé" },
+        { status: 403 }
+      );
+    }
+
+    const { couponId } = await request.json();
+
+    if (!couponId) {
+      return NextResponse.json(
+        { error: "ID du coupon requis" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.updateMany({
+        where: { autoApplyCouponId: couponId },
+        data: { autoApplyCouponId: null },
+      });
+
+      await tx.coupon.delete({
+        where: { id: couponId },
+      });
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Code promo supprimé",
+    });
+  } catch (error) {
+    console.error("Erreur lors de la suppression du coupon:", error);
     return NextResponse.json(
       { error: "Une erreur est survenue" },
       { status: 500 }

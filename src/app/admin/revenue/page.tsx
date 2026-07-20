@@ -1,15 +1,99 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { UserMenu } from "@/components/layout/UserMenu";
+import {
+  ArrowDownUp,
+  BarChart3,
+  CheckCircle2,
+  CreditCard,
+  LoaderCircle,
+  RefreshCw,
+  WalletCards,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+type RevenueSummary = {
+  totalRevenue: number;
+  monthRevenue: number;
+  averagePayment: number;
+  succeededCount: number;
+  pendingAmount: number;
+};
+
+type MonthlyRevenue = {
+  key: string;
+  label: string;
+  amount: number;
+};
+
+type Transaction = {
+  id: string;
+  kind: "BOOKING" | "CHARGE";
+  amount: number;
+  netAmount: number;
+  status: string;
+  createdAt: string;
+  paidAt: string | null;
+  refundAmount: number;
+  serviceType: string;
+  bookingId: string;
+  clientName: string | null;
+  clientEmail: string;
+  pets: string[];
+  reason?: string;
+};
+
+type RevenueData = {
+  summary: RevenueSummary;
+  monthly: MonthlyRevenue[];
+  transactions: Transaction[];
+};
+
+const emptyData: RevenueData = {
+  summary: {
+    totalRevenue: 0,
+    monthRevenue: 0,
+    averagePayment: 0,
+    succeededCount: 0,
+    pendingAmount: 0,
+  },
+  monthly: [],
+  transactions: [],
+};
+
+const serviceLabels: Record<string, string> = {
+  BOARDING: "Hébergement",
+  HOUSE_SITTING: "Garde au domicile",
+  DAY_CARE: "Garderie",
+  DROP_IN: "Visite",
+  DOG_WALKING: "Promenade",
+};
+
+const statusMeta: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "En attente", className: "bg-gray-100 text-gray-700" },
+  PROCESSING: { label: "Empreinte", className: "bg-blue-50 text-blue-800" },
+  SUCCEEDED: { label: "Encaissé", className: "bg-emerald-50 text-emerald-800" },
+  FAILED: { label: "Échec", className: "bg-red-50 text-red-800" },
+  REFUNDED: { label: "Remboursé", className: "bg-amber-50 text-amber-800" },
+  PARTIALLY_REFUNDED: { label: "Partiel", className: "bg-orange-50 text-orange-800" },
+};
+
+const formatMoney = (value: number) =>
+  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value);
+
+const formatDate = (value: string | null) => {
+  if (!value) return "Non encaissé";
+  return new Date(value).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+};
 
 export default function AdminRevenuePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [data, setData] = useState<RevenueData>(emptyData);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -23,216 +107,177 @@ export default function AdminRevenuePage() {
     }
   }, [session, status, router]);
 
-  if (status === "loading") {
+  useEffect(() => {
+    if (status === "authenticated") fetchRevenue();
+  }, [status]);
+
+  const fetchRevenue = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/revenue");
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.error || "Impossible de charger les revenus.");
+      setData(payload);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Erreur de chargement.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const maxMonthlyAmount = useMemo(
+    () => Math.max(1, ...data.monthly.map((month) => month.amount)),
+    [data.monthly]
+  );
+
+  if (status === "loading" || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4 animate-bounce">🐾</div>
-          <p className="text-gray-700 font-semibold">Chargement...</p>
-        </div>
+      <div className="rounded-lg border border-gray-200 bg-white p-12 text-center shadow-sm">
+        <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-gray-500" />
+        <p className="mt-3 text-sm font-semibold text-gray-600">Chargement des finances...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Navigation Admin */}
-      <motion.nav
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="bg-gradient-to-r from-white to-orange-50 border-b border-orange-200 shadow-lg"
-      >
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/admin/dashboard" className="flex items-center gap-3">
-              <motion.div
-                whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 0] }}
-                transition={{ duration: 0.5 }}
-                className="relative"
-              >
-                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-600 flex items-center justify-center text-white font-bold text-xl shadow-lg transform rotate-12">
-                  🐾
-                </div>
-                <div className="absolute -top-1 -right-1 text-yellow-400 text-lg animate-pulse">
-                  ✨
-                </div>
-              </motion.div>
-              <div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent">
-                  La Patte Dorée
-                </span>
-                <p className="text-xs text-orange-600 font-medium">Gestion des revenus</p>
+    <div className="space-y-6">
+      <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Administration</p>
+          <h1 className="mt-1 text-3xl font-extrabold text-gray-950">Finance</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+            Vue opérationnelle des encaissements, empreintes actives, remboursements et suppléments.
+          </p>
+        </div>
+        <Button type="button" variant="outline" onClick={fetchRevenue} disabled={isLoading}>
+          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          Actualiser
+        </Button>
+      </section>
+
+      {error && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+          {error}
+        </div>
+      )}
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {[
+          { label: "Revenus totaux", value: formatMoney(data.summary.totalRevenue), icon: WalletCards },
+          { label: "Ce mois", value: formatMoney(data.summary.monthRevenue), icon: BarChart3 },
+          { label: "Panier moyen", value: formatMoney(data.summary.averagePayment), icon: ArrowDownUp },
+          { label: "Paiements encaissés", value: data.summary.succeededCount.toString(), icon: CheckCircle2 },
+          { label: "Empreintes actives", value: formatMoney(data.summary.pendingAmount), icon: CreditCard },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{item.label}</p>
+                <Icon className="h-4 w-4 text-gray-400" aria-hidden="true" />
               </div>
-            </Link>
-            <UserMenu variant="light" />
+              <p className="mt-2 truncate text-2xl font-bold text-gray-950">{item.value}</p>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1fr_1.4fr]">
+        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-gray-950">Évolution</h2>
+              <p className="mt-1 text-sm text-gray-600">Encaissements nets sur 6 mois.</p>
+            </div>
+            <BarChart3 className="h-5 w-5 text-gray-400" aria-hidden="true" />
+          </div>
+          {data.monthly.length === 0 ? (
+            <div className="mt-5 rounded-lg border border-dashed border-gray-300 p-10 text-center text-sm text-gray-600">
+              Les revenus apparaîtront après les premiers paiements.
+            </div>
+          ) : (
+            <div className="mt-6 flex h-56 items-end gap-3">
+              {data.monthly.map((month) => {
+                const height = Math.max(8, Math.round((month.amount / maxMonthlyAmount) * 100));
+                return (
+                  <div key={month.key} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                    <div className="flex h-40 w-full items-end rounded-md bg-gray-100 px-2 pb-2">
+                      <div
+                        className="w-full rounded-md bg-gray-950 transition-all"
+                        style={{ height: `${height}%` }}
+                        aria-label={`${month.label}: ${formatMoney(month.amount)}`}
+                      />
+                    </div>
+                    <p className="truncate text-xs font-semibold text-gray-500">{month.label}</p>
+                    <p className="text-xs font-bold text-gray-950">{formatMoney(month.amount)}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-gray-950">Transactions récentes</h2>
+              <p className="mt-1 text-sm text-gray-600">Réservations et suppléments, triés du plus récent au plus ancien.</p>
+            </div>
+            <CreditCard className="h-5 w-5 text-gray-400" aria-hidden="true" />
+          </div>
+
+          <div className="mt-5 overflow-hidden rounded-lg border border-gray-200">
+            {data.transactions.length === 0 ? (
+              <div className="p-10 text-center">
+                <CreditCard className="mx-auto h-8 w-8 text-gray-400" />
+                <p className="mt-3 text-sm font-semibold text-gray-600">Aucun paiement pour le moment.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {data.transactions.map((transaction) => {
+                  const meta = statusMeta[transaction.status] || statusMeta.PENDING;
+                  const title = transaction.kind === "CHARGE"
+                    ? transaction.reason || "Supplément"
+                    : serviceLabels[transaction.serviceType] || transaction.serviceType;
+                  const displayedAmount =
+                    transaction.status === "SUCCEEDED" ||
+                    transaction.status === "PARTIALLY_REFUNDED" ||
+                    transaction.status === "REFUNDED"
+                      ? transaction.netAmount
+                      : transaction.amount;
+                  return (
+                    <div key={`${transaction.kind}-${transaction.id}`} className="grid gap-3 p-4 lg:grid-cols-[1.2fr_0.8fr_0.6fr] lg:items-center">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-bold text-gray-950">{title}</p>
+                          <span className={`rounded-full px-2 py-1 text-xs font-bold ${meta.className}`}>
+                            {meta.label}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-sm text-gray-600">
+                          {transaction.clientName || transaction.clientEmail}
+                          {transaction.pets.length > 0 ? ` · ${transaction.pets.join(", ")}` : ""}
+                        </p>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <p>Créé : {formatDate(transaction.createdAt)}</p>
+                        <p>Encaissé : {formatDate(transaction.paidAt)}</p>
+                      </div>
+                      <div className="text-left lg:text-right">
+                        <p className="text-lg font-bold text-gray-950">{formatMoney(displayedAmount)}</p>
+                        {transaction.refundAmount > 0 && (
+                          <p className="text-xs font-semibold text-amber-700">Remboursé : {formatMoney(transaction.refundAmount)}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-      </motion.nav>
-
-      {/* Contenu */}
-      <div className="container mx-auto px-6 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-7xl mx-auto"
-        >
-          <div className="mb-10">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent mb-2">
-              Revenus & Statistiques 💰
-            </h1>
-            <p className="text-gray-700 text-lg">
-              Analysez vos performances et revenus
-            </p>
-          </div>
-
-          {/* Statistiques mensuelles avec animations 3D */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: {},
-              visible: {
-                transition: {
-                  staggerChildren: 0.1,
-                },
-              },
-            }}
-            className="grid md:grid-cols-3 gap-6 mb-10"
-          >
-            {/* Card 1 - Revenus ce mois */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 30, rotateX: -15 },
-                visible: { opacity: 1, y: 0, rotateX: 0 },
-              }}
-              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
-              transition={{ duration: 0.3 }}
-              className="bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 border-l-4 border-green-500 transform-gpu"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Revenus ce mois
-                </h3>
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.5 }}
-                  className="h-12 w-12 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg"
-                >
-                  <span className="text-2xl">💵</span>
-                </motion.div>
-              </div>
-              <p className="text-4xl font-bold text-gray-900 mb-1">0 €</p>
-              <p className="text-sm text-gray-600">0 réservations payées</p>
-            </motion.div>
-
-            {/* Card 2 - Revenus totaux */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 30, rotateX: -15 },
-                visible: { opacity: 1, y: 0, rotateX: 0 },
-              }}
-              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
-              transition={{ duration: 0.3 }}
-              className="bg-gradient-to-br from-white to-orange-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 border-l-4 border-orange-500 transform-gpu"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Revenus totaux
-                </h3>
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.5 }}
-                  className="h-12 w-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg"
-                >
-                  <span className="text-2xl">💰</span>
-                </motion.div>
-              </div>
-              <p className="text-4xl font-bold text-gray-900 mb-1">0 €</p>
-              <p className="text-sm text-gray-600">Depuis le début</p>
-            </motion.div>
-
-            {/* Card 3 - Revenu moyen */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 30, rotateX: -15 },
-                visible: { opacity: 1, y: 0, rotateX: 0 },
-              }}
-              whileHover={{ y: -8, scale: 1.03, rotateY: 5 }}
-              transition={{ duration: 0.3 }}
-              className="bg-gradient-to-br from-white to-yellow-50 rounded-2xl shadow-xl hover:shadow-2xl p-6 border-l-4 border-yellow-500 transform-gpu"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Revenu moyen
-                </h3>
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.2 }}
-                  transition={{ duration: 0.5 }}
-                  className="h-12 w-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg"
-                >
-                  <span className="text-2xl">📊</span>
-                </motion.div>
-              </div>
-              <p className="text-4xl font-bold text-gray-900 mb-1">0 €</p>
-              <p className="text-sm text-gray-600">Par réservation</p>
-            </motion.div>
-          </motion.div>
-
-          {/* Graphique */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-orange-200 mb-8"
-          >
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              Évolution des revenus
-              <span className="text-3xl">📈</span>
-            </h2>
-            <div className="text-center py-16 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl border-2 border-dashed border-orange-300">
-              <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-7xl mb-4"
-              >
-                📊
-              </motion.div>
-              <p className="text-gray-700 font-semibold text-lg mb-2">Graphique des revenus</p>
-              <p className="text-sm text-gray-600">
-                Les statistiques s'afficheront après vos premières réservations
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Historique des paiements */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-orange-200"
-          >
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              Historique des paiements
-              <span className="text-3xl">💳</span>
-            </h2>
-            <div className="text-center py-16">
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-7xl mb-4"
-              >
-                💸
-              </motion.div>
-              <p className="text-gray-700 font-semibold text-lg mb-2">Aucun paiement pour le moment</p>
-              <p className="text-sm text-gray-600">
-                L'historique apparaîtra ici après les premiers paiements
-              </p>
-            </div>
-          </motion.div>
-        </motion.div>
-      </div>
+      </section>
     </div>
   );
 }

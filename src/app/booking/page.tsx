@@ -1,28 +1,57 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, MessageCircleQuestion, X } from "lucide-react";
+import {
+  AlertCircle,
+  CalendarDays,
+  CheckCircle2,
+  LoaderCircle,
+  MessageCircleQuestion,
+  MoonStar,
+  Plus,
+  RotateCcw,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppNav } from "@/components/layout/AppNav";
-import { calculateBookingPrice, getServiceDisplayPrice, EXTRA_DURATION, type Species, type PriceLine } from "@/lib/pricing";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { calculatePawsEarned, calculatePremiumDiscount } from "@/lib/loyalty";
 import {
-  calculateSubscriptionPlan,
-  SUBSCRIPTION_SERVICES,
-  type SubscriptionBillingCycle,
-  type SubscriptionServiceType,
-} from "@/lib/subscription-pricing";
+  calculateBookingPrice,
+  calculateSameDayDurationMinutes,
+  calculateServiceDurationMinutes,
+  getHouseSittingDurationTier,
+  getServiceDisplayPrice,
+  EXTRA_DURATION,
+  HOUSE_SITTING_DURATION_TIERS,
+  type Species,
+  type PriceLine,
+} from "@/lib/pricing";
 import {
   isHourlyServiceType,
   isOvernightServiceType,
   type AppServiceType,
 } from "@/lib/services";
 import { formatPetAge } from "@/lib/pets";
+import {
+  addCalendarDays,
+  buildDateRange,
+  dateKeyToLocalDate,
+  getCalendarDayDifference,
+  getInclusiveCalendarDayCount,
+  getNextWeekendRange,
+  getTodayDateKey,
+  isPositiveSameDayTimeRange,
+  localDateToDateKey,
+} from "@/lib/booking-dates";
 
 type ServiceOption = {
   value: AppServiceType;
@@ -46,27 +75,27 @@ const serviceTypes: ServiceOption[] = [
   },
   {
     value: "HOUSE_SITTING",
-    name: "Garde au domicile",
-    unit: "jour",
-    description: "Nous gardons votre compagnon chez vous sur une ou plusieurs journées.",
+    name: "Garde à votre domicile",
+    unit: "garde",
+    description: "Une présence prolongée chez vous, sur une ou plusieurs journées sans nuitée : repas, sorties, compagnie, surveillance et respect de la routine habituelle.",
     icon: "🛏️",
-    maxHours: 12,
+    maxHours: 24,
     maxPets: 3,
   },
   {
     value: "DAY_CARE",
-    name: "Garderie Jour",
+    name: "Garderie de jour au domicile du pet-sitter",
     unit: "jour",
-    description: "Déposez-le le matin, récupérez-le le soir.",
+    description: "Déposez votre compagnon le matin et récupérez-le le soir. Repas, jeux, repos et promenades selon ses habitudes. Soumise à disponibilité et à compatibilité avec les animaux déjà présents.",
     icon: "☀️",
     maxHours: 10,
     maxPets: 3,
   },
   {
     value: "DROP_IN",
-    name: "Visite à domicile",
+    name: "Visite à votre domicile",
     unit: "visite",
-    description: "Visite de 30 min pour les chats et chiens indépendants.",
+    description: "Un passage ponctuel chez vous pour les repas, la litière, les soins simples, les sorties et un moment de présence.",
     icon: "🚪",
     maxPets: 99,
   },
@@ -110,15 +139,14 @@ type DateConfig = {
 };
 
 const isHourlyService = isHourlyServiceType;
-const isSubscriptionService = (serviceType: string): serviceType is SubscriptionServiceType =>
-  serviceType in SUBSCRIPTION_SERVICES;
+const isSingleDayServiceType = (serviceType: string) => serviceType === "DAY_CARE";
 const defaultVisitDuration = () => 30;
 const defaultVisitTime = "09:00";
 const boardingCheckoutTime = "10:00";
 
 const serviceDefaultTimes: Record<string, { startTime: string; endTime: string }> = {
   BOARDING: { startTime: "18:00", endTime: boardingCheckoutTime },
-  HOUSE_SITTING: { startTime: "09:00", endTime: "18:00" },
+  HOUSE_SITTING: { startTime: "09:30", endTime: "19:30" },
   DAY_CARE: { startTime: "09:00", endTime: "18:00" },
   DROP_IN: { startTime: defaultVisitTime, endTime: defaultVisitTime },
   DOG_WALKING: { startTime: defaultVisitTime, endTime: defaultVisitTime },
@@ -139,53 +167,25 @@ const getValidVisitSlots = (slots: VisitSlot[]) =>
 const getUniqueVisitDates = (slots: VisitSlot[]) =>
   [...new Set(getValidVisitSlots(slots).map((slot) => slot.date))];
 
-const buildDateRange = (startDate: string, endDate: string) => {
-  if (!startDate || !endDate) return [];
-
-  const start = new Date(`${startDate}T12:00:00`);
-  const end = new Date(`${endDate}T12:00:00`);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return [];
-
-  const dates: string[] = [];
-  const current = new Date(start);
-  while (current <= end) {
-    dates.push(current.toISOString().split("T")[0]);
-    current.setDate(current.getDate() + 1);
-  }
-  return dates;
-};
-
-const getCalendarDayDifference = (startDate: string, endDate: string) => {
-  if (!startDate || !endDate) return 0;
-
-  const start = new Date(`${startDate}T12:00:00`);
-  const end = new Date(`${endDate}T12:00:00`);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
-
-  return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-};
-
-const getInclusiveCalendarDayCount = (startDate: string, endDate: string) => {
-  const diff = getCalendarDayDifference(startDate, endDate);
-  return diff >= 0 ? diff + 1 : 0;
-};
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
-
-const dateKeyToLocalDate = (dateKey: string) => {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  return new Date(year, month - 1, day, 12);
-};
-
-const localDateToDateKey = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
 const formatShortDate = (dateKey: string) =>
   dateKeyToLocalDate(dateKey).toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "short",
   });
+
+const formatVisitDuration = (duration: number) => {
+  if (duration === 60) return "1 h";
+  if (duration === 90) return "1 h 30";
+  if (duration === 120) return "2 h";
+  return `${duration} min`;
+};
+
+const formatElapsedDuration = (durationMinutes: number) => {
+  const hours = Math.floor(durationMinutes / 60);
+  const minutes = durationMinutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  return minutes === 0 ? `${hours} h` : `${hours} h ${String(minutes).padStart(2, "0")}`;
+};
 
 const formatDateKeyRanges = (dateKeys?: string[]) => {
   const sortedKeys = [...new Set(dateKeys || [])].sort();
@@ -213,347 +213,439 @@ const formatDateKeyRanges = (dateKeys?: string[]) => {
   return ranges.join(", ");
 };
 
-// --- COMPOSANT DATE SELECTOR EXTRAIT ---
-const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig, onChange: (c: DateConfig) => void, serviceType: string }) => {
-    const isHourly = isHourlyService(serviceType);
-    const isDayCare = serviceType === "DAY_CARE";
-    const today = new Date().toISOString().split("T")[0];
-    const [batchStartDate, setBatchStartDate] = useState("");
-    const [batchEndDate, setBatchEndDate] = useState("");
-    const [batchVisitsPerDay, setBatchVisitsPerDay] = useState(1);
-    const [batchDuration, setBatchDuration] = useState(defaultVisitDuration());
-    const [batchTimes, setBatchTimes] = useState<string[]>([defaultVisitTime, "13:00", "18:00"]);
-    const [batchMode, setBatchMode] = useState<"REPLACE" | "APPEND">("REPLACE");
+const localeCodes = { fr: "fr-FR", en: "en-GB", es: "es-ES" } as const;
 
-    const selectedSlotItems = config.visitSlots
-      .map((slot, index) => ({ slot, index }))
-      .filter(({ slot }) => slot.date)
-      .sort((a, b) => `${a.slot.date}T${a.slot.startTime}`.localeCompare(`${b.slot.date}T${b.slot.startTime}`));
-    const selectedDateCount = new Set(selectedSlotItems.map(({ slot }) => slot.date)).size;
-    const groupedSlots = selectedSlotItems.reduce<Record<string, typeof selectedSlotItems>>((acc, item) => {
-      acc[item.slot.date] = acc[item.slot.date] || [];
-      acc[item.slot.date].push(item);
-      return acc;
-    }, {});
+const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig; onChange: (c: DateConfig) => void; serviceType: string }) => {
+  const { t, locale } = useLanguage();
+  const today = getTodayDateKey();
+  const tomorrow = addCalendarDays(today, 1);
+  const weekend = getNextWeekendRange(today);
+  const localeCode = localeCodes[locale];
+  const isHourly = isHourlyService(serviceType);
+  const isSingleDayService = isSingleDayServiceType(serviceType);
+  const isHouseSitting = serviceType === "HOUSE_SITTING";
+  const [batchStartDate, setBatchStartDate] = useState("");
+  const [batchEndDate, setBatchEndDate] = useState("");
+  const [batchVisitsPerDay, setBatchVisitsPerDay] = useState(1);
+  const [batchDuration, setBatchDuration] = useState(defaultVisitDuration());
+  const [batchTimes, setBatchTimes] = useState<string[]>([defaultVisitTime, "13:00", "18:00"]);
 
+  const formatDate = (dateKey: string, options: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" }) =>
+    dateKeyToLocalDate(dateKey).toLocaleDateString(localeCode, options);
+
+  const shortcutClass = (selected: boolean) =>
+    `min-h-11 rounded-xl border px-3 py-2 text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${selected
+      ? "border-orange-500 bg-orange-50 text-orange-900 shadow-sm"
+      : "border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50/50"}`;
+
+  const renderDateShortcuts = (selectedDate: string, setDate: (date: string) => void, setWeekendRange?: () => void) => (
+    <div className="grid grid-cols-3 gap-2" aria-label={t("Dates rapides")}>
+      <button type="button" className={shortcutClass(selectedDate === today)} aria-pressed={selectedDate === today} onClick={() => setDate(today)}>
+        <span className="block">{t("Aujourd’hui")}</span>
+        <span className="block text-xs font-normal text-gray-500">{formatDate(today, { day: "numeric", month: "short" })}</span>
+      </button>
+      <button type="button" className={shortcutClass(selectedDate === tomorrow)} aria-pressed={selectedDate === tomorrow} onClick={() => setDate(tomorrow)}>
+        <span className="block">{t("Demain")}</span>
+        <span className="block text-xs font-normal text-gray-500">{formatDate(tomorrow, { day: "numeric", month: "short" })}</span>
+      </button>
+      <button type="button" className={shortcutClass(selectedDate === weekend.startDate && selectedDate !== today && selectedDate !== tomorrow)} aria-pressed={selectedDate === weekend.startDate && selectedDate !== today && selectedDate !== tomorrow} onClick={() => {
+        if (setWeekendRange) setWeekendRange();
+        else setDate(weekend.startDate);
+      }}>
+        <span className="block">{t("Ce week-end")}</span>
+        <span className="block text-xs font-normal text-gray-500">{formatDate(weekend.startDate, { day: "numeric", month: "short" })}</span>
+      </button>
+    </div>
+  );
+
+  const selectedSlotItems = config.visitSlots
+    .map((slot, index) => ({ slot, index }))
+    .filter(({ slot }) => slot.date)
+    .sort((a, b) => `${a.slot.date}T${a.slot.startTime}`.localeCompare(`${b.slot.date}T${b.slot.startTime}`));
+  const selectedDateCount = new Set(selectedSlotItems.map(({ slot }) => slot.date)).size;
+  const groupedSlots = selectedSlotItems.reduce<Record<string, typeof selectedSlotItems>>((acc, item) => {
+    acc[item.slot.date] = acc[item.slot.date] || [];
+    acc[item.slot.date].push(item);
+    return acc;
+  }, {});
+
+  const normalizeVisitSlots = (slots: VisitSlot[]) => {
+    const byKey = new Map<string, VisitSlot>();
+    slots.filter((slot) => slot.date).forEach((slot) => byKey.set(`${slot.date}-${slot.startTime}`, slot));
+    return sortVisitSlots([...byKey.values()]);
+  };
+  const updateVisitSlot = (index: number, changes: Partial<VisitSlot>) => onChange({
+    ...config,
+    visitSlots: config.visitSlots.map((slot, slotIndex) => slotIndex === index ? { ...slot, ...changes } : slot),
+  });
+  const removeVisitSlot = (index: number) => onChange({ ...config, visitSlots: config.visitSlots.filter((_, slotIndex) => slotIndex !== index) });
+  const addSingleSlot = (date?: string) => {
+    const slotDate = date || batchStartDate || today;
+    onChange({
+      ...config,
+      startDate: config.startDate || slotDate,
+      endDate: slotDate > config.endDate ? slotDate : (config.endDate || slotDate),
+      visitSlots: normalizeVisitSlots([...config.visitSlots, { date: slotDate, startTime: batchTimes[0] || defaultVisitTime, duration: batchDuration }]),
+    });
+  };
+  const addRangeSlots = () => {
+    const endDate = batchEndDate || batchStartDate;
+    const dates = buildDateRange(batchStartDate, endDate);
+    if (dates.length === 0) return;
+    const newSlots = dates.flatMap((date) => Array.from({ length: batchVisitsPerDay }, (_, index) => ({
+      date,
+      startTime: batchTimes[index] || defaultVisitTime,
+      duration: batchDuration,
+    })));
+    onChange({
+      ...config,
+      startDate: config.startDate && config.startDate < batchStartDate ? config.startDate : batchStartDate,
+      endDate: config.endDate && config.endDate > endDate ? config.endDate : endDate,
+      visitSlots: normalizeVisitSlots([...config.visitSlots, ...newSlots]),
+    });
+  };
+  const batchDayCount = getInclusiveCalendarDayCount(batchStartDate, batchEndDate || batchStartDate);
+  const batchSlotCount = batchDayCount * batchVisitsPerDay;
+
+  if (isHourly) {
     const quickPresets = [
-      { label: "Matin", visits: 1, times: ["09:00"] },
-      { label: "Matin + midi", visits: 2, times: ["09:00", "13:00"] },
-      { label: "Matin + midi + soir", visits: 3, times: ["09:00", "13:00", "18:00"] },
+      { label: "1 passage", helper: "Matin", visits: 1, times: ["09:00"] },
+      { label: "2 passages", helper: "Matin et midi", visits: 2, times: ["09:00", "13:00"] },
+      { label: "3 passages", helper: "Matin, midi et soir", visits: 3, times: ["09:00", "13:00", "18:00"] },
     ];
-
-    const updateVisitSlot = (idx: number, changes: Partial<VisitSlot>) => {
-      onChange({
-        ...config,
-        visitSlots: config.visitSlots.map((slot, i) => i === idx ? { ...slot, ...changes } : slot),
-      });
+    const setBatchDate = (date: string) => {
+      setBatchStartDate(date);
+      setBatchEndDate(date);
     };
-
-    const removeVisitSlot = (idx: number) => {
-      const nextSlots = config.visitSlots.filter((_, i) => i !== idx);
-      onChange({ ...config, visitSlots: nextSlots });
-    };
-
-    const normalizeVisitSlots = (slots: VisitSlot[]) => {
-      const byKey = new Map<string, VisitSlot>();
-      slots
-        .filter((slot) => slot.date)
-        .forEach((slot) => byKey.set(`${slot.date}-${slot.startTime}`, slot));
-      return sortVisitSlots([...byKey.values()]);
-    };
-
-    const addRangeSlots = () => {
-      const dates = buildDateRange(batchStartDate, batchEndDate || batchStartDate);
-      if (dates.length === 0) return;
-
-      const newSlots = dates.flatMap((date) =>
-        Array.from({ length: batchVisitsPerDay }, (_, i) => ({
-          date,
-          startTime: batchTimes[i] || defaultVisitTime,
-          duration: batchDuration,
-        }))
-      );
-
-      const existingSlots = config.visitSlots.filter((slot) => slot.date);
-      onChange({
-        ...config,
-        visitSlots: normalizeVisitSlots(batchMode === "APPEND" ? [...existingSlots, ...newSlots] : newSlots),
-      });
-    };
-
-    const addSingleSlot = (date?: string) => {
-      const slotDate = date || batchStartDate || today;
-      onChange({
-        ...config,
-        visitSlots: normalizeVisitSlots([
-          ...config.visitSlots,
-          {
-            date: slotDate,
-            startTime: batchTimes[0] || defaultVisitTime,
-            duration: batchDuration,
-          },
-        ]),
-      });
-    };
-
-    const updateAllDurations = (duration: number) => {
-      onChange({
-        ...config,
-        visitSlots: config.visitSlots.map((slot) => ({ ...slot, duration })),
-      });
-    };
-
-    const applyPreset = (preset: { visits: number; times: string[] }) => {
-      setBatchVisitsPerDay(preset.visits);
-      setBatchTimes((times) => {
-        const next = [...times];
-        preset.times.forEach((time, index) => {
-          next[index] = time;
-        });
-        return next;
-      });
-    };
-
-    if (isHourly) {
-        return (
-           <div className="space-y-5">
-               <div className="rounded-2xl border border-orange-100 bg-white p-4 space-y-4 shadow-sm">
-                   <div>
-                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                       <div>
-                         <p className="text-sm font-bold text-gray-950">Planning rapide</p>
-                         <p className="mt-1 text-xs leading-5 text-gray-500">
-                           Choisissez une période et un rythme, le site crée tous les passages.
-                         </p>
-                       </div>
-                       <div className="grid grid-cols-2 rounded-lg border border-gray-200 bg-gray-50 p-1 text-xs font-bold">
-                         <button
-                           type="button"
-                           onClick={() => setBatchMode("REPLACE")}
-                           className={`rounded-md px-3 py-2 ${batchMode === "REPLACE" ? "bg-gray-950 text-white" : "text-gray-600"}`}
-                         >
-                           Remplacer
-                         </button>
-                         <button
-                           type="button"
-                           onClick={() => setBatchMode("APPEND")}
-                           className={`rounded-md px-3 py-2 ${batchMode === "APPEND" ? "bg-gray-950 text-white" : "text-gray-600"}`}
-                         >
-                           Ajouter
-                         </button>
-                       </div>
-                     </div>
-
-                     <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                       {quickPresets.map((preset) => (
-                         <button
-                           key={preset.label}
-                           type="button"
-                           onClick={() => applyPreset(preset)}
-                           className={`rounded-lg border px-3 py-2 text-left text-sm font-bold transition ${
-                             batchVisitsPerDay === preset.visits
-                               ? "border-orange-500 bg-orange-50 text-orange-800"
-                               : "border-gray-200 text-gray-700 hover:border-gray-300"
-                           }`}
-                         >
-                           {preset.label}
-                         </button>
-                       ))}
-                     </div>
-                   </div>
-
-                   <div className="grid md:grid-cols-2 gap-3">
-                       <div>
-                           <Label>Du</Label>
-                           <Input type="date" min={today} className="bg-white" value={batchStartDate} onChange={(e) => {
-                             setBatchStartDate(e.target.value);
-                             if (!batchEndDate || batchEndDate < e.target.value) setBatchEndDate(e.target.value);
-                           }} />
-                       </div>
-                       <div>
-                           <Label>Au</Label>
-                           <Input type="date" min={batchStartDate || today} className="bg-white" value={batchEndDate} onChange={(e) => setBatchEndDate(e.target.value)} />
-                       </div>
-                   </div>
-
-                   <div className="grid md:grid-cols-[1fr_1fr_1.1fr] gap-3">
-                       <div>
-                           <Label>Passages / jour</Label>
-                           <select
-                             className="w-full h-10 rounded-md border border-gray-200 bg-white px-3 text-sm"
-                             value={batchVisitsPerDay}
-                             onChange={(e) => setBatchVisitsPerDay(Number(e.target.value))}
-                           >
-                             <option value={1}>1 passage</option>
-                             <option value={2}>2 passages</option>
-                             <option value={3}>3 passages</option>
-                           </select>
-                       </div>
-                       <div>
-                           <Label>Durée</Label>
-                           <select
-                             className="w-full h-10 rounded-md border border-gray-200 bg-white px-3 text-sm"
-                             value={batchDuration}
-                             onChange={(e) => setBatchDuration(Number(e.target.value))}
-                           >
-                             <option value={30}>30 min</option>
-                             <option value={60}>1 h</option>
-                           </select>
-                       </div>
-                       <div className="flex items-end">
-                           <Button type="button" className="w-full bg-orange-500 hover:bg-orange-600" onClick={addRangeSlots} disabled={!batchStartDate}>
-                             {batchMode === "REPLACE" ? "Générer le planning" : "Ajouter à la sélection"}
-                           </Button>
-                       </div>
-                   </div>
-
-                   <div className="grid md:grid-cols-3 gap-3">
-                       {Array.from({ length: batchVisitsPerDay }, (_, i) => (
-                         <div key={i}>
-                           <Label>Heure {i + 1}</Label>
-                           <Input
-                             type="time"
-                             className="bg-white"
-                             value={batchTimes[i] || defaultVisitTime}
-                             onChange={(e) => setBatchTimes((times) => {
-                               const next = [...times];
-                               next[i] = e.target.value;
-                               return next;
-                             })}
-                           />
-                         </div>
-                       ))}
-                   </div>
-               </div>
-
-               <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                       <div>
-                         <p className="text-sm font-bold text-gray-950">Passages sélectionnés</p>
-                         <p className="mt-1 text-xs text-gray-500">
-                           {selectedSlotItems.length > 0
-                             ? `${selectedSlotItems.length} passage${selectedSlotItems.length > 1 ? "s" : ""} sur ${selectedDateCount} jour${selectedDateCount > 1 ? "s" : ""}`
-                             : "Aucun passage généré pour le moment."}
-                         </p>
-                       </div>
-                       <div className="flex flex-wrap gap-2">
-                         <Button type="button" variant="outline" size="sm" onClick={() => updateAllDurations(30)} disabled={selectedSlotItems.length === 0}>
-                           Tout 30 min
-                         </Button>
-                         <Button type="button" variant="outline" size="sm" onClick={() => updateAllDurations(60)} disabled={selectedSlotItems.length === 0}>
-                           Tout 1 h
-                         </Button>
-                         <Button type="button" variant="outline" size="sm" onClick={() => addSingleSlot()}>
-                           + Passage
-                         </Button>
-                         <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...config, visitSlots: [] })} disabled={selectedSlotItems.length === 0}>
-                           Vider
-                         </Button>
-                       </div>
-                   </div>
-
-                   {selectedSlotItems.length === 0 ? (
-                     <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-center text-sm text-gray-600">
-                       Choisissez une période puis cliquez sur “Générer le planning”.
-                     </div>
-                   ) : (
-                     <div className="mt-4 space-y-3">
-                       {Object.entries(groupedSlots).map(([date, items]) => (
-                         <div key={date} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                           <div className="mb-3 flex items-center justify-between gap-3">
-                             <p className="font-bold text-gray-950">{formatShortDate(date)}</p>
-                             <Button type="button" variant="ghost" size="sm" onClick={() => addSingleSlot(date)}>
-                               + ce jour
-                             </Button>
-                           </div>
-                           <div className="grid gap-2 sm:grid-cols-2">
-                             {items.map(({ slot, index }) => (
-                               <div key={`${slot.date}-${slot.startTime}-${index}`} className="grid grid-cols-[1fr_92px_40px] gap-2">
-                                 <Input
-                                   type="time"
-                                   className="bg-white"
-                                   value={slot.startTime}
-                                   onChange={(e) => updateVisitSlot(index, { startTime: e.target.value })}
-                                 />
-                                 <select
-                                   className="h-10 rounded-md border border-gray-200 bg-white px-2 text-sm"
-                                   value={slot.duration}
-                                   onChange={(e) => updateVisitSlot(index, { duration: Number(e.target.value) })}
-                                 >
-                                   <option value={30}>30 min</option>
-                                   <option value={60}>1 h</option>
-                                 </select>
-                                 <Button type="button" variant="outline" size="icon" onClick={() => removeVisitSlot(index)} aria-label="Supprimer ce passage">
-                                   ×
-                                 </Button>
-                               </div>
-                             ))}
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-                   )}
-               </div>
-           </div>
-        );
-    }
-
-    if (isDayCare) {
-        const selectedDate = config.startDate || config.endDate;
-        const setSingleDate = (date: string) => onChange({
-          ...config,
-          startDate: date,
-          endDate: date,
-        });
-
-        return (
-          <div className="space-y-3">
-            <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <Label>Jour de garderie</Label>
-                <Input
-                  type="date"
-                  className="bg-white"
-                  value={selectedDate}
-                  onChange={(e) => setSingleDate(e.target.value)}
-                  min={today}
-                />
-              </div>
-              <div>
-                <Label>Arrivée</Label>
-                <Input type="time" className="bg-white" value={config.startTime} onChange={(e) => onChange({ ...config, startTime: e.target.value, endDate: config.startDate || selectedDate })} />
-              </div>
-              <div>
-                <Label>Départ</Label>
-                <Input type="time" className="bg-white" value={config.endTime} onChange={(e) => onChange({ ...config, endTime: e.target.value, endDate: config.startDate || selectedDate })} />
-              </div>
-            </div>
-            <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-orange-900">
-              La garderie de jour est verrouillée sur une seule journée. Pour plusieurs jours avec nuit, choisissez l&apos;hébergement.
+    return (
+      <div data-no-translate className="space-y-5">
+        <section className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-5 flex gap-3 border-b border-gray-100 pb-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700"><Sparkles className="size-5" /></div>
+            <div>
+              <h3 className="font-bold text-gray-950">{t("Composer le planning")}</h3>
+              <p className="mt-1 text-sm leading-5 text-gray-500">{t("Ajoutez un jour ponctuel ou plusieurs jours d’un coup. Vous pourrez ensuite ajuster chaque passage.")}</p>
             </div>
           </div>
-        );
-    }
+
+          <div className="space-y-5">
+            <div>
+              <Label className="mb-2 block">{t("Choisir rapidement")}</Label>
+              {renderDateShortcuts(batchStartDate, setBatchDate, () => {
+                setBatchStartDate(weekend.startDate);
+                setBatchEndDate(weekend.endDate);
+              })}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="batch-start-date">{t("Date de début")}</Label>
+                <Input id="batch-start-date" type="date" min={today} className="bg-white" value={batchStartDate} onChange={(event) => {
+                  setBatchStartDate(event.target.value);
+                  if (!batchEndDate || batchEndDate < event.target.value) setBatchEndDate(event.target.value);
+                }} />
+              </div>
+              <div>
+                <Label htmlFor="batch-end-date">{t("Date de fin")}</Label>
+                <Input id="batch-end-date" type="date" min={batchStartDate || today} className="bg-white" value={batchEndDate} onChange={(event) => setBatchEndDate(event.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label className="mb-2 block">{t("Rythme souhaité")}</Label>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {quickPresets.map((preset) => (
+                  <button key={preset.label} type="button" aria-pressed={batchVisitsPerDay === preset.visits} onClick={() => {
+                    setBatchVisitsPerDay(preset.visits);
+                    setBatchTimes((times) => times.map((time, index) => preset.times[index] || time));
+                  }} className={shortcutClass(batchVisitsPerDay === preset.visits)}>
+                    <span className="block">{t(preset.label)}</span>
+                    <span className="mt-0.5 block text-xs font-normal text-gray-500">{t(preset.helper)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="batch-duration">{t("Durée de chaque passage")}</Label>
+                <select id="batch-duration" className="h-11 w-full rounded-md border border-gray-200 bg-white px-3 text-sm" value={batchDuration} onChange={(event) => setBatchDuration(Number(event.target.value))}>
+                  <option value={30}>30 min</option><option value={60}>1 h</option><option value={90}>1 h 30</option><option value={120}>2 h</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {Array.from({ length: batchVisitsPerDay }, (_, index) => (
+                  <div key={index} className={batchVisitsPerDay === 1 ? "col-span-3" : ""}>
+                    <Label htmlFor={`batch-time-${index}`}>{batchVisitsPerDay === 1 ? t("Heure") : `${index + 1}`}</Label>
+                    <Input id={`batch-time-${index}`} type="time" className="bg-white" value={batchTimes[index] || defaultVisitTime} onChange={(event) => setBatchTimes((times) => {
+                      const next = [...times]; next[index] = event.target.value; return next;
+                    })} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {batchSlotCount > 0 && (
+              <p className="rounded-xl bg-orange-50 px-3 py-2 text-center text-sm font-medium text-orange-900">
+                {batchSlotCount} {t(batchSlotCount > 1 ? "passages prêts à être ajoutés" : "passage prêt à être ajouté")} · {batchDayCount} {t(batchDayCount > 1 ? "jours" : "jour")}
+              </p>
+            )}
+            <Button type="button" className="h-12 w-full rounded-xl bg-orange-500 font-bold hover:bg-orange-600" onClick={addRangeSlots} disabled={!batchStartDate || batchDayCount === 0}>
+              <Plus className="mr-2 size-4" />{t(config.visitSlots.length > 0 ? "Ajouter au planning" : "Créer le planning")}
+            </Button>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="font-bold text-gray-950">{t("Planning sélectionné")}</h3>
+              <p className="mt-1 text-xs text-gray-500">
+                {selectedSlotItems.length > 0
+                  ? `${selectedSlotItems.length} ${t(selectedSlotItems.length > 1 ? "passages" : "passage")} · ${selectedDateCount} ${t(selectedDateCount > 1 ? "jours" : "jour")}`
+                  : t("Aucun passage ajouté pour le moment.")}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => addSingleSlot()}><Plus className="mr-1 size-4" />{t("Passage")}</Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...config, startDate: "", endDate: "", visitSlots: [] })} disabled={selectedSlotItems.length === 0}><RotateCcw className="mr-1 size-4" />{t("Vider")}</Button>
+            </div>
+          </div>
+          {selectedSlotItems.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-5 text-center text-sm text-gray-600">{t("Choisissez une date et ajoutez-la au planning.")}</div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {Object.entries(groupedSlots).map(([date, items]) => (
+                <div key={date} className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="font-bold capitalize text-gray-950">{formatDate(date, { weekday: "long", day: "numeric", month: "long" })}</p>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => addSingleSlot(date)} aria-label={t("Ajouter un passage ce jour")}><Plus className="size-4" /></Button>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {items.map(({ slot, index }) => (
+                      <div key={`${slot.date}-${slot.startTime}-${index}`} className="grid grid-cols-[1fr_1fr_40px] gap-2">
+                        <Input type="time" aria-label={t("Heure du passage")} className="bg-white" value={slot.startTime} onChange={(event) => updateVisitSlot(index, { startTime: event.target.value })} />
+                        <select aria-label={t("Durée du passage")} className="h-10 rounded-md border border-gray-200 bg-white px-2 text-sm" value={slot.duration} onChange={(event) => updateVisitSlot(index, { duration: Number(event.target.value) })}>
+                          <option value={30}>30 min</option><option value={60}>1 h</option><option value={90}>1 h 30</option><option value={120}>2 h</option>
+                        </select>
+                        <Button type="button" variant="outline" size="icon" onClick={() => removeVisitSlot(index)} aria-label={t("Supprimer ce passage")}><Trash2 className="size-4" /></Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    );
+  }
+
+  if (isHouseSitting) {
+    const dayCount = getInclusiveCalendarDayCount(config.startDate, config.endDate);
+    const dailyDurationMinutes = calculateSameDayDurationMinutes(config);
+    const durationTier = getHouseSittingDurationTier(dailyDurationMinutes);
+    const datesValid = dayCount > 0;
+    const timeRangeValid = isPositiveSameDayTimeRange(config.startTime, config.endTime);
+    const schedulePresets = [
+      { label: "Demi-journée", helper: "08:00–13:00", startTime: "08:00", endTime: "13:00" },
+      { label: "Journée Disneyland", helper: "09:30–19:30", startTime: "09:30", endTime: "19:30" },
+      { label: "Soirée au parc", helper: "18:00–22:30", startTime: "18:00", endTime: "22:30" },
+      { label: "Disney + soirée", helper: "09:30–23:30", startTime: "09:30", endTime: "23:30" },
+    ];
+    const setHouseStartDate = (date: string) => onChange({
+      ...config,
+      startDate: date,
+      endDate: !config.endDate || config.endDate < date ? date : config.endDate,
+    });
+    const setSingleHouseDate = (date: string) => onChange({ ...config, startDate: date, endDate: date });
+    const setHouseDayCount = (days: number) => {
+      const startDate = config.startDate || today;
+      onChange({ ...config, startDate, endDate: addCalendarDays(startDate, days - 1) });
+    };
 
     return (
-       <div className="grid md:grid-cols-2 gap-4">
-           <div>
-               <Label>Début</Label>
-               <Input type="date" className="bg-white" value={config.startDate} onChange={(e) => onChange({...config, startDate: e.target.value})} min={today} />
-               <Input type="time" className="bg-white mt-2" value={config.startTime} onChange={(e) => onChange({...config, startTime: e.target.value})} />
-           </div>
-           <div>
-               <Label>Fin</Label>
-               <Input type="date" className="bg-white" value={config.endDate} onChange={(e) => onChange({...config, endDate: e.target.value})} min={config.startDate || today} />
-               <Input type="time" className="bg-white mt-2" value={config.endTime} onChange={(e) => onChange({...config, endTime: e.target.value})} />
-           </div>
-       </div>
+      <div data-no-translate className="space-y-5">
+        <section className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-5 flex gap-3 border-b border-gray-100 pb-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700"><CalendarDays className="size-5" /></div>
+            <div>
+              <h3 className="font-bold text-gray-950">{t("Planifier les journées de garde")}</h3>
+              <p className="mt-1 text-sm text-gray-500">{t("Choisissez une ou plusieurs journées. Les mêmes horaires seront appliqués chaque jour, sans nuitée.")}</p>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <div>
+              <Label className="mb-2 block">{t("Dates rapides")}</Label>
+              {renderDateShortcuts(config.startDate, setSingleHouseDate, () => onChange({ ...config, startDate: weekend.startDate, endDate: weekend.endDate }))}
+            </div>
+            <div>
+              <Label className="mb-2 block">{t("Nombre de journées")}</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map((days) => (
+                  <button key={days} type="button" className={shortcutClass(dayCount === days)} aria-pressed={dayCount === days} onClick={() => setHouseDayCount(days)}>
+                    {days} {t(days > 1 ? "journées" : "journée")}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="house-start-date">{t("Première journée")}</Label>
+                <Input id="house-start-date" type="date" min={today} className="bg-white" value={config.startDate} onChange={(event) => setHouseStartDate(event.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="house-end-date">{t("Dernière journée")}</Label>
+                <Input id="house-end-date" type="date" min={config.startDate || today} className="bg-white" value={config.endDate} onChange={(event) => onChange({ ...config, endDate: event.target.value })} />
+              </div>
+            </div>
+            <div>
+              <Label className="mb-2 block">{t("Horaires pratiques")}</Label>
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                {schedulePresets.map((preset) => {
+                  const selected = config.startTime === preset.startTime && config.endTime === preset.endTime;
+                  return (
+                    <button key={preset.label} type="button" aria-pressed={selected} className={shortcutClass(selected)} onClick={() => onChange({ ...config, startTime: preset.startTime, endTime: preset.endTime })}>
+                      <span className="block">{t(preset.label)}</span>
+                      <span className="block text-xs font-normal text-gray-500">{preset.helper}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label htmlFor="house-start-time">{t("Début chaque jour")}</Label><Input id="house-start-time" type="time" className="bg-white" value={config.startTime} onChange={(event) => onChange({ ...config, startTime: event.target.value })} /></div>
+              <div><Label htmlFor="house-end-time">{t("Fin chaque jour")}</Label><Input id="house-end-time" type="time" className="bg-white" value={config.endTime} onChange={(event) => onChange({ ...config, endTime: event.target.value })} /></div>
+            </div>
+          </div>
+        </section>
+
+        {datesValid && timeRangeValid && durationTier ? (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <span className="flex items-center gap-2"><CheckCircle2 className="size-4 shrink-0" /><strong>{dayCount} {t(dayCount > 1 ? "journées sélectionnées" : "journée sélectionnée")}</strong></span>
+              <span className="font-semibold">{formatElapsedDuration(dailyDurationMinutes)} {t("par jour")} · {t(durationTier.label)}</span>
+            </div>
+            <p className="mt-2 capitalize">{formatDate(config.startDate, { weekday: "long", day: "numeric", month: "long" })}{dayCount > 1 ? ` → ${formatDate(config.endDate, { weekday: "long", day: "numeric", month: "long" })}` : ""} · {config.startTime}–{config.endTime}</p>
+          </div>
+        ) : (config.startDate || config.endDate) && !timeRangeValid ? (
+          <div className="flex gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><AlertCircle className="mt-0.5 size-4 shrink-0" /><span>{t("La fin doit être après le début le même jour. Les créneaux de nuit ne sont pas acceptés.")}</span></div>
+        ) : null}
+
+        <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+          {t("Chaque date correspond à une garde en journée aux horaires choisis. Pour une présence pendant la nuit, choisissez l’hébergement.")}
+        </div>
+      </div>
     );
+  }
+
+  if (isSingleDayService) {
+    const selectedDate = config.startDate || config.endDate;
+    const durationMinutes = calculateServiceDurationMinutes({ ...config, startDate: selectedDate, endDate: selectedDate });
+    const timeRangeValid = isPositiveSameDayTimeRange(config.startTime, config.endTime);
+    const dayCareTooLong = durationMinutes > 600;
+    const schedulePresets = [
+      { label: "Dépose tôt", helper: "08:00–18:00", startTime: "08:00", endTime: "18:00" },
+      { label: "Journée standard", helper: "09:00–18:00", startTime: "09:00", endTime: "18:00" },
+      { label: "Dépose tard", helper: "10:00–18:00", startTime: "10:00", endTime: "18:00" },
+    ];
+    const setSingleDate = (date: string) => onChange({ ...config, startDate: date, endDate: date });
+
+    return (
+      <div data-no-translate className="space-y-5">
+        <section className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-5 flex gap-3 border-b border-gray-100 pb-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700"><CalendarDays className="size-5" /></div>
+            <div><h3 className="font-bold text-gray-950">{t("Choisir le jour de garderie")}</h3><p className="mt-1 text-sm text-gray-500">{t("Commencez par le jour, puis choisissez un créneau adapté à votre routine.")}</p></div>
+          </div>
+          <div className="space-y-5">
+            {renderDateShortcuts(selectedDate, setSingleDate)}
+            <div>
+              <Label htmlFor="single-service-date">{t("Jour de garderie")}</Label>
+              <Input id="single-service-date" type="date" className="bg-white" value={selectedDate} onChange={(event) => setSingleDate(event.target.value)} min={today} />
+            </div>
+            <div>
+              <Label className="mb-2 block">{t("Horaires pratiques")}</Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {schedulePresets.map((preset) => {
+                  const selected = config.startTime === preset.startTime && config.endTime === preset.endTime;
+                  return <button key={preset.label} type="button" aria-pressed={selected} className={shortcutClass(selected)} onClick={() => onChange({ ...config, startDate: selectedDate, endDate: selectedDate, startTime: preset.startTime, endTime: preset.endTime })}><span className="block">{t(preset.label)}</span><span className="block text-xs font-normal text-gray-500">{preset.helper}</span></button>;
+                })}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label htmlFor="single-start-time">{t("Heure de début")}</Label><Input id="single-start-time" type="time" className="bg-white" value={config.startTime} onChange={(event) => onChange({ ...config, startTime: event.target.value, startDate: selectedDate, endDate: selectedDate })} /></div>
+              <div><Label htmlFor="single-end-time">{t("Heure de fin")}</Label><Input id="single-end-time" type="time" className="bg-white" value={config.endTime} onChange={(event) => onChange({ ...config, endTime: event.target.value, startDate: selectedDate, endDate: selectedDate })} /></div>
+            </div>
+          </div>
+        </section>
+        {selectedDate && timeRangeValid && !dayCareTooLong ? (
+          <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-center gap-2"><CheckCircle2 className="size-4" /><span><strong className="capitalize">{formatDate(selectedDate, { weekday: "long", day: "numeric", month: "long" })}</strong> · {formatElapsedDuration(durationMinutes)}</span></span>
+          </div>
+        ) : selectedDate && (!timeRangeValid || dayCareTooLong) ? (
+          <div className="flex gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><AlertCircle className="mt-0.5 size-4 shrink-0" /><span>{t(dayCareTooLong ? "La garderie est limitée à 10 heures par jour. Ajustez l’heure de début ou de fin." : "L’heure de fin doit être postérieure à l’heure de début.")}</span></div>
+        ) : null}
+        <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+          {t("La garderie de jour est limitée à une seule journée et à 10 heures. Pour plusieurs jours avec nuit, choisissez l’hébergement.")}
+        </div>
+      </div>
+    );
+  }
+
+  const stayNights = getCalendarDayDifference(config.startDate, config.endDate);
+  const stayValid = stayNights > 0;
+  const setBoardingStart = (date: string) => onChange({
+    ...config,
+    startDate: date,
+    endDate: !config.endDate || config.endDate <= date ? addCalendarDays(date, 1) : config.endDate,
+  });
+  const setStayLength = (nights: number) => {
+    const startDate = config.startDate || today;
+    onChange({ ...config, startDate, endDate: addCalendarDays(startDate, nights), startTime: config.startTime || "18:00", endTime: config.endTime || boardingCheckoutTime });
+  };
+  return (
+    <div data-no-translate className="space-y-5">
+      <section className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-5 flex gap-3 border-b border-gray-100 pb-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700"><MoonStar className="size-5" /></div>
+          <div><h3 className="font-bold text-gray-950">{t("Planifier le séjour")}</h3><p className="mt-1 text-sm text-gray-500">{t("Choisissez l’arrivée et le départ. Une nuit minimum est nécessaire.")}</p></div>
+        </div>
+        <div className="space-y-5">
+          <div><Label className="mb-2 block">{t("Arrivée rapide")}</Label>{renderDateShortcuts(config.startDate, setBoardingStart, () => onChange({ ...config, startDate: weekend.startDate, endDate: weekend.endDate, startTime: "18:00", endTime: boardingCheckoutTime }))}</div>
+          <div>
+            <Label className="mb-2 block">{t("Durée du séjour")}</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 7].map((nights) => <button key={nights} type="button" className={shortcutClass(stayNights === nights)} aria-pressed={stayNights === nights} onClick={() => setStayLength(nights)}>{nights} {t(nights > 1 ? "nuits" : "nuit")}</button>)}
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <Label htmlFor="boarding-start-date">{t("Arrivée")}</Label>
+              <Input id="boarding-start-date" type="date" className="mt-1 bg-white" value={config.startDate} onChange={(event) => setBoardingStart(event.target.value)} min={today} />
+              <Label htmlFor="boarding-start-time" className="mt-3">{t("Heure d’arrivée")}</Label>
+              <Input id="boarding-start-time" type="time" className="mt-1 bg-white" value={config.startTime} onChange={(event) => onChange({ ...config, startTime: event.target.value })} />
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <Label htmlFor="boarding-end-date">{t("Départ")}</Label>
+              <Input id="boarding-end-date" type="date" className="mt-1 bg-white" value={config.endDate} onChange={(event) => onChange({ ...config, endDate: event.target.value })} min={config.startDate ? addCalendarDays(config.startDate, 1) : tomorrow} />
+              <Label htmlFor="boarding-end-time" className="mt-3">{t("Heure de départ")}</Label>
+              <Input id="boarding-end-time" type="time" className="mt-1 bg-white" value={config.endTime} onChange={(event) => onChange({ ...config, endTime: event.target.value })} />
+            </div>
+          </div>
+        </div>
+      </section>
+      {stayValid && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-950">
+          <div className="flex items-center gap-2 text-sm font-bold"><CheckCircle2 className="size-4" />{stayNights} {t(stayNights > 1 ? "nuits sélectionnées" : "nuit sélectionnée")}</div>
+          <p className="mt-1 text-sm capitalize">{formatDate(config.startDate, { weekday: "long", day: "numeric", month: "long" })} {t("à")} {config.startTime} → {formatDate(config.endDate, { weekday: "long", day: "numeric", month: "long" })} {t("à")} {config.endTime}</p>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default function BookingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useLanguage();
 
   // États
   const [step, setStep] = useState(1);
@@ -577,8 +669,7 @@ export default function BookingPage() {
   const [priceIssueSent, setPriceIssueSent] = useState(false);
   const [priceIssueError, setPriceIssueError] = useState("");
 
-  // Modale Upsell
-  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
 
   // Disponibilités (Global status)
   const [availabilityStatus, setAvailabilityStatus] = useState<{
@@ -627,94 +718,41 @@ export default function BookingPage() {
 
   // Initialize pet configs when pets change
   useEffect(() => {
-    const initialConfig: Record<string, DateConfig> = {};
-    formData.petIds.forEach(id => {
-       if (!petConfigs[id]) {
-           initialConfig[id] = {
-               startDate: formData.startDate,
-               endDate: formData.endDate,
-               startTime: formData.startTime,
-               endTime: formData.endTime,
-               visitSlots: [...visitSlots]
-           };
-       } else {
-           initialConfig[id] = petConfigs[id];
-       }
+    setPetConfigs((currentConfigs) => {
+      const initialConfig: Record<string, DateConfig> = {};
+      formData.petIds.forEach((id) => {
+        initialConfig[id] = currentConfigs[id] || {
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          visitSlots: [...visitSlots],
+        };
+      });
+      return initialConfig;
     });
-    setPetConfigs(initialConfig);
-  }, [formData.petIds, useSameDates]); // Re-sync when switching mode
-
-  // Crédits utilisateur
-  const [creditBalances, setCreditBalances] = useState<Record<string, number>>({});
-  const userCredits = creditBalances[formData.serviceType] || 0;
+  }, [
+    formData.endDate,
+    formData.endTime,
+    formData.petIds,
+    formData.startDate,
+    formData.startTime,
+    useSameDates,
+    visitSlots,
+  ]); // Re-sync when switching mode
 
   useEffect(() => {
-    const fetchCredits = async () => {
+    const fetchPremiumStatus = async () => {
       try {
-        const res = await fetch("/api/user/credits");
+        const res = await fetch("/api/user/subscription");
         if (res.ok) {
           const data = await res.json();
-          setCreditBalances(data.byService || {});
+          setIsPremium(Boolean(data.premium?.isPremium));
         }
-      } catch (e) {}
+      } catch {}
     };
-    if (session?.user) fetchCredits();
+    if (session?.user) fetchPremiumStatus();
   }, [session]);
-
-  const calculateCreditCost = () => {
-      if (isHourlyService(formData.serviceType)) {
-          return useSameDates
-            ? getValidVisitSlots(visitSlots).length * formData.petIds.length
-            : Object.values(petConfigs).reduce((sum, c) => sum + getValidVisitSlots(c.visitSlots).length, 0);
-      }
-      // Services à la date = 1 crédit par unité tarifée et par animal.
-      const duration = calculateMaxDuration();
-      return duration * formData.petIds.length;
-  };
-
-  const getSubscriptionComparison = () => {
-      if (!isSubscriptionService(formData.serviceType)) return null;
-      if (formData.petIds.length === 0 || formData.petIds.length > 3) return null;
-
-      const creditCost = calculateCreditCost();
-      const cashTotal = couponStatus.applied && couponStatus.data
-        ? couponStatus.data.finalAmount
-        : calculateTotalPrice();
-
-      if (creditCost <= 0 || cashTotal <= 0) return null;
-
-      const petCount = formData.petIds.length;
-      const serviceType = formData.serviceType as SubscriptionServiceType;
-      const recommendedDaysPerWeek = clamp(Math.ceil(creditCost / (4 * petCount)), 1, 5);
-      const buildPlan = (billingCycle: SubscriptionBillingCycle) => {
-        const plan = calculateSubscriptionPlan({
-          serviceType,
-          daysPerWeek: recommendedDaysPerWeek,
-          petCount,
-          billingCycle,
-        });
-        const equivalentReservationCost = plan.effectiveCreditPrice * creditCost;
-        return {
-          ...plan,
-          equivalentReservationCost,
-          savingsOnReservation: Math.max(0, cashTotal - equivalentReservationCost),
-        };
-      };
-
-      const monthly = buildPlan("MONTHLY");
-      const yearly = buildPlan("YEARLY");
-
-      return {
-        creditCost,
-        cashTotal,
-        petCount,
-        serviceType,
-        serviceLabel: SUBSCRIPTION_SERVICES[serviceType].creditLabel,
-        recommendedDaysPerWeek,
-        monthly,
-        yearly,
-      };
-  };
 
   // Coupons
   const [couponStatus, setCouponStatus] = useState<{
@@ -725,7 +763,7 @@ export default function BookingPage() {
       coupon: {
         code: string;
         description?: string | null;
-        discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+        discountType: "PERCENTAGE" | "FIXED_AMOUNT" | "CUSTOM_TOTAL";
         discountValue: number;
       };
       discountAmount: number;
@@ -740,6 +778,7 @@ export default function BookingPage() {
     data: null,
     error: "",
   });
+  const autoCouponAppliedRef = useRef("");
 
   // --- LOGIQUE ---
 
@@ -758,6 +797,29 @@ export default function BookingPage() {
     if (session?.user) fetchPets();
   }, [session]);
 
+  useEffect(() => {
+    const fetchAutoCoupon = async () => {
+      try {
+        const res = await fetch("/api/coupons/auto");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.autoCoupon?.code) return;
+
+        setFormData((prev) => prev.promoCode ? prev : { ...prev, promoCode: data.autoCoupon.code });
+        setCouponStatus((prev) => ({ ...prev, isAuto: true }));
+      } catch {}
+    };
+
+    if (session?.user) fetchAutoCoupon();
+  }, [session]);
+
+  useEffect(() => {
+    const hasSelectedCat = pets.some((pet) => formData.petIds.includes(pet.id) && pet.species === "CAT");
+    if (formData.serviceType === "DOG_WALKING" && hasSelectedCat) {
+      setFormData((prev) => ({ ...prev, serviceType: "BOARDING" }));
+    }
+  }, [formData.petIds, formData.serviceType, pets]);
+
   // Reset visit slots when service changes
   useEffect(() => {
     const defaultTimes = serviceDefaultTimes[formData.serviceType];
@@ -766,26 +828,30 @@ export default function BookingPage() {
         ...prev,
         startTime: defaultTimes.startTime,
         endTime: defaultTimes.endTime,
-        endDate: formData.serviceType === "DAY_CARE" ? prev.startDate : prev.endDate,
+        endDate: isSingleDayServiceType(formData.serviceType) ? prev.startDate : prev.endDate,
       }));
     }
 
     setVisitSlots([createEmptyVisitSlot()]);
 
     // Reset configs
-    const newConfigs = { ...petConfigs };
-    Object.keys(newConfigs).forEach(k => {
-        if (defaultTimes) {
-          newConfigs[k].startTime = defaultTimes.startTime;
-          newConfigs[k].endTime = defaultTimes.endTime;
-        }
-        newConfigs[k].visitSlots = [createEmptyVisitSlot()];
+    setPetConfigs((currentConfigs) => {
+      const newConfigs = { ...currentConfigs };
+      Object.keys(newConfigs).forEach((key) => {
+        newConfigs[key] = {
+          ...newConfigs[key],
+          ...(defaultTimes
+            ? { startTime: defaultTimes.startTime, endTime: defaultTimes.endTime }
+            : {}),
+          visitSlots: [createEmptyVisitSlot()],
+        };
+      });
+      return newConfigs;
     });
-    setPetConfigs(newConfigs);
   }, [formData.serviceType]);
 
   useEffect(() => {
-    if (formData.serviceType !== "DAY_CARE") return;
+    if (!isSingleDayServiceType(formData.serviceType)) return;
     if (!formData.startDate || formData.endDate === formData.startDate) return;
     setFormData((prev) => ({ ...prev, endDate: prev.startDate }));
   }, [formData.serviceType, formData.startDate, formData.endDate]);
@@ -816,6 +882,22 @@ export default function BookingPage() {
 
       if (configsToCheck.length === 0) { resetAvailability(); return; }
 
+      const selectionIsComplete = configsToCheck.every(({ config }) => {
+        if (isHourlyService(formData.serviceType)) return getValidVisitSlots(config.visitSlots).length > 0;
+        if (!config.startDate || !config.endDate) return false;
+        if (formData.serviceType === "HOUSE_SITTING") {
+          return getInclusiveCalendarDayCount(config.startDate, config.endDate) > 0
+            && calculateSameDayDurationMinutes(config) > 0;
+        }
+        const durationMinutes = calculateServiceDurationMinutes(config);
+        if (isOvernightServiceType(formData.serviceType)) {
+          return getCalendarDayDifference(config.startDate, config.endDate) > 0 && durationMinutes > 0;
+        }
+        if (durationMinutes <= 0) return false;
+        return formData.serviceType !== "DAY_CARE" || durationMinutes <= 600;
+      });
+      if (!selectionIsComplete) { resetAvailability(); return; }
+
       setAvailabilityStatus(p => ({ ...p, checking: true }));
       let allAvailable = true;
       let globalMessage = "";
@@ -823,24 +905,6 @@ export default function BookingPage() {
 
       for (const item of configsToCheck) {
           const { config } = item;
-
-          // Validation de base des dates
-          if (isHourlyService(formData.serviceType)) {
-              if (getValidVisitSlots(config.visitSlots).length === 0) {
-                  // Pas bloquant si vide au début, mais bloquant pour la soumission
-                  continue;
-              }
-          } else {
-              if (!config.startDate || !config.endDate) {
-                  // Incomplet = pas prêt
-                  continue;
-              }
-              if (new Date(config.endDate) < new Date(config.startDate)) {
-                  allAvailable = false;
-                  globalMessage = "Dates incorrectes (Fin avant Début)";
-                  break; // Stop checking, strict fail
-              }
-          }
 
           try {
              let datesToCheck: string[] = [];
@@ -854,9 +918,17 @@ export default function BookingPage() {
 
              const start = isHourlyService(formData.serviceType) ? datesToCheck[0] : config.startDate;
              const end = isHourlyService(formData.serviceType) ? datesToCheck[datesToCheck.length-1] : config.endDate;
-             const datesParam = isHourlyService(formData.serviceType) ? `&dates=${datesToCheck.join(",")}` : "";
+             const params = new URLSearchParams({
+               startDate: start,
+               endDate: end,
+               serviceType: formData.serviceType,
+             });
+             if (isHourlyService(formData.serviceType)) {
+               params.set("dates", datesToCheck.join(","));
+               params.set("slots", JSON.stringify(getValidVisitSlots(config.visitSlots)));
+             }
 
-             const res = await fetch(`/api/availability/check?startDate=${start}&endDate=${end}&serviceType=${formData.serviceType}${datesParam}`);
+             const res = await fetch(`/api/availability/check?${params.toString()}`);
              if (res.ok) {
                  const data = await res.json();
                  if (!data.available) {
@@ -868,13 +940,13 @@ export default function BookingPage() {
                  allAvailable = false;
                  globalMessage = "Erreur vérification";
              }
-          } catch(e) { allAvailable = false; globalMessage = "Erreur connexion"; }
+          } catch { allAvailable = false; globalMessage = "Erreur connexion"; }
       }
 
       if (allAvailable && globalMessage === "") {
-          setAvailabilityStatus({ checking: false, available: true, message: "✅ Disponible", unavailableDates: [] });
+          setAvailabilityStatus({ checking: false, available: true, message: "Créneau disponible", unavailableDates: [] });
       } else {
-          setAvailabilityStatus({ checking: false, available: false, message: globalMessage || "❌ Indisponible", unavailableDates: allUnavailableDates });
+          setAvailabilityStatus({ checking: false, available: false, message: globalMessage || "Créneau indisponible", unavailableDates: allUnavailableDates });
       }
     };
 
@@ -920,20 +992,28 @@ export default function BookingPage() {
       } else {
           if (!config.startDate || !config.endDate) return { ...emptyDetail, isPuppy: isYoung };
 
-          const start = new Date(`${config.startDate}T${config.startTime}`);
-          const end = new Date(`${config.endDate}T${config.endTime}`);
-
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) return { ...emptyDetail, isPuppy: isYoung };
-
-          const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-          if (totalHours <= 0) return { ...emptyDetail, isPuppy: isYoung };
-
-          if (isOvernightServiceType(formData.serviceType)) {
-              if (getCalendarDayDifference(config.startDate, config.endDate) <= 0) return { ...emptyDetail, isPuppy: isYoung };
-              breakdown = "nuits";
-          } else {
-              if (getInclusiveCalendarDayCount(config.startDate, config.endDate) <= 0) return { ...emptyDetail, isPuppy: isYoung };
+          if (formData.serviceType === "HOUSE_SITTING") {
+              if (calculateSameDayDurationMinutes(config) <= 0 || getInclusiveCalendarDayCount(config.startDate, config.endDate) <= 0) {
+                  return { ...emptyDetail, isPuppy: isYoung };
+              }
               breakdown = "jours";
+          } else {
+
+              const start = new Date(`${config.startDate}T${config.startTime}`);
+              const end = new Date(`${config.endDate}T${config.endTime}`);
+
+              if (isNaN(start.getTime()) || isNaN(end.getTime())) return { ...emptyDetail, isPuppy: isYoung };
+
+              const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+              if (totalHours <= 0) return { ...emptyDetail, isPuppy: isYoung };
+
+              if (isOvernightServiceType(formData.serviceType)) {
+                  if (getCalendarDayDifference(config.startDate, config.endDate) <= 0) return { ...emptyDetail, isPuppy: isYoung };
+                  breakdown = "nuits";
+              } else {
+                  if (getInclusiveCalendarDayCount(config.startDate, config.endDate) <= 0) return { ...emptyDetail, isPuppy: isYoung };
+                  breakdown = "jours";
+              }
           }
       }
 
@@ -1037,6 +1117,10 @@ export default function BookingPage() {
   };
 
   const getHourlyDurationSummary = () => {
+      if (formData.serviceType === "DROP_IN") {
+        return "Durées disponibles : 30 min, 1 h, 1 h 30 ou 2 h maximum";
+      }
+
       const extra = EXTRA_DURATION[formData.serviceType as "DROP_IN" | "DOG_WALKING"];
       return extra
         ? `${extra.baseDuration} min inclus, +${extra.extraRate}€ par ${extra.increment} min supplémentaire`
@@ -1051,7 +1135,7 @@ export default function BookingPage() {
 
       return Object.entries(counts)
         .sort(([a], [b]) => Number(a) - Number(b))
-        .map(([duration, count]) => `${count} x ${duration} min`)
+        .map(([duration, count]) => `${count} x ${formatVisitDuration(Number(duration))}`)
         .join(" · ");
   };
 
@@ -1063,7 +1147,7 @@ export default function BookingPage() {
       }
 
       if (!formData.startDate || !formData.endDate) return "Dates non renseignées";
-      if (formData.serviceType === "DAY_CARE") return formData.startDate;
+      if (isSingleDayServiceType(formData.serviceType)) return formData.startDate;
       return `${formData.startDate} au ${formData.endDate}`;
   };
 
@@ -1124,11 +1208,16 @@ export default function BookingPage() {
           const newIds = exists
               ? prev.petIds.filter(pid => pid !== id)
               : [...prev.petIds, id];
-          return { ...prev, petIds: newIds };
+          const hasSelectedCat = newIds.some((petId) => pets.find((pet) => pet.id === petId)?.species === "CAT");
+          return {
+            ...prev,
+            petIds: newIds,
+            serviceType: prev.serviceType === "DOG_WALKING" && hasSelectedCat ? "BOARDING" : prev.serviceType,
+          };
       });
   };
 
-  const validateCoupon = async () => {
+  const validateCoupon = async (codeOverride?: string, isAuto = false) => {
       const price = calculateTotalPrice();
 
       if (!useSameDates) {
@@ -1136,7 +1225,9 @@ export default function BookingPage() {
           return;
       }
 
-      if (!formData.promoCode) {
+      const codeToValidate = (codeOverride || formData.promoCode).trim().toUpperCase();
+
+      if (!codeToValidate) {
           setCouponStatus(p => ({ ...p, error: "Code requis" }));
           return;
       }
@@ -1153,21 +1244,45 @@ export default function BookingPage() {
         const res = await fetch("/api/coupons/validate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: formData.promoCode, totalAmount: price, serviceType: formData.serviceType, duration }),
+            body: JSON.stringify({ code: codeToValidate, totalAmount: price, serviceType: formData.serviceType, duration }),
         });
         const data = await res.json();
 
         if (res.ok) {
-            setCouponStatus({ applied: true, loading: false, isAuto: couponStatus.isAuto, data: data, error: "" });
+            setFormData((prev) => ({ ...prev, promoCode: codeToValidate }));
+            setCouponStatus({ applied: true, loading: false, isAuto, data: data, error: "" });
         } else {
             setCouponStatus({ applied: false, loading: false, isAuto: false, data: null, error: data.error || "Code invalide" });
         }
-      } catch (e) {
+      } catch {
           setCouponStatus(p => ({ ...p, loading: false, error: "Erreur de connexion" }));
       }
   };
 
-  const handleSubmit = async (e?: React.FormEvent, payWithCredits = false) => {
+  useEffect(() => {
+    if (!couponStatus.isAuto || couponStatus.applied || couponStatus.loading || !formData.promoCode) return;
+    if (autoCouponAppliedRef.current === formData.promoCode) return;
+    if (calculateTotalPrice() <= 0) return;
+
+    autoCouponAppliedRef.current = formData.promoCode;
+    void validateCoupon(formData.promoCode, true);
+    // The dependency list intentionally follows only inputs that change the coupon price.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    couponStatus.applied,
+    couponStatus.isAuto,
+    couponStatus.loading,
+    formData.promoCode,
+    formData.serviceType,
+    formData.startDate,
+    formData.endDate,
+    formData.startTime,
+    formData.endTime,
+    formData.petIds,
+    visitSlots,
+  ]);
+
+  const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsLoading(true);
     setError("");
@@ -1195,7 +1310,6 @@ export default function BookingPage() {
             totalPrice: price,
             depositAmount: price,
             notes: formData.notes,
-            useCredits: payWithCredits,
             promoCode: formData.promoCode,
             serviceDetails: isHourlyService(formData.serviceType)
               ? { visitSlots: getValidVisitSlots(visitSlots), serviceAddress: formData.serviceAddress }
@@ -1211,7 +1325,7 @@ export default function BookingPage() {
             if (!pet || !config) continue;
 
             const details = calculatePriceDetailForPet(config, pet);
-            const finalPrice = payWithCredits ? 0 : details.total * discountRatio;
+            const finalPrice = details.total * discountRatio;
 
             let startDate = config.startDate;
             let endDate = config.endDate;
@@ -1231,7 +1345,6 @@ export default function BookingPage() {
                 totalPrice: finalPrice,
                 depositAmount: finalPrice,
                 notes: formData.notes,
-                useCredits: payWithCredits,
                 promoCode: formData.promoCode,
                 serviceDetails: isHourlyService(formData.serviceType)
                   ? { visitSlots: getValidVisitSlots(config.visitSlots), serviceAddress: formData.serviceAddress }
@@ -1253,18 +1366,14 @@ export default function BookingPage() {
              createdBookingIds.push(data.booking.id);
         }
 
-        if (payWithCredits) {
-            window.location.href = `/booking/success?bookingId=${createdBookingIds[0]}`;
-        } else {
-            const resCheckout = await fetch("/api/stripe/checkout", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ bookingIds: createdBookingIds, promoCode: formData.promoCode || undefined }),
-            });
-            const dataCheckout = await resCheckout.json();
-            if (!resCheckout.ok) throw new Error(dataCheckout.error);
-            window.location.href = dataCheckout.checkoutUrl;
-        }
+        const resCheckout = await fetch("/api/stripe/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingIds: createdBookingIds, promoCode: formData.promoCode || undefined }),
+        });
+        const dataCheckout = await resCheckout.json();
+        if (!resCheckout.ok) throw new Error(dataCheckout.error);
+        window.location.href = dataCheckout.checkoutUrl;
 
     } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Erreur de connexion");
@@ -1272,13 +1381,18 @@ export default function BookingPage() {
     }
   };
 
-  const today = new Date().toISOString().split("T")[0];
-
   if (status === "loading" || status === "unauthenticated") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>;
 
-  const selectedPetsList = pets.filter(p => formData.petIds.includes(p.id));
-  const currentPetName = selectedPetsList.length > 0 ? selectedPetsList.map(p => p.name).join(", ") : "votre compagnon";
-  const subscriptionComparison = getSubscriptionComparison();
+  const subtotalAfterCoupon = couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice();
+  const hasCustomTotalCoupon = couponStatus.applied && couponStatus.data?.coupon.discountType === "CUSTOM_TOTAL";
+  const premiumPricing = isPremium && !hasCustomTotalCoupon ? calculatePremiumDiscount(subtotalAfterCoupon) : null;
+  const premiumPreviewPricing = !hasCustomTotalCoupon ? calculatePremiumDiscount(subtotalAfterCoupon) : null;
+  const finalDisplayedTotal = premiumPricing?.finalAmount ?? subtotalAfterCoupon;
+  const estimatedPaws = calculatePawsEarned(finalDisplayedTotal, isPremium);
+  const standardPaws = calculatePawsEarned(subtotalAfterCoupon, false);
+  const premiumPreviewTotal = premiumPricing?.finalAmount ?? premiumPreviewPricing?.finalAmount ?? subtotalAfterCoupon;
+  const premiumPreviewSavings = premiumPricing?.discountAmount ?? premiumPreviewPricing?.discountAmount ?? 0;
+  const premiumPreviewPaws = calculatePawsEarned(premiumPreviewTotal, true);
 
   // Navigation helpers
   const goNext = () => { setDirection(1); setStep(step + 1); };
@@ -1332,100 +1446,6 @@ export default function BookingPage() {
           </div>
         )}
 
-        {/* Upsell Modal */}
-        <AnimatePresence>
-            {showUpsellModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                        onClick={() => setShowUpsellModal(false)}
-                    />
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.9, opacity: 0 }}
-                        className="relative z-10 bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl"
-                    >
-                        <button type="button" onClick={() => setShowUpsellModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
-
-                        <div className="text-center mb-6">
-                            <span className="text-4xl">🐺</span>
-                            <h3 className="text-2xl font-bold text-gray-900 mt-2">Le Club La Meute</h3>
-                            <p className="text-gray-500">Comparez et économisez sur cette réservation</p>
-                        </div>
-
-                        {subscriptionComparison ? (
-                          <>
-                        <div className="grid grid-cols-2 gap-4 text-center mb-8">
-                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                <p className="text-sm text-gray-500 mb-1">Paiement direct</p>
-                                <p className="text-xl font-bold text-gray-900">{formatPrice(subscriptionComparison.cashTotal)}€</p>
-                                <p className="mt-1 text-[10px] text-gray-500">Cette réservation seule</p>
-                            </div>
-                            <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
-                                <p className="text-sm text-orange-600 font-bold mb-1">Avec abonnement</p>
-                                <p className="text-2xl font-bold text-orange-700">{formatPrice(subscriptionComparison.monthly.equivalentReservationCost)}€</p>
-                                <p className="mt-1 text-[10px] text-orange-600">
-                                  {subscriptionComparison.creditCost} crédits x {formatPrice(subscriptionComparison.monthly.effectiveCreditPrice)}€
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mb-8 rounded-2xl border border-orange-100 bg-orange-50/60 p-4 text-sm text-gray-700">
-                          <div className="flex justify-between gap-4">
-                            <span>Formule conseillée</span>
-                            <strong className="text-right text-gray-950">
-                              {subscriptionComparison.recommendedDaysPerWeek} jour{subscriptionComparison.recommendedDaysPerWeek > 1 ? "s" : ""}/semaine
-                            </strong>
-                          </div>
-                          <div className="mt-2 flex justify-between gap-4">
-                            <span>Coût de la formule</span>
-                            <strong className="text-right text-gray-950">
-                              {formatPrice(subscriptionComparison.monthly.monthlyPrice)}€/mois
-                            </strong>
-                          </div>
-                          <div className="mt-2 flex justify-between gap-4 text-green-700">
-                            <span>Économie sur cette réservation</span>
-                            <strong className="text-right">
-                              {formatPrice(subscriptionComparison.monthly.savingsOnReservation)}€
-                            </strong>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3 mb-8">
-                            <div className="flex items-center gap-3 text-sm text-gray-700">
-                                <span className="text-green-500 font-bold">✓</span>
-                                <span>{subscriptionComparison.monthly.creditsPerMonth} crédits inclus chaque mois</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-gray-700">
-                                <span className="text-green-500 font-bold">✓</span>
-                                <span>Prix par crédit : {formatPrice(subscriptionComparison.monthly.effectiveCreditPrice)}€ au lieu du tarif à la carte</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-gray-700">
-                                <span className="text-green-500 font-bold">✓</span>
-                                <span>Option annuelle : {formatPrice(subscriptionComparison.yearly.amountDueNow)}€ pour {subscriptionComparison.yearly.creditsPerMonth * 12} crédits</span>
-                            </div>
-                        </div>
-                          </>
-                        ) : (
-                          <div className="mb-8 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                            Finalisez vos dates pour comparer le paiement direct avec les formules Club La Meute.
-                          </div>
-                        )}
-
-                        <Link href="/subscriptions">
-                            <Button className="w-full h-12 bg-gray-900 hover:bg-orange-600 text-white font-bold rounded-xl shadow-lg">
-                                Voir les abonnements
-                            </Button>
-                        </Link>
-                    </motion.div>
-                </div>
-            )}
-        </AnimatePresence>
-
         {/* Card Form */}
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1476,21 +1496,44 @@ export default function BookingPage() {
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Quel service ? 🏠</h2>
                     <div className="grid md:grid-cols-2 gap-4">
                       {serviceTypes.map((s) => {
-                        const isDisabled = s.maxPets < formData.petIds.length;
+                        const displayPrice = getServiceDisplayPrice(s.value);
+                        const selectedPets = pets.filter((pet) => formData.petIds.includes(pet.id));
+                        const hasSelectedCat = selectedPets.some((pet) => pet.species === "CAT");
+                        const isCatWalkRequestOnly = s.value === "DOG_WALKING" && hasSelectedCat;
+                        const isMaxPetsDisabled = s.maxPets < formData.petIds.length;
+                        const isDisabled = isMaxPetsDisabled || isCatWalkRequestOnly;
                         return (
                         <div key={s.value} onClick={() => !isDisabled && setFormData({ ...formData, serviceType: s.value })}
                           className={`relative p-6 rounded-2xl border-2 transition-all ${isDisabled ? "opacity-50 cursor-not-allowed bg-gray-50" : "cursor-pointer hover:border-gray-300"} ${!isDisabled && formData.serviceType === s.value ? "border-orange-500 bg-orange-50" : "border-gray-100"}`}
                         >
-                          {isDisabled && <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full">Max {s.maxPets}</div>}
+                          {isMaxPetsDisabled && <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full">Max {s.maxPets}</div>}
+                          {isCatWalkRequestOnly && <div className="absolute top-2 right-2 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-full">Chat sur demande</div>}
                           <div className="text-3xl mb-2">{s.icon}</div>
                           <div>
                             <h3 className="font-bold text-gray-900">{s.name}</h3>
-                            <div className="flex gap-3 mt-1 text-sm">
-                              <span className="text-orange-600 font-bold">🐕 {getServiceDisplayPrice(s.value).dogPrice}€</span>
-                              <span className="text-blue-600 font-bold">🐈 {getServiceDisplayPrice(s.value).catPrice}€</span>
-                              <span className="text-gray-400">/ {getServiceDisplayPrice(s.value).unit}</span>
-                            </div>
+                            {s.value === "HOUSE_SITTING" ? (
+                              <div className="mt-1 space-y-2 text-sm">
+                                <p data-no-translate className="font-bold text-emerald-700">{t("À partir de")} {displayPrice.dogPrice} €</p>
+                                <div className="grid gap-1 text-xs text-gray-600 sm:grid-cols-3">
+                                  {HOUSE_SITTING_DURATION_TIERS.map((tier) => (
+                                    <span data-no-translate key={tier.label}>{t(tier.label)} : 🐕 {tier.prices.DOG} € · 🐈 {tier.prices.CAT} €</span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div data-no-translate className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm">
+                                <span className="text-orange-600 font-bold">🐕 {displayPrice.dogPrice}€</span>
+                                <span className="text-blue-600 font-bold">
+                                  🐈 {displayPrice.catRequestOnly ? t("sur demande") : `${displayPrice.catPrice}€`}
+                                </span>
+                                <span className="text-gray-400">/ {t(displayPrice.unit)}</span>
+                                {displayPrice.durationMinutes && (
+                                  <span className="text-gray-500">{displayPrice.durationMinutes} min</span>
+                                )}
+                              </div>
+                            )}
                           </div>
+                          <p className="mt-3 text-sm leading-5 text-gray-500">{s.description}</p>
                         </div>
                       )})}
                     </div>
@@ -1564,11 +1607,25 @@ export default function BookingPage() {
                        </div>
                      )}
 
-                     {availabilityStatus.message && (
-                        <div className={`text-center text-sm font-bold ${availabilityStatus.available ? "text-green-600" : "text-red-500"}`}>
-                          {availabilityStatus.checking ? "Vérification..." : availabilityStatus.message}
-                        </div>
-                      )}
+                     {(availabilityStatus.checking || availabilityStatus.message) && (
+                       <div role="status" aria-live="polite" className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${availabilityStatus.checking
+                         ? "border-blue-200 bg-blue-50 text-blue-900"
+                         : availabilityStatus.available
+                           ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                           : "border-red-200 bg-red-50 text-red-800"}`}>
+                         {availabilityStatus.checking
+                           ? <LoaderCircle className="mt-0.5 size-5 shrink-0 animate-spin" />
+                           : availabilityStatus.available
+                             ? <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+                             : <AlertCircle className="mt-0.5 size-5 shrink-0" />}
+                         <div>
+                           <p className="font-bold">{t(availabilityStatus.checking ? "Vérification des disponibilités…" : availabilityStatus.message)}</p>
+                           {!availabilityStatus.checking && availabilityStatus.unavailableDates.length > 0 && (
+                             <p className="mt-1 font-normal">{t("Dates concernées")} : {availabilityStatus.unavailableDates.map((date) => formatShortDate(date)).join(", ")}</p>
+                           )}
+                         </div>
+                       </div>
+                     )}
                  </div>
 
                  {/* Total Price Bar */}
@@ -1591,14 +1648,19 @@ export default function BookingPage() {
                                 )}
                              </div>
                          </div>
-                         {!isHourlyService(formData.serviceType) && (
                              <div className="flex flex-col items-end gap-1">
+                                 <p className="max-w-56 text-right text-[11px] leading-4 text-orange-200">
+                                   5 premiers nouveaux clients : <strong>BIENVENUE10</strong> (-10 %, cumulable avec Premium)
+                                 </p>
                                  <div className="flex gap-2">
                                      <Input
                                         placeholder="PROMO"
                                         className="w-24 bg-white/10 border-none text-white placeholder:text-gray-500 uppercase"
                                         value={formData.promoCode}
-                                        onChange={(e) => setFormData({...formData, promoCode: e.target.value.toUpperCase()})}
+                                        onChange={(e) => {
+                                          setFormData({...formData, promoCode: e.target.value.toUpperCase()});
+                                          setCouponStatus({ applied: false, loading: false, isAuto: false, data: null, error: "" });
+                                        }}
                                         onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); validateCoupon(); } }}
                                      />
                                      <button
@@ -1611,14 +1673,13 @@ export default function BookingPage() {
                                  </div>
                                  {couponStatus.applied && couponStatus.data && (
                                    <p className="text-green-400 text-xs font-bold">
-                                     -{formatPrice(couponStatus.data.discountAmount)}€
+                                     {couponStatus.data.message || `-${formatPrice(couponStatus.data.discountAmount)}€`}
                                    </p>
                                  )}
                                  {couponStatus.error && (
                                     <p className="text-red-400 text-xs font-bold">{couponStatus.error}</p>
                                  )}
                              </div>
-                         )}
                      </div>
                  )}
 
@@ -1649,6 +1710,19 @@ export default function BookingPage() {
                             {formData.serviceAddress}
                           </div>
                         )}
+                        {formData.serviceType === "HOUSE_SITTING" && (() => {
+                          const durationMinutes = calculateSameDayDurationMinutes(formData);
+                          const durationTier = getHouseSittingDurationTier(durationMinutes);
+                          const dayCount = getInclusiveCalendarDayCount(formData.startDate, formData.endDate);
+                          if (!durationTier) return null;
+                          return (
+                            <div className="mb-4 rounded-xl border border-emerald-200 bg-white/80 px-4 py-3 text-sm text-gray-700">
+                              <p><span className="font-bold text-gray-900">Journées : </span>{dayCount} · {formData.startDate}{dayCount > 1 ? ` au ${formData.endDate}` : ""}</p>
+                              <p className="mt-1"><span className="font-bold text-gray-900">Horaires quotidiens : </span>{formData.startTime}–{formData.endTime} · {formatElapsedDuration(durationMinutes)} · <span data-no-translate>{t(durationTier.label)}</span></p>
+                              <p className="mt-1 text-xs text-gray-500">Aucune nuitée incluse.</p>
+                            </div>
+                          );
+                        })()}
                         <div className="space-y-4 text-sm text-gray-700">
                             {formData.petIds.map(id => {
                                 const pet = pets.find(p => p.id === id);
@@ -1665,6 +1739,15 @@ export default function BookingPage() {
                                   line.type === "surcharge" &&
                                   line.label !== "Durée prolongée"
                                 ) || [];
+                                const uniformVisitDuration = isHourlyService(formData.serviceType) && selectedSlots.length > 0
+                                  ? selectedSlots.every((slot) => slot.duration === selectedSlots[0].duration)
+                                  : false;
+                                const mergedHourlyUnitPrice = uniformVisitDuration
+                                  ? details.total / selectedSlots.length
+                                  : 0;
+                                const mergedHourlyDateSummary = uniformVisitDuration
+                                  ? formatDateKeyRanges(selectedSlots.map((slot) => slot.date))
+                                  : "";
 
                                 return (
                                     <div key={id} className="border-b border-orange-200 pb-4">
@@ -1681,7 +1764,24 @@ export default function BookingPage() {
                                             )}
                                           </div>
 
-                                          {rateLines.map((line, idx) => {
+                                          {uniformVisitDuration ? (
+                                            <div className="flex items-start justify-between gap-4 text-xs text-gray-700">
+                                              <div className="min-w-0">
+                                                <p className="font-semibold text-gray-900">
+                                                  Visite {pet.species === "CAT" ? "chat" : "chien"} de {formatVisitDuration(selectedSlots[0].duration)}
+                                                </p>
+                                                <p className="mt-0.5 text-gray-500">
+                                                  {selectedSlots.length} visite{selectedSlots.length > 1 ? "s" : ""} x {formatPrice(mergedHourlyUnitPrice)}€
+                                                </p>
+                                                {mergedHourlyDateSummary && (
+                                                  <p className="mt-0.5 text-orange-700">
+                                                    Dates concernées : {mergedHourlyDateSummary}
+                                                  </p>
+                                                )}
+                                              </div>
+                                              <span className="shrink-0 font-semibold text-gray-900">{formatPrice(details.total)}€</span>
+                                            </div>
+                                          ) : rateLines.map((line, idx) => {
                                             const dateSummary = formatDateKeyRanges(line.dateKeys);
                                             return (
                                               <div key={`${line.label}-${idx}`} className="flex items-start justify-between gap-4 text-xs text-gray-700">
@@ -1707,7 +1807,7 @@ export default function BookingPage() {
                                             </div>
                                           )}
 
-                                          {durationExtraTotal > 0 && (
+                                          {!uniformVisitDuration && durationExtraTotal > 0 && (
                                             <div className="flex justify-between gap-4 text-xs text-orange-600">
                                               <span>Supplément durée prolongée</span>
                                               <span>+{formatPrice(durationExtraTotal)}€</span>
@@ -1760,9 +1860,62 @@ export default function BookingPage() {
                                 </div>
                             )}
 
+                            {premiumPricing && premiumPricing.discountAmount > 0 && (
+                                <div className="flex justify-between text-orange-700 font-bold">
+                                    <span>Avantage Premium (-10%)</span>
+                                    <span>-{formatPrice(premiumPricing.discountAmount)}€</span>
+                                </div>
+                            )}
+
                             <div className="flex justify-between pt-2 border-t border-orange-200 mt-2">
                                 <span className="font-bold text-xl text-gray-900">Total à payer</span>
-                                <strong className="text-xl text-green-600">{formatPrice(couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice())}€</strong>
+                                <strong className="text-xl text-green-600">{formatPrice(finalDisplayedTotal)}€</strong>
+                            </div>
+
+                            <div className="overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-white via-orange-50 to-amber-50 text-sm text-gray-800 shadow-sm">
+                                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-bold uppercase tracking-wide text-orange-700">
+                                          {isPremium ? "Premium actif" : "Fidélité & Premium"}
+                                        </p>
+                                        <p className="mt-1 text-lg font-extrabold text-gray-950">
+                                          {estimatedPaws} Pattes sur cette réservation
+                                        </p>
+                                        <p className="mt-1 text-xs leading-5 text-gray-600">
+                                            {isPremium
+                                              ? `Vous économisez ${formatPrice(premiumPreviewSavings)}€ et vos Pattes sont doublées.`
+                                              : hasCustomTotalCoupon
+                                                ? `Avec Premium : ${premiumPreviewPaws} Pattes. Le tarif personnalisé reste à ${formatPrice(subtotalAfterCoupon)}€.`
+                                                : `Avec Premium : ${formatPrice(premiumPreviewSavings)}€ économisés et ${premiumPreviewPaws} Pattes.`}
+                                        </p>
+                                    </div>
+
+                                    {!isPremium && (
+                                      <Link href="/subscriptions" className="shrink-0 rounded-xl bg-gray-950 px-4 py-3 text-center text-sm font-bold text-white shadow-sm hover:bg-orange-600">
+                                        Passer Premium
+                                      </Link>
+                                    )}
+                                </div>
+
+                                <div className="grid border-t border-amber-200/70 bg-white/70 text-xs sm:grid-cols-2">
+                                  <div className="p-4">
+                                    <p className="font-bold text-gray-500">Sans Premium</p>
+                                    <p className="mt-1 text-base font-extrabold text-gray-950">{formatPrice(subtotalAfterCoupon)}€</p>
+                                    <p className="mt-1 text-gray-600">{standardPaws} Pattes</p>
+                                  </div>
+                                  <div className="border-t border-amber-200/70 p-4 sm:border-l sm:border-t-0">
+                                    <p className="font-bold text-orange-700">Avec Premium</p>
+                                    <p className="mt-1 text-base font-extrabold text-gray-950">
+                                      {formatPrice(premiumPreviewTotal)}€
+                                      {!hasCustomTotalCoupon && premiumPreviewSavings > 0 && (
+                                        <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                                          -{formatPrice(premiumPreviewSavings)}€
+                                        </span>
+                                      )}
+                                    </p>
+                                    <p className="mt-1 text-gray-600">{premiumPreviewPaws} Pattes</p>
+                                  </div>
+                                </div>
                             </div>
 
                             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
@@ -1789,95 +1942,8 @@ export default function BookingPage() {
                                 </div>
                             </div>
 
-                            {/* Crédits */}
-                            {isSubscriptionService(formData.serviceType) && userCredits > 0 && (
-                                <div className="mt-4 p-4 bg-gray-900 rounded-xl text-white">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="font-bold">Vos crédits : {userCredits}</span>
-                                        <span className="text-xs bg-white/20 px-2 py-1 rounded">Coût : {calculateCreditCost()} crédits</span>
-                                    </div>
-                                    {userCredits >= calculateCreditCost() ? (
-                                        <Button
-                                            type="button"
-                                            onClick={() => handleSubmit(undefined, true)} // Pass true for credit payment
-                                            className="w-full bg-white text-gray-900 hover:bg-gray-200 font-bold"
-                                        >
-                                            Utiliser mes crédits (0€)
-                                        </Button>
-                                    ) : (
-                                        <p className="text-xs text-gray-400">Solde insuffisant pour payer en crédits.</p>
-                                    )}
-                                </div>
-                            )}
                         </div>
                     </div>
-
-                    {/* Upsell Abonnement */}
-                    {subscriptionComparison && userCredits < calculateCreditCost() && (
-                        <div className="relative overflow-hidden rounded-2xl bg-gray-950 p-6 text-white shadow-lg">
-                            <div className="relative z-10 space-y-5">
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                  <div>
-                                    <p className="text-xs font-bold uppercase tracking-wider text-orange-400">Bon plan</p>
-                                    <h4 className="text-lg font-bold">Comparer avant de payer</h4>
-                                    <p className="text-sm text-gray-300 mt-1">
-                                        Cette réservation coûte {formatPrice(subscriptionComparison.cashTotal)}€ en paiement direct. Avec une formule, elle consommerait {subscriptionComparison.creditCost} crédits.
-                                    </p>
-                                  </div>
-                                  <Button size="sm" onClick={() => setShowUpsellModal(true)} className="whitespace-nowrap bg-white text-gray-900 hover:bg-orange-50">
-                                      Détail
-                                  </Button>
-                                </div>
-
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                  <div className="rounded-xl border border-white/10 bg-white/10 p-4">
-                                    <p className="text-xs text-gray-300">Paiement direct</p>
-                                    <p className="mt-1 text-2xl font-bold">{formatPrice(subscriptionComparison.cashTotal)}€</p>
-                                    {couponStatus.applied && (
-                                      <p className="mt-1 text-xs text-gray-400">Code promo inclus</p>
-                                    )}
-                                  </div>
-                                  <div className="rounded-xl border border-orange-300/40 bg-orange-300/10 p-4">
-                                    <p className="text-xs text-orange-200">Équivalent abonnement</p>
-                                    <p className="mt-1 text-2xl font-bold text-orange-100">
-                                      {formatPrice(subscriptionComparison.monthly.equivalentReservationCost)}€
-                                    </p>
-                                    <p className="mt-1 text-xs text-orange-100">
-                                      soit {formatPrice(subscriptionComparison.monthly.savingsOnReservation)}€ d&apos;économie
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-gray-200 sm:flex-row sm:items-center sm:justify-between">
-                                  <span>
-                                    Formule conseillée : {subscriptionComparison.recommendedDaysPerWeek} jour{subscriptionComparison.recommendedDaysPerWeek > 1 ? "s" : ""}/semaine, {subscriptionComparison.monthly.creditsPerMonth} crédits/mois.
-                                  </span>
-                                  <Link href="/subscriptions" className="shrink-0 rounded-lg bg-white px-4 py-2 text-center text-sm font-bold text-gray-950 hover:bg-orange-50">
-                                    Voir les abonnements
-                                  </Link>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {!subscriptionComparison && calculateTotalPrice() > 0 && formData.petIds.length > 3 && (
-                        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                              <div>
-                                <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Abonnement</p>
-                                <h4 className="mt-1 text-lg font-bold text-gray-950">
-                                  Formule personnalisée à demander
-                                </h4>
-                                <p className="mt-1 text-sm leading-6 text-gray-600">
-                                  Les abonnements standards couvrent jusqu&apos;à 3 animaux. Pour cette réservation, demandez une vérification avant de payer.
-                                </p>
-                              </div>
-                              <Link href="/subscriptions" className="shrink-0 rounded-lg border border-gray-300 px-4 py-3 text-center text-sm font-bold text-gray-900 hover:bg-gray-50">
-                                Voir les formules
-                              </Link>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Validation légale */}
                     <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
@@ -1889,7 +1955,7 @@ export default function BookingPage() {
                             className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
                         />
                         <label htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
-                            J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions Générales de Vente</Link> et la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de Confidentialité</Link>. Je reconnais que l&apos;annulation est gratuite jusqu&apos;à 48h avant le début de la garde.
+                            J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions Générales de Vente</Link> et la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de Confidentialité</Link>. Je reconnais que l&apos;annulation est gratuite jusqu&apos;à 48h avant le début de la garde, ou 24h avec Premium.
                         </label>
                     </div>
 
@@ -1974,7 +2040,7 @@ export default function BookingPage() {
                     <Label>Ce qui vous semble incorrect</Label>
                     <textarea
                       className="mt-2 h-28 w-full resize-none rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm outline-none focus:ring-2 focus:ring-orange-500"
-                      placeholder="Exemple : j'ai choisi une date hors haute saison, ou le supplément 1h me semble doublé..."
+                      placeholder="Exemple : le supplément 1h me semble doublé, ou je souhaite vérifier le total affiché..."
                       value={priceIssueDescription}
                       onChange={(event) => setPriceIssueDescription(event.target.value)}
                     />

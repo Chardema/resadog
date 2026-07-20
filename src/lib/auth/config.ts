@@ -53,7 +53,7 @@ export const authConfig = {
             role: user.role,
             image: user.image,
           };
-        } catch (error) {
+        } catch {
           return null;
         }
       },

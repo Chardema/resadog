@@ -1,4 +1,4 @@
-export type VisitSlot = {
+type VisitSlot = {
   date: string;
   startTime: string;
   duration: number;

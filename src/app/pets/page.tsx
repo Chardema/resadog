@@ -3,17 +3,32 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
+import {
+  Cat,
+  Dog,
+  HeartPulse,
+  Pencil,
+  Plus,
+  Scale,
+  ShieldCheck,
+  Trash2,
+  type LucideIcon,
+} from "lucide-react";
 import { AppNav } from "@/components/layout/AppNav";
 import { formatPetAge } from "@/lib/pets";
 
 interface Pet {
   id: string;
   name: string;
+  species?: "DOG" | "CAT" | null;
   breed?: string | null;
   age?: number | null;
+  weight?: number | null;
   gender?: string | null;
+  spayedNeutered?: boolean | null;
   imageUrl?: string | null;
 }
 
@@ -47,9 +62,7 @@ export default function PetsPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${name} ? 😢`)) {
-      return;
-    }
+    if (!confirm(`Supprimer définitivement le profil de ${name} ?`)) return;
 
     setDeleteError("");
     try {
@@ -58,7 +71,7 @@ export default function PetsPage() {
       });
 
       if (response.ok) {
-        setPets(pets.filter((p) => p.id !== id));
+        setPets((currentPets) => currentPets.filter((pet) => pet.id !== id));
       } else {
         const data = await response.json().catch(() => null);
         setDeleteError(data?.error || "Impossible de supprimer ce profil.");
@@ -71,138 +84,220 @@ export default function PetsPage() {
 
   if (status === "loading" || isLoading) {
     return (
-      <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center">
-        <div className="text-6xl animate-bounce">🐾</div>
+      <div className="flex min-h-screen items-center justify-center bg-[#FDFbf7]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-200 border-t-orange-600" />
       </div>
     );
   }
 
+  const completeProfiles = pets.filter((pet) => pet.age !== null && pet.age !== undefined && pet.weight).length;
+  const missingDetails = Math.max(0, pets.length - completeProfiles);
+
   return (
-    <div className="min-h-screen bg-[#FDFbf7] pb-20">
+    <div className="min-h-screen bg-[#FDFbf7] pb-24">
       <AppNav userName={session?.user?.name} />
 
-      {/* Background Ambience */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[10%] left-[20%] w-[400px] h-[400px] bg-orange-200/20 rounded-full blur-[100px]" />
-      </div>
-
-      <div className="container mx-auto px-6 pt-32 relative z-10">
+      <main className="container relative z-10 mx-auto px-4 pt-6 sm:px-6 md:pt-32">
         {deleteError && (
           <div role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
             {deleteError}
           </div>
         )}
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
+
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <motion.h1 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-4xl font-extrabold text-gray-900 mb-2"
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-2 text-sm font-bold uppercase tracking-wide text-orange-600"
             >
-              Mes Compagnons 🐾
+              Profils animaux
+            </motion.p>
+            <motion.h1
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-3xl font-extrabold text-gray-950 md:text-5xl"
+            >
+              Mes compagnons
             </motion.h1>
-            <p className="text-gray-500 text-lg">Gérez les profils de vos animaux</p>
+            <p className="mt-2 max-w-2xl text-base text-gray-600 md:text-lg">
+              Centralisez les informations utiles avant une garde : âge, poids, santé, habitudes et contacts.
+            </p>
           </div>
-          
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+
+          <Link
+            href="/pets/new"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-orange-600"
           >
-            <Link href="/pets/new" className="inline-flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-full font-bold shadow-xl hover:bg-orange-600 transition-colors">
-              <span className="text-xl">+</span> Ajouter un animal
-            </Link>
-          </motion.div>
+            <Plus className="h-4 w-4" />
+            Ajouter un animal
+          </Link>
         </div>
+
+        <section className="mb-6 grid gap-3 md:grid-cols-3">
+          <SummaryCard label="Animaux" value={pets.length} />
+          <SummaryCard label="Profils complets" value={completeProfiles} tone="green" />
+          <SummaryCard label="À compléter" value={missingDetails} tone={missingDetails > 0 ? "amber" : "green"} />
+        </section>
 
         {pets.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-[2rem] border border-gray-100 shadow-xl p-16 text-center max-w-2xl mx-auto"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-auto max-w-2xl rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm"
           >
-            <div className="text-8xl mb-6 grayscale opacity-50">🐾</div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              C&apos;est un peu vide ici...
-            </h3>
-            <p className="text-gray-500 mb-8 max-w-md mx-auto">
-              Ajoutez le profil de votre premier compagnon pour pouvoir effectuer des réservations plus rapidement.
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-md bg-orange-100 text-orange-700">
+              <Dog className="h-7 w-7" />
+            </div>
+            <h2 className="text-2xl font-extrabold text-gray-950">Aucun profil animal</h2>
+            <p className="mx-auto mt-2 max-w-md text-gray-600">
+              Ajoutez votre premier compagnon pour remplir les réservations plus vite et transmettre les bonnes informations.
             </p>
-            <Link 
+            <Link
               href="/pets/new"
-              className="bg-orange-100 text-orange-700 px-8 py-3 rounded-xl font-bold hover:bg-orange-200 transition-colors"
+              className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-5 py-2 text-sm font-bold text-white hover:bg-orange-600"
             >
+              <Plus className="h-4 w-4" />
               Créer un profil
             </Link>
           </motion.div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid gap-4 lg:grid-cols-2">
             {pets.map((pet, index) => (
-              <motion.div
+              <PetCard
                 key={pet.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                whileHover={{ y: -10, rotateZ: index % 2 === 0 ? 1 : -1 }}
-                className="group relative bg-white rounded-[2.5rem] p-6 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden"
-              >
-                {/* Image / Avatar */}
-                <div className="aspect-square rounded-[2rem] bg-gradient-to-br from-orange-50 to-orange-100 mb-6 overflow-hidden relative shadow-inner">
-                  {pet.imageUrl ? (
-                    <img
-                      src={pet.imageUrl}
-                      alt={pet.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-8xl">
-                      🐾
-                    </div>
-                  )}
-                  
-                  {/* Badge Genre */}
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-700 shadow-sm">
-                    {pet.gender === "MALE" ? "♂ Mâle" : pet.gender === "FEMALE" ? "♀ Femelle" : "?"}
-                  </div>
-                </div>
-
-                {/* Infos */}
-                <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-1 group-hover:text-orange-600 transition-colors">
-                    {pet.name}
-                  </h3>
-                  <p className="text-gray-500 font-medium">
-                    {pet.breed || "Race inconnue"} • {formatPetAge(pet.age)}
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="grid grid-cols-3 gap-3 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 md:translate-y-4 md:group-hover:translate-y-0">
-                  <Link
-                    href={`/pets/${pet.id}/health`}
-                    className="flex items-center justify-center py-2.5 rounded-xl bg-green-50 hover:bg-green-100 text-green-700 font-semibold text-sm transition-colors"
-                  >
-                    🏥 Santé
-                  </Link>
-                  <Link
-                    href={`/pets/${pet.id}/edit`}
-                    className="flex items-center justify-center py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm transition-colors"
-                  >
-                    ✏️ Modifier
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(pet.id, pet.name)}
-                    className="flex items-center justify-center py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-sm transition-colors"
-                  >
-                    🗑️ Supprimer
-                  </button>
-                </div>
-              </motion.div>
+                pet={pet}
+                index={index}
+                onDelete={() => handleDelete(pet.id, pet.name)}
+              />
             ))}
           </div>
         )}
+      </main>
+    </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  tone = "gray",
+}: {
+  label: string;
+  value: number;
+  tone?: "gray" | "green" | "amber";
+}) {
+  const toneClasses = {
+    gray: "border-gray-200 bg-white text-gray-900",
+    green: "border-emerald-100 bg-emerald-50 text-emerald-900",
+    amber: "border-amber-100 bg-amber-50 text-amber-900",
+  }[tone];
+
+  return (
+    <div className={`rounded-lg border p-4 shadow-sm ${toneClasses}`}>
+      <p className="text-2xl font-extrabold">{value}</p>
+      <p className="mt-1 text-xs font-bold uppercase tracking-wide opacity-70">{label}</p>
+    </div>
+  );
+}
+
+function PetCard({
+  pet,
+  index,
+  onDelete,
+}: {
+  pet: Pet;
+  index: number;
+  onDelete: () => void;
+}) {
+  const SpeciesIcon = pet.species === "CAT" ? Cat : Dog;
+  const hasAge = pet.age !== null && pet.age !== undefined;
+  const hasWeight = Boolean(pet.weight);
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: index * 0.04 }}
+      className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+    >
+      <div className="grid gap-4 sm:grid-cols-[7rem_minmax(0,1fr)]">
+        <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-lg bg-orange-50 text-orange-700">
+          {pet.imageUrl ? (
+            <Image src={pet.imageUrl} alt={pet.name} fill sizes="112px" className="object-cover" />
+          ) : (
+            <SpeciesIcon className="h-10 w-10" />
+          )}
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="truncate text-2xl font-extrabold text-gray-950">{pet.name}</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                {pet.breed || "Race non renseignée"} · {pet.species === "CAT" ? "Chat" : "Chien"}
+              </p>
+            </div>
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700">
+              <SpeciesIcon className="h-3.5 w-3.5" />
+              {pet.gender === "MALE" ? "Mâle" : pet.gender === "FEMALE" ? "Femelle" : "Genre inconnu"}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <InfoPill icon={HeartPulse} label="Âge" value={hasAge ? formatPetAge(pet.age) : "À compléter"} warn={!hasAge} />
+            <InfoPill icon={Scale} label="Poids" value={hasWeight ? `${pet.weight} kg` : "À compléter"} warn={!hasWeight} />
+            <InfoPill icon={ShieldCheck} label="Stérilisé" value={pet.spayedNeutered ? "Oui" : "Non / inconnu"} />
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <Link
+              href={`/pets/${pet.id}/health`}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800 hover:bg-emerald-100"
+            >
+              <HeartPulse className="h-4 w-4" />
+              Santé
+            </Link>
+            <Link
+              href={`/pets/${pet.id}/edit`}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-gray-100 px-3 py-2 text-sm font-bold text-gray-800 hover:bg-gray-200"
+            >
+              <Pencil className="h-4 w-4" />
+              Modifier
+            </Link>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-100"
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer
+            </button>
+          </div>
+        </div>
       </div>
+    </motion.article>
+  );
+}
+
+function InfoPill({
+  icon: Icon,
+  label,
+  value,
+  warn,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  warn?: boolean;
+}) {
+  return (
+    <div className={`rounded-md border p-3 ${warn ? "border-amber-200 bg-amber-50" : "border-gray-100 bg-gray-50"}`}>
+      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-gray-500">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </p>
+      <p className={`mt-1 truncate text-sm font-bold ${warn ? "text-amber-800" : "text-gray-900"}`}>{value}</p>
     </div>
   );
 }

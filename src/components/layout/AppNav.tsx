@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -14,11 +15,13 @@ interface AppNavProps {
 
 export function AppNav({ userName }: AppNavProps) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   
   const finalUserName = userName || session?.user?.name;
   const userRole = session?.user?.role;
-  const isAuthenticated = Boolean(finalUserName || session?.user?.id);
+  const hasSessionUser = Boolean(finalUserName || session?.user?.id);
+  const isAuthenticated = hasSessionUser || status === "authenticated";
+  const canAccessAdmin = userRole === "ADMIN" || userRole === "SITTER";
 
   const navLinks = [
     { href: "/dashboard", label: "Accueil", icon: Home },
@@ -27,34 +30,47 @@ export function AppNav({ userName }: AppNavProps) {
     { href: "/profile", label: "Profil", icon: UserRound },
   ];
 
-  if (userRole === "ADMIN" || userRole === "SITTER") {
+  if (canAccessAdmin) {
     navLinks.push({ href: "/admin/dashboard", label: "Admin", icon: Shield });
   }
 
   if (!isAuthenticated) {
     return (
       <motion.header
-        initial={{ y: -80 }}
+        initial={false}
         animate={{ y: 0 }}
+        data-app-nav="true"
         className="fixed left-2 right-2 top-2 z-50 sm:left-4 sm:right-4 sm:top-4"
       >
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white/95 px-2 py-2 shadow-lg shadow-orange-900/5 backdrop-blur-xl sm:rounded-full sm:px-3">
           <Link href="/" className="flex items-center gap-2 group min-w-0">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-orange-600 text-white shadow-sm sm:rounded-full">
-              <PawPrint className="h-5 w-5" />
+            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md border border-orange-100 bg-[#FDFBF7] shadow-sm sm:rounded-full">
+              <Image
+                src="/logo-mark.png"
+                width={36}
+                height={36}
+                alt=""
+                className="h-full w-full object-cover"
+              />
             </div>
-            <span className="hidden truncate font-bold text-gray-900 min-[350px]:inline">
-              <span className="sm:hidden">La Patte</span>
-              <span className="hidden sm:inline">La Patte Dorée</span>
+              <span className="hidden truncate font-bold text-gray-900 min-[350px]:inline">
+              <span className="app-nav-public-short">La Patte</span>
+              <span className="app-nav-public-full">La Patte Dorée</span>
             </span>
           </Link>
 
-          <nav className="hidden sm:flex items-center gap-1 text-sm font-semibold">
+          <nav className="app-nav-public-menu items-center gap-1 text-sm font-semibold">
             <Link
               href="/concept"
               className="px-4 py-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-white/70 transition-colors"
             >
               Concept
+            </Link>
+            <Link
+              href="/garde-chien-disneyland-paris"
+              className="px-4 py-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-white/70 transition-colors"
+            >
+              Services
             </Link>
             <Link
               href="/subscriptions"
@@ -75,8 +91,8 @@ export function AppNav({ userName }: AppNavProps) {
               href="/auth/signup"
               className="rounded-md bg-gray-950 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-orange-600 sm:rounded-full sm:px-4"
             >
-              <span className="sm:hidden">Créer</span>
-              <span className="hidden sm:inline">S’inscrire</span>
+              <span className="app-nav-public-short">Créer</span>
+              <span className="app-nav-public-full">S’inscrire</span>
             </Link>
           </div>
         </div>
@@ -86,23 +102,27 @@ export function AppNav({ userName }: AppNavProps) {
 
   return (
     <>
-      {/* --- DESKTOP NAV (Floating Top) --- */}
-      <motion.div
-        initial={{ y: -100 }}
+      <motion.header
+        initial={false}
         animate={{ y: 0 }}
-        className="hidden md:flex fixed top-6 left-0 right-0 z-50 justify-center px-4 pointer-events-none"
+        data-app-nav="true"
+        className="fixed left-2 right-2 top-2 z-50 pointer-events-none md:left-0 md:right-0 md:top-6 md:flex md:justify-center md:px-4"
       >
-        <div className="bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg shadow-orange-900/5 rounded-full px-2 py-2 flex items-center gap-4 pointer-events-auto">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 px-2 group">
-            <div className="bg-gradient-to-br from-orange-400 to-amber-600 text-white w-9 h-9 rounded-full flex items-center justify-center text-sm shadow-md group-hover:rotate-12 transition-transform">
-              🐾
+        <div className="pointer-events-auto mx-auto flex w-full max-w-5xl items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white/95 px-2 py-2 shadow-lg shadow-orange-900/5 backdrop-blur-xl md:w-auto md:rounded-full md:border-white/50 md:bg-white/80 md:px-2">
+          <Link href="/dashboard" className="flex min-w-0 items-center gap-2 px-0 md:px-2 group">
+            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md border border-orange-100 bg-[#FDFBF7] shadow-sm transition-transform group-hover:rotate-6 md:rounded-full">
+              <Image
+                src="/logo-mark.png"
+                width={36}
+                height={36}
+                alt=""
+                className="h-full w-full object-cover"
+              />
             </div>
-            <span className="font-bold text-gray-800 tracking-tight">La Patte Dorée</span>
+            <span className="truncate font-bold tracking-tight text-gray-900 md:text-gray-800">La Patte Dorée</span>
           </Link>
 
-          {/* Links */}
-          <div className="flex items-center bg-gray-100/50 rounded-full p-1">
+          <nav aria-label="Navigation principale" className="app-nav-desktop-only items-center rounded-full bg-gray-100/50 p-1">
             {navLinks.map((link) => {
               const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
               const Icon = link.icon;
@@ -129,24 +149,55 @@ export function AppNav({ userName }: AppNavProps) {
                 </Link>
               );
             })}
-          </div>
+          </nav>
 
-          {/* User */}
-          <div className="flex items-center gap-3 pl-2 pr-2">
-            <div className="text-xs font-medium text-gray-500 text-right leading-tight">
+          <div className="app-nav-desktop-only items-center gap-3 pl-2 pr-2">
+            <div className="text-right text-xs font-medium leading-tight text-gray-500">
               <div>Bonjour</div>
-              <div className="text-gray-900 font-bold truncate max-w-[100px]">{finalUserName?.split(' ')[0]}</div>
+              <div className="max-w-[100px] truncate font-bold text-gray-900">{finalUserName?.split(' ')[0]}</div>
             </div>
-            <div className="h-9 w-9 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold border-2 border-white shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-orange-100 font-bold text-orange-600 shadow-sm">
               {finalUserName?.charAt(0).toUpperCase()}
             </div>
             <SignOutButton />
           </div>
+
+          <div className="app-nav-mobile-actions shrink-0 items-center gap-2">
+            {canAccessAdmin && (
+              <Link
+                href="/admin/dashboard"
+                aria-label="Espace admin"
+                className={cn(
+                  "inline-flex min-h-9 items-center justify-center gap-1 rounded-md border px-2 text-sm font-bold",
+                  pathname.startsWith("/admin")
+                    ? "border-orange-200 bg-orange-50 text-orange-700"
+                    : "border-gray-200 bg-white text-gray-700 hover:border-orange-200 hover:text-orange-700"
+                )}
+              >
+                <Shield className="h-4 w-4" aria-hidden="true" />
+                <span className="hidden min-[420px]:inline">Admin</span>
+              </Link>
+            )}
+            <Link
+              href="/booking"
+              className="inline-flex min-h-9 items-center justify-center rounded-md bg-gray-950 px-3 text-sm font-bold text-white hover:bg-orange-600"
+            >
+              Réserver
+            </Link>
+            <Link
+              href="/profile"
+              aria-label="Profil"
+              className="flex h-9 w-9 items-center justify-center rounded-md bg-orange-100 font-bold text-orange-700"
+            >
+              {finalUserName?.charAt(0).toUpperCase() || <UserRound className="h-4 w-4" />}
+            </Link>
+          </div>
         </div>
-      </motion.div>
+      </motion.header>
+      <div className="app-nav-mobile-spacer h-20" aria-hidden="true" />
 
       {/* --- MOBILE NAV (Fixed Bottom) --- */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+      <div className="app-nav-mobile-bottom fixed bottom-0 left-0 right-0 z-50">
         <nav aria-label="Navigation principale" className="border-t border-gray-200 bg-white/95 px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-xl">
           <div className="flex items-stretch justify-around">
             {navLinks.map((link) => {

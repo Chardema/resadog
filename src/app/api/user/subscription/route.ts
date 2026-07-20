@@ -1,34 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { getPremiumBenefits } from "@/lib/loyalty";
+import { getLoyaltyAccount } from "@/lib/loyalty-ledger";
+import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
 import { stripe } from "@/lib/stripe/config";
 import Stripe from "stripe";
 import { z } from "zod";
+import { getStripeReturnBaseUrl } from "@/lib/stripe/checkout";
 
 const manageSubscriptionSchema = z.object({
   action: z.enum(["cancel_at_period_end", "resume"]),
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Non connecté" }, { status: 401 });
 
-  const [subscription, creditBatches, user] = await Promise.all([
+  const [subscription, user, loyaltyAccount] = await Promise.all([
     prisma.userSubscription.findUnique({ where: { userId: session.user.id } }),
-    prisma.creditBatch.findMany({ where: { userId: session.user.id, remaining: { gt: 0 } } }),
     prisma.user.findUnique({ where: { id: session.user.id } }),
+    getLoyaltyAccount(session.user.id),
   ]);
 
-  const totalCredits = creditBatches.reduce((acc, b) => acc + b.remaining, 0);
+  const isPremium = subscription?.status === "ACTIVE";
 
-  // Récupérer le portail Stripe si abonné
   let portalUrl = null;
   let commitmentEndsAt = null;
   let currentPeriodEnd = null;
   let cancellationEffectiveAt = null;
   let cancelAtPeriodEnd = false;
   let isLocked = false;
-  let petCount = 1;
   let invoices: {
     id: string;
     number: string | null;
@@ -41,53 +43,55 @@ export async function GET() {
   }[] = [];
 
   if (subscription?.stripeSubscriptionId) {
-      // Récupérer les détails de l'abonnement depuis Stripe
+    try {
+      const stripeSub = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+      const firstItem = stripeSub.items.data[0];
+      if (firstItem?.current_period_end) {
+        currentPeriodEnd = new Date(firstItem.current_period_end * 1000);
+      }
+      cancelAtPeriodEnd = stripeSub.cancel_at_period_end || Boolean(stripeSub.cancel_at);
+      cancellationEffectiveAt = stripeSub.cancel_at
+        ? new Date(stripeSub.cancel_at * 1000)
+        : stripeSub.cancel_at_period_end
+          ? currentPeriodEnd
+          : null;
+    } catch (e) {
+      if (e instanceof Stripe.errors.StripeError && (e.statusCode === 404 || e.code === "resource_missing")) {
+        await prisma.userSubscription.update({
+          where: { id: subscription.id },
+          data: { status: "CANCELED_REMOTE" },
+        });
+      } else {
+        console.error("Erreur récupération abonnement Stripe:", e);
+      }
+    }
+
+    const startDate = new Date(subscription.createdAt);
+    commitmentEndsAt = new Date(startDate);
+    commitmentEndsAt.setMonth(commitmentEndsAt.getMonth() + 1);
+    isLocked = new Date() < commitmentEndsAt;
+
+    if (user?.stripeCustomerId) {
       try {
-          const stripeSub = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
-          // SDK v20 : current_period_end est sur les items, plus sur la subscription
-          const firstItem = stripeSub.items.data[0];
-          if (firstItem?.current_period_end) {
-            currentPeriodEnd = new Date(firstItem.current_period_end * 1000);
-          }
-          cancelAtPeriodEnd = stripeSub.cancel_at_period_end || Boolean(stripeSub.cancel_at);
-          const stripePetCount = Number(stripeSub.metadata.petCount || 1);
-          petCount = Number.isInteger(stripePetCount)
-            ? Math.min(3, Math.max(1, stripePetCount))
-            : 1;
-          cancellationEffectiveAt = stripeSub.cancel_at
-            ? new Date(stripeSub.cancel_at * 1000)
-            : stripeSub.cancel_at_period_end
-              ? currentPeriodEnd
-              : null;
-      } catch (e) {
-          if (e instanceof Stripe.errors.StripeError && (e.statusCode === 404 || e.code === "resource_missing")) {
-            await prisma.userSubscription.update({
-              where: { id: subscription.id },
-              data: { status: "CANCELED_REMOTE" },
-            });
-          } else {
-            console.error("Erreur récupération abonnement Stripe:", e);
-          }
-      }
-
-      // Calcul engagement (clone pour éviter la mutation)
-      const startDate = new Date(subscription.createdAt);
-      const monthsToAdd = subscription.billingPeriod === "YEARLY" ? 12 : 2;
-      commitmentEndsAt = new Date(startDate);
-      commitmentEndsAt.setMonth(commitmentEndsAt.getMonth() + monthsToAdd);
-      isLocked = new Date() < commitmentEndsAt;
-
-      if (user?.stripeCustomerId) {
-        try {
-          const portalSession = await stripe.billingPortal.sessions.create({
-              customer: user.stripeCustomerId,
-              return_url: `${process.env.NEXTAUTH_URL}/profile`,
+        const portalSession = await stripe.billingPortal.sessions.create({
+          customer: user.stripeCustomerId,
+          return_url: `${getStripeReturnBaseUrl(request)}/profile`,
+        });
+        portalUrl = portalSession.url;
+      } catch (error) {
+        if (
+          error instanceof Stripe.errors.StripeError &&
+          error.code === "resource_missing" &&
+          error.param === "customer"
+        ) {
+          await prisma.user.update({
+            where: { id: session.user.id },
+            data: { stripeCustomerId: null },
           });
-          portalUrl = portalSession.url;
-        } catch (error) {
-          console.error("Erreur création portail Stripe:", error);
         }
+        console.error("Erreur création portail Stripe:", error);
       }
+    }
   }
 
   if (user?.stripeCustomerId) {
@@ -110,13 +114,39 @@ export async function GET() {
           invoicePdf: invoice.invoice_pdf ?? null,
         }));
     } catch (e) {
+      if (
+        e instanceof Stripe.errors.StripeError &&
+        e.code === "resource_missing" &&
+        e.param === "customer"
+      ) {
+        await prisma.user.update({
+          where: { id: session.user.id },
+          data: { stripeCustomerId: null },
+        });
+      }
       console.error("Erreur récupération factures Stripe:", e);
     }
   }
 
   return NextResponse.json({
-    subscription: subscription ? { ...subscription, petCount } : null,
-    credits: totalCredits,
+    subscription: subscription
+      ? {
+          ...subscription,
+          name: PREMIUM_SUBSCRIPTION.name,
+          benefits: PREMIUM_SUBSCRIPTION.benefits,
+          pointsMultiplier: PREMIUM_SUBSCRIPTION.pointsMultiplier,
+          discountRate: PREMIUM_SUBSCRIPTION.discountRate,
+        }
+      : null,
+    premium: getPremiumBenefits(isPremium),
+    loyalty: loyaltyAccount.status,
+    paws: loyaltyAccount.paws,
+    totalSpent: loyaltyAccount.totalQualifiedAmount,
+    totalEarnedPaws: loyaltyAccount.totalEarnedPaws,
+    totalRedeemedPaws: loyaltyAccount.totalRedeemedPaws,
+    rewards: loyaltyAccount.rewards,
+    rewardCoupons: loyaltyAccount.rewardCoupons,
+    loyaltyTransactions: loyaltyAccount.transactions,
     portalUrl,
     commitmentEndsAt,
     currentPeriodEnd,
@@ -143,11 +173,6 @@ export async function POST(request: NextRequest) {
     if (!subscription?.stripeSubscriptionId) {
       return NextResponse.json({ error: "Abonnement introuvable" }, { status: 404 });
     }
-
-    const commitmentEndsAt = new Date(subscription.createdAt);
-    commitmentEndsAt.setMonth(
-      commitmentEndsAt.getMonth() + (subscription.billingPeriod === "YEARLY" ? 12 : 2)
-    );
 
     let currentStripeSubscription: Stripe.Subscription;
 
@@ -227,22 +252,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const firstCurrentItem = currentStripeSubscription.items.data[0];
-    const currentPeriodEndTimestamp = firstCurrentItem?.current_period_end ?? 0;
-    const commitmentEndTimestamp = Math.floor(commitmentEndsAt.getTime() / 1000);
-    const cancellationDuringCommitment =
-      action === "cancel_at_period_end" &&
-      commitmentEndTimestamp > currentPeriodEndTimestamp;
-
     const stripeSubscription = await stripe.subscriptions.update(
       subscription.stripeSubscriptionId,
       action === "resume"
         ? currentStripeSubscription.cancel_at
           ? { cancel_at: "" }
           : { cancel_at_period_end: false }
-        : cancellationDuringCommitment
-          ? { cancel_at: commitmentEndTimestamp }
-          : { cancel_at_period_end: true }
+        : { cancel_at_period_end: true }
     );
 
     if (action === "resume") {

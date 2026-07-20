@@ -1,15 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { SERVICE_TYPES, type AppServiceType } from "@/lib/services";
+import { isHourlyServiceType, SERVICE_TYPES, type AppServiceType } from "@/lib/services";
+import {
+  countBookingsByDate,
+  getHourlyBookingConflicts,
+  parseUTCDate,
+  toDateKey,
+} from "@/lib/booking-availability";
 
-// Helper pour parser une date ISO string en UTC (format YYYY-MM-DD)
-function parseUTCDate(dateString: string): Date {
-  const [year, month, day] = dateString.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-}
+type RequestedSlot = {
+  date: string;
+  startTime: string;
+  duration: number;
+};
 
-function toDateKey(date: Date): string {
-  return date.toISOString().split("T")[0];
+function parseRequestedSlots(value: string | null): RequestedSlot[] {
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.filter((slot): slot is RequestedSlot =>
+      typeof slot?.date === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(slot.date) &&
+      typeof slot.startTime === "string" &&
+      /^\d{2}:\d{2}$/.test(slot.startTime) &&
+      typeof slot.duration === "number" &&
+      Number.isFinite(slot.duration)
+    );
+  } catch {
+    return [];
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -18,6 +40,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const serviceType = searchParams.get("serviceType");
+    const requestedSlots = parseRequestedSlots(searchParams.get("slots"));
     const selectedDates = (searchParams.get("dates") || "")
       .split(",")
       .map((date) => date.trim())
@@ -79,22 +102,32 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Récupérer les réservations confirmées qui chevauchent la période
-    // Pour simplifier, on considère qu'une réservation confirmée bloque le service pour la journée
+    // Récupérer les réservations confirmées qui chevauchent la période.
+    // Les visites/promenades non consécutives ne bloquent que leurs dates de passage.
     const existingBookings = await prisma.booking.findMany({
       where: {
-        status: { in: ["CONFIRMED", "IN_PROGRESS"] },
+        status: { in: ["ACCEPTING", "CANCELLING", "CONFIRMED", "IN_PROGRESS"] },
         serviceType: serviceType as AppServiceType,
-        OR: [
-          {
-            AND: [
-              { startDate: { lte: end } },
-              { endDate: { gte: start } }
-            ]
-          }
-        ]
-      }
+        startDate: { lte: end },
+        endDate: { gte: start },
+      },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        serviceType: true,
+        specialRequests: true,
+      },
     });
+    const isHourlyService = isHourlyServiceType(serviceType);
+    const selectedDateKeys = new Set(daysToCheck.map(toDateKey));
+    const bookingCountsByDate = isHourlyService
+      ? new Map<string, number>()
+      : countBookingsByDate(existingBookings, selectedDateKeys);
+    const hourlyConflicts = isHourlyService
+      ? getHourlyBookingConflicts(existingBookings, requestedSlots)
+      : [];
+    const hourlyConflictDateKeys = new Set(hourlyConflicts.map((slot) => slot.date));
 
     // Vérifier quelles dates sont disponibles ou non
     const dateStatuses = daysToCheck.map((date) => {
@@ -105,19 +138,23 @@ export async function GET(request: NextRequest) {
         return aDateKey === dateKey;
       });
 
-      if (adminAvailability && !adminAvailability.available) {
+      if (adminAvailability && (!adminAvailability.available || adminAvailability.maxSlots <= 0)) {
         return { date: dateKey, available: false, reason: "Bloqué par admin" };
       }
 
-      // 2. Vérifier les réservations existantes
-      const hasBooking = existingBookings.some(booking => {
-        const bStart = new Date(booking.startDate.toISOString().split("T")[0]);
-        const bEnd = new Date(booking.endDate.toISOString().split("T")[0]);
-        const cDate = new Date(dateKey);
-        return cDate >= bStart && cDate <= bEnd;
-      });
+      if (isHourlyService) {
+        return {
+          date: dateKey,
+          available: !hourlyConflictDateKeys.has(dateKey),
+          reason: hourlyConflictDateKeys.has(dateKey) ? "Créneau déjà réservé" : undefined,
+        };
+      }
 
-      if (hasBooking) {
+      // 2. Vérifier les réservations existantes et la capacité.
+      const maxSlots = adminAvailability?.maxSlots ?? 1;
+      const bookingCount = bookingCountsByDate.get(dateKey) || 0;
+
+      if (bookingCount >= maxSlots) {
         return { date: dateKey, available: false, reason: "Déjà réservé" };
       }
 

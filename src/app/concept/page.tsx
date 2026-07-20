@@ -5,37 +5,28 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AppNav } from "@/components/layout/AppNav";
 import { useSession } from "next-auth/react";
-import { calculateSubscriptionPlan } from "@/lib/subscription-pricing";
+import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
 
 export default function ConceptPage() {
   const { data: session } = useSession();
-  const example = calculateSubscriptionPlan({
-    serviceType: "DAY_CARE",
-    daysPerWeek: 2,
-    petCount: 1,
-    billingCycle: "MONTHLY",
-  });
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] selection:bg-orange-200">
       <AppNav userName={session?.user?.name} />
 
-      {/* Decorative Background */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] bg-orange-300/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-yellow-200/20 rounded-full blur-[100px]" />
       </div>
 
       <main className="relative z-10 pt-32 pb-24 container mx-auto px-6">
-        
-        {/* Hero Section */}
         <div className="text-center max-w-4xl mx-auto mb-20">
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             className="inline-block bg-orange-100 text-orange-700 px-4 py-1.5 rounded-full font-bold text-sm mb-6"
           >
-            🚀 Nouveau : Le Club La Meute
+            Nouveau : Premium et fidélité
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -43,9 +34,9 @@ export default function ConceptPage() {
             transition={{ delay: 0.1 }}
             className="text-5xl md:text-7xl font-extrabold text-gray-900 mb-6 leading-tight"
           >
-            Plus de liberté,<br />
+            Des récompenses claires,<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-600">
-              moins de dépenses.
+              faciles à suivre.
             </span>
           </motion.h1>
           <motion.p
@@ -54,31 +45,30 @@ export default function ConceptPage() {
             transition={{ delay: 0.2 }}
             className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto"
           >
-            Découvrez notre système d'abonnement par crédits. Fini les paiements à chaque réservation, profitez d'un tarif préférentiel toute l'année.
+            Tous les clients gagnent des Pattes à chaque réservation. Premium ajoute une remise automatique, les Pattes doublées et des avantages de confort.
           </motion.p>
         </div>
 
-        {/* How it works - Steps */}
         <div className="grid md:grid-cols-3 gap-8 mb-24">
           {[
             {
-              icon: "💳",
-              title: "1. Choisissez votre formule",
-              desc: "Définissez votre rythme (ex: 2 promenades par semaine) et obtenez votre pack de crédits mensuel."
+              icon: "🐾",
+              title: "1. Réservez",
+              desc: "Chaque euro dépensé rapporte 1 Patte dans le programme gratuit."
             },
             {
-              icon: "🪙",
-              title: "2. Recevez vos crédits",
-              desc: "Chaque mois, vos crédits sont ajoutés à votre compte. Un crédit correspond à une prestation du service souscrit."
+              icon: "🏅",
+              title: "2. Montez de niveau",
+              desc: "Bronze, Argent, Or puis Diamant : votre statut progresse automatiquement."
             },
             {
-              icon: "📅",
-              title: "3. Réservez en 1 clic",
-              desc: "Utilisez vos crédits pour réserver quand vous voulez. Plus besoin de sortir la carte bancaire !"
+              icon: "🎁",
+              title: "3. Débloquez des récompenses",
+              desc: "300, 700 et 1500 Pattes ouvrent des réductions et avantages fidélité."
             }
           ].map((step, idx) => (
             <motion.div
-              key={idx}
+              key={step.title}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + idx * 0.1 }}
@@ -90,90 +80,51 @@ export default function ConceptPage() {
                 {step.icon}
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">{step.title}</h3>
-              <p className="text-gray-600 leading-relaxed">
-                {step.desc}
-              </p>
+              <p className="text-gray-600 leading-relaxed">{step.desc}</p>
             </motion.div>
           ))}
         </div>
 
-        {/* Comparison Table */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           className="bg-gray-900 text-white rounded-[3rem] p-8 md:p-16 mb-24 relative overflow-hidden"
         >
-          {/* Background FX */}
           <div className="absolute top-[-50%] left-[-20%] w-[800px] h-[800px] bg-orange-600/20 rounded-full blur-[150px]" />
 
           <div className="relative z-10">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Pourquoi passer au Club ?</h2>
-              <p className="text-gray-400">Comparatif garderie 2 jours / semaine (1 chien)</p>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Gratuit ou Premium ?</h2>
+              <p className="text-gray-400">Le programme fidélité reste inclus pour tous les clients.</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {/* Classique */}
               <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
-                <h3 className="text-xl font-bold text-gray-400 mb-6">Client Classique</h3>
-                <div className="space-y-4 mb-8">
-                  <div className="flex justify-between items-center text-gray-300">
-                    <span>Prix par jour (chien)</span>
-                    <span className="font-mono">{example.service.unitPrice}€</span>
-                  </div>
-                  <div className="flex justify-between items-center text-gray-300">
-                    <span>8 jours / mois</span>
-                    <span className="font-mono">{example.publicMonthlyPrice}€</span>
-                  </div>
-                  <div className="flex justify-between items-center text-gray-300">
-                    <span>Paiement</span>
-                    <span>À chaque résa</span>
-                  </div>
-                  <div className="flex justify-between items-center text-gray-300">
-                    <span>Annulation</span>
-                    <span>48h avant</span>
-                  </div>
-                </div>
-                <div className="pt-6 border-t border-white/10">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Total mensuel</span>
-                    <span className="text-2xl font-bold">{example.publicMonthlyPrice}€</span>
-                  </div>
+                <h3 className="text-xl font-bold text-gray-400 mb-6">Fidélité gratuite</h3>
+                <div className="space-y-4 mb-8 text-gray-300">
+                  <div className="flex justify-between gap-4"><span>Pattes gagnées</span><span className="font-bold">1 euro = 1 Patte</span></div>
+                  <div className="flex justify-between gap-4"><span>Niveaux</span><span>Bronze à Diamant</span></div>
+                  <div className="flex justify-between gap-4"><span>Récompenses</span><span>300 / 700 / 1500</span></div>
+                  <div className="flex justify-between gap-4"><span>Prix</span><span>0 euro</span></div>
                 </div>
               </div>
 
-              {/* Club */}
               <div className="bg-gradient-to-b from-orange-500 to-amber-600 rounded-3xl p-8 shadow-2xl transform md:scale-105 border border-orange-400 relative">
                 <div className="absolute top-4 right-4 bg-white text-orange-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                  Recommandé
+                  Premium
                 </div>
-                <h3 className="text-xl font-bold text-white mb-6">Membre La Meute</h3>
-                <div className="space-y-4 mb-8">
-                  <div className="flex justify-between items-center text-orange-100">
-                    <span>Prix par jour</span>
-                    <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded">{example.effectiveCreditPrice.toFixed(2).replace(".", ",")}€</span>
-                  </div>
-                  <div className="flex justify-between items-center text-orange-100">
-                    <span>Paiement</span>
-                    <span>Automatique</span>
-                  </div>
-                  <div className="flex justify-between items-center text-orange-100">
-                    <span>Crédits reportables</span>
-                    <span>Illimité</span>
-                  </div>
-                  <div className="flex justify-between items-center text-orange-100">
-                    <span>Service des crédits</span>
-                    <span className="font-bold bg-white text-orange-600 px-2 py-0.5 rounded">GARDERIE</span>
-                  </div>
+                <h3 className="text-xl font-bold text-white mb-6">{PREMIUM_SUBSCRIPTION.name}</h3>
+                <div className="space-y-4 mb-8 text-orange-100">
+                  <div className="flex justify-between gap-4"><span>Remise</span><span className="font-bold">-10%</span></div>
+                  <div className="flex justify-between gap-4"><span>Pattes gagnées</span><span className="font-bold">1 euro = 2 Pattes</span></div>
+                  <div className="flex justify-between gap-4"><span>Priorité vacances</span><span>Incluse</span></div>
+                  <div className="flex justify-between gap-4"><span>Annulation</span><span>Gratuite jusqu&apos;à 24h</span></div>
                 </div>
                 <div className="pt-6 border-t border-white/20">
                   <div className="flex justify-between items-center">
-                    <span className="text-orange-100">Total mensuel</span>
-                    <span className="text-3xl font-extrabold">{example.monthlyPrice}€</span>
-                  </div>
-                  <div className="mt-2 text-right text-xs font-bold text-white/80">
-                    Économie : {example.totalSavingsYearly}€ / an
+                    <span className="text-orange-100">Prix mensuel</span>
+                    <span className="text-3xl font-extrabold">{PREMIUM_SUBSCRIPTION.monthlyPrice.toFixed(2).replace(".", ",")}€</span>
                   </div>
                 </div>
               </div>
@@ -181,16 +132,15 @@ export default function ConceptPage() {
           </div>
         </motion.div>
 
-        {/* FAQ */}
         <div className="max-w-3xl mx-auto mb-24">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Questions fréquentes</h2>
           <div className="space-y-4">
             {[
-              { q: "Est-ce que je peux annuler quand je veux ?", a: "Oui ! L'abonnement mensuel est sans engagement au-delà des 2 premiers mois. L'annuel vous engage sur 12 mois en échange d'un tarif imbattable." },
-              { q: "Si je pars en vacances ?", a: "Pas de panique ! Vos crédits sont valables à vie ! Vous pouvez les cumuler pour une plus grosse garde le mois suivant." },
-              { q: "Ça marche pour plusieurs animaux ?", a: "Oui. Le nombre de crédits tient compte du nombre d'animaux. Les crédits restent réservés au service choisi : promenade ou garderie." },
-            ].map((faq, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+              { q: "Est-ce que le programme fidélité est payant ?", a: "Non. Tous les clients gagnent des Pattes automatiquement à chaque réservation." },
+              { q: "Que donne Premium ?", a: "Premium donne des avantages : -10%, Pattes doublées, priorité vacances, annulation gratuite jusqu’à 24h et badge Premium." },
+              { q: "Que deviennent mes Pattes si j’arrête Premium ?", a: "Elles restent dans votre espace client. Seuls les avantages Premium s’arrêtent." },
+            ].map((faq) => (
+              <div key={faq.q} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                 <h4 className="font-bold text-gray-900 mb-2">{faq.q}</h4>
                 <p className="text-gray-600 text-sm">{faq.a}</p>
               </div>
@@ -198,17 +148,15 @@ export default function ConceptPage() {
           </div>
         </div>
 
-        {/* CTA */}
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">Prêt à rejoindre la meute ?</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">Prêt à passer Premium ?</h2>
           <Link href="/subscriptions">
             <Button className="h-16 px-10 rounded-full bg-gray-900 text-white font-bold text-xl hover:bg-orange-600 hover:scale-105 transition-all shadow-xl">
-              Configurer mon abonnement →
+              Voir Premium
             </Button>
           </Link>
-          <p className="mt-4 text-sm text-gray-500">2 minutes pour s'inscrire, des heures de bonheur pour votre compagnon.</p>
+          <p className="mt-4 text-sm text-gray-500">Le programme fidélité gratuit reste actif quoi qu&apos;il arrive.</p>
         </div>
-
       </main>
     </div>
   );

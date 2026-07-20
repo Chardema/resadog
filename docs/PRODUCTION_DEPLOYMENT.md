@@ -8,12 +8,13 @@ Depuis la racine du projet :
 
 ```bash
 npm run check:env
+npm run check:env:production
 npm run check:live
 npm run lint
 npm run build
 ```
 
-`npm run check:env` ne doit jamais afficher les valeurs des secrets. Il verifie uniquement que les variables attendues existent et que les valeurs de production les plus sensibles ont une forme coherente.
+Ces contrôles ne doivent jamais afficher les valeurs des secrets. `check:env` valide le développement local et `check:env:production` applique les règles strictes de production.
 
 `npm run check:live` est le feu vert avant ouverture publique : il doit passer avec les vraies variables de production, un compte Stripe Live active, un webhook Live actif et une configuration de portail client Stripe.
 
@@ -35,6 +36,8 @@ NEXTAUTH_URL=https://resadog.vercel.app
 AUTH_SECRET ou NEXTAUTH_SECRET
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
+STRIPE_BILLING_PORTAL_CONFIGURATION_ID
+STRIPE_PREMIUM_PRICE_ID
 CRON_SECRET
 UPLOADTHING_TOKEN
 UPLOADTHING_APP_ID
@@ -61,18 +64,21 @@ Points d'attention :
 - `RESEND_BUG_FROM` doit aussi utiliser un domaine verifie : le bouton de signalement tarif/bug s'appuie dessus.
 - `NEXT_PUBLIC_ACACED_NUMBER` et `PROFESSIONAL_INSURANCE` sont obligatoires pour afficher les informations professionnelles reelles.
 - En production, `STRIPE_SECRET_KEY` doit commencer par `sk_live_`. Une cle `sk_test_` bloque le preflight.
+- `STRIPE_BILLING_PORTAL_CONFIGURATION_ID` doit pointer vers la configuration Live du portail client Stripe (`bpc_...`) pour garder la page de gestion Premium coherent avec La Patte Doree.
+- `STRIPE_PREMIUM_PRICE_ID` doit pointer vers le prix Stripe Live de l'abonnement Premium mensuel a 9,99€ (`price_...`).
 
 ## 3. Passage de Stripe en reel
 
 1. Terminer l'activation du compte Stripe : identite de l'entreprise, representant, compte bancaire et informations publiques.
 2. Basculer Stripe en mode reel puis recuperer la cle secrete `sk_live_`.
 3. Activer et configurer le portail client Stripe en mode reel, au minimum avec l'historique des factures.
-4. Creer en mode reel le webhook `https://resadog.vercel.app/api/stripe/webhook` et copier son secret `whsec_`.
-5. Remplacer les variables dans l'environnement **Production** de Vercel.
-6. Redeployer : les variables modifiees ne s'appliquent pas aux deploiements deja construits.
-7. Ne pas reutiliser les identifiants Stripe de test. Clients, abonnements, moyens de paiement et factures test n'existent pas en mode reel.
-8. Lancer `npm run check:live` avec les variables Live.
-9. Effectuer une vraie petite transaction, puis verifier capture, annulation/remboursement, facture et webhooks dans Stripe.
+4. Copier l'identifiant de configuration du portail client (`bpc_...`) dans `STRIPE_BILLING_PORTAL_CONFIGURATION_ID`.
+5. Creer en mode reel le webhook `https://resadog.vercel.app/api/stripe/webhook` et copier son secret `whsec_`.
+6. Remplacer les variables dans l'environnement **Production** de Vercel.
+7. Redeployer : les variables modifiees ne s'appliquent pas aux deploiements deja construits.
+8. Ne pas reutiliser les identifiants Stripe de test. Clients, abonnements, moyens de paiement et factures test n'existent pas en mode reel.
+9. Lancer `npm run check:live` avec les variables Live.
+10. Effectuer une vraie petite transaction, puis verifier capture, annulation/remboursement, facture et webhooks dans Stripe.
 
 References Stripe utiles :
 
@@ -96,6 +102,7 @@ payment_intent.succeeded
 payment_intent.payment_failed
 checkout.session.completed
 customer.subscription.deleted
+customer.subscription.created
 customer.subscription.updated
 invoice.payment_succeeded
 invoice.payment_failed
@@ -189,15 +196,15 @@ Tester comme admin :
 - confirmer une reservation et verifier la capture Stripe
 - annuler une reservation et verifier l'annulation ou le remboursement
 - ajouter des frais supplementaires
-- gerer disponibilites, coupons, credits et avis
+- gerer disponibilites, coupons, Premium, fidelite et avis
 
 Tester les abonnements :
 
 - creer un abonnement promenade
 - creer un abonnement garderie
-- verifier les credits attribues
-- verifier qu'un paiement annuel attribue bien 12 mois de credits en une fois
-- verifier qu'un credit promenade ne peut pas payer une garderie, et inversement
+- verifier l'activation Premium
+- verifier la remise Premium de 10% sur une reservation
+- verifier les Pattes doublees pour un client Premium
 - programmer une resiliation, confirmer une seconde fois, puis annuler la resiliation
 - ouvrir et telecharger une facture
 - simuler un renouvellement et un paiement echoue via Stripe

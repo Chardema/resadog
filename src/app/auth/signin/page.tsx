@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -14,14 +14,12 @@ function SignInContent() {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState(() =>
+    searchParams.get("registered") === "true"
+      ? "Compte créé avec succès ! Bienvenue 🐾"
+      : ""
+  );
   const [formData, setFormData] = useState({ email: "", password: "" });
-
-  useEffect(() => {
-    if (searchParams.get("registered") === "true") {
-      setSuccessMessage("Compte créé avec succès ! Bienvenue 🐾");
-    }
-  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +41,7 @@ function SignInContent() {
 
       router.push("/dashboard");
       router.refresh();
-    } catch (err) {
+    } catch {
       setError("Une erreur inattendue est survenue");
     } finally {
       setIsLoading(false);

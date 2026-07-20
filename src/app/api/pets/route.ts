@@ -70,12 +70,12 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const validatedData = createPetSchema.parse(body);
-
-    // Nettoyer les données - retirer imageUrl si vide
-    const cleanedData: any = { ...validatedData };
-    if (cleanedData.imageUrl === "") {
-      delete cleanedData.imageUrl;
-    }
+    const { imageUrl, lastVetVisit, ...petData } = validatedData;
+    const cleanedData = {
+      ...petData,
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(lastVetVisit ? { lastVetVisit } : {}),
+    };
 
     const pet = await prisma.pet.create({
       data: {

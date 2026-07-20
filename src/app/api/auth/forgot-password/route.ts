@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { rateLimit } from "@/lib/rate-limit";
+import { distributedRateLimit } from "@/lib/rate-limit";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const { email } = schema.parse(await request.json());
     const normalizedEmail = email.trim().toLowerCase();
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
-    const { success } = rateLimit(`forgot-password:${ip}:${normalizedEmail}`, {
+    const { success } = await distributedRateLimit(`forgot-password:${ip}:${normalizedEmail}`, {
       maxRequests: 3,
       windowSeconds: 3600,
     });

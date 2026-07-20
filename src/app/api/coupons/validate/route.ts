@@ -1,8 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
-import { rateLimit } from "@/lib/rate-limit";
+import { distributedRateLimit } from "@/lib/rate-limit";
 import { calculateCouponDiscount } from "@/lib/coupon-pricing";
+import {
+  WELCOME_OFFER_CODE,
+  WELCOME_OFFER_DESCRIPTION,
+  WELCOME_OFFER_DISCOUNT_PERCENT,
+  WELCOME_OFFER_MAX_CLIENTS,
+  WELCOME_OFFER_NOTE,
+  isWelcomeOfferCode,
+} from "@/lib/welcome-offer";
+
+function getCouponSuccessMessage(input: {
+  discountType: "PERCENTAGE" | "FIXED_AMOUNT" | "CUSTOM_TOTAL";
+  discountValue: number;
+  discountAmount: number;
+  finalAmount: number;
+  capped: boolean;
+}) {
+  if (input.discountType === "CUSTOM_TOTAL") {
+    return `Tarif personnalisé appliqué : ${input.finalAmount}€`;
+  }
+
+  if (input.capped) {
+    return `Réduction plafonnée à ${input.discountAmount}€`;
+  }
+
+  return input.discountType === "PERCENTAGE"
+    ? `Réduction de ${input.discountValue}% appliquée`
+    : `Réduction de ${input.discountAmount}€ appliquée`;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting : 20 validations par user par heure (anti brute-force de codes)
-    const { success } = rateLimit(`coupon:${session.user.id}`, { maxRequests: 20, windowSeconds: 3600 });
+    const { success } = await distributedRateLimit(`coupon:${session.user.id}`, { maxRequests: 20, windowSeconds: 3600 });
     if (!success) {
       return NextResponse.json(
         { error: "Trop de tentatives. Réessayez plus tard." },
@@ -32,6 +60,72 @@ export async function POST(request: NextRequest) {
         { error: "Code et montant requis" },
         { status: 400 }
       );
+    }
+
+    if (isWelcomeOfferCode(code)) {
+      const [hasPreviousBooking, existingClaim, claimedPlaces] = await Promise.all([
+        prisma.booking.findFirst({
+          where: {
+            clientId: session.user.id,
+            OR: [
+              { depositPaid: true },
+              { payment: { is: { status: "SUCCEEDED" } } },
+              { status: { in: ["CONFIRMED", "IN_PROGRESS", "COMPLETED"] } },
+            ],
+          },
+          select: { id: true },
+        }),
+        prisma.booking.findFirst({
+          where: {
+            clientId: session.user.id,
+            couponRedeemedAt: { not: null },
+            notes: { contains: WELCOME_OFFER_NOTE },
+          },
+          select: { id: true },
+        }),
+        prisma.booking.count({
+          where: {
+            couponRedeemedAt: { not: null },
+            notes: { contains: WELCOME_OFFER_NOTE },
+          },
+        }),
+      ]);
+
+      if (hasPreviousBooking) {
+        return NextResponse.json(
+          { error: "Cette offre est réservée aux nouveaux clients, pour leur première réservation." },
+          { status: 400 }
+        );
+      }
+
+      if (!existingClaim && claimedPlaces >= WELCOME_OFFER_MAX_CLIENTS) {
+        return NextResponse.json(
+          { error: "Les 5 offres de bienvenue ont déjà été attribuées." },
+          { status: 400 }
+        );
+      }
+
+      const { discountAmount, finalAmount, capped } = calculateCouponDiscount({
+        totalAmount,
+        discountType: "PERCENTAGE",
+        discountValue: WELCOME_OFFER_DISCOUNT_PERCENT,
+        quantity: duration,
+      });
+
+      return NextResponse.json({
+        success: true,
+        coupon: {
+          code: WELCOME_OFFER_CODE,
+          description: WELCOME_OFFER_DESCRIPTION,
+          discountType: "PERCENTAGE",
+          discountValue: WELCOME_OFFER_DISCOUNT_PERCENT,
+        },
+        originalAmount: totalAmount,
+        discountAmount,
+        finalAmount,
+        capped,
+        message: "Offre de bienvenue : 10 % de réduction appliquée",
+      });
     }
 
     // Chercher le coupon
@@ -97,7 +191,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier les restrictions d'email
-    if (coupon.restrictedTo.length > 0 && !coupon.restrictedTo.includes(session.user.email || "")) {
+    const userEmail = session.user.email?.toLowerCase() || "";
+    if (coupon.restrictedTo.length > 0 && !coupon.restrictedTo.map((email) => email.toLowerCase()).includes(userEmail)) {
       return NextResponse.json(
         { error: "Ce code promo n'est pas valide pour votre compte" },
         { status: 403 }
@@ -123,11 +218,13 @@ export async function POST(request: NextRequest) {
       discountAmount: discountAmount,
       finalAmount: finalAmount,
       capped,
-      message: capped
-        ? `Réduction plafonnée à ${discountAmount}€`
-        : coupon.discountType === "PERCENTAGE"
-          ? `Réduction de ${coupon.discountValue}% appliquée`
-          : `Réduction de ${discountAmount}€ appliquée`,
+      message: getCouponSuccessMessage({
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        discountAmount,
+        finalAmount,
+        capped,
+      }),
     });
   } catch (error) {
     console.error("Erreur lors de la validation du coupon:", error);

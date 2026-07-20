@@ -26,7 +26,7 @@ export default function CGVPage() {
             <ul className="list-disc pl-5 space-y-2 mt-4">
               <li><strong>Plus de 48h avant :</strong> Remboursement intégral (ou libération de l'empreinte bancaire).</li>
               <li><strong>Moins de 48h avant :</strong> 50% du montant total sera retenu à titre de dédommagement.</li>
-              <li><strong>Paiement par crédit à moins de 48h :</strong> le crédit utilisé n'est pas restitué.</li>
+              <li><strong>Clients Premium :</strong> l’annulation est gratuite jusqu’à 24h avant le début de la prestation.</li>
               <li><strong>Non présentation :</strong> La totalité du séjour est due.</li>
             </ul>
           </section>
@@ -50,24 +50,24 @@ export default function CGVPage() {
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Tarifs</h2>
             <p>
-              Les tarifs sont indiqués en Euros TTC. Ils varient selon le type de service (Hébergement, Garderie, Visite, Promenade), l'espèce (chien/chat), le nombre d'animaux et la période (haute/basse saison).
-              Un tarif spécifique s'applique pour les jeunes animaux de moins d'un an. Les tarifs sont affichés de manière transparente lors de la réservation.
+              Les tarifs sont indiqués en Euros TTC. Ils varient selon le type de service (Hébergement, Garderie, Visite, Promenade), l'espèce (chien/chat), le nombre d'animaux et les suppléments applicables.
+              Un supplément spécifique s'applique pour les jeunes animaux de moins d'un an. Les tarifs sont affichés de manière transparente lors de la réservation.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">5. Abonnement Le Club La Meute</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">5. Fidélité et abonnement Premium</h2>
             <p className="mb-2"><strong>Fonctionnement :</strong></p>
             <ul className="list-disc pl-5 mb-4">
-              <li>L'abonnement donne droit à un nombre défini de crédits mensuels.</li>
-              <li>Un crédit correspond à une prestation du service souscrit. Les crédits promenade et garderie ne sont pas interchangeables.</li>
-              <li>Les crédits ont une durée de validité illimitée tant que le compte est actif.</li>
+              <li>Le programme fidélité gratuit permet de gagner 1 Patte par euro dépensé.</li>
+              <li>Les seuils de récompense sont affichés dans l'espace client et peuvent évoluer.</li>
+              <li>L’abonnement Premium donne des avantages, dont -10% sur les réservations et des Pattes doublées.</li>
             </ul>
             <p className="mb-2"><strong>Engagement et Résiliation :</strong></p>
             <ul className="list-disc pl-5">
-              <li>Formule Mensuelle : Engagement minimum de 2 mois. Résiliable ensuite à tout moment sans frais.</li>
-              <li>Formule Annuelle : Engagement ferme de 12 mois, payé en une fois.</li>
-              <li>Toute période commencée est due. Les crédits non utilisés restent acquis.</li>
+              <li>Premium est facturé mensuellement.</li>
+              <li>Toute période commencée est due.</li>
+              <li>Les Pattes fidélité restent visibles même en cas de résiliation Premium.</li>
             </ul>
           </section>
 

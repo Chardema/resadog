@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock3,
   CreditCard,
   LoaderCircle,
@@ -20,11 +21,31 @@ import {
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { UserMenu } from "@/components/layout/UserMenu";
 
-type BookingStatus = "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+type BookingStatus = "PENDING" | "ACCEPTING" | "CANCELLING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 type BookingFilter = "all" | "pending" | "confirmed" | "completed" | "cancelled";
-type AdminAction = "CONFIRMED" | "CANCELLED";
+type AdminAction = "CONFIRMED" | "CANCELLED" | "COMPLETED";
+
+interface PriceBreakdownLine {
+  label: string;
+  unitPrice: number;
+  quantity: number;
+  total: number;
+  type: "base" | "surcharge" | "discount" | "info";
+}
+
+interface PriceBreakdown {
+  subtotal: number;
+  total: number;
+  pets: {
+    petId: string;
+    petName: string;
+    subtotal: number;
+    lines: PriceBreakdownLine[];
+  }[];
+  sharedLines: PriceBreakdownLine[];
+  adjustments: { label: string; amount: number }[];
+}
 
 interface Booking {
   id: string;
@@ -34,8 +55,8 @@ interface Booking {
   endTime?: string | null;
   status: BookingStatus;
   totalPrice: number;
-  creditsUsed: number;
   serviceType: string;
+  priceBreakdown?: PriceBreakdown | null;
   cancellationReason?: string | null;
   serviceDetails?: {
     serviceAddress?: string;
@@ -62,17 +83,20 @@ interface Booking {
     image?: string | null;
     subscription?: {
       status: string;
-      serviceType: string;
-      creditsPerMonth: number;
     } | null;
-    creditBatches?: {
-      remaining: number;
-    }[];
   };
   payment?: {
     status: string;
     amount: number;
     stripePaymentId?: string | null;
+  } | null;
+  reviewRequest?: {
+    sentAt: string;
+    submittedAt?: string | null;
+    serviceRating?: number | null;
+    serviceComment?: string | null;
+    websiteRating?: number | null;
+    websiteComment?: string | null;
   } | null;
 }
 
@@ -86,6 +110,8 @@ const FILTERS: { id: BookingFilter; label: string }[] = [
 
 const STATUS_META: Record<BookingStatus, { label: string; className: string }> = {
   PENDING: { label: "À traiter", className: "bg-amber-50 text-amber-800 ring-amber-200" },
+  ACCEPTING: { label: "Validation en cours", className: "bg-amber-50 text-amber-800 ring-amber-200" },
+  CANCELLING: { label: "Annulation en cours", className: "bg-orange-50 text-orange-800 ring-orange-200" },
   CONFIRMED: { label: "Confirmée", className: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
   IN_PROGRESS: { label: "En cours", className: "bg-blue-50 text-blue-800 ring-blue-200" },
   COMPLETED: { label: "Terminée", className: "bg-gray-100 text-gray-700 ring-gray-200" },
@@ -125,6 +151,21 @@ const formatMoney = (value: number) =>
     maximumFractionDigits: 2,
   });
 
+const getNightCount = (booking: Booking) =>
+  Math.max(0, Math.round(
+    (new Date(booking.endDate).getTime() - new Date(booking.startDate).getTime()) / (24 * 60 * 60 * 1000)
+  ));
+
+const getPriceUnit = (serviceType: string, quantity: number) => {
+  if (serviceType === "BOARDING") return quantity > 1 ? "nuits" : "nuit";
+  if (serviceType === "DROP_IN") return quantity > 1 ? "visites" : "visite";
+  if (serviceType === "DOG_WALKING") return quantity > 1 ? "promenades" : "promenade";
+  return quantity > 1 ? "jours" : "jour";
+};
+
+const formatSignedMoney = (value: number) =>
+  `${value > 0 ? "+" : value < 0 ? "−" : ""}${formatMoney(Math.abs(value))} €`;
+
 const getPetNames = (booking: Booking) =>
   booking.pets.length > 0
     ? booking.pets.map((pet) => pet.name).join(", ")
@@ -144,12 +185,39 @@ const getFilterStatus = (filter: BookingFilter): BookingStatus | null => {
 };
 
 const getPaymentLabel = (booking: Booking) => {
-  if (booking.creditsUsed > 0) return `${booking.creditsUsed} crédit${booking.creditsUsed > 1 ? "s" : ""}`;
   return `${formatMoney(booking.totalPrice)} €`;
 };
 
+const getReviewRequestMeta = (booking: Booking) => {
+  if (!booking.reviewRequest) {
+    return {
+      label: "Avis non envoyé",
+      className: "bg-gray-100 text-gray-700 ring-gray-200",
+      detail: "Aucune demande d'avis envoyée",
+    };
+  }
+
+  if (booking.reviewRequest.submittedAt) {
+    return {
+      label: "Réponse reçue",
+      className: "bg-emerald-50 text-emerald-800 ring-emerald-200",
+      detail: `Répondu le ${formatDate(booking.reviewRequest.submittedAt)}`,
+    };
+  }
+
+  return {
+    label: "Avis demandé",
+    className: "bg-orange-50 text-orange-800 ring-orange-200",
+    detail: `Envoyé le ${formatDate(booking.reviewRequest.sentAt)}`,
+  };
+};
+
 const getActionTitle = (action: AdminAction) =>
-  action === "CONFIRMED" ? "Accepter la réservation" : "Refuser la réservation";
+  action === "CONFIRMED"
+    ? "Accepter la réservation"
+    : action === "COMPLETED"
+      ? "Terminer la prestation"
+      : "Refuser la réservation";
 
 export default function AdminBookingsPage() {
   const { data: session, status } = useSession();
@@ -159,6 +227,9 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [emailLoading, setEmailLoading] = useState<string | null>(null);
+  const [reviewEmailLoading, setReviewEmailLoading] = useState<string | null>(null);
+  const [reviewPreviewEmailLoading, setReviewPreviewEmailLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [actionDialog, setActionDialog] = useState<{
@@ -167,6 +238,7 @@ export default function AdminBookingsPage() {
   } | null>(null);
   const [actionReason, setActionReason] = useState("");
   const [actionConfirmed, setActionConfirmed] = useState(false);
+  const [expandedVisitBookingIds, setExpandedVisitBookingIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/signin");
@@ -200,7 +272,7 @@ export default function AdminBookingsPage() {
   const counts = useMemo(() => {
     const base = { all: bookings.length, pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
     bookings.forEach((booking) => {
-      if (booking.status === "PENDING") base.pending += 1;
+      if (["PENDING", "ACCEPTING", "CANCELLING"].includes(booking.status)) base.pending += 1;
       if (booking.status === "CONFIRMED") base.confirmed += 1;
       if (booking.status === "COMPLETED") base.completed += 1;
       if (booking.status === "CANCELLED") base.cancelled += 1;
@@ -213,7 +285,11 @@ export default function AdminBookingsPage() {
     const query = search.trim().toLowerCase();
 
     return bookings.filter((booking) => {
-      if (statusFilter && booking.status !== statusFilter) return false;
+      if (
+        statusFilter &&
+        booking.status !== statusFilter &&
+        !(filter === "pending" && ["ACCEPTING", "CANCELLING"].includes(booking.status))
+      ) return false;
       if (!query) return true;
 
       return [
@@ -245,6 +321,18 @@ export default function AdminBookingsPage() {
     setActionConfirmed(false);
   };
 
+  const toggleVisitSlots = (bookingId: string) => {
+    setExpandedVisitBookingIds((current) => {
+      const next = new Set(current);
+      if (next.has(bookingId)) {
+        next.delete(bookingId);
+      } else {
+        next.add(bookingId);
+      }
+      return next;
+    });
+  };
+
   const submitStatusChange = async () => {
     if (!actionDialog) return;
 
@@ -269,17 +357,100 @@ export default function AdminBookingsPage() {
         throw new Error(data?.error || "Impossible de modifier cette réservation.");
       }
 
-      setNotice(
-        action === "CONFIRMED"
-          ? "Réservation acceptée. Le paiement a été capturé si nécessaire."
-          : "Réservation refusée. L'empreinte, le paiement ou les crédits ont été traités."
-      );
+      if (action === "CONFIRMED") {
+        setNotice(
+          data?.confirmationEmailSent === false
+            ? `Réservation acceptée, mais l'email n'a pas pu partir : ${data?.confirmationEmailError || "erreur Resend"}`
+            : "Réservation acceptée. Le paiement a été capturé si nécessaire et l'email de confirmation a été envoyé."
+        );
+      } else if (action === "COMPLETED") {
+        setNotice(
+          data?.reviewRequestEmailSent === false
+            ? `Prestation terminée, mais l'email d'avis n'a pas pu partir : ${data?.reviewRequestEmailError || "erreur Resend"}`
+            : "Prestation terminée. L'email de demande d'avis a été envoyé."
+        );
+      } else {
+        setNotice(
+          data?.rejectionEmailSent === false
+            ? `Réservation refusée, mais l'email n'a pas pu partir : ${data?.rejectionEmailError || "erreur Resend"}`
+            : "Réservation refusée. Le paiement a été traité et l'email avec le motif a été envoyé au client."
+        );
+      }
       setActionDialog(null);
       await fetchBookings();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Impossible de modifier cette réservation.");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const resendConfirmationEmail = async (booking: Booking) => {
+    setEmailLoading(booking.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(`/api/admin/bookings/${booking.id}/resend-confirmation`, {
+        method: "POST",
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Impossible de renvoyer la confirmation.");
+      }
+
+      setNotice(`Email de confirmation renvoyé à ${booking.client.email}.`);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Impossible de renvoyer la confirmation.");
+    } finally {
+      setEmailLoading(null);
+    }
+  };
+
+  const sendReviewRequestEmail = async (booking: Booking) => {
+    setReviewEmailLoading(booking.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(`/api/admin/bookings/${booking.id}/send-review-request`, {
+        method: "POST",
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Impossible d'envoyer la demande d'avis.");
+      }
+
+      setNotice(`Email de demande d'avis envoyé à ${booking.client.email}.`);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Impossible d'envoyer la demande d'avis.");
+    } finally {
+      setReviewEmailLoading(null);
+    }
+  };
+
+  const sendReviewRequestPreviewEmail = async (booking: Booking) => {
+    setReviewPreviewEmailLoading(booking.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(`/api/admin/bookings/${booking.id}/send-review-request-preview`, {
+        method: "POST",
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Impossible d'envoyer le test de demande d'avis.");
+      }
+
+      setNotice("Email test de demande d'avis envoyé à votre adresse admin.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Impossible d'envoyer le test de demande d'avis.");
+    } finally {
+      setReviewPreviewEmailLoading(null);
     }
   };
 
@@ -298,20 +469,10 @@ export default function AdminBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link href="/admin/dashboard" className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Administration</p>
-            <h1 className="truncate text-lg font-bold text-gray-950">Réservations</h1>
-          </Link>
-          <UserMenu variant="light" />
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+    <>
         <section className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Administration</p>
             <h2 className="text-2xl font-bold text-gray-950">Demandes clients</h2>
             <p className="mt-1 text-sm text-gray-600">
               Acceptez uniquement quand la prestation est faisable. Refuser libère l&apos;empreinte Stripe ou recrédite le client.
@@ -387,8 +548,18 @@ export default function AdminBookingsPage() {
                 ? PAYMENT_META[booking.payment.status] || PAYMENT_META.PENDING
                 : null;
               const visitSlots = getVisitSlots(booking);
-              const isWorking = actionLoading === booking.id;
-              const isClub = booking.client.subscription?.status === "ACTIVE";
+              const isActionWorking = actionLoading === booking.id;
+              const isEmailWorking = emailLoading === booking.id;
+              const isReviewEmailWorking = reviewEmailLoading === booking.id;
+              const isReviewPreviewEmailWorking = reviewPreviewEmailLoading === booking.id;
+              const isWorking = isActionWorking || isEmailWorking || isReviewEmailWorking || isReviewPreviewEmailWorking;
+              const isPremium = booking.client.subscription?.status === "ACTIVE";
+              const isVisitSlotsExpanded = expandedVisitBookingIds.has(booking.id);
+              const visibleVisitSlots = isVisitSlotsExpanded ? visitSlots : visitSlots.slice(0, 4);
+              const hiddenVisitSlotsCount = Math.max(visitSlots.length - visibleVisitSlots.length, 0);
+              const canResendConfirmation = ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.status);
+              const canSendReviewRequest = ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.status);
+              const reviewMeta = getReviewRequestMeta(booking);
 
               return (
                 <article key={booking.id} className="rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -401,9 +572,9 @@ export default function AdminBookingsPage() {
                         <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                           {SERVICE_LABELS[booking.serviceType] || booking.serviceType}
                         </span>
-                        {isClub && (
+                        {isPremium && (
                           <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
-                            Club actif
+                            Priorité Premium
                           </span>
                         )}
                       </div>
@@ -437,27 +608,64 @@ export default function AdminBookingsPage() {
                           <Clock3 className="h-4 w-4" />
                           Période
                         </p>
-                        <p className="mt-2 font-bold text-gray-950">
-                          {formatDate(booking.startDate)} au {formatDate(booking.endDate)}
-                        </p>
-                        {(booking.startTime || booking.endTime) && (
-                          <p className="mt-1 text-sm text-gray-600">
-                            {booking.startTime || "--:--"} - {booking.endTime || "--:--"}
-                          </p>
+                        {booking.serviceType === "BOARDING" ? (
+                          <div className="mt-2 space-y-1.5 text-sm text-gray-700">
+                            <p>
+                              <span className="font-bold text-gray-950">Arrivée :</span>{" "}
+                              {formatDate(booking.startDate)} à {booking.startTime || "heure à convenir"}
+                            </p>
+                            <p>
+                              <span className="font-bold text-gray-950">Départ :</span>{" "}
+                              {formatDate(booking.endDate)} à {booking.endTime || "heure à convenir"}
+                            </p>
+                            <p className="pt-1 text-xs font-semibold text-orange-700">
+                              {getNightCount(booking)} nuit{getNightCount(booking) > 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="mt-2 font-bold text-gray-950">
+                              {formatDate(booking.startDate)} au {formatDate(booking.endDate)}
+                            </p>
+                            {(booking.startTime || booking.endTime) && !["DROP_IN", "DOG_WALKING"].includes(booking.serviceType) && (
+                              <p className="mt-1 text-sm text-gray-600">
+                                {booking.serviceType === "HOUSE_SITTING" ? "Horaires chaque jour : " : "Horaires : "}
+                                {booking.startTime || "--:--"}–{booking.endTime || "--:--"}
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
 
                       {visitSlots.length > 0 && (
                         <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-950">
                           <p className="font-bold">{visitSlots.length} passage{visitSlots.length > 1 ? "s" : ""}</p>
-                          <div className="mt-2 space-y-1">
-                            {visitSlots.slice(0, 4).map((slot, index) => (
+                          <div className={`mt-2 space-y-1 ${isVisitSlotsExpanded ? "max-h-64 overflow-y-auto pr-1" : ""}`}>
+                            {visibleVisitSlots.map((slot, index) => (
                               <p key={`${slot.date}-${slot.startTime}-${index}`}>
                                 {formatDate(slot.date)} à {slot.startTime} · {slot.duration} min
                               </p>
                             ))}
-                            {visitSlots.length > 4 && <p>+ {visitSlots.length - 4} autre{visitSlots.length > 5 ? "s" : ""}</p>}
                           </div>
+                          {visitSlots.length > 4 && (
+                            <button
+                              type="button"
+                              onClick={() => toggleVisitSlots(booking.id)}
+                              className="mt-3 inline-flex items-center gap-1 rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-bold text-blue-900 transition hover:border-blue-300 hover:bg-blue-100"
+                            >
+                              {isVisitSlotsExpanded ? (
+                                <>
+                                  <ChevronUp className="h-3.5 w-3.5" />
+                                  Réduire la liste
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-3.5 w-3.5" />
+                                  Voir les {hiddenVisitSlotsCount} autre{hiddenVisitSlotsCount > 1 ? "s" : ""} date{hiddenVisitSlotsCount > 1 ? "s" : ""}
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -467,6 +675,45 @@ export default function AdminBookingsPage() {
                           <span>{booking.serviceDetails.serviceAddress}</span>
                         </div>
                       )}
+
+                      <div className="rounded-lg border border-gray-200 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <Mail className="h-4 w-4" />
+                            Avis client
+                          </p>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${reviewMeta.className}`}>
+                            {reviewMeta.label}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600">{reviewMeta.detail}</p>
+                        {booking.reviewRequest?.submittedAt && (
+                          <div className="mt-3 space-y-3 text-sm">
+                            <div className="rounded-md bg-emerald-50 p-3 text-emerald-950">
+                              <p className="font-bold">
+                                Prestation : {booking.reviewRequest.serviceRating || "-"} / 5
+                              </p>
+                              {booking.reviewRequest.serviceComment && (
+                                <p className="mt-1 whitespace-pre-wrap leading-6 text-emerald-900">
+                                  &ldquo;{booking.reviewRequest.serviceComment}&rdquo;
+                                </p>
+                              )}
+                            </div>
+                            {(booking.reviewRequest.websiteRating || booking.reviewRequest.websiteComment) && (
+                              <div className="rounded-md bg-blue-50 p-3 text-blue-950">
+                                <p className="font-bold">
+                                  Site internet : {booking.reviewRequest.websiteRating || "-"} / 5
+                                </p>
+                                {booking.reviewRequest.websiteComment && (
+                                  <p className="mt-1 whitespace-pre-wrap leading-6 text-blue-900">
+                                    &ldquo;{booking.reviewRequest.websiteComment}&rdquo;
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex flex-col justify-between gap-4">
@@ -480,6 +727,62 @@ export default function AdminBookingsPage() {
                           <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${paymentMeta.className}`}>
                             {paymentMeta.label}
                           </span>
+                        )}
+                        {booking.priceBreakdown && (
+                          <div className="mt-4 space-y-3 border-t border-gray-200 pt-3 text-xs">
+                            <p className="font-bold uppercase tracking-wide text-gray-500">Détail du prix</p>
+                            {booking.priceBreakdown.pets.map((pet) => (
+                              <div key={pet.petId} className="rounded-md bg-gray-50 p-2.5">
+                                <div className="mb-2 flex items-center justify-between gap-3 font-bold text-gray-950">
+                                  <span>{pet.petName}</span>
+                                  <span>{formatMoney(pet.subtotal)} €</span>
+                                </div>
+                                <div className="space-y-2 text-gray-600">
+                                  {pet.lines.map((line, index) => (
+                                    <div key={`${line.label}-${index}`} className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <p className="font-medium text-gray-800">{line.label}</p>
+                                        <p className="mt-0.5 text-[11px] text-gray-500">
+                                          {line.type === "base"
+                                            ? `${line.quantity} ${getPriceUnit(booking.serviceType, line.quantity)} × ${formatMoney(Math.abs(line.unitPrice))} €`
+                                            : line.quantity > 1
+                                              ? `${line.quantity} × ${formatMoney(Math.abs(line.unitPrice))} €`
+                                              : `Tarif : ${formatMoney(Math.abs(line.unitPrice))} €`}
+                                        </p>
+                                      </div>
+                                      <span className="shrink-0 font-semibold text-gray-800">
+                                        {line.type === "base" ? `${formatMoney(line.total)} €` : formatSignedMoney(line.total)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            {booking.priceBreakdown.sharedLines.map((line, index) => (
+                              <div key={`${line.label}-${index}`} className="flex items-start justify-between gap-3 text-gray-700">
+                                <span>{line.label}</span>
+                                <span className="shrink-0 font-semibold">{formatSignedMoney(line.total)}</span>
+                              </div>
+                            ))}
+                            {(booking.priceBreakdown.adjustments.length > 0 || booking.priceBreakdown.subtotal !== booking.priceBreakdown.total) && (
+                              <div className="space-y-2 border-t border-gray-200 pt-2">
+                                <div className="flex justify-between gap-3 text-gray-600">
+                                  <span>Sous-total</span>
+                                  <span>{formatMoney(booking.priceBreakdown.subtotal)} €</span>
+                                </div>
+                                {booking.priceBreakdown.adjustments.map((adjustment, index) => (
+                                  <div key={`${adjustment.label}-${index}`} className={`flex justify-between gap-3 font-bold ${adjustment.amount <= 0 ? "text-emerald-700" : "text-orange-700"}`}>
+                                    <span>{adjustment.label}</span>
+                                    <span>{formatSignedMoney(adjustment.amount)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div className="flex justify-between gap-3 border-t border-gray-200 pt-2 text-sm font-bold text-gray-950">
+                              <span>Total vérifié</span>
+                              <span>{formatMoney(booking.priceBreakdown.total)} €</span>
+                            </div>
+                          </div>
                         )}
                         {booking.payment?.stripePaymentId && (
                           <p className="mt-2 break-all font-mono text-[11px] text-gray-500">
@@ -517,6 +820,80 @@ export default function AdminBookingsPage() {
                           </div>
                         )}
 
+                        {canResendConfirmation && (
+                          <Button
+                            type="button"
+                            onClick={() => resendConfirmationEmail(booking)}
+                            disabled={isWorking}
+                            variant="outline"
+                          >
+                            {isEmailWorking ? (
+                              <LoaderCircle className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Mail className="h-4 w-4" />
+                            )}
+                            Renvoyer confirmation
+                          </Button>
+                        )}
+
+                        {canSendReviewRequest && (
+                          <Button
+                            type="button"
+                            onClick={() => sendReviewRequestPreviewEmail(booking)}
+                            disabled={isWorking}
+                            variant="outline"
+                            className="border-gray-200 text-gray-700 hover:bg-gray-50"
+                          >
+                            {isReviewPreviewEmailWorking ? (
+                              <LoaderCircle className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Mail className="h-4 w-4" />
+                            )}
+                            M&apos;envoyer un test
+                          </Button>
+                        )}
+
+                        {canSendReviewRequest && (
+                          <Button
+                            type="button"
+                            onClick={() => sendReviewRequestEmail(booking)}
+                            disabled={isWorking}
+                            variant="outline"
+                            className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                          >
+                            {isReviewEmailWorking ? (
+                              <LoaderCircle className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Mail className="h-4 w-4" />
+                            )}
+                            Envoyer demande d&apos;avis
+                          </Button>
+                        )}
+
+                        {booking.status === "CONFIRMED" && (
+                          <Button
+                            type="button"
+                            onClick={() => openActionDialog(booking, "COMPLETED")}
+                            disabled={isWorking}
+                            className="bg-gray-900 text-white hover:bg-orange-600"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Terminer
+                          </Button>
+                        )}
+
+                        {booking.status === "IN_PROGRESS" && (
+                          <Button
+                            type="button"
+                            onClick={() => openActionDialog(booking, "COMPLETED")}
+                            disabled={isWorking}
+                            className="bg-gray-900 text-white hover:bg-orange-600"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Terminer
+                          </Button>
+                        )}
+
                         {booking.status === "CONFIRMED" && (
                           <Button
                             type="button"
@@ -530,7 +907,7 @@ export default function AdminBookingsPage() {
                           </Button>
                         )}
 
-                        {isWorking && (
+                        {isActionWorking && (
                           <p className="text-center text-xs font-semibold text-gray-500">Traitement en cours...</p>
                         )}
                       </div>
@@ -541,10 +918,9 @@ export default function AdminBookingsPage() {
             })}
           </div>
         )}
-      </main>
 
       {actionDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:items-center">
           <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -573,20 +949,21 @@ export default function AdminBookingsPage() {
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
                   <p className="font-bold">Ce refus va traiter le paiement.</p>
                   <p className="mt-1 leading-6">
-                    Si une empreinte Stripe existe, elle sera libérée. Si le paiement a déjà été capturé, un remboursement sera demandé. Si la réservation a utilisé des crédits, ils seront recrédités.
+                    Si une empreinte Stripe existe, elle sera libérée. Si le paiement a déjà été capturé, un remboursement sera demandé. Le client recevra ensuite un email avec le motif ci-dessous.
                   </p>
                 </div>
                 <div>
                   <label htmlFor="cancel-reason" className="text-sm font-bold text-gray-900">
-                    Motif interne
+                    Motif envoyé au client
                   </label>
                   <textarea
                     id="cancel-reason"
                     value={actionReason}
                     onChange={(event) => setActionReason(event.target.value)}
-                    placeholder="Ex : indisponibilité, doublon, informations client insuffisantes..."
+                    placeholder="Expliquez clairement pourquoi la demande ne peut pas être acceptée..."
                     className="mt-2 h-28 w-full resize-none rounded-lg border border-gray-300 p-3 text-sm outline-none transition focus:border-gray-950"
                     maxLength={500}
+                    required
                   />
                   <p className="mt-1 text-xs text-gray-500">{actionReason.length}/500 caractères</p>
                 </div>
@@ -597,8 +974,15 @@ export default function AdminBookingsPage() {
                     onChange={(event) => setActionConfirmed(event.target.checked)}
                     className="mt-1 h-4 w-4 accent-red-600"
                   />
-                  <span>Je confirme le refus et le traitement associé du paiement ou des crédits.</span>
+                  <span>Je confirme le refus et le traitement associé du paiement.</span>
                 </label>
+              </div>
+            ) : actionDialog.action === "COMPLETED" ? (
+              <div className="mt-5 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950">
+                <p className="font-bold">Cette action termine la prestation.</p>
+                <p className="mt-1 leading-6">
+                  La réservation passera en terminée et un email demandera au client son avis sur la prestation et sur le site internet.
+                </p>
               </div>
             ) : (
               <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
@@ -616,8 +1000,17 @@ export default function AdminBookingsPage() {
               <Button
                 type="button"
                 onClick={submitStatusChange}
-                disabled={Boolean(actionLoading) || (actionDialog.action === "CANCELLED" && !actionConfirmed)}
-                className={actionDialog.action === "CANCELLED" ? "bg-red-600 text-white hover:bg-red-700" : "bg-emerald-600 text-white hover:bg-emerald-700"}
+                disabled={
+                  Boolean(actionLoading) ||
+                  (actionDialog.action === "CANCELLED" && (!actionConfirmed || !actionReason.trim()))
+                }
+                className={
+                  actionDialog.action === "CANCELLED"
+                    ? "bg-red-600 text-white hover:bg-red-700"
+                    : actionDialog.action === "COMPLETED"
+                      ? "bg-orange-600 text-white hover:bg-orange-700"
+                      : "bg-emerald-600 text-white hover:bg-emerald-700"
+                }
               >
                 {actionLoading ? (
                   <>
@@ -626,6 +1019,8 @@ export default function AdminBookingsPage() {
                   </>
                 ) : actionDialog.action === "CANCELLED" ? (
                   "Confirmer le refus"
+                ) : actionDialog.action === "COMPLETED" ? (
+                  "Terminer la prestation"
                 ) : (
                   "Confirmer l'acceptation"
                 )}
@@ -634,6 +1029,6 @@ export default function AdminBookingsPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

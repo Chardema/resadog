@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { rateLimit } from "@/lib/rate-limit";
+import { distributedRateLimit } from "@/lib/rate-limit";
+import { sendWelcomeEmail } from "@/lib/email";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
   try {
     // Rate limiting : 5 inscriptions par IP par heure
     const ip = request.headers.get("x-forwarded-for") || "unknown";
-    const { success } = rateLimit(`register:${ip}`, { maxRequests: 5, windowSeconds: 3600 });
+    const { success } = await distributedRateLimit(`register:${ip}`, { maxRequests: 5, windowSeconds: 3600 });
     if (!success) {
       return NextResponse.json(
         { error: "Trop de tentatives. Réessayez plus tard." },
@@ -55,6 +56,12 @@ export async function POST(request: Request) {
         phone: validatedData.phone,
         role: "CLIENT", // Par défaut, les nouveaux utilisateurs sont des clients
       },
+    });
+
+    sendWelcomeEmail(user.email, user.name || "Client", {
+      idempotencyKey: `welcome-${user.id}`,
+    }).catch((error) => {
+      console.error("Compte créé, mais email de bienvenue non envoyé:", error);
     });
 
     // Retourner les données de l'utilisateur (sans le mot de passe)

@@ -23,7 +23,6 @@ interface Booking {
   } | null;
   pets: { name: string; breed?: string }[];
   totalPrice: number;
-  creditsUsed?: number;
   createdAt: string;
 }
 
@@ -37,6 +36,8 @@ const SERVICE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   PENDING: { label: "En attente", color: "bg-orange-100 text-orange-700" },
+  ACCEPTING: { label: "Validation en cours", color: "bg-orange-100 text-orange-700" },
+  CANCELLING: { label: "Annulation en cours", color: "bg-orange-100 text-orange-700" },
   CONFIRMED: { label: "Confirmée", color: "bg-green-100 text-green-700" },
   IN_PROGRESS: { label: "En cours", color: "bg-blue-100 text-blue-700" },
   COMPLETED: { label: "Terminée", color: "bg-gray-100 text-gray-700" },
@@ -79,7 +80,7 @@ export default function HistoryPage() {
   const filteredBookings = bookings.filter((b) => {
     if (filter === "all") return true;
     if (filter === "past") return ["COMPLETED", "CANCELLED"].includes(b.status);
-    if (filter === "active") return ["PENDING", "CONFIRMED", "IN_PROGRESS"].includes(b.status);
+    if (filter === "active") return ["PENDING", "ACCEPTING", "CANCELLING", "CONFIRMED", "IN_PROGRESS"].includes(b.status);
     return b.status === filter;
   });
 
@@ -209,11 +210,7 @@ export default function HistoryPage() {
 
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        {booking.creditsUsed && booking.creditsUsed > 0 ? (
-                          <p className="font-bold text-gray-900">{booking.creditsUsed} crédits</p>
-                        ) : (
-                          <p className="font-bold text-gray-900">{booking.totalPrice}€</p>
-                        )}
+                        <p className="font-bold text-gray-900">{booking.totalPrice}€</p>
                       </div>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-bold ${statusInfo.color}`}
@@ -246,8 +243,9 @@ export default function HistoryPage() {
             <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-2xl">
               <h2 className="text-xl font-bold text-gray-900">Annuler cette réservation ?</h2>
               <p className="mt-3 text-sm text-gray-600">
-                Plus de 48 h avant la prestation, le paiement ou les crédits sont restitués intégralement.
-                À moins de 48 h, 50% du paiement est retenu et un crédit utilisé n&apos;est pas restitué.
+                Plus de 48 h avant la prestation, le paiement est restitué intégralement.
+                Pour les clients Premium, cette annulation gratuite reste possible jusqu’à 24 h avant.
+                Hors délai gratuit, 50% du paiement est retenu.
               </p>
               <label className="mt-5 flex items-start gap-3 text-sm text-gray-700">
                 <input

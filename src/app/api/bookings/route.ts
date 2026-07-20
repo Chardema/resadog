@@ -2,41 +2,51 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
-import { rateLimit } from "@/lib/rate-limit";
+import { distributedRateLimit } from "@/lib/rate-limit";
 import { buildSpecialRequests, extractServiceDetails, stripServiceDetails } from "@/lib/booking-details";
-import { calculateBookingPrice } from "@/lib/pricing";
+import { calculatePremiumDiscount } from "@/lib/loyalty";
+import { calculateBookingPrice, calculateSameDayDurationMinutes, calculateServiceDurationMinutes, MAX_VISIT_DURATION_MINUTES } from "@/lib/pricing";
 import { calculateCouponDiscount } from "@/lib/coupon-pricing";
 import { isHourlyServiceType, isOvernightServiceType, SERVICE_TYPES } from "@/lib/services";
-import { Prisma } from "@prisma/client";
+import {
+  countBookingsByDate,
+  getDateKeysInRange,
+  getHourlyBookingConflicts,
+  parseUTCDate,
+  toDateKey,
+} from "@/lib/booking-availability";
+import {
+  WELCOME_OFFER_CODE,
+  WELCOME_OFFER_DISCOUNT_PERCENT,
+  WELCOME_OFFER_MAX_CLIENTS,
+  WELCOME_OFFER_NOTE,
+  isWelcomeOfferCode,
+} from "@/lib/welcome-offer";
 
 class BookingInputError extends Error {}
 
-// Helper pour parser une date ISO string en UTC (format YYYY-MM-DD)
-function parseUTCDate(dateString: string): Date {
-  const [year, month, day] = dateString.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-}
+function sameBookingPets(
+  existingPets: Array<{ id: string }>,
+  legacyPetId: string | null,
+  requestedPetIds: string[]
+) {
+  const existingIds = existingPets.length > 0
+    ? existingPets.map((pet) => pet.id)
+    : (legacyPetId ? [legacyPetId] : []);
 
-function toDateKey(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
+  if (existingIds.length !== requestedPetIds.length) return false;
 
-function getDateKeysInRange(start: Date, end: Date): string[] {
-  const days: string[] = [];
-  const currentDate = new Date(start);
-
-  while (currentDate <= end) {
-    days.push(toDateKey(currentDate));
-    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-  }
-
-  return days;
+  const existingKey = [...existingIds].sort().join("|");
+  const requestedKey = [...requestedPetIds].sort().join("|");
+  return existingKey === requestedKey;
 }
 
 const visitSlotSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date de passage invalide"),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Heure de passage invalide"),
-  duration: z.number().int().min(30).max(60),
+  duration: z.number().int().refine((duration) => [30, 60, 90, MAX_VISIT_DURATION_MINUTES].includes(duration), {
+    message: "La durée doit être de 30 min, 1h, 1h30 ou 2h maximum",
+  }),
 });
 
 // Schéma de validation pour la création de réservation
@@ -45,8 +55,8 @@ const createBookingSchema = z.object({
   pricingPetIds: z.array(z.string()).min(1).optional(),
   startDate: z.string().min(1, "La date de début est requise"),
   endDate: z.string().min(1, "La date de fin est requise"),
-  startTime: z.string().optional(), // Heure de dépôt (HH:mm)
-  endTime: z.string().optional(),   // Heure de récupération (HH:mm)
+  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure de début invalide").optional(),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure de fin invalide").optional(),
   serviceType: z.enum(SERVICE_TYPES),
   // Conservés temporairement pour les anciens clients, mais jamais utilisés côté serveur.
   totalPrice: z.number().nonnegative().optional(),
@@ -54,7 +64,6 @@ const createBookingSchema = z.object({
   notes: z.string().optional(),
   promoCode: z.string().optional(),
   paymentMethod: z.enum(["PAYPAL", "WERO", "BANK_TRANSFER"]).optional(),
-  useCredits: z.boolean().optional(),
   serviceDetails: z.object({
     visitSlots: z.array(visitSlotSchema).optional(),
     serviceAddress: z.string().trim().min(8).max(300).optional(),
@@ -74,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting : 10 réservations par user par heure
-    const { success: rateLimitOk } = rateLimit(`booking:${session.user.id}`, { maxRequests: 10, windowSeconds: 3600 });
+    const { success: rateLimitOk } = await distributedRateLimit(`booking:${session.user.id}`, { maxRequests: 10, windowSeconds: 3600 });
     if (!rateLimitOk) {
       return NextResponse.json(
         { error: "Trop de réservations. Réessayez plus tard." },
@@ -103,7 +112,6 @@ export async function POST(request: NextRequest) {
       notes,
       promoCode,
       paymentMethod,
-      useCredits,
       serviceDetails,
     } = validatedData;
 
@@ -127,6 +135,26 @@ export async function POST(request: NextRequest) {
     if (serviceType === "DAY_CARE" && startDate !== endDate) {
       return NextResponse.json(
         { error: "La garderie de jour se réserve sur une seule journée. Pour plusieurs jours avec nuit, choisissez l'hébergement." },
+        { status: 400 }
+      );
+    }
+
+    if (serviceType === "DAY_CARE") {
+      const dayCareDurationMinutes = calculateServiceDurationMinutes({ startDate, endDate, startTime, endTime });
+      if (dayCareDurationMinutes <= 0 || dayCareDurationMinutes > 600) {
+        return NextResponse.json(
+          { error: "La garderie doit durer entre quelques minutes et 10 heures maximum, avec une fin après le début" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (
+      serviceType === "HOUSE_SITTING"
+      && calculateSameDayDurationMinutes({ startTime, endTime }) <= 0
+    ) {
+      return NextResponse.json(
+        { error: "La garde à domicile doit commencer et se terminer le même jour, avec une heure de fin après l’heure de début. Les nuitées ne sont pas proposées." },
         { status: 400 }
       );
     }
@@ -191,6 +219,13 @@ export async function POST(request: NextRequest) {
       .map((id) => pricingContextPets.find((pet) => pet.id === id))
       .filter((pet) => pet !== undefined);
 
+    if (serviceType === "DOG_WALKING" && pets.some((pet) => pet.species === "CAT")) {
+      return NextResponse.json(
+        { error: "La promenade chat n'est pas proposée par défaut. Contactez-nous pour une demande spécifique." },
+        { status: 400 }
+      );
+    }
+
     const priceResult = calculateBookingPrice({
       serviceType,
       pets,
@@ -207,7 +242,8 @@ export async function POST(request: NextRequest) {
     }
 
     let finalTotal = priceResult.total;
-    if (promoCode && !useCredits) {
+    let couponDiscountType: "PERCENTAGE" | "FIXED_AMOUNT" | "CUSTOM_TOTAL" | null = null;
+    if (promoCode) {
       if (pricingContextIds.length !== petIds.length) {
         return NextResponse.json(
           { error: "Les codes promo nécessitent des dates communes à tous les animaux" },
@@ -215,42 +251,158 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const coupon = await prisma.coupon.findUnique({
-        where: { code: promoCode.toUpperCase() },
-      });
-      const now = new Date();
+      if (isWelcomeOfferCode(promoCode)) {
+        const [hasPreviousBooking, existingClaim, claimedPlaces] = await Promise.all([
+          prisma.booking.findFirst({
+            where: {
+              clientId: session.user.id,
+              OR: [
+                { depositPaid: true },
+                { payment: { is: { status: "SUCCEEDED" } } },
+                { status: { in: ["CONFIRMED", "IN_PROGRESS", "COMPLETED"] } },
+              ],
+            },
+            select: { id: true },
+          }),
+          prisma.booking.findFirst({
+            where: {
+              clientId: session.user.id,
+              couponRedeemedAt: { not: null },
+              notes: { contains: WELCOME_OFFER_NOTE },
+            },
+            select: { id: true },
+          }),
+          prisma.booking.count({
+            where: {
+              couponRedeemedAt: { not: null },
+              notes: { contains: WELCOME_OFFER_NOTE },
+            },
+          }),
+        ]);
 
-      if (!coupon || !coupon.isActive) throw new BookingInputError("Code promo invalide ou inactif");
-      if (coupon.validFrom && now < coupon.validFrom) throw new BookingInputError("Ce code promo n'est pas encore valide");
-      if (coupon.validUntil && now > coupon.validUntil) throw new BookingInputError("Ce code promo a expiré");
-      if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) throw new BookingInputError("Ce code promo a atteint sa limite d'utilisation");
-      if (coupon.minAmount && priceResult.total < coupon.minAmount) throw new BookingInputError(`Montant minimum de ${coupon.minAmount}€ requis`);
-      if (coupon.restrictedTo.length > 0 && !coupon.restrictedTo.includes(session.user.email || "")) throw new BookingInputError("Ce code promo n'est pas valide pour votre compte");
-      if (coupon.applicableServices.length > 0 && !coupon.applicableServices.includes(serviceType)) throw new BookingInputError("Ce code promo n'est pas valide pour ce service");
+        if (hasPreviousBooking) throw new BookingInputError("Cette offre est réservée aux nouveaux clients, pour leur première réservation.");
+        if (!existingClaim && claimedPlaces >= WELCOME_OFFER_MAX_CLIENTS) throw new BookingInputError("Les 5 offres de bienvenue ont déjà été attribuées.");
 
-      finalTotal = calculateCouponDiscount({
-        totalAmount: priceResult.total,
-        discountType: coupon.discountType,
-        discountValue: coupon.discountValue,
-        quantity: priceResult.quantity,
-      }).finalAmount;
+        couponDiscountType = "PERCENTAGE";
+        finalTotal = calculateCouponDiscount({
+          totalAmount: priceResult.total,
+          discountType: "PERCENTAGE",
+          discountValue: WELCOME_OFFER_DISCOUNT_PERCENT,
+          quantity: priceResult.quantity,
+        }).finalAmount;
+      } else {
+        const coupon = await prisma.coupon.findUnique({
+          where: { code: promoCode.toUpperCase() },
+        });
+        const now = new Date();
+
+        if (!coupon || !coupon.isActive) throw new BookingInputError("Code promo invalide ou inactif");
+        if (coupon.validFrom && now < coupon.validFrom) throw new BookingInputError("Ce code promo n'est pas encore valide");
+        if (coupon.validUntil && now > coupon.validUntil) throw new BookingInputError("Ce code promo a expiré");
+        if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) throw new BookingInputError("Ce code promo a atteint sa limite d'utilisation");
+        if (coupon.minAmount && priceResult.total < coupon.minAmount) throw new BookingInputError(`Montant minimum de ${coupon.minAmount}€ requis`);
+        const userEmail = session.user.email?.toLowerCase() || "";
+        if (coupon.restrictedTo.length > 0 && !coupon.restrictedTo.map((email) => email.toLowerCase()).includes(userEmail)) throw new BookingInputError("Ce code promo n'est pas valide pour votre compte");
+        if (coupon.applicableServices.length > 0 && !coupon.applicableServices.includes(serviceType)) throw new BookingInputError("Ce code promo n'est pas valide pour ce service");
+
+        couponDiscountType = coupon.discountType;
+        finalTotal = calculateCouponDiscount({
+          totalAmount: priceResult.total,
+          discountType: coupon.discountType,
+          discountValue: coupon.discountValue,
+          quantity: priceResult.quantity,
+        }).finalAmount;
+      }
     }
 
-    // Gestion des CRÉDITS
-    let creditsToDeduct = 0;
-    if (useCredits) {
-        creditsToDeduct = priceResult.quantity * petIds.length;
+    const activePremium = await prisma.userSubscription.findUnique({
+      where: { userId: session.user.id },
+      select: { status: true },
+    });
+    const isPremium = activePremium?.status === "ACTIVE";
+    const premiumDiscount = isPremium && couponDiscountType !== "CUSTOM_TOTAL" ? calculatePremiumDiscount(finalTotal) : null;
+    if (premiumDiscount) {
+      finalTotal = premiumDiscount.finalAmount;
+    }
 
-        // Check balance
-        const batches = await prisma.creditBatch.findMany({
-            where: { userId: session.user.id, serviceType, remaining: { gt: 0 } },
-            orderBy: { expiresAt: 'asc' }
-        });
-        const totalAvailable = batches.reduce((acc, b) => acc + b.remaining, 0);
-        
-        if (totalAvailable < creditsToDeduct) {
-            return NextResponse.json({ error: "Crédits insuffisants" }, { status: 400 });
-        }
+    const bookingSpecialRequests = buildSpecialRequests(notes, serviceDetails);
+    const bookingNotes = [
+      paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
+      promoCode ? `Code promo: ${isWelcomeOfferCode(promoCode) ? WELCOME_OFFER_CODE : promoCode.toUpperCase()}` : null,
+      isPremium ? "Premium actif: Pattes doublées" : null,
+      premiumDiscount ? `Avantage Premium: -${premiumDiscount.discountAmount}€` : null,
+    ].filter(Boolean).join("\n") || null;
+
+    const pendingDuplicateCandidates = await prisma.booking.findMany({
+      where: {
+        clientId: session.user.id,
+        status: "PENDING",
+        serviceType,
+        startDate: start,
+        endDate: end,
+        startTime: startTime || null,
+        endTime: endTime || null,
+        notes: bookingNotes,
+        specialRequests: bookingSpecialRequests,
+      },
+      include: {
+        pets: { select: { id: true, name: true, breed: true } },
+        pet: { select: { id: true } },
+        payment: { select: { status: true, stripePaymentId: true } },
+        client: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const exactPendingDuplicates = pendingDuplicateCandidates.filter((booking) =>
+      sameBookingPets(booking.pets, booking.petId, petIds)
+    );
+
+    const duplicateWithStripePayment = exactPendingDuplicates.find((booking) =>
+      Boolean(booking.payment?.stripePaymentId) || booking.payment?.status === "SUCCEEDED"
+    );
+
+    if (duplicateWithStripePayment) {
+      return NextResponse.json(
+        {
+          error: "Une réservation identique est déjà en attente. Retrouvez-la dans votre dashboard ou contactez-nous si vous souhaitez la modifier.",
+        },
+        { status: 409 }
+      );
+    }
+
+    const reusableDuplicate = exactPendingDuplicates[0];
+    if (reusableDuplicate) {
+      const booking = await prisma.booking.update({
+        where: { id: reusableDuplicate.id },
+        data: {
+          totalPrice: finalTotal,
+          depositAmount: finalTotal,
+        },
+        include: {
+          pets: { select: { name: true, breed: true } },
+          client: { select: { name: true, email: true } },
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        reusedExistingBooking: true,
+        booking: {
+          id: booking.id,
+          startDate: booking.startDate.toISOString(),
+          endDate: booking.endDate.toISOString(),
+          serviceType: booking.serviceType,
+          status: booking.status,
+          totalPrice: booking.totalPrice,
+          depositAmount: booking.depositAmount,
+          serviceDetails: extractServiceDetails(booking.specialRequests),
+          specialRequests: stripServiceDetails(booking.specialRequests),
+          pets: booking.pets,
+          client: booking.client,
+        },
+        message: "Une réservation identique existe déjà. Elle va être réutilisée pour le paiement.",
+      });
     }
 
     // Récupérer toutes les disponibilités pour ces dates et ce type de service
@@ -269,13 +421,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Vérifier que toutes les dates sont disponibles
+    const selectedDateKeySet = new Set(selectedDateKeys);
+    const availabilityByDate = new Map(
+      availabilities.map((availability) => [toDateKey(availability.date), availability])
+    );
+
+    // Vérifier que toutes les dates sont ouvertes manuellement.
     const unavailableDates = selectedDateKeys.filter((dateKey) => {
       const availability = availabilities.find(
         (a) => toDateKey(a.date) === dateKey
       );
-      // La date est indisponible UNIQUEMENT si elle existe dans la BDD ET est marquée comme indisponible
-      return availability && !availability.available;
+      return availability && (!availability.available || availability.maxSlots <= 0);
     });
 
     if (unavailableDates.length > 0) {
@@ -287,11 +443,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier les conflits réels (réservations CONFIRMED ou IN_PROGRESS)
+    // Vérifier la capacité réelle du service sur les dates demandées.
+    const existingServiceBookings = await prisma.booking.findMany({
+      where: {
+        status: { in: ["ACCEPTING", "CANCELLING", "CONFIRMED", "IN_PROGRESS"] },
+        serviceType,
+        startDate: { lte: end },
+        endDate: { gte: start },
+      },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        startTime: true,
+        endTime: true,
+        serviceType: true,
+        specialRequests: true,
+      },
+    });
+    const fullyBookedDates = isHourlyService
+      ? getHourlyBookingConflicts(
+          existingServiceBookings,
+          visitSlots.map((slot) => ({
+            date: slot.date,
+            startTime: slot.startTime,
+            duration: slot.duration,
+          }))
+        ).map((slot) => slot.date || "")
+      : (() => {
+          const serviceBookingCountsByDate = countBookingsByDate(existingServiceBookings, selectedDateKeySet);
+          return selectedDateKeys.filter((dateKey) => {
+            const maxSlots = availabilityByDate.get(dateKey)?.maxSlots ?? 1;
+            return (serviceBookingCountsByDate.get(dateKey) || 0) >= maxSlots;
+          });
+        })();
+
+    if (fullyBookedDates.length > 0) {
+      return NextResponse.json(
+        {
+          error: isHourlyService
+            ? "Certains créneaux horaires sont déjà réservés."
+            : "Certaines dates sont déjà réservées.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Vérifier les conflits réels pour les animaux (tous services confondus).
     const potentiallyConflictingBookings = await prisma.booking.findMany({
       where: {
         pets: { some: { id: { in: petIds } } },
-        status: { in: ["CONFIRMED", "IN_PROGRESS"] },
+        status: { in: ["ACCEPTING", "CANCELLING", "CONFIRMED", "IN_PROGRESS"] },
         OR: [
           {
             AND: [{ startDate: { lte: start } }, { endDate: { gte: start } }],
@@ -308,6 +510,17 @@ export async function POST(request: NextRequest) {
 
     const conflictingBookings = isHourlyService
       ? potentiallyConflictingBookings.filter((booking) => {
+          if (isHourlyServiceType(booking.serviceType)) {
+            return getHourlyBookingConflicts(
+              [booking],
+              visitSlots.map((slot) => ({
+                date: slot.date,
+                startTime: slot.startTime,
+                duration: slot.duration,
+              }))
+            ).length > 0;
+          }
+
           const bookingDates = getDateKeysInRange(booking.startDate, booking.endDate);
           return selectedDateKeys.some((dateKey) => bookingDates.includes(dateKey));
         })
@@ -322,10 +535,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Le niveau Serializable empêche deux réservations simultanées de dépenser
-    // le même solde de crédits.
-    const createBooking = () => prisma.$transaction(async (tx) => {
-      const newBooking = await tx.booking.create({
+    const booking = await prisma.booking.create({
         data: {
           startDate: start,
           endDate: end,
@@ -333,15 +543,11 @@ export async function POST(request: NextRequest) {
           endTime: endTime || null,
           status: "PENDING",
           serviceType,
-          totalPrice: useCredits ? 0 : finalTotal,
-          depositPaid: useCredits ? true : false,
-          depositAmount: useCredits ? 0 : finalTotal,
-          creditsUsed: useCredits ? creditsToDeduct : 0,
-          specialRequests: buildSpecialRequests(notes, serviceDetails),
-          notes: [
-            paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
-            promoCode && !useCredits ? `Code promo: ${promoCode.toUpperCase()}` : null,
-          ].filter(Boolean).join("\n") || null,
+          totalPrice: finalTotal,
+          depositPaid: false,
+          depositAmount: finalTotal,
+          specialRequests: bookingSpecialRequests,
+          notes: bookingNotes,
           clientId: session.user.id,
           pets: {
             connect: petIds.map((id) => ({ id })),
@@ -352,46 +558,7 @@ export async function POST(request: NextRequest) {
           pets: { select: { name: true, breed: true } },
           client: { select: { name: true, email: true } },
         },
-      });
-
-      // Déduire les crédits (FIFO par date d'expiration)
-      if (useCredits && creditsToDeduct > 0) {
-        const batches = await tx.creditBatch.findMany({
-          where: { userId: session.user.id, serviceType, remaining: { gt: 0 } },
-          orderBy: { expiresAt: 'asc' },
-        });
-
-        const availableInTransaction = batches.reduce((sum, batch) => sum + batch.remaining, 0);
-        if (availableInTransaction < creditsToDeduct) {
-          throw new BookingInputError("Crédits insuffisants");
-        }
-
-        let remainingToDeduct = creditsToDeduct;
-        for (const batch of batches) {
-          if (remainingToDeduct <= 0) break;
-          const deduction = Math.min(batch.remaining, remainingToDeduct);
-          await tx.creditBatch.update({
-            where: { id: batch.id },
-            data: { remaining: batch.remaining - deduction },
-          });
-          remainingToDeduct -= deduction;
-        }
-      }
-
-      return newBooking;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-
-    let booking: Awaited<ReturnType<typeof createBooking>> | undefined;
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      try {
-        booking = await createBooking();
-        break;
-      } catch (error) {
-        const retryable = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
-        if (!retryable || attempt === 2) throw error;
-      }
-    }
-    if (!booking) throw new Error("La transaction de réservation n'a pas abouti");
+    });
 
     return NextResponse.json({
       success: true,
@@ -441,7 +608,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET: Récupérer les réservations de l'utilisateur connecté
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
 
@@ -487,7 +654,6 @@ export async function GET(request: NextRequest) {
         totalPrice: b.totalPrice,
         depositAmount: b.depositAmount,
         depositPaid: b.depositPaid,
-        creditsUsed: b.creditsUsed,
         serviceDetails: extractServiceDetails(b.specialRequests),
         specialRequests: stripServiceDetails(b.specialRequests),
         // Combine old and new pets logic

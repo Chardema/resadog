@@ -22,6 +22,7 @@ model User {
   role          Role      @default(CLIENT)
   image         String?
   passwordHash  String?
+  calendarToken String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -35,15 +36,16 @@ model User {
   cardBrand        String? // Marque de la carte (Visa, Mastercard, etc.)
 
   // Relations
-  accounts        Account[]
-  sessions        Session[]
-  pets            Pet[]
-  bookings        Booking[]
-  messages        Message[]
-  notifications   Notification[]
-  subscription    UserSubscription?
-  creditBatches   CreditBatch[]
-  autoApplyCoupon Coupon?           @relation("UserAutoApplyCoupon", fields: [autoApplyCouponId], references: [id], onDelete: SetNull)
+  accounts            Account[]
+  sessions            Session[]
+  pets                Pet[]
+  bookings            Booking[]
+  messages            Message[]
+  notifications       Notification[]
+  subscription        UserSubscription?
+  loyaltyTransactions LoyaltyTransaction[]
+  reviewRequests      ReviewRequest[]
+  autoApplyCoupon     Coupon?              @relation("UserAutoApplyCoupon", fields: [autoApplyCouponId], references: [id], onDelete: SetNull)
 
   @@index([email])
   @@index([autoApplyCouponId])
@@ -92,6 +94,40 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model EmailLog {
+  id             String      @id @default(cuid())
+  resendId       String?     @unique
+  status         EmailStatus
+  from           String
+  to             String[]
+  subject        String
+  idempotencyKey String?
+  error          String?     @db.Text
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([idempotencyKey])
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+  DELIVERED
+  BOUNCED
+  COMPLAINED
+}
+
+model RateLimitBucket {
+  key       String   @id
+  count     Int
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
 }
 
 // ============================================
@@ -174,7 +210,6 @@ model Booking {
   totalPrice         Float
   depositPaid        Boolean       @default(false)
   depositAmount      Float?
-  creditsUsed        Int           @default(0)
   notes              String?       @db.Text
   specialRequests    String?       @db.Text
   cancellationReason String?       @db.Text
@@ -182,15 +217,18 @@ model Booking {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  clientId          String
-  client            User               @relation(fields: [clientId], references: [id])
-  petId             String?
-  pet               Pet?               @relation(fields: [petId], references: [id])
-  pets              Pet[]              @relation("BookingPets")
-  payment           Payment?
-  additionalCharges AdditionalCharge[]
-  journalEntries    JournalEntry[]
-  messages          Message[]
+  clientId            String
+  client              User                 @relation(fields: [clientId], references: [id])
+  petId               String?
+  pet                 Pet?                 @relation(fields: [petId], references: [id])
+  pets                Pet[]                @relation("BookingPets")
+  payment             Payment?
+  checkoutAttempt     CheckoutAttempt?
+  additionalCharges   AdditionalCharge[]
+  journalEntries      JournalEntry[]
+  messages            Message[]
+  loyaltyTransactions LoyaltyTransaction[]
+  reviewRequest       ReviewRequest?
 
   @@index([clientId])
   @@index([petId])
@@ -200,6 +238,8 @@ model Booking {
 
 enum BookingStatus {
   PENDING
+  ACCEPTING
+  CANCELLING
   CONFIRMED
   IN_PROGRESS
   COMPLETED
@@ -219,18 +259,20 @@ enum ServiceType {
 // ============================================
 
 model Payment {
-  id               String        @id @default(cuid())
-  amount           Float
-  currency         String        @default("eur")
-  status           PaymentStatus @default(PENDING)
-  stripePaymentId  String?
-  stripeCustomerId String?
-  paymentMethod    String?
-  paidAt           DateTime?
-  refundedAt       DateTime?
-  refundAmount     Float?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id                      String        @id @default(cuid())
+  amount                  Float
+  capturedAmount          Float         @default(0)
+  currency                String        @default("eur")
+  status                  PaymentStatus @default(PENDING)
+  stripePaymentId         String?
+  stripeCheckoutSessionId String?       @unique
+  stripeCustomerId        String?
+  paymentMethod           String?
+  paidAt                  DateTime?
+  refundedAt              DateTime?
+  refundAmount            Float?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
 
   bookingId String  @unique
   booking   Booking @relation(fields: [bookingId], references: [id])
@@ -247,6 +289,7 @@ model AdditionalCharge {
   description     String?       @db.Text // Description détaillée
   status          PaymentStatus @default(PENDING)
   stripePaymentId String?       @unique // ID du PaymentIntent Stripe
+  idempotencyKey  String?       @unique // Clé stable envoyée par l'interface admin
   chargedAt       DateTime? // Date de débit réussi
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -256,6 +299,33 @@ model AdditionalCharge {
 
   @@index([bookingId])
   @@index([status])
+}
+
+// Coordonne les tentatives Checkout afin qu'une réservation ne puisse pas
+// ouvrir plusieurs sessions Stripe lors de doubles clics ou de requêtes concurrentes.
+model CheckoutAttempt {
+  bookingId       String                @id
+  attemptToken    String                @unique
+  idempotencyKey  String                @unique
+  status          CheckoutAttemptStatus @default(CREATING)
+  stripeSessionId String?               @unique
+  checkoutUrl     String?               @db.Text
+  expiresAt       DateTime?
+  lastError       String?               @db.Text
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status, updatedAt])
+}
+
+enum CheckoutAttemptStatus {
+  CREATING
+  OPEN
+  COMPLETED
+  EXPIRED
+  FAILED
 }
 
 enum PaymentStatus {
@@ -385,8 +455,8 @@ model Coupon {
   id            String       @id @default(cuid())
   code          String       @unique // Code promo (ex: LANCEMENT, VIP23)
   description   String? // Description pour l'admin
-  discountType  DiscountType // PERCENTAGE ou FIXED_AMOUNT
-  discountValue Float // Valeur de la réduction (% ou €)
+  discountType  DiscountType // PERCENTAGE, FIXED_AMOUNT ou CUSTOM_TOTAL
+  discountValue Float // Valeur de la réduction (% ou €) ou total final demandé
   isActive      Boolean      @default(true)
 
   // Restrictions
@@ -399,7 +469,8 @@ model Coupon {
   applicableServices ServiceType[] // Services autorisés (vide = tous)
 
   // Relations
-  usersAutoApply User[] @relation("UserAutoApplyCoupon") // Users qui ont ce coupon en auto
+  usersAutoApply      User[]               @relation("UserAutoApplyCoupon") // Users qui ont ce coupon en auto
+  loyaltyTransactions LoyaltyTransaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -411,21 +482,51 @@ model Coupon {
 enum DiscountType {
   PERCENTAGE // Réduction en pourcentage (ex: 20%)
   FIXED_AMOUNT // Réduction fixe (ex: 7€)
+  CUSTOM_TOTAL // Tarif final personnalisé (ex: total ramené à 40€)
 }
 
 // ============================================
-// SUBSCRIPTION & CREDITS SYSTEM
+// LOYALTY SYSTEM
+// ============================================
+
+model LoyaltyTransaction {
+  id          String                 @id @default(cuid())
+  type        LoyaltyTransactionType
+  paws        Int
+  amount      Float?
+  multiplier  Int                    @default(1)
+  description String
+  createdAt   DateTime               @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  couponId  String?
+  coupon    Coupon?  @relation(fields: [couponId], references: [id], onDelete: SetNull)
+
+  @@unique([bookingId, type])
+  @@index([userId, createdAt])
+  @@index([type])
+  @@index([couponId])
+}
+
+enum LoyaltyTransactionType {
+  EARN
+  REDEEM
+  REVERSAL
+  ADJUSTMENT
+}
+
+// ============================================
+// PREMIUM SUBSCRIPTION SYSTEM
 // ============================================
 
 model UserSubscription {
-  id                   String        @id @default(cuid())
-  stripeSubscriptionId String?       @unique
+  id                   String  @id @default(cuid())
+  stripeSubscriptionId String? @unique
   status               String // ACTIVE, PAST_DUE, CANCELED
-  serviceType          ServiceType
-  billingPeriod        BillingPeriod @default(MONTHLY)
-  daysPerWeek          Int
-  creditsPerMonth      Int
-  price                Float
+  price                Float   @default(9.99)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -434,42 +535,22 @@ model UserSubscription {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-enum BillingPeriod {
-  MONTHLY
-  YEARLY
-}
-
-model CreditBatch {
-  id             String      @id @default(cuid())
-  stripeSourceId String?     @unique
-  amount         Int
-  remaining      Int
-  serviceType    ServiceType
-  expiresAt      DateTime
-  createdAt      DateTime    @default(now())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-}
-
 // ============================================
 // REVIEWS / AVIS CLIENTS
 // ============================================
 
 model Review {
-  id        String       @id @default(cuid())
-  source    ReviewSource
-  author    String
-  rating    Int          @default(5) // 1-5
-  date      String // Date affichée (ex: "14 août 2024")
-  content   String       @db.Text
-  isActive  Boolean      @default(true)
-  order     Int          @default(0) // Ordre d'affichage
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id            String         @id @default(cuid())
+  source        ReviewSource
+  author        String
+  rating        Int            @default(5) // 1-5
+  date          String // Date affichée (ex: "14 août 2024")
+  content       String         @db.Text
+  isActive      Boolean        @default(true)
+  order         Int            @default(0) // Ordre d'affichage
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  reviewRequest ReviewRequest?
 
   @@index([isActive])
   @@index([source])
@@ -480,6 +561,30 @@ enum ReviewSource {
   ROVER
   GOOGLE
   WEBSITE // Avis laissé directement sur le site
+}
+
+model ReviewRequest {
+  id             String    @id @default(cuid())
+  token          String    @unique
+  sentAt         DateTime  @default(now())
+  submittedAt    DateTime?
+  serviceRating  Int?
+  serviceComment String?   @db.Text
+  websiteRating  Int?
+  websiteComment String?   @db.Text
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    User    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  reviewId  String? @unique
+  review    Review? @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([sentAt])
+  @@index([submittedAt])
 }
 
 // ============================================
