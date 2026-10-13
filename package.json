@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
     "check:env": "CHECK_ENV_TARGET=development node scripts/check-env.mjs",
     "check:env:production": "CHECK_ENV_TARGET=production node scripts/check-env.mjs",
     "check:live": "CHECK_ENV_TARGET=production node scripts/check-env.mjs && node scripts/check-stripe-live.mjs",
@@ -41,7 +42,7 @@
     "dotenv": "^17.2.3",
     "framer-motion": "^12.23.26",
     "lucide-react": "^0.561.0",
-    "next": "16.2.11",
+    "next": "16.4.0",
     "next-auth": "5.0.0-beta.32",
     "pg": "^8.16.3",
     "qrcode": "^1.5.4",
@@ -63,20 +64,17 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "^16.2.10",
+    "eslint-config-next": "^16.4.0",
     "prisma": "7.8.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "@hono/node-server": "2.0.11",
-    "brace-expansion": "1.1.16",
+    "brace-expansion": "1.1.21",
     "effect": "3.20.0",
-    "eslint-plugin-react-hooks": "7.0.1",
-    "next": {
-      "postcss": "8.5.20"
-    },
-    "sharp": "0.35.3"
+    "eslint-plugin-react-hooks": "7.0.1"
   }
 }
