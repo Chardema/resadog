@@ -79,6 +79,8 @@ type SubscriptionData = {
   cancellationEffectiveAt: string | null;
   cancelAtPeriodEnd: boolean;
   isLocked: boolean;
+  minimumCommitmentMonths: number;
+  isLegacyPlan: boolean;
   invoices: Invoice[];
 };
 
@@ -204,6 +206,12 @@ export function SubscriptionManager() {
   const isPremium = Boolean(data?.premium?.isPremium);
   const cancellationDate = data?.cancellationEffectiveAt ||
     (data?.isLocked ? data.commitmentEndsAt : data?.currentPeriodEnd);
+  const commitmentLabel = isPremium && data?.isLegacyPlan
+    ? "Conditions historiques : engagement initial d’un mois"
+    : PREMIUM_SUBSCRIPTION.commitmentLabel;
+  const renewalLabel = isPremium && data?.isLegacyPlan
+    ? "Renouvellement mensuel, résiliable pour la fin de la période payée"
+    : PREMIUM_SUBSCRIPTION.renewalLabel;
 
   return (
     <section id="subscription" className="scroll-mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -326,6 +334,14 @@ export function SubscriptionManager() {
               </div>
               <Sparkles className="h-8 w-8 text-orange-500" aria-hidden="true" />
             </div>
+            <div className="mt-4 rounded-md border border-orange-100 bg-orange-50 p-3 text-sm text-orange-950">
+              <p className="font-bold">{commitmentLabel}</p>
+              <p className="mt-1 text-xs leading-5">
+                {renewalLabel}.
+                {data?.isLocked && data.commitmentEndsAt ? ` Engagement en cours jusqu’au ${formatDate(data.commitmentEndsAt)}.` : ""}
+                {data?.currentPeriodEnd ? ` Période actuellement payée jusqu'au ${formatDate(data.currentPeriodEnd)}.` : ""}
+              </p>
+            </div>
             <ul className="mt-4 space-y-2 text-sm text-gray-700">
               {PREMIUM_SUBSCRIPTION.benefits.map((benefit) => (
                 <li key={benefit} className="flex gap-2">
@@ -383,7 +399,7 @@ export function SubscriptionManager() {
                     className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                   >
                     <CreditCard className="h-4 w-4" />
-                    Carte et paiements
+                    Mettre à jour la carte
                   </a>
                 )}
                 {!data?.cancelAtPeriodEnd && !showCancelConfirm && (
@@ -407,6 +423,9 @@ export function SubscriptionManager() {
               <h3 className="font-bold text-red-950">Résilier Premium</h3>
               <p className="mt-2 text-sm leading-6 text-red-900">
                 L&apos;abonnement restera actif jusqu&apos;au <strong>{formatDate(cancellationDate)}</strong>.
+                {data?.isLocked
+                  ? " La demande est enregistrée maintenant, mais les échéances mensuelles prévues pendant l’engagement initial restent dues."
+                  : " Aucun nouveau mois ne sera facturé après cette date."}
               </p>
               <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm font-medium text-red-950">
                 <input

@@ -1,3 +1,4 @@
+import { isDirectPayment } from "@/lib/direct-booking";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
       where: { id: validatedData.bookingId },
       include: {
         client: true,
+        payment: true,
         pets: true,
         pet: true,
       },
@@ -45,6 +47,10 @@ export async function POST(request: NextRequest) {
         { error: "Réservation introuvable" },
         { status: 404 }
       );
+    }
+
+    if (isDirectPayment(booking.payment?.paymentMethod)) {
+      return NextResponse.json({ error: "Les suppléments d’une réservation directe doivent être convenus et réglés directement avec le client." }, { status: 409 });
     }
 
     // Vérifier que le client a un Payment Method enregistré

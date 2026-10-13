@@ -3,11 +3,16 @@ import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
 import {
   sendBookingConfirmationEmail,
+  sendBookingRefundCompletedEmail,
+  sendBookingRefundFailedAdminEmail,
+  sendBookingTeamCancellationEmail,
   sendBookingRequestEmail,
   sendNewBookingAdminEmail,
   sendPaymentFailedEmail,
   sendSubscriptionPaymentFailedAdminEmail,
+  sendSubscriptionRefundCompletedEmail,
 } from "@/lib/email";
+import { ensureBookingInvoice } from "@/lib/booking-invoices";
 import Stripe from "stripe";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
@@ -56,6 +61,12 @@ export async function POST(request: NextRequest) {
 
       case "payment_intent.payment_failed":
         await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+        break;
+
+      case "refund.created":
+      case "refund.updated":
+      case "refund.failed":
+        await handleRefundChanged(event.data.object as Stripe.Refund);
         break;
 
       case "checkout.session.completed":
@@ -152,6 +163,48 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         where: { stripeSubscriptionId: subscription.id },
         data: { status: "CANCELED" }
     });
+
+    const localSubscription = await prisma.userSubscription.findUnique({
+      where: { stripeSubscriptionId: subscription.id },
+      select: {
+        user: { select: { email: true, name: true } },
+      },
+    });
+    if (!localSubscription) return;
+
+    const invoices = await stripe.invoices.list({
+      subscription: subscription.id,
+      status: "paid",
+      limit: 10,
+    });
+    const latestPaidInvoice = invoices.data.find((invoice) => invoice.amount_paid > 0);
+    if (!latestPaidInvoice) return;
+
+    const invoicePayments = await stripe.invoicePayments.list({
+      invoice: latestPaidInvoice.id,
+      status: "paid",
+      limit: 10,
+    });
+    const paymentIntentId = invoicePayments.data
+      .map((invoicePayment) => invoicePayment.payment.payment_intent)
+      .map((paymentIntent) => typeof paymentIntent === "string" ? paymentIntent : paymentIntent?.id)
+      .find((value): value is string => Boolean(value));
+    if (!paymentIntentId) return;
+
+    const refunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
+    const refund = refunds.data.find((candidate) =>
+      candidate.status === "succeeded" &&
+      candidate.metadata?.type === "subscription_refund" &&
+      candidate.metadata?.stripeSubscriptionId === subscription.id
+    );
+    if (!refund) return;
+
+    await sendSubscriptionRefundCompletedEmail(
+      localSubscription.user.email,
+      localSubscription.user.name || "Client",
+      { amount: refund.amount / 100, refundId: refund.id },
+      { idempotencyKey: `subscription-refund-completed-${refund.id}` }
+    );
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -324,6 +377,8 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     await awardBookingLoyalty(bookingId);
   }
 
+  await ensureBookingInvoice(paymentIntent);
+
 }
 
 async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
@@ -353,6 +408,168 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
     });
   }
 
+}
+
+async function handleRefundChanged(refund: Stripe.Refund) {
+  if (refund.metadata?.type === "subscription_refund") {
+    if (refund.status !== "succeeded") return;
+
+    const stripeSubscriptionId = refund.metadata.stripeSubscriptionId;
+    if (!stripeSubscriptionId) return;
+
+    const [stripeSubscription, localSubscription] = await Promise.all([
+      stripe.subscriptions.retrieve(stripeSubscriptionId),
+      prisma.userSubscription.findUnique({
+        where: { stripeSubscriptionId },
+        select: { user: { select: { email: true, name: true } } },
+      }),
+    ]);
+    if (stripeSubscription.status !== "canceled" || !localSubscription) return;
+
+    await sendSubscriptionRefundCompletedEmail(
+      localSubscription.user.email,
+      localSubscription.user.name || "Client",
+      { amount: refund.amount / 100, refundId: refund.id },
+      { idempotencyKey: `subscription-refund-completed-${refund.id}` }
+    );
+    return;
+  }
+
+  const paymentIntentId = typeof refund.payment_intent === "string"
+    ? refund.payment_intent
+    : refund.payment_intent?.id;
+  if (!paymentIntentId || !refund.status) return;
+
+  const bookingId = refund.metadata?.bookingId;
+  const payments = await prisma.payment.findMany({
+    where: bookingId
+      ? { bookingId, stripePaymentId: paymentIntentId }
+      : { stripePaymentId: paymentIntentId },
+    include: {
+      booking: {
+        select: {
+          id: true,
+          startDate: true,
+          endDate: true,
+          totalPrice: true,
+          serviceType: true,
+          status: true,
+          cancellationOrigin: true,
+          cancellationReason: true,
+          client: { select: { name: true, email: true } },
+          pets: { select: { name: true } },
+          pet: { select: { name: true } },
+        },
+      },
+    },
+  });
+  const refunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
+  const activeRefunds = refunds.data.filter((item) =>
+    item.status === "pending" || item.status === "requires_action" || item.status === "succeeded"
+  );
+  const activeRefundCents = activeRefunds.reduce((total, item) => total + item.amount, 0);
+
+  for (const payment of payments) {
+    const cumulativeRefundCents = Math.min(
+      Math.round(payment.capturedAmount * 100),
+      activeRefundCents
+    );
+    const refundAmount = cumulativeRefundCents / 100;
+
+    if (refund.status === "failed" || refund.status === "canceled") {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: refundAmount >= payment.capturedAmount && payment.capturedAmount > 0
+            ? "REFUNDED"
+            : refundAmount > 0
+              ? "PARTIALLY_REFUNDED"
+              : payment.capturedAmount > 0
+                ? "SUCCEEDED"
+                : "FAILED",
+          refundedAt: activeRefunds.some((item) => item.status === "succeeded")
+            ? payment.refundedAt || new Date()
+            : null,
+          refundAmount,
+          stripeRefundId: refund.id,
+          refundStatus: refund.status === "failed" ? "FAILED" : "CANCELED",
+          refundFailureReason: refund.failure_reason || "Remboursement refusé par Stripe",
+        },
+      });
+      await sendBookingRefundFailedAdminEmail(
+        {
+          bookingId: payment.bookingId,
+          clientName: payment.booking.client.name || "Client",
+          clientEmail: payment.booking.client.email,
+          refundId: refund.id,
+          amount: refund.amount / 100,
+          failureReason: refund.failure_reason || "Remboursement refusé par Stripe",
+        },
+        { idempotencyKey: `refund-failed-${refund.id}` }
+      );
+      continue;
+    }
+
+    const refundStatus = refund.status === "succeeded"
+      ? "SUCCEEDED"
+      : refund.status === "requires_action"
+        ? "REQUIRES_ACTION"
+        : "PENDING";
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: refundAmount >= payment.capturedAmount ? "REFUNDED" : "PARTIALLY_REFUNDED",
+        refundedAt: refund.status === "succeeded" ? new Date() : payment.refundedAt,
+        refundAmount,
+        stripeRefundId: refund.id,
+        refundStatus,
+        refundFailureReason: null,
+      },
+    });
+
+    const refundFullySucceeded =
+      refundStatus === "SUCCEEDED" &&
+      refundAmount >= payment.capturedAmount &&
+      activeRefunds.every((item) => item.status === "succeeded");
+    if (refundFullySucceeded && payment.booking.cancellationOrigin === "TEAM") {
+      if (payment.booking.status === "CANCELLING") {
+        throw new Error(`Annulation ${payment.bookingId} encore en cours pendant la confirmation du remboursement`);
+      }
+      if (payment.booking.status !== "CANCELLED") continue;
+
+      const bookingDetails = getBookingEmailDetails(payment.booking);
+      if (!payment.refundStartedEmailSentAt) {
+        await sendBookingTeamCancellationEmail(
+          payment.booking.client.email,
+          payment.booking.client.name || "Client",
+          payment.booking.cancellationReason || "Annulation par La Patte Dorée",
+          bookingDetails,
+          {
+            idempotencyKey: `booking-team-cancellation-${payment.bookingId}`,
+            paymentAction: "REFUND_PENDING",
+            amountRefunded: refundAmount,
+          }
+        );
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { refundStartedEmailSentAt: new Date() },
+        });
+      }
+
+      if (payment.refundCompletedEmailSentAt) continue;
+      await sendBookingRefundCompletedEmail(
+        payment.booking.client.email,
+        payment.booking.client.name || "Client",
+        bookingDetails,
+        { amount: refundAmount, refundId: refund.id },
+        { idempotencyKey: `booking-refund-completed-${payment.bookingId}` }
+      );
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { refundCompletedEmailSentAt: new Date() },
+      });
+    }
+  }
 }
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { groupNearbyBookings } from "@/lib/booking-completion";
 import { prisma } from "@/lib/db/prisma";
-import { getBookingCompletionDate, sendReviewRequestForBooking } from "@/lib/review-requests";
+import { getBookingCompletionDate, sendGoogleReviewForBookings } from "@/lib/google-review-requests";
 
 const REVIEW_REQUEST_DELAY_MS = 24 * 60 * 60 * 1000;
 const ABANDONED_CHECKOUT_DELAY_MS = 60 * 60 * 1000;
@@ -83,6 +84,7 @@ export async function GET(request: NextRequest) {
     let completedBookings = 0;
     const reviewEmailErrors: string[] = [];
 
+    const completed = [];
     for (const booking of completionCandidates) {
       if (getBookingCompletionDate(booking).getTime() + REVIEW_REQUEST_DELAY_MS > now.getTime()) continue;
 
@@ -97,11 +99,15 @@ export async function GET(request: NextRequest) {
       if (updated.count === 0) continue;
       completedBookings += 1;
 
+      completed.push(booking);
+    }
+
+    for (const group of groupNearbyBookings(completed)) {
       try {
-        await sendReviewRequestForBooking(booking);
+        await sendGoogleReviewForBookings(group);
       } catch (emailError) {
         const message = emailError instanceof Error ? emailError.message : "Email de demande d'avis non envoyé";
-        reviewEmailErrors.push(`${booking.id}: ${message}`);
+        reviewEmailErrors.push(`${group.map(b => b.id).join(",")}: ${message}`);
         console.error("Réservation terminée automatiquement, mais email d'avis non envoyé:", emailError);
       }
     }

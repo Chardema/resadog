@@ -23,6 +23,17 @@ export async function GET() {
       include: {
         autoApplyCoupon: true,
         subscription: true,
+        pets: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            birthDate: true,
+            birthDateProofUrl: true,
+            birthDateVerifiedAt: true,
+          },
+          orderBy: { createdAt: "asc" },
+        },
         bookings: {
           select: {
             id: true,

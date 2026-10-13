@@ -10,16 +10,23 @@ export async function GET(request: NextRequest) {
       ? requestedLocale
       : "fr";
 
-    const [databaseReviews, googlePlace] = await Promise.all([
+    const [databaseResult, googleResult] = await Promise.allSettled([
       prisma.review.findMany({
         where: { isActive: true },
         orderBy: [{ order: "asc" }, { createdAt: "desc" }],
       }),
-      getGooglePlaceReviews(locale).catch((error) => {
-        console.error("Erreur récupération avis Google Maps:", error);
-        return null;
-      }),
+      getGooglePlaceReviews(locale),
     ]);
+
+    const databaseReviews = databaseResult.status === "fulfilled" ? databaseResult.value : [];
+    const googlePlace = googleResult.status === "fulfilled" ? googleResult.value : null;
+    if (databaseResult.status === "rejected") {
+      console.error("Erreur récupération avis locaux:", databaseResult.reason);
+      if (!googlePlace) throw databaseResult.reason;
+    }
+    if (googleResult.status === "rejected") {
+      console.error("Erreur récupération avis Google Maps:", googleResult.reason);
+    }
 
     const reviews = googlePlace?.reviews.length
       ? [

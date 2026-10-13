@@ -7,7 +7,7 @@ Application de réservation pour services de garde d'animaux : demandes, disponi
 - Next.js 16 et React 19
 - TypeScript et Tailwind CSS 4
 - Prisma 7 et PostgreSQL/Supabase
-- NextAuth 5
+- Auth.js/NextAuth 5 avec vérification d'email, Google, Apple et 2FA TOTP
 - Stripe Checkout, PaymentIntents et abonnements
 - Resend et UploadThing
 - Vercel

@@ -6,11 +6,15 @@ declare module "next-auth" {
     user: {
       id: string;
       role: Role;
+      twoFactorVerified: boolean;
+      sessionVersion: number;
     } & DefaultSession["user"];
   }
 
   interface User {
     role: Role;
+    twoFactorVerified?: boolean;
+    sessionVersion?: number;
   }
 }
 
@@ -18,5 +22,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     role: Role;
+    twoFactorVerified: boolean;
+    sessionVersion: number;
   }
 }

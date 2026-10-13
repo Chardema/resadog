@@ -4,8 +4,9 @@ import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 import { distributedRateLimit } from "@/lib/rate-limit";
 import { buildSpecialRequests, extractServiceDetails, stripServiceDetails } from "@/lib/booking-details";
-import { calculatePremiumDiscount } from "@/lib/loyalty";
-import { calculateBookingPrice, calculateSameDayDurationMinutes, calculateServiceDurationMinutes, MAX_VISIT_DURATION_MINUTES } from "@/lib/pricing";
+import { selectBestBookingDiscount } from "@/lib/booking-discounts";
+import { parisAppointment } from "@/lib/booking-dates";
+import { calculateBookingPrice, calculateSameDayDurationMinutes, isValidDayCareSchedule, MAX_VISIT_DURATION_MINUTES } from "@/lib/pricing";
 import { calculateCouponDiscount } from "@/lib/coupon-pricing";
 import { isHourlyServiceType, isOvernightServiceType, SERVICE_TYPES } from "@/lib/services";
 import {
@@ -22,6 +23,7 @@ import {
   WELCOME_OFFER_NOTE,
   isWelcomeOfferCode,
 } from "@/lib/welcome-offer";
+import { getPetProfileCompletion, isPetBirthDateVerified } from "@/lib/pets";
 
 class BookingInputError extends Error {}
 
@@ -60,6 +62,7 @@ const createBookingSchema = z.object({
   serviceType: z.enum(SERVICE_TYPES),
   // Conservés temporairement pour les anciens clients, mais jamais utilisés côté serveur.
   totalPrice: z.number().nonnegative().optional(),
+  expectedLastMinuteFee: z.number().nonnegative().optional(),
   depositAmount: z.number().nonnegative().optional(),
   notes: z.string().optional(),
   promoCode: z.string().optional(),
@@ -123,8 +126,8 @@ export async function POST(request: NextRequest) {
     const start = parseUTCDate(startDate);
     const end = parseUTCDate(endDate);
 
-    // Vérifier que la période est cohérente.
-    // La garderie peut être réservée sur une seule journée, contrairement aux services à la nuit.
+    // Vérifier que la période est cohérente. La garderie et la garde à domicile
+    // répètent les mêmes horaires de journée sur chaque date de la plage.
     if (isOvernightServiceType(serviceType) ? end <= start : end < start) {
       return NextResponse.json(
         { error: isOvernightServiceType(serviceType) ? "La date de fin doit être après la date de début" : "La date de fin ne peut pas être avant la date de début" },
@@ -132,21 +135,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (serviceType === "DAY_CARE" && startDate !== endDate) {
+    if (
+      serviceType === "DAY_CARE"
+      && !isValidDayCareSchedule({ startDate, endDate, startTime, endTime })
+    ) {
       return NextResponse.json(
-        { error: "La garderie de jour se réserve sur une seule journée. Pour plusieurs jours avec nuit, choisissez l'hébergement." },
+        { error: "La garderie doit durer entre quelques minutes et 10 heures maximum, avec une fin après le début" },
         { status: 400 }
       );
-    }
-
-    if (serviceType === "DAY_CARE") {
-      const dayCareDurationMinutes = calculateServiceDurationMinutes({ startDate, endDate, startTime, endTime });
-      if (dayCareDurationMinutes <= 0 || dayCareDurationMinutes > 600) {
-        return NextResponse.json(
-          { error: "La garderie doit durer entre quelques minutes et 10 heures maximum, avec une fin après le début" },
-          { status: 400 }
-        );
-      }
     }
 
     if (
@@ -212,6 +208,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const incompletePets = contextPetsFromDb
+      .map((pet) => ({ pet, completion: getPetProfileCompletion(pet) }))
+      .filter(({ completion }) => !completion.isComplete);
+
+    if (incompletePets.length > 0) {
+      const details = incompletePets
+        .map(({ pet, completion }) => `${pet.name} (${completion.missingFields.map((field) => field.label).join(", ")})`)
+        .join(" ; ");
+      return NextResponse.json(
+        {
+          error: `Complétez le profil à 100 % avant de réserver : ${details}.`,
+          code: "PET_PROFILE_INCOMPLETE",
+        },
+        { status: 409 }
+      );
+    }
+
+    const unverifiedPetNames = contextPetsFromDb
+      .filter((pet) => !isPetBirthDateVerified(pet))
+      .map((pet) => pet.name);
+    if (unverifiedPetNames.length > 0) {
+      console.warn("[bookings] creation refused: unverified pet", {
+        userId: session.user.id,
+        petIds: contextPetsFromDb
+          .filter((pet) => !isPetBirthDateVerified(pet))
+          .map((pet) => pet.id),
+      });
+      return NextResponse.json(
+        {
+          error: `Réservation impossible : la date de naissance doit être validée par l'équipe pour ${unverifiedPetNames.join(", ")}. Vous recevrez un e-mail dès que vous pourrez réserver.`,
+          code: "PET_BIRTH_DATE_UNVERIFIED",
+        },
+        { status: 409 }
+      );
+    }
+
     const pricingContextPets = pricingContextIds
       .map((id) => contextPetsFromDb.find((pet) => pet.id === id))
       .filter((pet) => pet !== undefined);
@@ -226,6 +258,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const requestedAt = new Date();
+    const appointments = isHourlyService
+      ? visitSlots.map(slot => parisAppointment(slot.date, slot.startTime))
+      : [parisAppointment(startDate, startTime)];
+    if (appointments.some(date => !date || date <= requestedAt)) {
+      return NextResponse.json({ error: "Choisissez une date et une heure de début futures (heure de Paris)." }, { status: 400 });
+    }
     const priceResult = calculateBookingPrice({
       serviceType,
       pets,
@@ -235,14 +274,31 @@ export async function POST(request: NextRequest) {
       startTime,
       endTime,
       visitSlots,
+      requestedAt,
     });
+
+    if ((validatedData.expectedLastMinuteFee ?? 0) !== priceResult.lastMinuteFee) {
+      return NextResponse.json({ error: "Le délai avant la prestation a changé. Vérifiez le supplément de dernière minute de 10 € dans le récapitulatif, puis validez à nouveau." }, { status: 409 });
+    }
 
     if (priceResult.total <= 0) {
       return NextResponse.json({ error: "Le tarif de cette réservation est invalide" }, { status: 400 });
     }
 
-    let finalTotal = priceResult.total;
-    let couponDiscountType: "PERCENTAGE" | "FIXED_AMOUNT" | "CUSTOM_TOTAL" | null = null;
+    // Les remises automatiques de la grille, les coupons et Premium ne se cumulent pas.
+    // Toutes les options sont comparées au même prix public et la plus avantageuse est retenue.
+    const embeddedDiscountAmount = priceResult.pets.reduce(
+      (sum, pet) => sum + pet.lines
+        .filter((line) => line.type === "discount" && line.amount < 0)
+        .reduce((petSum, line) => petSum + Math.abs(line.amount), 0),
+      0
+    );
+    const priceBeforeDiscounts = Math.round((priceResult.total - priceResult.lastMinuteFee + embeddedDiscountAmount) * 100) / 100;
+    let couponCandidate: {
+      code: string;
+      discountType: "PERCENTAGE" | "FIXED_AMOUNT" | "CUSTOM_TOTAL";
+      finalAmount: number;
+    } | null = null;
     if (promoCode) {
       if (pricingContextIds.length !== petIds.length) {
         return NextResponse.json(
@@ -283,13 +339,16 @@ export async function POST(request: NextRequest) {
         if (hasPreviousBooking) throw new BookingInputError("Cette offre est réservée aux nouveaux clients, pour leur première réservation.");
         if (!existingClaim && claimedPlaces >= WELCOME_OFFER_MAX_CLIENTS) throw new BookingInputError("Les 5 offres de bienvenue ont déjà été attribuées.");
 
-        couponDiscountType = "PERCENTAGE";
-        finalTotal = calculateCouponDiscount({
-          totalAmount: priceResult.total,
+        couponCandidate = {
+          code: WELCOME_OFFER_CODE,
           discountType: "PERCENTAGE",
-          discountValue: WELCOME_OFFER_DISCOUNT_PERCENT,
-          quantity: priceResult.quantity,
-        }).finalAmount;
+          finalAmount: calculateCouponDiscount({
+            totalAmount: priceBeforeDiscounts,
+            discountType: "PERCENTAGE",
+            discountValue: WELCOME_OFFER_DISCOUNT_PERCENT,
+            quantity: priceResult.quantity,
+          }).finalAmount,
+        };
       } else {
         const coupon = await prisma.coupon.findUnique({
           where: { code: promoCode.toUpperCase() },
@@ -300,18 +359,21 @@ export async function POST(request: NextRequest) {
         if (coupon.validFrom && now < coupon.validFrom) throw new BookingInputError("Ce code promo n'est pas encore valide");
         if (coupon.validUntil && now > coupon.validUntil) throw new BookingInputError("Ce code promo a expiré");
         if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) throw new BookingInputError("Ce code promo a atteint sa limite d'utilisation");
-        if (coupon.minAmount && priceResult.total < coupon.minAmount) throw new BookingInputError(`Montant minimum de ${coupon.minAmount}€ requis`);
+        if (coupon.minAmount && priceBeforeDiscounts < coupon.minAmount) throw new BookingInputError(`Montant minimum de ${coupon.minAmount}€ requis`);
         const userEmail = session.user.email?.toLowerCase() || "";
         if (coupon.restrictedTo.length > 0 && !coupon.restrictedTo.map((email) => email.toLowerCase()).includes(userEmail)) throw new BookingInputError("Ce code promo n'est pas valide pour votre compte");
         if (coupon.applicableServices.length > 0 && !coupon.applicableServices.includes(serviceType)) throw new BookingInputError("Ce code promo n'est pas valide pour ce service");
 
-        couponDiscountType = coupon.discountType;
-        finalTotal = calculateCouponDiscount({
-          totalAmount: priceResult.total,
+        couponCandidate = {
+          code: coupon.code,
           discountType: coupon.discountType,
-          discountValue: coupon.discountValue,
-          quantity: priceResult.quantity,
-        }).finalAmount;
+          finalAmount: calculateCouponDiscount({
+            totalAmount: priceBeforeDiscounts,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue,
+            quantity: priceResult.quantity,
+          }).finalAmount,
+        };
       }
     }
 
@@ -320,17 +382,33 @@ export async function POST(request: NextRequest) {
       select: { status: true },
     });
     const isPremium = activePremium?.status === "ACTIVE";
-    const premiumDiscount = isPremium && couponDiscountType !== "CUSTOM_TOTAL" ? calculatePremiumDiscount(finalTotal) : null;
-    if (premiumDiscount) {
-      finalTotal = premiumDiscount.finalAmount;
-    }
+    const selectedDiscount = selectBestBookingDiscount({
+      originalAmount: priceBeforeDiscounts,
+      automaticFinalAmount: priceResult.total - priceResult.lastMinuteFee,
+      coupon: couponCandidate,
+      isPremium,
+    });
+    const finalTotal = Math.round((selectedDiscount.finalAmount + priceResult.lastMinuteFee) * 100) / 100;
+    const premiumDiscount = selectedDiscount.premiumDiscount;
+
+    // Conserver le détail des réductions au moment où le prix est calculé.
+    // Cette trace sert à présenter les remises sur les factures des nouvelles réservations,
+    // même si la grille tarifaire évolue avant l'encaissement.
+    const totalDiscountAmount = Math.max(
+      0,
+      Math.round((priceBeforeDiscounts - selectedDiscount.finalAmount) * 100) / 100
+    );
+    const invoicePricingNote = totalDiscountAmount > 0
+      ? `Détail facturation: prix avant remises ${(priceBeforeDiscounts + priceResult.lastMinuteFee).toFixed(2)} EUR ; remises -${totalDiscountAmount.toFixed(2)} EUR ; prix net ${finalTotal.toFixed(2)} EUR`
+      : `Détail facturation: prix net ${finalTotal.toFixed(2)} EUR`;
 
     const bookingSpecialRequests = buildSpecialRequests(notes, serviceDetails);
     const bookingNotes = [
       paymentMethod ? `Mode de paiement: ${paymentMethod}` : null,
-      promoCode ? `Code promo: ${isWelcomeOfferCode(promoCode) ? WELCOME_OFFER_CODE : promoCode.toUpperCase()}` : null,
+      selectedDiscount.appliedCouponCode ? `Code promo: ${selectedDiscount.appliedCouponCode}` : null,
       isPremium ? "Premium actif: Pattes doublées" : null,
       premiumDiscount ? `Avantage Premium: -${premiumDiscount.discountAmount}€` : null,
+      invoicePricingNote + (priceResult.lastMinuteFee > 0 ? " ; supplément réservation de dernière minute 10.00 EUR inclus, après remises" : ""),
     ].filter(Boolean).join("\n") || null;
 
     const pendingDuplicateCandidates = await prisma.booking.findMany({

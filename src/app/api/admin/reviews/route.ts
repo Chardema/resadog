@@ -24,27 +24,7 @@ export async function GET() {
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
     });
 
-    const websiteFeedbacks = await prisma.reviewRequest.findMany({
-      where: {
-        submittedAt: { not: null },
-        OR: [
-          { websiteRating: { not: null } },
-          { websiteComment: { not: null } },
-        ],
-      },
-      include: {
-        booking: {
-          select: {
-            id: true,
-            serviceType: true,
-            client: { select: { name: true, email: true } },
-          },
-        },
-      },
-      orderBy: { submittedAt: "desc" },
-    });
-
-    return NextResponse.json({ reviews, websiteFeedbacks });
+    return NextResponse.json({ reviews });
   } catch (error) {
     console.error("Erreur:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });

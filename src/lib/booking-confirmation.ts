@@ -105,6 +105,41 @@ export async function claimBookingForConfirmation(bookingId: string) {
       );
     }
 
+    await assertBookingCapacity(tx, booking);
+
+    const claimed = await tx.booking.updateMany({
+      where: {
+        id: booking.id,
+        ...(isStillRecoverable
+          ? { status: "ACCEPTING", updatedAt: { lte: staleAcceptingBefore } }
+          : { status: "PENDING" }),
+      },
+      data: { status: "ACCEPTING" },
+    });
+    if (claimed.count !== 1) {
+      throw new BookingConfirmationError("BUSY", "La réservation vient d'être modifiée.");
+    }
+
+    return {
+      booking: { ...booking, status: "ACCEPTING" as const, updatedAt: new Date() },
+      unchanged: false,
+    };
+  }, { maxWait: 5_000, timeout: 15_000 });
+}
+
+export async function releaseBookingConfirmationClaim(bookingId: string) {
+  await prisma.booking.updateMany({
+    where: { id: bookingId, status: "ACCEPTING" },
+    data: { status: "PENDING" },
+  });
+}
+
+/** Shared capacity gate for online and directly recorded reservations. Caller must use a transaction. */
+export async function assertBookingCapacity(tx: Prisma.TransactionClient, booking: import("@/lib/booking-availability").AvailabilityBooking & { serviceType: import("@prisma/client").ServiceType }) {
+  const bookingDateKeys = getBookingDateKeys(booking);
+  for (const key of bookingDateKeys.map(date => `booking-confirmation:${booking.serviceType}:${date}`).sort()) {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+  }
     const selectedDateKeys = new Set(bookingDateKeys);
     const { start, end } = getDateRangeBounds(bookingDateKeys);
     const isHourlyService = isHourlyServiceType(booking.serviceType);
@@ -171,29 +206,4 @@ export async function claimBookingForConfirmation(bookingId: string) {
       );
     }
 
-    const claimed = await tx.booking.updateMany({
-      where: {
-        id: booking.id,
-        ...(isStillRecoverable
-          ? { status: "ACCEPTING", updatedAt: { lte: staleAcceptingBefore } }
-          : { status: "PENDING" }),
-      },
-      data: { status: "ACCEPTING" },
-    });
-    if (claimed.count !== 1) {
-      throw new BookingConfirmationError("BUSY", "La réservation vient d'être modifiée.");
-    }
-
-    return {
-      booking: { ...booking, status: "ACCEPTING" as const, updatedAt: new Date() },
-      unchanged: false,
-    };
-  }, { maxWait: 5_000, timeout: 15_000 });
-}
-
-export async function releaseBookingConfirmationClaim(bookingId: string) {
-  await prisma.booking.updateMany({
-    where: { id: bookingId, status: "ACCEPTING" },
-    data: { status: "PENDING" },
-  });
 }

@@ -21,7 +21,7 @@ export const LOYALTY_REWARDS: LoyaltyReward[] = [
   { threshold: 700, label: "15 euros de réduction", discountEquivalent: 15 },
   {
     threshold: 1500,
-    label: "1 nuit d'hébergement offerte ou réduction équivalente",
+    label: "24 euros de réduction",
     discountEquivalent: 24,
   },
 ];
@@ -74,10 +74,14 @@ export function calculatePawsEarned(amountSpent: number, isPremium: boolean) {
 }
 
 export function calculatePremiumDiscount(amount: number) {
-  const discountAmount = Math.round(Math.max(0, amount) * PREMIUM_SUBSCRIPTION.discountRate * 100) / 100;
+  const requestedDiscount = Math.max(0, amount) * PREMIUM_SUBSCRIPTION.discountRate;
+  const discountAmount = Math.round(
+    Math.min(requestedDiscount, PREMIUM_SUBSCRIPTION.maximumDiscountPerBooking) * 100
+  ) / 100;
   return {
     discountAmount,
     finalAmount: Math.max(0, Math.round((amount - discountAmount) * 100) / 100),
+    capped: requestedDiscount > PREMIUM_SUBSCRIPTION.maximumDiscountPerBooking,
   };
 }
 

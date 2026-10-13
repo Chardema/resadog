@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { DirectBookingActions } from "@/components/admin/DirectBookingActions";
+import { calculateServiceDurationMinutes } from "@/lib/pricing";
+import { isDirectPayment, DIRECT_METHODS } from "@/lib/direct-booking";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -20,7 +24,11 @@ import {
   X,
   XCircle,
 } from "lucide-react";
+import { bookingDateGap, REVIEW_NEARBY_MS } from "@/lib/booking-completion";
 import { Button } from "@/components/ui/button";
+import { BookingAttendanceActions } from "@/components/admin/BookingAttendanceActions";
+import { FinanceBreakdown } from "@/components/admin/FinanceBreakdown";
+import type { BookingFinance } from "@/lib/finance";
 
 type BookingStatus = "PENDING" | "ACCEPTING" | "CANCELLING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 type BookingFilter = "all" | "pending" | "confirmed" | "completed" | "cancelled";
@@ -49,15 +57,22 @@ interface PriceBreakdown {
 
 interface Booking {
   id: string;
+  noShow?: { contactEvidence: string; lossEvidence: string; reminderSentAt: string; responseDeadline: string } | null;
+  notices?: { id: string; kind: string; state: string; sentAt?: string | null; error?: string | null }[];
+  finance?: BookingFinance | null;
   startDate: string;
   endDate: string;
   startTime?: string | null;
   endTime?: string | null;
   status: BookingStatus;
   totalPrice: number;
+  notes?: string | null;
+  specialRequests?: string | null;
   serviceType: string;
   priceBreakdown?: PriceBreakdown | null;
   cancellationReason?: string | null;
+  cancellationOrigin?: "CLIENT" | "TEAM" | null;
+  cancelledAt?: string | null;
   serviceDetails?: {
     serviceAddress?: string;
     visitSlots?: {
@@ -77,6 +92,7 @@ interface Booking {
     imageUrl?: string;
   }[];
   client: {
+    id: string;
     name: string;
     email: string;
     phone?: string | null;
@@ -88,16 +104,15 @@ interface Booking {
   payment?: {
     status: string;
     amount: number;
+    capturedAmount: number;
+    paymentMethod?: string | null;
     stripePaymentId?: string | null;
+    stripeRefundId?: string | null;
+    refundStatus?: "PENDING" | "REQUIRES_ACTION" | "SUCCEEDED" | "FAILED" | "CANCELED" | null;
+    refundAmount?: number | null;
+    refundFailureReason?: string | null;
   } | null;
-  reviewRequest?: {
-    sentAt: string;
-    submittedAt?: string | null;
-    serviceRating?: number | null;
-    serviceComment?: string | null;
-    websiteRating?: number | null;
-    websiteComment?: string | null;
-  } | null;
+  googleReviewSentAt?: string | null;
 }
 
 const FILTERS: { id: BookingFilter; label: string }[] = [
@@ -135,6 +150,14 @@ const PAYMENT_META: Record<string, { label: string; className: string }> = {
   PARTIALLY_REFUNDED: { label: "Remboursé partiel", className: "bg-purple-50 text-purple-800" },
 };
 
+const REFUND_META: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "Remboursement en cours", className: "bg-amber-50 text-amber-800" },
+  REQUIRES_ACTION: { label: "Action requise dans Stripe", className: "bg-amber-50 text-amber-800" },
+  SUCCEEDED: { label: "Remboursement confirmé", className: "bg-purple-50 text-purple-800" },
+  FAILED: { label: "Remboursement échoué", className: "bg-red-50 text-red-800" },
+  CANCELED: { label: "Remboursement annulé", className: "bg-red-50 text-red-800" },
+};
+
 const getVisitSlots = (booking: Booking) =>
   booking.serviceDetails?.visitSlots?.filter((slot) => slot.date) || [];
 
@@ -151,13 +174,14 @@ const formatMoney = (value: number) =>
     maximumFractionDigits: 2,
   });
 
-const getNightCount = (booking: Booking) =>
-  Math.max(0, Math.round(
-    (new Date(booking.endDate).getTime() - new Date(booking.startDate).getTime()) / (24 * 60 * 60 * 1000)
-  ));
+const getDurationLabel = (booking: Booking) => {
+  const minutes = calculateServiceDurationMinutes({ startDate: booking.startDate.slice(0, 10), endDate: booking.endDate.slice(0, 10), startTime: booking.startTime || undefined, endTime: booking.endTime || undefined });
+  if (minutes <= 0) return "Durée à confirmer";
+  return `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ""} de garde`;
+};
 
 const getPriceUnit = (serviceType: string, quantity: number) => {
-  if (serviceType === "BOARDING") return quantity > 1 ? "nuits" : "nuit";
+  if (serviceType === "BOARDING") return quantity > 1 ? "périodes de 24 h" : "période de 24 h";
   if (serviceType === "DROP_IN") return quantity > 1 ? "visites" : "visite";
   if (serviceType === "DOG_WALKING") return quantity > 1 ? "promenades" : "promenade";
   return quantity > 1 ? "jours" : "jour";
@@ -188,36 +212,24 @@ const getPaymentLabel = (booking: Booking) => {
   return `${formatMoney(booking.totalPrice)} €`;
 };
 
-const getReviewRequestMeta = (booking: Booking) => {
-  if (!booking.reviewRequest) {
-    return {
-      label: "Avis non envoyé",
-      className: "bg-gray-100 text-gray-700 ring-gray-200",
-      detail: "Aucune demande d'avis envoyée",
-    };
-  }
-
-  if (booking.reviewRequest.submittedAt) {
-    return {
-      label: "Réponse reçue",
-      className: "bg-emerald-50 text-emerald-800 ring-emerald-200",
-      detail: `Répondu le ${formatDate(booking.reviewRequest.submittedAt)}`,
-    };
-  }
-
-  return {
-    label: "Avis demandé",
-    className: "bg-orange-50 text-orange-800 ring-orange-200",
-    detail: `Envoyé le ${formatDate(booking.reviewRequest.sentAt)}`,
-  };
+const getGoogleReviewMeta = (booking: Booking) => booking.googleReviewSentAt ? {
+  label: "Demande Google envoyée", className: "bg-orange-50 text-orange-800 ring-orange-200",
+  detail: `Mail transmis le ${formatDate(booking.googleReviewSentAt)}`,
+} : {
+  label: "Demande Google non envoyée", className: "bg-gray-100 text-gray-700 ring-gray-200",
+  detail: "Le mail bilingue avec le lien Google est envoyé lorsque vous terminez la prestation.",
 };
 
-const getActionTitle = (action: AdminAction) =>
+const getActionTitle = (action: AdminAction, booking: Booking) =>
   action === "CONFIRMED"
     ? "Accepter la réservation"
     : action === "COMPLETED"
       ? "Terminer la prestation"
-      : "Refuser la réservation";
+      : booking.status === "PENDING"
+        ? "Refuser la demande"
+        : booking.status === "CANCELLING"
+          ? "Reprendre l'annulation"
+          : "Annuler la garde";
 
 export default function AdminBookingsPage() {
   const { data: session, status } = useSession();
@@ -229,13 +241,14 @@ export default function AdminBookingsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState<string | null>(null);
   const [reviewEmailLoading, setReviewEmailLoading] = useState<string | null>(null);
-  const [reviewPreviewEmailLoading, setReviewPreviewEmailLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [financeWarning, setFinanceWarning] = useState("");
   const [notice, setNotice] = useState("");
   const [actionDialog, setActionDialog] = useState<{
     booking: Booking;
     action: AdminAction;
   } | null>(null);
+  const [completionIds, setCompletionIds] = useState<string[]>([]);
   const [actionReason, setActionReason] = useState("");
   const [actionConfirmed, setActionConfirmed] = useState(false);
   const [expandedVisitBookingIds, setExpandedVisitBookingIds] = useState<Set<string>>(() => new Set());
@@ -243,6 +256,11 @@ export default function AdminBookingsPage() {
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/signin");
   }, [status, router]);
+
+  useEffect(() => {
+    const bookingId = new URLSearchParams(window.location.search).get("bookingId");
+    if (bookingId) setSearch(bookingId);
+  }, []);
 
   const fetchBookings = useCallback(async () => {
     if (status !== "authenticated") return;
@@ -256,6 +274,7 @@ export default function AdminBookingsPage() {
         throw new Error(data?.error || "Impossible de charger les réservations.");
       }
       setBookings(data.bookings || []);
+      setFinanceWarning(data.financeWarning || "");
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "Impossible de charger les réservations.");
     } finally {
@@ -293,6 +312,7 @@ export default function AdminBookingsPage() {
       if (!query) return true;
 
       return [
+        booking.id,
         booking.client.name,
         booking.client.email,
         booking.client.phone || "",
@@ -308,11 +328,16 @@ export default function AdminBookingsPage() {
 
   const openActionDialog = (booking: Booking, action: AdminAction) => {
     setActionDialog({ booking, action });
+    setCompletionIds([booking.id]);
     setActionReason("");
     setActionConfirmed(action === "CONFIRMED");
     setError("");
     setNotice("");
   };
+
+  const completionOptions = actionDialog?.action === "COMPLETED" ? bookings.filter(booking =>
+    booking.client.id === actionDialog.booking.client.id && ["CONFIRMED", "IN_PROGRESS"].includes(booking.status)
+  ).sort((a,b) => (a.id === actionDialog.booking.id ? -1 : b.id === actionDialog.booking.id ? 1 : bookingDateGap(a, actionDialog.booking) - bookingDateGap(b, actionDialog.booking))) : [];
 
   const closeActionDialog = () => {
     if (actionLoading) return;
@@ -347,6 +372,7 @@ export default function AdminBookingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: action,
+          bookingIds: action === "COMPLETED" ? completionIds : undefined,
           reason: actionReason.trim() || undefined,
           confirmed: action === "CANCELLED" ? actionConfirmed : undefined,
         }),
@@ -365,16 +391,29 @@ export default function AdminBookingsPage() {
         );
       } else if (action === "COMPLETED") {
         setNotice(
-          data?.reviewRequestEmailSent === false
-            ? `Prestation terminée, mais l'email d'avis n'a pas pu partir : ${data?.reviewRequestEmailError || "erreur Resend"}`
-            : "Prestation terminée. L'email de demande d'avis a été envoyé."
+          data?.googleReviewEmailSent === false
+            ? `Prestation terminée, mais l'email d'avis n'a pas pu partir : ${data?.googleReviewEmailError || "erreur Resend"}`
+            : data?.googleReviewAlreadySent
+              ? "Réservations terminées. Une demande Google a déjà été envoyée pour ces gardes ou une garde proche : aucun doublon envoyé."
+              : `${completionIds.length} réservation(s) terminée(s). Un seul mail Google a été transmis au client.`
         );
       } else {
-        setNotice(
-          data?.rejectionEmailSent === false
-            ? `Réservation refusée, mais l'email n'a pas pu partir : ${data?.rejectionEmailError || "erreur Resend"}`
-            : "Réservation refusée. Le paiement a été traité et l'email avec le motif a été envoyé au client."
-        );
+        const paymentAction = data?.cancellationPayment?.action;
+        const amountRefunded = Number(data?.cancellationPayment?.amountRefunded || 0);
+        const paymentNotice = paymentAction === "REFUND_SUCCEEDED"
+          ? `Garde annulée. Le remboursement intégral de ${formatMoney(amountRefunded)} € est confirmé par Stripe.`
+          : paymentAction === "REFUND_PENDING"
+            ? `Garde annulée. Le remboursement intégral de ${formatMoney(amountRefunded)} € est lancé et sera suivi via Stripe.`
+            : paymentAction === "AUTHORIZATION_RELEASED"
+              ? "Garde annulée. L'autorisation bancaire a été libérée, sans débit pour le client."
+              : "Garde annulée. Aucun paiement n'était à rembourser.";
+        setNotice(data?.rejectionEmailSent === false
+          ? `${paymentNotice} L'email de mise en cours n'a pas pu partir : ${data?.rejectionEmailError || "erreur Resend"}`
+          : data?.refundCompletionEmailSent === false
+            ? `${paymentNotice} Le client a reçu l'email de mise en cours, mais pas l'email final : ${data?.refundCompletionEmailError || "erreur Resend"}`
+            : paymentAction === "REFUND_SUCCEEDED"
+              ? `${paymentNotice} Le client a reçu les emails de mise en cours puis de finalisation.`
+              : `${paymentNotice} Le client a reçu le statut en cours et l'adresse de contact par email.`);
       }
       setActionDialog(null);
       await fetchBookings();
@@ -408,13 +447,13 @@ export default function AdminBookingsPage() {
     }
   };
 
-  const sendReviewRequestEmail = async (booking: Booking) => {
+  const sendGoogleReviewEmail = async (booking: Booking) => {
     setReviewEmailLoading(booking.id);
     setError("");
     setNotice("");
 
     try {
-      const response = await fetch(`/api/admin/bookings/${booking.id}/send-review-request`, {
+      const response = await fetch(`/api/admin/bookings/${booking.id}/send-google-review`, {
         method: "POST",
       });
       const data = await response.json().catch(() => null);
@@ -423,34 +462,12 @@ export default function AdminBookingsPage() {
         throw new Error(data?.error || "Impossible d'envoyer la demande d'avis.");
       }
 
-      setNotice(`Email de demande d'avis envoyé à ${booking.client.email}.`);
+      setNotice(data.alreadySent ? "La demande Google a déjà été envoyée pour cette réservation." : `Demande Google transmise pour ${booking.client.email}.`);
+      await fetchBookings();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Impossible d'envoyer la demande d'avis.");
     } finally {
       setReviewEmailLoading(null);
-    }
-  };
-
-  const sendReviewRequestPreviewEmail = async (booking: Booking) => {
-    setReviewPreviewEmailLoading(booking.id);
-    setError("");
-    setNotice("");
-
-    try {
-      const response = await fetch(`/api/admin/bookings/${booking.id}/send-review-request-preview`, {
-        method: "POST",
-      });
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(data?.error || "Impossible d'envoyer le test de demande d'avis.");
-      }
-
-      setNotice("Email test de demande d'avis envoyé à votre adresse admin.");
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Impossible d'envoyer le test de demande d'avis.");
-    } finally {
-      setReviewPreviewEmailLoading(null);
     }
   };
 
@@ -474,6 +491,7 @@ export default function AdminBookingsPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Administration</p>
             <h2 className="text-2xl font-bold text-gray-950">Demandes clients</h2>
+            {session?.user?.role === "ADMIN" && <Link href="/admin/bookings/new" className="mt-3 inline-flex rounded-lg bg-orange-700 px-4 py-2 text-sm font-bold text-white">Nouvelle réservation directe</Link>}
             <p className="mt-1 text-sm text-gray-600">
               Acceptez uniquement quand la prestation est faisable. Refuser libère l&apos;empreinte Stripe ou recrédite le client.
             </p>
@@ -523,6 +541,7 @@ export default function AdminBookingsPage() {
             {error}
           </div>
         )}
+        {financeWarning && <p role="status" className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{financeWarning}</p>}
         {notice && (
           <div role="status" className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
             {notice}
@@ -543,23 +562,26 @@ export default function AdminBookingsPage() {
         ) : (
           <div className="grid gap-4">
             {filteredBookings.map((booking) => {
+              const direct = isDirectPayment(booking.payment?.paymentMethod);
               const statusMeta = STATUS_META[booking.status];
               const paymentMeta = booking.payment
                 ? PAYMENT_META[booking.payment.status] || PAYMENT_META.PENDING
+                : null;
+              const refundMeta = booking.payment?.refundStatus
+                ? REFUND_META[booking.payment.refundStatus]
                 : null;
               const visitSlots = getVisitSlots(booking);
               const isActionWorking = actionLoading === booking.id;
               const isEmailWorking = emailLoading === booking.id;
               const isReviewEmailWorking = reviewEmailLoading === booking.id;
-              const isReviewPreviewEmailWorking = reviewPreviewEmailLoading === booking.id;
-              const isWorking = isActionWorking || isEmailWorking || isReviewEmailWorking || isReviewPreviewEmailWorking;
+              const isWorking = isActionWorking || isEmailWorking || isReviewEmailWorking;
               const isPremium = booking.client.subscription?.status === "ACTIVE";
               const isVisitSlotsExpanded = expandedVisitBookingIds.has(booking.id);
               const visibleVisitSlots = isVisitSlotsExpanded ? visitSlots : visitSlots.slice(0, 4);
               const hiddenVisitSlotsCount = Math.max(visitSlots.length - visibleVisitSlots.length, 0);
-              const canResendConfirmation = ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.status);
-              const canSendReviewRequest = ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.status);
-              const reviewMeta = getReviewRequestMeta(booking);
+              const canResendConfirmation = !direct && ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.status);
+              const canSendGoogleReview = booking.status === "COMPLETED" && !booking.googleReviewSentAt;
+              const reviewMeta = getGoogleReviewMeta(booking);
 
               return (
                 <article key={booking.id} className="rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -569,6 +591,11 @@ export default function AdminBookingsPage() {
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ring-1 ${statusMeta.className}`}>
                           {statusMeta.label}
                         </span>
+                        {booking.status === "CANCELLED" && booking.cancellationOrigin && (
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700 ring-1 ring-gray-200">
+                            {booking.noShow ? "Non-présentation" : booking.cancellationOrigin === "TEAM" ? "Annulée par l'équipe" : "Annulée par le client"}
+                          </span>
+                        )}
                         <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                           {SERVICE_LABELS[booking.serviceType] || booking.serviceType}
                         </span>
@@ -619,7 +646,7 @@ export default function AdminBookingsPage() {
                               {formatDate(booking.endDate)} à {booking.endTime || "heure à convenir"}
                             </p>
                             <p className="pt-1 text-xs font-semibold text-orange-700">
-                              {getNightCount(booking)} nuit{getNightCount(booking) > 1 ? "s" : ""}
+                              {getDurationLabel(booking)}
                             </p>
                           </div>
                         ) : (
@@ -680,39 +707,14 @@ export default function AdminBookingsPage() {
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
                             <Mail className="h-4 w-4" />
-                            Avis client
+                            Avis Google
                           </p>
                           <span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${reviewMeta.className}`}>
                             {reviewMeta.label}
                           </span>
                         </div>
                         <p className="mt-2 text-sm text-gray-600">{reviewMeta.detail}</p>
-                        {booking.reviewRequest?.submittedAt && (
-                          <div className="mt-3 space-y-3 text-sm">
-                            <div className="rounded-md bg-emerald-50 p-3 text-emerald-950">
-                              <p className="font-bold">
-                                Prestation : {booking.reviewRequest.serviceRating || "-"} / 5
-                              </p>
-                              {booking.reviewRequest.serviceComment && (
-                                <p className="mt-1 whitespace-pre-wrap leading-6 text-emerald-900">
-                                  &ldquo;{booking.reviewRequest.serviceComment}&rdquo;
-                                </p>
-                              )}
-                            </div>
-                            {(booking.reviewRequest.websiteRating || booking.reviewRequest.websiteComment) && (
-                              <div className="rounded-md bg-blue-50 p-3 text-blue-950">
-                                <p className="font-bold">
-                                  Site internet : {booking.reviewRequest.websiteRating || "-"} / 5
-                                </p>
-                                {booking.reviewRequest.websiteComment && (
-                                  <p className="mt-1 whitespace-pre-wrap leading-6 text-blue-900">
-                                    &ldquo;{booking.reviewRequest.websiteComment}&rdquo;
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
+
                       </div>
                     </div>
 
@@ -725,9 +727,28 @@ export default function AdminBookingsPage() {
                         <p className="mt-2 text-2xl font-bold text-gray-950">{getPaymentLabel(booking)}</p>
                         {paymentMeta && (
                           <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${paymentMeta.className}`}>
-                            {paymentMeta.label}
+                            {direct && booking.payment?.status === "PENDING" ? "À recevoir" : paymentMeta.label}
                           </span>
                         )}
+                        {refundMeta && (
+                          <div className="mt-2">
+                            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${refundMeta.className}`}>
+                              {refundMeta.label}
+                            </span>
+                            {typeof booking.payment?.refundAmount === "number" && booking.payment.refundAmount > 0 && (
+                              <p className="mt-1 text-xs font-semibold text-gray-600">
+                                {formatMoney(booking.payment.refundAmount)} € {direct ? "remboursés directement" : "sur la carte d’origine"}
+                              </p>
+                            )}
+                            {booking.payment?.refundFailureReason && (
+                              <p className="mt-2 rounded-md bg-red-50 p-2 text-xs font-semibold text-red-800">
+                                {booking.payment.refundFailureReason}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {direct && <p className="mt-2 text-sm font-semibold text-orange-800">Réservation directe · {DIRECT_METHODS[booking.payment!.paymentMethod as keyof typeof DIRECT_METHODS]}</p>}
+                        {booking.finance ? <FinanceBreakdown finance={booking.finance} /> : <p className="mt-3 text-xs text-gray-500">Détail financier indisponible. Consultez l’onglet Finance.</p>}
                         {booking.priceBreakdown && (
                           <div className="mt-4 space-y-3 border-t border-gray-200 pt-3 text-xs">
                             <p className="font-bold uppercase tracking-wide text-gray-500">Détail du prix</p>
@@ -786,7 +807,12 @@ export default function AdminBookingsPage() {
                         )}
                         {booking.payment?.stripePaymentId && (
                           <p className="mt-2 break-all font-mono text-[11px] text-gray-500">
-                            {booking.payment.stripePaymentId}
+                            Paiement : {booking.payment.stripePaymentId}
+                          </p>
+                        )}
+                        {booking.payment?.stripeRefundId && (
+                          <p className="mt-1 break-all font-mono text-[11px] text-gray-500">
+                            Remboursement : {booking.payment.stripeRefundId}
                           </p>
                         )}
                         {booking.cancellationReason && (
@@ -796,7 +822,10 @@ export default function AdminBookingsPage() {
                         )}
                       </div>
 
+                      {direct && <details className="rounded-lg border border-gray-200 p-3 text-sm"><summary className="cursor-pointer font-semibold">Accord client et historique du paiement</summary><p className="mt-3 whitespace-pre-wrap break-words text-xs leading-5 text-gray-600">{booking.notes}</p>{booking.specialRequests && <p className="mt-3 whitespace-pre-wrap text-gray-700">{booking.specialRequests}</p>}</details>}
+
                       <div className="grid gap-2">
+                        {direct ? (session?.user?.role === "ADMIN" ? <DirectBookingActions booking={booking} onUpdated={fetchBookings} /> : <p className="text-sm">Le paiement direct est suivi par l’administration.</p>) : <BookingAttendanceActions booking={booking} onUpdated={fetchBookings} />}
                         {booking.status === "PENDING" && (
                           <div className="grid grid-cols-2 gap-2">
                             <Button
@@ -836,27 +865,10 @@ export default function AdminBookingsPage() {
                           </Button>
                         )}
 
-                        {canSendReviewRequest && (
+                        {canSendGoogleReview && (
                           <Button
                             type="button"
-                            onClick={() => sendReviewRequestPreviewEmail(booking)}
-                            disabled={isWorking}
-                            variant="outline"
-                            className="border-gray-200 text-gray-700 hover:bg-gray-50"
-                          >
-                            {isReviewPreviewEmailWorking ? (
-                              <LoaderCircle className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Mail className="h-4 w-4" />
-                            )}
-                            M&apos;envoyer un test
-                          </Button>
-                        )}
-
-                        {canSendReviewRequest && (
-                          <Button
-                            type="button"
-                            onClick={() => sendReviewRequestEmail(booking)}
+                            onClick={() => sendGoogleReviewEmail(booking)}
                             disabled={isWorking}
                             variant="outline"
                             className="border-orange-200 text-orange-700 hover:bg-orange-50"
@@ -866,7 +878,7 @@ export default function AdminBookingsPage() {
                             ) : (
                               <Mail className="h-4 w-4" />
                             )}
-                            Envoyer demande d&apos;avis
+                            Envoyer la demande Google
                           </Button>
                         )}
 
@@ -879,6 +891,19 @@ export default function AdminBookingsPage() {
                           >
                             <CheckCircle2 className="h-4 w-4" />
                             Terminer
+                          </Button>
+                        )}
+
+                        {booking.status === "CANCELLING" && booking.cancellationOrigin === "TEAM" && (
+                          <Button
+                            type="button"
+                            onClick={() => openActionDialog(booking, "CANCELLED")}
+                            disabled={isWorking}
+                            variant="outline"
+                            className="border-amber-300 text-amber-800 hover:bg-amber-50"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            Reprendre l&apos;annulation
                           </Button>
                         )}
 
@@ -894,7 +919,7 @@ export default function AdminBookingsPage() {
                           </Button>
                         )}
 
-                        {booking.status === "CONFIRMED" && (
+                        {!direct && booking.status === "CONFIRMED" && (
                           <Button
                             type="button"
                             onClick={() => openActionDialog(booking, "CANCELLED")}
@@ -921,11 +946,11 @@ export default function AdminBookingsPage() {
 
       {actionDialog && (
         <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:items-center">
-          <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-2xl">
+          <div className="max-h-[90dvh] overflow-y-auto w-full max-w-lg rounded-lg bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-bold text-gray-500">Action admin</p>
-                <h3 className="mt-1 text-xl font-bold text-gray-950">{getActionTitle(actionDialog.action)}</h3>
+                <h3 className="mt-1 text-xl font-bold text-gray-950">{getActionTitle(actionDialog.action, actionDialog.booking)}</h3>
               </div>
               <button
                 type="button"
@@ -947,9 +972,17 @@ export default function AdminBookingsPage() {
             {actionDialog.action === "CANCELLED" ? (
               <div className="mt-5 space-y-4">
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                  <p className="font-bold">Ce refus va traiter le paiement.</p>
+                  <p className="font-bold">
+                    {actionDialog.booking.status === "CANCELLING"
+                      ? "Le traitement Stripe va reprendre sans double remboursement."
+                      : "Cette annulation traite immédiatement le paiement."}
+                  </p>
                   <p className="mt-1 leading-6">
-                    Si une empreinte Stripe existe, elle sera libérée. Si le paiement a déjà été capturé, un remboursement sera demandé. Le client recevra ensuite un email avec le motif ci-dessous.
+                    {(actionDialog.booking.payment?.capturedAmount || 0) > 0 || actionDialog.booking.payment?.status === "SUCCEEDED"
+                      ? `Un remboursement intégral de ${formatMoney(actionDialog.booking.payment?.capturedAmount || actionDialog.booking.totalPrice)} € sera demandé sur la carte d'origine.`
+                      : actionDialog.booking.payment?.stripePaymentId
+                        ? `L'autorisation bancaire de ${formatMoney(actionDialog.booking.totalPrice)} € sera libérée, sans débit pour le client.`
+                        : "Aucun paiement n'est rattaché à cette réservation."} Le client recevra ensuite un email avec le motif ci-dessous.
                   </p>
                 </div>
                 <div>
@@ -960,7 +993,7 @@ export default function AdminBookingsPage() {
                     id="cancel-reason"
                     value={actionReason}
                     onChange={(event) => setActionReason(event.target.value)}
-                    placeholder="Expliquez clairement pourquoi la demande ne peut pas être acceptée..."
+                    placeholder="Expliquez clairement pourquoi vous devez annuler cette garde..."
                     className="mt-2 h-28 w-full resize-none rounded-lg border border-gray-300 p-3 text-sm outline-none transition focus:border-gray-950"
                     maxLength={500}
                     required
@@ -974,15 +1007,25 @@ export default function AdminBookingsPage() {
                     onChange={(event) => setActionConfirmed(event.target.checked)}
                     className="mt-1 h-4 w-4 accent-red-600"
                   />
-                  <span>Je confirme le refus et le traitement associé du paiement.</span>
+                  <span>Je confirme l&apos;annulation par notre équipe et le remboursement intégral ou la libération de l&apos;autorisation bancaire.</span>
                 </label>
               </div>
             ) : actionDialog.action === "COMPLETED" ? (
-              <div className="mt-5 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950">
-                <p className="font-bold">Cette action termine la prestation.</p>
-                <p className="mt-1 leading-6">
-                  La réservation passera en terminée et un email demandera au client son avis sur la prestation et sur le site internet.
-                </p>
+              <div className="mt-5 space-y-4 text-sm text-gray-950">
+                <p className="font-bold">Terminer aussi d’autres gardes de ce client ?</p>
+                <p className="leading-6 text-gray-700">Cochez uniquement les prestations effectuées. Les réservations proches ou qui se chevauchent apparaissent en premier.</p>
+                <div className="max-h-72 space-y-2 overflow-y-auto">
+                  {completionOptions.map(booking => (
+                    <label key={booking.id} className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-3">
+                      <input type="checkbox" checked={completionIds.includes(booking.id)} disabled={Boolean(actionLoading) || booking.id === actionDialog.booking.id}
+                        onChange={event => setCompletionIds(ids => event.target.checked ? [...ids, booking.id] : ids.filter(id => id !== booking.id))} className="mt-1 h-4 w-4 accent-orange-600" />
+                      <span><strong>{getPetNames(booking)}</strong><br />{formatDate(booking.startDate)} → {formatDate(booking.endDate)}{booking.startTime ? ` · ${booking.startTime}` : ""}<br />
+                        <span className="text-xs text-gray-600">{SERVICE_LABELS[booking.serviceType]} · #{booking.id.slice(-8).toUpperCase()}{booking.id === actionDialog.booking.id ? " · Sélection initiale" : bookingDateGap(booking, actionDialog.booking) <= REVIEW_NEARBY_MS ? " · Dates proches (7 jours maximum)" : ""}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p className="rounded-lg border border-orange-200 bg-orange-50 p-3 leading-6 text-orange-950"><strong>{completionIds.length} réservation(s) sélectionnée(s) · un seul mail Google.</strong><br />Le mail bilingue sera envoyé après la clôture. Une demande déjà envoyée pour une garde à moins de 7 jours évite un nouvel envoi.</p>
               </div>
             ) : (
               <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
@@ -1018,9 +1061,9 @@ export default function AdminBookingsPage() {
                     Traitement
                   </>
                 ) : actionDialog.action === "CANCELLED" ? (
-                  "Confirmer le refus"
+                  actionDialog.booking.status === "PENDING" ? "Refuser et libérer le paiement" : "Annuler et rembourser"
                 ) : actionDialog.action === "COMPLETED" ? (
-                  "Terminer la prestation"
+                  `Terminer ${completionIds.length} garde(s)`
                 ) : (
                   "Confirmer l'acceptation"
                 )}

@@ -1,9 +1,12 @@
+import { isDirectPayment } from "@/lib/direct-booking";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
 import { reverseBookingLoyalty } from "@/lib/loyalty-ledger";
+import { STANDARD_FREE_CANCELLATION_HOURS } from "@/lib/subscription-pricing";
 import { z } from "zod";
+import type { RefundStatus } from "@prisma/client";
 
 const cancelSchema = z.object({
   confirmed: z.literal(true),
@@ -55,6 +58,7 @@ export async function POST(
     });
 
     if (!booking) return NextResponse.json({ error: "Réservation introuvable" }, { status: 404 });
+    if (isDirectPayment(booking.payment?.paymentMethod)) return NextResponse.json({ error: "Pour annuler une réservation directe, contactez Mégane au 07 71 59 30 16." }, { status: 409 });
     if (booking.status === "CANCELLED") return NextResponse.json({ success: true, unchanged: true });
     if (!(["PENDING", "CONFIRMED"] as string[]).includes(booking.status)) {
       return NextResponse.json({ error: "Cette réservation ne peut plus être annulée en ligne" }, { status: 409 });
@@ -66,17 +70,18 @@ export async function POST(
       return NextResponse.json({ error: "La prestation a déjà commencé" }, { status: 409 });
     }
 
-    const isPremium = booking.client.subscription?.status === "ACTIVE";
-    const freeCancellationWindowHours = isPremium ? 24 : 48;
+    const freeCancellationWindowHours = STANDARD_FREE_CANCELLATION_HOURS;
     const freeCancellation = hoursBeforeStart >= freeCancellationWindowHours;
     let amountRefunded = 0;
     let amountRetained = 0;
     let capturedAmount = booking.payment?.capturedAmount || 0;
+    let stripeRefundId: string | null = null;
+    let refundStatus: RefundStatus | null = null;
 
     const previousStatus = booking.status === "PENDING" ? "PENDING" : "CONFIRMED";
     const claimed = await prisma.booking.updateMany({
       where: { id: booking.id, status: previousStatus },
-      data: { status: "CANCELLING" },
+      data: { status: "CANCELLING", cancellationOrigin: "CLIENT" },
     });
     if (claimed.count !== 1) {
       return NextResponse.json(
@@ -90,7 +95,7 @@ export async function POST(
       if (booking.payment.status === "PROCESSING" && !booking.payment.stripePaymentId) {
         await prisma.booking.updateMany({
           where: { id: booking.id, status: "CANCELLING" },
-          data: { status: previousStatus },
+          data: { status: previousStatus, cancellationOrigin: null },
         });
         cancellationClaim = null;
         return NextResponse.json({ error: "Autorisation Stripe introuvable, contactez le support" }, { status: 409 });
@@ -98,7 +103,7 @@ export async function POST(
       if (booking.payment.status === "SUCCEEDED" && !booking.payment.stripePaymentId) {
         await prisma.booking.updateMany({
           where: { id: booking.id, status: "CANCELLING" },
-          data: { status: previousStatus },
+          data: { status: previousStatus, cancellationOrigin: null },
         });
         cancellationClaim = null;
         return NextResponse.json(
@@ -133,17 +138,30 @@ export async function POST(
             ? paymentIntent.amount_received
             : Math.round(paymentIntent.amount_received * 0.5);
           if (refundCents > 0) {
-            await stripe.refunds.create(
-              { payment_intent: paymentIntent.id, amount: refundCents },
-              { idempotencyKey: `booking:${booking.id}:cancellation-refund` }
+            const refund = await stripe.refunds.create(
+              {
+                payment_intent: paymentIntent.id,
+                amount: refundCents,
+                metadata: { bookingId: booking.id, cancellationOrigin: "CLIENT" },
+              },
+              { idempotencyKey: `booking:${booking.id}:client-cancellation-refund` }
             );
+            if (refund.status === "failed" || refund.status === "canceled" || !refund.status) {
+              throw new Error(`Le remboursement Stripe a échoué (statut : ${refund.status || "inconnu"})`);
+            }
+            stripeRefundId = refund.id;
+            refundStatus = refund.status === "succeeded"
+              ? "SUCCEEDED"
+              : refund.status === "requires_action"
+                ? "REQUIRES_ACTION"
+                : "PENDING";
             amountRefunded = refundCents / 100;
             amountRetained = paymentIntent.amount_received / 100 - amountRefunded;
           }
         } else if (paymentIntent.status !== "canceled") {
           await prisma.booking.updateMany({
             where: { id: booking.id, status: "CANCELLING" },
-            data: { status: previousStatus },
+            data: { status: previousStatus, cancellationOrigin: null },
           });
           cancellationClaim = null;
           return NextResponse.json(
@@ -167,18 +185,25 @@ export async function POST(
           where: { id: booking.payment.id },
           data: {
             status: paymentStatus,
-            refundedAt: amountRefunded > 0 || freeCancellation ? new Date() : booking.payment.refundedAt,
+            refundedAt: refundStatus === "SUCCEEDED" || (freeCancellation && !stripeRefundId)
+              ? new Date()
+              : booking.payment.refundedAt,
             refundAmount: amountRefunded,
             capturedAmount,
+            stripeRefundId,
+            refundStatus,
+            refundFailureReason: null,
           },
         });
       }
 
       const cancelled = await tx.booking.updateMany({
-        where: { id: booking.id, status: "CANCELLING" },
+        where: { id: booking.id, status: "CANCELLING", cancellationOrigin: "CLIENT" },
         data: {
           status: "CANCELLED",
           cancellationReason: reason || "Annulation demandée par le client",
+          cancellationOrigin: "CLIENT",
+          cancelledAt: new Date(),
         },
       });
       if (cancelled.count !== 1) throw new Error(`Verrou d'annulation perdu pour ${booking.id}`);
@@ -198,7 +223,7 @@ export async function POST(
     if (cancellationClaim) {
       await prisma.booking.updateMany({
         where: { id: cancellationClaim.bookingId, status: "CANCELLING" },
-        data: { status: cancellationClaim.previousStatus },
+        data: { status: cancellationClaim.previousStatus, cancellationOrigin: null },
       }).catch((recoveryError) => console.error("Annulation non restaurée:", recoveryError));
     }
     console.error("Erreur annulation client:", error);

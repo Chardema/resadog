@@ -22,7 +22,6 @@ export default async function AdminDashboardPage() {
     completedBookings,
     totalClients,
     totalRevenue,
-    latestReviewResponses,
   ] = await Promise.all([
     prisma.booking.count(),
     prisma.booking.count({ where: { status: { in: ["PENDING", "ACCEPTING", "CANCELLING"] } } }),
@@ -55,20 +54,7 @@ export default async function AdminDashboardPage() {
         FROM "AdditionalCharge"
       ) AS "dashboardRevenue"
     `,
-    prisma.reviewRequest.findMany({
-      where: { submittedAt: { not: null } },
-      include: {
-        booking: {
-          include: {
-            client: { select: { name: true, email: true } },
-            pets: { select: { name: true } },
-            pet: { select: { name: true } },
-          },
-        },
-      },
-      orderBy: { submittedAt: "desc" },
-      take: 5,
-    }),
+
   ]);
 
   // Récupérer les prochaines réservations
@@ -107,24 +93,7 @@ export default async function AdminDashboardPage() {
     <AdminDashboardClient
       stats={stats}
       upcomingBookings={upcomingBookings}
-      latestReviewResponses={latestReviewResponses.map((response) => ({
-        id: response.id,
-        submittedAt: response.submittedAt?.toISOString() || null,
-        serviceRating: response.serviceRating,
-        serviceComment: response.serviceComment,
-        websiteRating: response.websiteRating,
-        websiteComment: response.websiteComment,
-        booking: {
-          id: response.booking.id,
-          clientName: response.booking.client.name,
-          clientEmail: response.booking.client.email,
-          pets: response.booking.pets.length > 0
-            ? response.booking.pets.map((pet) => pet.name)
-            : response.booking.pet?.name
-              ? [response.booking.pet.name]
-              : [],
-        },
-      }))}
+
     />
   );
 }

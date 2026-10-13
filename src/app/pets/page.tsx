@@ -17,8 +17,7 @@ import {
   Trash2,
   type LucideIcon,
 } from "lucide-react";
-import { AppNav } from "@/components/layout/AppNav";
-import { formatPetAge } from "@/lib/pets";
+import { formatPetAge, getPetProfileCompletion, isPetBirthDateVerified } from "@/lib/pets";
 
 interface Pet {
   id: string;
@@ -26,15 +25,24 @@ interface Pet {
   species?: "DOG" | "CAT" | null;
   breed?: string | null;
   age?: number | null;
+  birthDate?: string | null;
+  birthDateProofUrl?: string | null;
+  birthDateVerifiedAt?: string | null;
   weight?: number | null;
   gender?: string | null;
   spayedNeutered?: boolean | null;
   imageUrl?: string | null;
+  medicalInfo?: string | null;
+  behaviorNotes?: string | null;
+  feedingSchedule?: string | null;
+  medications?: string | null;
+  vetInfo?: string | null;
+  emergencyContact?: string | null;
 }
 
 export default function PetsPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [pets, setPets] = useState<Pet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteError, setDeleteError] = useState("");
@@ -90,14 +98,14 @@ export default function PetsPage() {
     );
   }
 
-  const completeProfiles = pets.filter((pet) => pet.age !== null && pet.age !== undefined && pet.weight).length;
+  const completeProfiles = pets.filter((pet) => getPetProfileCompletion(pet).isComplete).length;
+  const verifiedAges = pets.filter((pet) => isPetBirthDateVerified(pet)).length;
   const missingDetails = Math.max(0, pets.length - completeProfiles);
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
-      <AppNav userName={session?.user?.name} />
 
-      <main className="container relative z-10 mx-auto px-4 pt-6 sm:px-6 md:pt-32">
+      <main className="container relative z-10 mx-auto px-4 pt-28 sm:px-6 md:pt-32">
         {deleteError && (
           <div role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
             {deleteError}
@@ -134,9 +142,10 @@ export default function PetsPage() {
           </Link>
         </div>
 
-        <section className="mb-6 grid gap-3 md:grid-cols-3">
+        <section className="mb-6 grid gap-3 md:grid-cols-4">
           <SummaryCard label="Animaux" value={pets.length} />
           <SummaryCard label="Profils complets" value={completeProfiles} tone="green" />
+          <SummaryCard label="Âges vérifiés" value={verifiedAges} tone={verifiedAges === pets.length ? "green" : "amber"} />
           <SummaryCard label="À compléter" value={missingDetails} tone={missingDetails > 0 ? "amber" : "green"} />
         </section>
 
@@ -213,6 +222,8 @@ function PetCard({
   const SpeciesIcon = pet.species === "CAT" ? Cat : Dog;
   const hasAge = pet.age !== null && pet.age !== undefined;
   const hasWeight = Boolean(pet.weight);
+  const completion = getPetProfileCompletion(pet);
+  const ageVerified = isPetBirthDateVerified(pet);
 
   return (
     <motion.article
@@ -238,17 +249,46 @@ function PetCard({
                 {pet.breed || "Race non renseignée"} · {pet.species === "CAT" ? "Chat" : "Chien"}
               </p>
             </div>
-            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700">
-              <SpeciesIcon className="h-3.5 w-3.5" />
-              {pet.gender === "MALE" ? "Mâle" : pet.gender === "FEMALE" ? "Femelle" : "Genre inconnu"}
-            </span>
+            <div className="flex flex-wrap gap-2">
+              <span className={`inline-flex w-fit items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${
+                completion.isComplete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+              }`}>
+                {completion.isComplete ? "Profil complet" : `${completion.percentage} % complété`}
+              </span>
+              <span className={`inline-flex w-fit items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${
+                ageVerified ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+              }`}>
+                {ageVerified ? "Âge vérifié" : "Âge à vérifier"}
+              </span>
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700">
+                <SpeciesIcon className="h-3.5 w-3.5" />
+                {pet.gender === "MALE" ? "Mâle" : pet.gender === "FEMALE" ? "Femelle" : "Sexe inconnu"}
+              </span>
+            </div>
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
             <InfoPill icon={HeartPulse} label="Âge" value={hasAge ? formatPetAge(pet.age) : "À compléter"} warn={!hasAge} />
             <InfoPill icon={Scale} label="Poids" value={hasWeight ? `${pet.weight} kg` : "À compléter"} warn={!hasWeight} />
-            <InfoPill icon={ShieldCheck} label="Stérilisé" value={pet.spayedNeutered ? "Oui" : "Non / inconnu"} />
+            <InfoPill
+              icon={ShieldCheck}
+              label="Stérilisé"
+              value={pet.spayedNeutered === null || pet.spayedNeutered === undefined ? "À compléter" : pet.spayedNeutered ? "Oui" : "Non"}
+              warn={pet.spayedNeutered === null || pet.spayedNeutered === undefined}
+            />
           </div>
+
+          {(!completion.isComplete || !ageVerified) && (
+            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              <p className="font-bold">Réservation temporairement bloquée</p>
+              {!completion.isComplete && (
+                <p className="mt-1">À renseigner : {completion.missingFields.map((field) => field.label).join(", ")}.</p>
+              )}
+              {completion.isComplete && !ageVerified && (
+                <p className="mt-1">Le justificatif a été transmis et doit maintenant être validé par l’équipe.</p>
+              )}
+            </div>
+          )}
 
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
             <Link
@@ -263,7 +303,7 @@ function PetCard({
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-gray-100 px-3 py-2 text-sm font-bold text-gray-800 hover:bg-gray-200"
             >
               <Pencil className="h-4 w-4" />
-              Modifier
+              {completion.isComplete ? "Modifier" : "Compléter"}
             </Link>
             <button
               type="button"

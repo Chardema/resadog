@@ -23,21 +23,6 @@ interface AlloVoisinsData {
   fetchedAt: string;
 }
 
-interface WebsiteFeedback {
-  id: string;
-  submittedAt: string | null;
-  websiteRating: number | null;
-  websiteComment: string | null;
-  booking: {
-    id: string;
-    serviceType: string;
-    client: {
-      name: string | null;
-      email: string;
-    };
-  };
-}
-
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +30,6 @@ export default function AdminReviewsPage() {
   const [saving, setSaving] = useState(false);
   const [alloData, setAlloData] = useState<AlloVoisinsData | null>(null);
   const [alloLoading, setAlloLoading] = useState(false);
-  const [websiteFeedbacks, setWebsiteFeedbacks] = useState<WebsiteFeedback[]>([]);
 
   const [formData, setFormData] = useState({
     source: "ROVER" as string,
@@ -66,7 +50,6 @@ export default function AdminReviewsPage() {
       if (res.ok) {
         const data = await res.json();
         setReviews(data.reviews);
-        setWebsiteFeedbacks(data.websiteFeedbacks || []);
       }
     } catch (error) {
       console.error("Erreur:", error);
@@ -199,45 +182,6 @@ export default function AdminReviewsPage() {
           </motion.div>
         );
       })()}
-
-      {websiteFeedbacks.length > 0 && (
-        <section className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-6">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div>
-              <h2 className="font-bold text-gray-900 text-lg">Retours sur le site internet</h2>
-              <p className="text-sm text-gray-500">Ces retours restent internes et ne sont pas affichés sur l&apos;accueil.</p>
-            </div>
-            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
-              {websiteFeedbacks.length}
-            </span>
-          </div>
-          <div className="space-y-3">
-            {websiteFeedbacks.slice(0, 6).map((feedback) => (
-              <div key={feedback.id} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-bold text-gray-900">{feedback.booking.client.name || feedback.booking.client.email}</span>
-                  <span className="text-gray-400">·</span>
-                  <span className="text-gray-500">{feedback.booking.serviceType}</span>
-                  {feedback.submittedAt && (
-                    <>
-                      <span className="text-gray-400">·</span>
-                      <span className="text-xs text-gray-400">{new Date(feedback.submittedAt).toLocaleDateString("fr-FR")}</span>
-                    </>
-                  )}
-                </div>
-                <div className="mt-2 flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className={`text-sm ${i < (feedback.websiteRating || 0) ? "text-yellow-400" : "text-gray-200"}`}>★</span>
-                  ))}
-                </div>
-                {feedback.websiteComment && (
-                  <p className="mt-2 text-sm text-gray-600 italic">&ldquo;{feedback.websiteComment}&rdquo;</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Formulaire ajout */}
       {showForm && (

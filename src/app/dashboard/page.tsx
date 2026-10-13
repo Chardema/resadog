@@ -23,8 +23,8 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { AppNav } from "@/components/layout/AppNav";
 import { getServiceLabel } from "@/lib/services";
+import { calculatePremiumDiscount } from "@/lib/loyalty";
 
 interface Booking {
   id: string;
@@ -244,8 +244,9 @@ function DashboardContent() {
   const pendingBookings = data?.upcomingBookings.filter((booking) => booking.status === "PENDING").length || 0;
   const firstName = session?.user?.name?.split(" ")[0] || "bonjour";
   const premiumReferenceAmount = nextBooking?.totalPrice || 81;
-  const premiumSavings = Math.round(premiumReferenceAmount * 0.1 * 100) / 100;
-  const premiumTotal = Math.round((premiumReferenceAmount - premiumSavings) * 100) / 100;
+  const premiumQuote = calculatePremiumDiscount(premiumReferenceAmount);
+  const premiumSavings = premiumQuote.discountAmount;
+  const premiumTotal = premiumQuote.finalAmount;
   const premiumPaws = Math.floor(premiumTotal * 2);
 
   if (status === "loading" || isLoading) {
@@ -261,9 +262,8 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
-      <AppNav userName={session?.user?.name} />
 
-      <main className="container relative z-10 mx-auto px-4 pt-6 sm:px-6 md:pt-32">
+      <main className="container relative z-10 mx-auto px-4 pt-28 sm:px-6 md:pt-32">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <motion.p
@@ -316,7 +316,7 @@ function DashboardContent() {
           >
             <div>
               <p className="pr-8 text-lg font-bold">Premium activé</p>
-              <p className="text-sm text-green-700">Remise de 10 %, Pattes doublées et priorité vacances sont actifs.</p>
+              <p className="text-sm text-green-700">Remise de 10 % plafonnée à 20 € par réservation, Pattes doublées et priorité vacances sont actives.</p>
             </div>
             <Link href="/booking" className="inline-flex min-h-11 items-center justify-center rounded-md bg-green-700 px-4 py-2 text-sm font-bold text-white hover:bg-green-800">
               Réserver avec Premium
@@ -460,7 +460,7 @@ function DashboardContent() {
                 </div>
                 <p className="font-bold text-gray-950">Premium</p>
                 <p className="mt-1 text-sm text-gray-600">
-                  {isSubscribed ? "-10 % et Pattes doublées sur vos réservations." : "Passez à -10 % et doublez vos Pattes."}
+                  {isSubscribed ? "-10 % jusqu’à 20 € et Pattes doublées sur vos réservations." : "Passez à -10 % jusqu’à 20 € et doublez vos Pattes."}
                 </p>
                 <Link href={isSubscribed ? "/profile#subscription" : "/subscriptions"} className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-orange-700 hover:text-orange-900">
                   {isSubscribed ? "Gérer Premium" : "Découvrir"}

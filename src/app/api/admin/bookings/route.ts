@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { loadFinanceReport } from "@/lib/finance-server";
 import { extractServiceDetails, stripServiceDetails } from "@/lib/booking-details";
 import { calculateBookingPrice, type PriceRateGroup, type Species } from "@/lib/pricing";
 import type { Prisma } from "@prisma/client";
+
+export const maxDuration = 60;
 
 type PricingPet = {
   id: string;
   name: string;
   species: Species;
   age: number | null;
+  birthDate?: Date | null;
 };
 
 const roundMoney = (value: number) => Math.round(value * 100) / 100;
@@ -27,6 +31,7 @@ function parsePromoCode(notes?: string | null) {
 
 function buildPriceBreakdown(input: {
   serviceType: string;
+  requestedAt: Date;
   startDate: Date;
   endDate: Date;
   startTime?: string | null;
@@ -39,6 +44,7 @@ function buildPriceBreakdown(input: {
   if (input.pets.length === 0) return null;
 
   const priceResult = calculateBookingPrice({
+    requestedAt: input.requestedAt,
     serviceType: input.serviceType,
     pets: input.pets,
     startDate: input.startDate.toISOString().slice(0, 10),
@@ -154,14 +160,17 @@ export async function GET(request: NextRequest) {
     const bookings = await prisma.booking.findMany({
       where: whereClause,
       include: {
+        noShow: true,
+        notices: { select: { id: true, kind: true, state: true, sentAt: true, error: true }, orderBy: { createdAt: "desc" } },
         pet: {
-          select: { id: true, name: true, breed: true, imageUrl: true, species: true, age: true },
+          select: { id: true, name: true, breed: true, imageUrl: true, species: true, age: true, birthDate: true },
         },
         pets: {
-          select: { id: true, name: true, breed: true, imageUrl: true, species: true, age: true },
+          select: { id: true, name: true, breed: true, imageUrl: true, species: true, age: true, birthDate: true },
         },
         client: {
           select: {
+            id: true,
             name: true,
             email: true,
             phone: true,
@@ -172,20 +181,17 @@ export async function GET(request: NextRequest) {
         payment: {
           select: {
             amount: true,
+            capturedAmount: true,
             status: true,
+            paymentMethod: true,
             stripePaymentId: true,
+            stripeRefundId: true,
+            refundStatus: true,
+            refundAmount: true,
+            refundFailureReason: true,
           },
         },
-        reviewRequest: {
-          select: {
-            sentAt: true,
-            submittedAt: true,
-            serviceRating: true,
-            serviceComment: true,
-            websiteRating: true,
-            websiteComment: true,
-          },
-        },
+
       },
       orderBy: {
         startDate: "asc", // Les plus proches en premier
@@ -200,7 +206,16 @@ export async function GET(request: NextRequest) {
       return a.startDate.getTime() - b.startDate.getTime();
     });
 
+    const googleEmails = await prisma.emailLog.findMany({
+      where: { status: "SENT", idempotencyKey: { in: bookings.map(booking => `admin-google-review-${booking.id}`) } },
+      select: { idempotencyKey: true, createdAt: true }, orderBy: { createdAt: "asc" },
+    });
+    const googleSentAt = new Map(googleEmails.map(email => [email.idempotencyKey, email.createdAt]));
+
+    const financeReport = await loadFinanceReport().catch(() => null);
+
     return NextResponse.json({
+      financeWarning: financeReport === null ? "Le détail financier est momentanément indisponible." : financeReport.warnings.join(" ") || null,
       bookings: sortedBookings.map((booking) => {
         const serviceDetails = extractServiceDetails(booking.specialRequests);
         const pricingPets = (booking.pets.length > 0
@@ -211,6 +226,8 @@ export async function GET(request: NextRequest) {
 
         return {
           ...booking,
+          googleReviewSentAt: googleSentAt.get(`admin-google-review-${booking.id}`) || null,
+          finance: financeReport?.bookings[booking.id] || null,
           pet: booking.pet ? {
             name: booking.pet.name,
             breed: booking.pet.breed,
@@ -223,6 +240,7 @@ export async function GET(request: NextRequest) {
           })),
           serviceDetails,
           priceBreakdown: buildPriceBreakdown({
+            requestedAt: booking.createdAt,
             serviceType: booking.serviceType,
             startDate: booking.startDate,
             endDate: booking.endDate,

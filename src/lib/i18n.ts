@@ -84,10 +84,6 @@ const catalogue: Record<string, Translation> = {
     en: "Dog sitting near Disneyland Paris & cat sitting in Seine-et-Marne | La Patte Dorée",
     es: "Cuidado de perros cerca de Disneyland Paris y de gatos en Seine-et-Marne | La Patte Dorée",
   },
-  "Professionnelle titulaire de l’ACACED": {
-    en: "ACACED-certified pet care professional",
-    es: "Profesional del cuidado animal con certificación ACACED",
-  },
   "Disponibilités ouvertes pour 2026": {
     en: "2026 bookings now open",
     es: "Reservas abiertas para 2026",
@@ -104,15 +100,15 @@ const catalogue: Record<string, Translation> = {
   "Créer mon compte": { en: "Create my account", es: "Crear mi cuenta" },
   "Mon espace": { en: "My account", es: "Mi cuenta" },
   "Compétence professionnelle": { en: "Professional expertise", es: "Experiencia profesional" },
-  "Garde encadrée par une titulaire de l’ACACED": {
-    en: "Care provided by an ACACED-certified professional",
-    es: "Cuidado a cargo de una profesional con certificación ACACED",
-  },
   "Une prise en charge fondée sur la connaissance des besoins biologiques, physiologiques et comportementaux des chiens et des chats.": {
     en: "Care based on a thorough understanding of dogs' and cats' biological, physiological and behavioural needs.",
     es: "Un cuidado basado en el conocimiento de las necesidades biológicas, fisiológicas y de comportamiento de perros y gatos.",
   },
   "Besoins individualisés": { en: "Personalised care", es: "Atención personalizada" },
+  "Qualification ACACED chien et chat": {
+    en: "ACACED qualification for dogs and cats",
+    es: "Cualificación ACACED para perros y gatos",
+  },
   "Photos et nouvelles": { en: "Photos and updates", es: "Fotos y noticias" },
   "Paiement sécurisé": { en: "Secure payment", es: "Pago seguro" },
   "Garde locale 77": { en: "Local pet care in Seine-et-Marne", es: "Cuidado local en Seine-et-Marne" },
@@ -141,8 +137,61 @@ const catalogue: Record<string, Translation> = {
     es: "Cuidado de perros y gatos en Seine-et-Marne: cuidado a domicilio, alojamiento, guardería y paseos.",
   },
   "Services sur-mesure": { en: "Tailored services", es: "Servicios a medida" },
+  "Garde de chien": { en: "Dog care", es: "Cuidado de perros" },
+  "Un tarif calculé sur la durée réelle": { en: "Pricing based on actual duration", es: "Una tarifa calculada según la duración real" },
+  "Le compteur commence au moment du dépôt et s’arrête à la reprise. Le changement de date à minuit ne déclenche jamais une nouvelle facturation.": {
+    en: "Time starts at drop-off and stops at pick-up. Crossing midnight never triggers a new charge on its own.",
+    es: "El tiempo empieza con la entrega y termina con la recogida. El cambio de fecha a medianoche nunca genera un nuevo cobro por sí solo.",
+  },
+  "Garde de jour, jusqu’à 10 h": { en: "Day care, up to 10 hours", es: "Guardería de día, hasta 10 h" },
+  "garde de jour jusqu’à 10 h": { en: "day care up to 10 hours", es: "guardería de día hasta 10 h" },
+  "Par jour, jusqu’à 10 h": { en: "Per day, up to 10 hours", es: "Por día, hasta 10 h" },
+  "Par période de 24 h commencée": { en: "Per started 24-hour period", es: "Por cada periodo de 24 h iniciado" },
+  "Période de 24 h, avec nuit": { en: "24-hour period, including overnight", es: "Periodo de 24 h, con noche" },
+  "Comment sont comptés les dépassements ?": { en: "How is extra time charged?", es: "¿Cómo se cobran los excesos de tiempo?" },
+  "Dès qu’une période de 24 h est dépassée, même de quelques minutes, une nouvelle période commence. Les durées intermédiaires restent ainsi simples et prévisibles.": {
+    en: "As soon as a 24-hour period is exceeded, even by a few minutes, a new period begins. This keeps intermediate durations simple and predictable.",
+    es: "En cuanto se supera un periodo de 24 h, aunque solo sea por unos minutos, comienza un nuevo periodo. Así, las duraciones intermedias siguen siendo sencillas y previsibles.",
+  },
+  "Vendredi 18 h → samedi 18 h": { en: "Friday 6 pm → Saturday 6 pm", es: "Viernes 18 h → sábado 18 h" },
+  "10 h 01 à 24 h de garde": { en: "10 hours 1 minute to 24 hours of care", es: "De 10 h 01 a 24 h de cuidado" },
+  "Vendredi 18 h → dimanche 18 h": { en: "Friday 6 pm → Sunday 6 pm", es: "Viernes 18 h → domingo 18 h" },
+  "Exemple de dépassement : samedi 18 h 01 démarre une deuxième période de 24 h.": {
+    en: "Overrun example: Saturday at 6:01 pm starts a second 24-hour period.",
+    es: "Ejemplo de exceso: el sábado a las 18:01 comienza un segundo periodo de 24 h.",
+  },
+  "période de 24 h": { en: "24-hour period", es: "periodo de 24 h" },
+  "périodes de 24 h": { en: "24-hour periods", es: "periodos de 24 h" },
+  "périodes de 24 h et +": { en: "24-hour periods or more", es: "periodos de 24 h o más" },
+  "période de 24 h facturée": { en: "24-hour period charged", es: "periodo de 24 h facturado" },
+  "périodes de 24 h facturées": { en: "24-hour periods charged", es: "periodos de 24 h facturados" },
+  "€ / période de 24 h": { en: "€ / 24-hour period", es: "€ / periodo de 24 h" },
+  "€ / jusqu’à 10 h": { en: "€ / up to 10 hours", es: "€ / hasta 10 h" },
+  "45 € / période de 24 h": { en: "€45 / 24-hour period", es: "45 € / periodo de 24 h" },
+  "23 € / période de 24 h": { en: "€23 / 24-hour period", es: "23 € / periodo de 24 h" },
+  "35 € / jusqu’à 10 h": { en: "€35 / up to 10 hours", es: "35 € / hasta 10 h" },
+  "30 € / jusqu’à 10 h": { en: "€30 / up to 10 hours", es: "30 € / hasta 10 h" },
+  "16 € / 30 min": { en: "€16 / 30 min", es: "16 € / 30 min" },
+  "15 € / 30 min": { en: "€15 / 30 min", es: "15 € / 30 min" },
+  "40 à 80 € / jour": { en: "€40 to €80 / day", es: "De 40 € a 80 € / día" },
+  "La dernière période est entamée et facturée en entier.": { en: "The final period has started and is charged in full.", es: "El último periodo ha comenzado y se factura completo." },
+  "Durée exacte, sans dépassement.": { en: "Exact duration, with no overrun.", es: "Duración exacta, sin exceso." },
+  "Choisissez l’arrivée et le départ. Le tarif est calculé depuis l’heure d’arrivée, par période de 24 h commencée.": {
+    en: "Choose arrival and departure. Pricing starts at the arrival time and is calculated per started 24-hour period.",
+    es: "Elija la llegada y la salida. La tarifa se calcula desde la hora de llegada, por cada periodo de 24 h iniciado.",
+  },
+  "Votre compagnon vit avec nous, avec nuit, accès canapé et jardin inclus. Le tarif suit des périodes réelles de 24 h à partir de l’arrivée.": {
+    en: "Your pet stays with us overnight, with sofa and garden access included. Pricing follows actual 24-hour periods from arrival.",
+    es: "Su mascota se queda con nosotros por la noche, con acceso al sofá y al jardín. La tarifa sigue periodos reales de 24 h desde la llegada.",
+  },
   "Tout ce qu'il faut pour son bonheur.": { en: "Everything they need to feel happy.", es: "Todo lo que necesita para ser feliz." },
   "Hébergement Familial": { en: "Family boarding", es: "Alojamiento familiar" },
+  "Hébergement et garderie": { en: "Boarding and day care", es: "Alojamiento y guardería" },
+  "Hébergement avec nuit": { en: "Overnight boarding", es: "Alojamiento con noche" },
+  "Le calcul se fait sur la durée réelle entre le dépôt et la reprise, sans nouvelle facturation au simple passage de minuit.": {
+    en: "Pricing is based on the actual time between drop-off and pick-up. Crossing midnight does not trigger a new charge on its own.",
+    es: "La tarifa se calcula según el tiempo real entre la entrega y la recogida. El paso de la medianoche no genera por sí solo un nuevo cobro.",
+  },
   "Votre compagnon vit avec nous, dans la maison. Pas de box, accès jardin illimité et séances de câlins sur le canapé. C'est comme chez vous, en mieux.": {
     en: "Your pet lives with us in our home. No cages, unlimited garden access and plenty of sofa cuddles. Just like home, only better.",
     es: "Su mascota vive con nosotros en casa. Sin jaulas, con acceso ilimitado al jardín y muchos mimos en el sofá. Como en casa, pero aún mejor.",
@@ -151,9 +200,11 @@ const catalogue: Record<string, Translation> = {
   "Promenades incluses": { en: "Walks included", es: "Paseos incluidos" },
   "Photos tous les jours": { en: "Daily photos", es: "Fotos diarias" },
   "Garde à votre domicile": { en: "Sitting in your home", es: "Cuidado en su domicilio" },
+  "Garde au domicile du client": { en: "Pet sitting in your home", es: "Cuidado en su domicilio" },
   "À partir de": { en: "From", es: "Desde" },
   "Jusqu’à 6 h": { en: "Up to 6 hours", es: "Hasta 6 h" },
   "De 6 h à 10 h": { en: "Over 6 and up to 10 hours", es: "Más de 6 y hasta 10 h" },
+  "Plus de 6 h et jusqu’à 10 h": { en: "Over 6 and up to 10 hours", es: "Más de 6 y hasta 10 h" },
   "Plus de 10 h": { en: "Over 10 hours", es: "Más de 10 h" },
   "Jusqu'à 2 h": { en: "Up to 2 hours", es: "Hasta 2 h" },
   "Une présence prolongée chez vous : repas, sorties, compagnie, surveillance et respect de la routine habituelle de votre animal.": {
@@ -166,6 +217,11 @@ const catalogue: Record<string, Translation> = {
   },
   "Promenades": { en: "Dog walks", es: "Paseos" },
   "Chat : sur demande": { en: "Cat: on request", es: "Gato: bajo petición" },
+  "Promenade de chat : sur demande.": { en: "Cat walks: on request.", es: "Paseo de gatos: bajo petición." },
+  "par tranche supplémentaire de 30 minutes commencée. Promenade de chat : sur demande.": {
+    en: "per additional started 30-minute period. Cat walks: on request.",
+    es: "por cada tramo adicional de 30 minutos iniciado. Paseo de gatos: bajo petición.",
+  },
   "sur demande": { en: "on request", es: "bajo petición" },
   "minutes": { en: "minutes", es: "minutos" },
   "Besoin de se dépenser ? Je viens chercher votre compagnon pour une balade active.": {
@@ -173,6 +229,23 @@ const catalogue: Record<string, Translation> = {
     es: "¿Necesita gastar energía? Recogeré a su mascota para un paseo activo.",
   },
   "Visites à domicile": { en: "Home visits", es: "Visitas a domicilio" },
+  "Passage ponctuel": { en: "Home visit", es: "Visita a domicilio" },
+  "Visite de 30 minutes": { en: "30-minute visit", es: "Visita de 30 minutos" },
+  "Visite de 60, 90 ou 120 minutes": { en: "60, 90 or 120-minute visit", es: "Visita de 60, 90 o 120 minutos" },
+  "Par visite, même prix entre 1 h et 2 h": { en: "Per visit, same price from 1 to 2 hours", es: "Por visita, mismo precio entre 1 y 2 h" },
+  "Tarif de départ pour": { en: "Starting price for", es: "Precio inicial para" },
+  "minutes, puis": { en: "minutes, then", es: "minutos, después" },
+  "€ par tranche supplémentaire de": { en: "€ per additional", es: "€ por cada tramo adicional de" },
+  "par tranche supplémentaire de": { en: "per additional", es: "por cada tramo adicional de" },
+  "minutes commencée.": { en: "minute period started.", es: "minutos iniciado." },
+  "Visite à domicile :": { en: "Home visit:", es: "Visita a domicilio:" },
+  "€ et chat": { en: "€ and cat", es: "€ y gato" },
+  "€ pour 30 minutes, puis": { en: "€ for 30 minutes, then", es: "€ por 30 minutos, después" },
+  "Puis +": { en: "Then +", es: "Después +" },
+  "€ par tranche de": { en: "€ per additional", es: "€ por cada" },
+  "min : chien": { en: "min: dog", es: "min: perro" },
+  "€ pour 60 / 90 / 120 min.": { en: "€ for 60 / 90 / 120 min.", es: "€ para 60 / 90 / 120 min." },
+  "2 h :": { en: "2 hrs:", es: "2 h:" },
   "Un passage ponctuel chez vous pour les repas, la litière, les soins simples, les sorties et un moment de présence.": {
     en: "A one-off visit to your home for meals, litter care, basic care, outings and companionship.",
     es: "Una visita puntual a su domicilio para las comidas, el arenero, los cuidados básicos, las salidas y un momento de compañía.",
@@ -182,6 +255,11 @@ const catalogue: Record<string, Translation> = {
     es: "Una visita a domicilio para comida, arenero, cuidados básicos y compañía.",
   },
   "Garderie de Jour": { en: "Day care", es: "Guardería de día" },
+  "Plusieurs jours peuvent être réservés : chaque journée respecte les mêmes horaires et reste limitée à 10 h.": {
+    en: "Several days can be booked: each day uses the same schedule and remains limited to 10 hours.",
+    es: "Se pueden reservar varios días: cada jornada mantiene el mismo horario y sigue limitada a 10 h.",
+  },
+  "Long hébergement": { en: "Long boarding stay", es: "Alojamiento de larga duración" },
   "Garderie de jour au domicile du pet-sitter": { en: "Day care at the pet sitter's home", es: "Guardería de día en el domicilio del cuidador" },
   "Déposez votre compagnon le matin et récupérez-le le soir. Repas, jeux, repos et promenades selon ses habitudes.": {
     en: "Drop your pet off in the morning and collect them in the evening. Meals, play, rest and walks are tailored to their usual routine.",
@@ -199,9 +277,33 @@ const catalogue: Record<string, Translation> = {
     en: "Exact times must be provided when booking. Exceptional expenses required for the service, including parking, tolls or transport, are charged separately with prior approval.",
     es: "Los horarios exactos deben indicarse al reservar. Los gastos excepcionales necesarios para el servicio, incluidos el aparcamiento, los peajes o el transporte, se facturan por separado previo acuerdo.",
   },
+  "Règle chien à retenir": { en: "Dog pricing rule", es: "Regla de precio para perros" },
+  "Jusqu’à 10 h le même jour :": { en: "Up to 10 hours on the same day:", es: "Hasta 10 h el mismo día:" },
+  ". De 10 h 01 à 24 h :": { en: ". From 10 hours 1 minute to 24 hours:", es: ". De 10 h 01 a 24 h:" },
+  ". À 24 h 01, une deuxième période commence, soit": { en: ". At 24 hours 1 minute, a second period starts, for a total of", es: ". A las 24 h 01 comienza un segundo periodo, con un total de" },
+  "Chiot de moins d’un an": { en: "Puppy under one year old", es: "Cachorro menor de un año" },
+  "5 € par jour de garderie ou par période de 24 h commencée en hébergement. Aucun supplément jeune animal pour les chats ni pour les autres services.": {
+    en: "€5 per day of day care or per started 24-hour boarding period. No age-related surcharge applies to cats or any other service.",
+    es: "5 € por día de guardería o por cada periodo de alojamiento de 24 h iniciado. No se aplica ningún suplemento por edad a los gatos ni a otros servicios.",
+  },
+  "Remise automatique de 10 % à partir de 14 périodes de 24 h commencées.": {
+    en: "Automatic 10% discount from 14 started 24-hour periods.",
+    es: "Descuento automático del 10 % a partir de 14 periodos de 24 h iniciados.",
+  },
+  "Premium": { en: "Premium", es: "Premium" },
+  "Premium ✨": { en: "Premium ✨", es: "Premium ✨" },
+  "100 % de la prestation est due.": {
+    en: "100% of the service fee is due.",
+    es: "Se debe abonar el 100 % del importe de la prestación.",
+  },
+  "Sortie individuelle": { en: "Individual outing", es: "Salida individual" },
   "Un supplément peut être appliqué les jours fériés et pour les demandes de dernière minute.": {
     en: "A surcharge may apply on public holidays and for last-minute requests.",
     es: "Puede aplicarse un suplemento los días festivos y para las solicitudes de última hora.",
+  },
+  "Les jours fériés et les demandes de dernière minute ne déclenchent aucune majoration automatique dans le calcul en ligne.": {
+    en: "Public holidays and last-minute requests do not trigger any automatic surcharge in the online calculation.",
+    es: "Los días festivos y las solicitudes de última hora no generan ningún recargo automático en el cálculo en línea.",
   },
   "Heure de début": { en: "Start time", es: "Hora de inicio" },
   "Heure de fin": { en: "End time", es: "Hora de finalización" },
@@ -277,6 +379,10 @@ const catalogue: Record<string, Translation> = {
     en: "Reach 300, 700 and 1,500 Paw points to unlock discounts and loyalty benefits.",
     es: "Alcance 300, 700 y 1500 puntos Patita para obtener descuentos y ventajas.",
   },
+  "300 Pattes donnent 5 €, 700 Pattes donnent 15 € et 1500 Pattes donnent 24 € de réduction.": {
+    en: "300 Paw points give €5 off, 700 Paw points give €15 off and 1,500 Paw points give €24 off.",
+    es: "300 puntos Patita dan 5 € de descuento, 700 dan 15 € y 1500 dan 24 € de descuento.",
+  },
   "Gratuit ou Premium ?": { en: "Free or Premium?", es: "¿Gratis o Premium?" },
   "Le programme fidélité reste inclus pour tous les clients.": {
     en: "The loyalty programme remains included for every customer.",
@@ -287,11 +393,15 @@ const catalogue: Record<string, Translation> = {
   "Niveaux": { en: "Levels", es: "Niveles" },
   "Bronze à Diamant": { en: "Bronze to Diamond", es: "De Bronce a Diamante" },
   "Récompenses": { en: "Rewards", es: "Recompensas" },
+  "5 euros de réduction": { en: "€5 discount", es: "5 euros de descuento" },
+  "15 euros de réduction": { en: "€15 discount", es: "15 euros de descuento" },
+  "24 euros de réduction": { en: "€24 discount", es: "24 euros de descuento" },
   "Prix": { en: "Price", es: "Precio" },
   "Remise": { en: "Discount", es: "Descuento" },
   "Incluse": { en: "Included", es: "Incluida" },
   "Annulation": { en: "Cancellation", es: "Cancelación" },
   "Gratuite jusqu'à 24h": { en: "Free up to 24 hours", es: "Gratis hasta 24 horas antes" },
+  "Gratuite au moins 24h avant": { en: "Free at least 24 hours before", es: "Gratis al menos 24 horas antes" },
   "Prix mensuel": { en: "Monthly price", es: "Precio mensual" },
   "Questions fréquentes": { en: "Frequently asked questions", es: "Preguntas frecuentes" },
   "Est-ce que le programme fidélité est payant ?": { en: "Does the loyalty programme cost anything?", es: "¿El programa de fidelidad es de pago?" },
@@ -300,10 +410,6 @@ const catalogue: Record<string, Translation> = {
     es: "No. Todos los clientes ganan automáticamente puntos Patita con cada reserva.",
   },
   "Que donne Premium ?": { en: "What does Premium include?", es: "¿Qué incluye Premium?" },
-  "Premium donne des avantages : -10%, Pattes doublées, priorité vacances, annulation gratuite jusqu’à 24h et badge Premium.": {
-    en: "Premium includes 10% off, double Paw points, holiday priority, free cancellation up to 24 hours before and a Premium badge.",
-    es: "Premium incluye un 10% de descuento, puntos Patita dobles, prioridad en vacaciones, cancelación gratuita hasta 24 horas antes e insignia Premium.",
-  },
   "Que deviennent mes Pattes si j’arrête Premium ?": { en: "What happens to my Paw points if I cancel Premium?", es: "¿Qué ocurre con mis puntos Patita si cancelo Premium?" },
   "Elles restent dans votre espace client. Seuls les avantages Premium s’arrêtent.": {
     en: "They stay in your account. Only your Premium benefits end.",
@@ -522,6 +628,8 @@ const catalogue: Record<string, Translation> = {
   "Ajouter un animal": { en: "Add a pet", es: "Añadir una mascota" },
   "Chien": { en: "Dog", es: "Perro" },
   "Chat": { en: "Cat", es: "Gato" },
+  "Chien :": { en: "Dog:", es: "Perro:" },
+  "Chat :": { en: "Cat:", es: "Gato:" },
   "nuit": { en: "night", es: "noche" },
   "jour": { en: "day", es: "día" },
   "visite": { en: "visit", es: "visita" },
@@ -695,15 +803,23 @@ const catalogue: Record<string, Translation> = {
   "Offre de bienvenue": { en: "Welcome offer", es: "Oferta de bienvenida" },
   "-10 % sur votre première réservation": { en: "10% off your first booking", es: "10 % de descuento en su primera reserva" },
   "Réservée aux 5 premiers nouveaux clients · code": { en: "For the first 5 new clients · code", es: "Para los 5 primeros clientes nuevos · código" },
-  "cumulable avec Premium.": { en: "can be combined with Premium.", es: "acumulable con Premium." },
   "J'en profite": { en: "Claim the offer", es: "Aprovechar la oferta" },
   "5 premiers nouveaux clients :": { en: "First 5 new clients:", es: "5 primeros clientes nuevos:" },
-  "cumulable avec Premium": { en: "can be combined with Premium", es: "acumulable con Premium" },
   "Offre de bienvenue : 10 % de réduction appliquée": { en: "Welcome offer: 10% discount applied", es: "Oferta de bienvenida: 10 % de descuento aplicado" },
   "Cette offre est réservée aux nouveaux clients, pour leur première réservation.": { en: "This offer is for new clients on their first booking.", es: "Esta oferta está reservada a nuevos clientes en su primera reserva." },
   "Les 5 offres de bienvenue ont déjà été attribuées.": { en: "All 5 welcome offers have already been claimed.", es: "Las 5 ofertas de bienvenida ya han sido asignadas." },
   "Votre offre de bienvenue est déjà associée à une autre réservation.": { en: "Your welcome offer is already linked to another booking.", es: "Su oferta de bienvenida ya está vinculada a otra reserva." },
   "L'offre de bienvenue n'est pas associée à cette réservation.": { en: "The welcome offer is not linked to this booking.", es: "La oferta de bienvenida no está vinculada a esta reserva." },
+
+  // Resident cats shown during bookings hosted at the pet-sitter's home
+  "Deux chats vivent à la maison": {
+    en: "Two cats live in the house",
+    es: "Dos gatos viven en la casa",
+  },
+  "Pour la garderie et l'hébergement, la compatibilité est prise en compte. Si la cohabitation avec votre animal n'est pas sereine, nos chats restent dans un espace séparé.": {
+    en: "For day care and boarding, compatibility is taken into account. If they are not comfortable sharing the space with your pet, our cats are kept in a separate area.",
+    es: "Para la guardería y el alojamiento, se tiene en cuenta la compatibilidad. Si no están cómodos compartiendo el espacio con su mascota, nuestros gatos permanecen en una zona separada.",
+  },
 
   // Footer and legal navigation
   "Service de garde d’animaux premium avec suivi en temps réel. Offrez à vos compagnons des vacances aussi belles que les vôtres.": {
@@ -740,9 +856,27 @@ export function translateFrenchText(value: string, locale: Locale): string {
   const exact = completeCatalogue[core];
   if (exact) return `${leading}${exact[locale]}${trailing}`;
 
-  let translated = core;
+  const matches: Array<{ start: number; end: number; replacement: string }> = [];
   for (const [source, targets] of orderedEntries) {
-    if (translated.includes(source)) translated = translated.split(source).join(targets[locale]);
+    let start = core.indexOf(source);
+    while (start !== -1) {
+      const end = start + source.length;
+      const overlapsLongerMatch = matches.some((match) => start < match.end && end > match.start);
+      if (!overlapsLongerMatch) {
+        matches.push({ start, end, replacement: targets[locale] });
+      }
+      start = core.indexOf(source, Math.max(end, start + 1));
+    }
   }
+
+  matches.sort((a, b) => a.start - b.start);
+  let cursor = 0;
+  let translated = "";
+  for (const match of matches) {
+    translated += core.slice(cursor, match.start);
+    translated += match.replacement;
+    cursor = match.end;
+  }
+  translated += core.slice(cursor);
   return `${leading}${translated}${trailing}`;
 }

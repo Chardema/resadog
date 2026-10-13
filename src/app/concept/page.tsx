@@ -3,16 +3,13 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { AppNav } from "@/components/layout/AppNav";
-import { useSession } from "next-auth/react";
 import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
+import { LOYALTY_REWARDS } from "@/lib/loyalty";
 
 export default function ConceptPage() {
-  const { data: session } = useSession();
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] selection:bg-orange-200">
-      <AppNav userName={session?.user?.name} />
 
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] bg-orange-300/20 rounded-full blur-[120px]" />
@@ -64,7 +61,7 @@ export default function ConceptPage() {
             {
               icon: "🎁",
               title: "3. Débloquez des récompenses",
-              desc: "300, 700 et 1500 Pattes ouvrent des réductions et avantages fidélité."
+              desc: "300 Pattes donnent 5 €, 700 Pattes donnent 15 € et 1500 Pattes donnent 24 € de réduction."
             }
           ].map((step, idx) => (
             <motion.div
@@ -105,7 +102,15 @@ export default function ConceptPage() {
                 <div className="space-y-4 mb-8 text-gray-300">
                   <div className="flex justify-between gap-4"><span>Pattes gagnées</span><span className="font-bold">1 euro = 1 Patte</span></div>
                   <div className="flex justify-between gap-4"><span>Niveaux</span><span>Bronze à Diamant</span></div>
-                  <div className="flex justify-between gap-4"><span>Récompenses</span><span>300 / 700 / 1500</span></div>
+                  <div className="space-y-2">
+                    <p className="font-bold text-white">Récompenses</p>
+                    {LOYALTY_REWARDS.map((reward) => (
+                      <div key={reward.threshold} className="flex justify-between gap-4 text-sm">
+                        <span>{reward.threshold} Pattes</span>
+                        <span>{reward.label}</span>
+                      </div>
+                    ))}
+                  </div>
                   <div className="flex justify-between gap-4"><span>Prix</span><span>0 euro</span></div>
                 </div>
               </div>
@@ -116,10 +121,10 @@ export default function ConceptPage() {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-6">{PREMIUM_SUBSCRIPTION.name}</h3>
                 <div className="space-y-4 mb-8 text-orange-100">
-                  <div className="flex justify-between gap-4"><span>Remise</span><span className="font-bold">-10%</span></div>
+                  <div className="flex justify-between gap-4"><span>Remise</span><span className="font-bold">-10% jusqu’à 20 €</span></div>
                   <div className="flex justify-between gap-4"><span>Pattes gagnées</span><span className="font-bold">1 euro = 2 Pattes</span></div>
                   <div className="flex justify-between gap-4"><span>Priorité vacances</span><span>Incluse</span></div>
-                  <div className="flex justify-between gap-4"><span>Annulation</span><span>Gratuite jusqu&apos;à 24h</span></div>
+                  <div className="flex justify-between gap-4"><span>Report</span><span>Prioritaire au moins 24h avant</span></div>
                 </div>
                 <div className="pt-6 border-t border-white/20">
                   <div className="flex justify-between items-center">
@@ -137,7 +142,7 @@ export default function ConceptPage() {
           <div className="space-y-4">
             {[
               { q: "Est-ce que le programme fidélité est payant ?", a: "Non. Tous les clients gagnent des Pattes automatiquement à chaque réservation." },
-              { q: "Que donne Premium ?", a: "Premium donne des avantages : -10%, Pattes doublées, priorité vacances, annulation gratuite jusqu’à 24h et badge Premium." },
+              { q: "Que donne Premium ?", a: "Premium donne -10% jusqu’à 20 € par réservation, sans cumul avec une autre remise, les Pattes doublées, la priorité vacances, une demande de report prioritaire au moins 24h avant sous réserve de disponibilité, et le badge Premium." },
               { q: "Que deviennent mes Pattes si j’arrête Premium ?", a: "Elles restent dans votre espace client. Seuls les avantages Premium s’arrêtent." },
             ].map((faq) => (
               <div key={faq.q} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
@@ -154,6 +159,9 @@ export default function ConceptPage() {
             <Button className="h-16 px-10 rounded-full bg-gray-900 text-white font-bold text-xl hover:bg-orange-600 hover:scale-105 transition-all shadow-xl">
               Voir Premium
             </Button>
+          </Link>
+          <Link href="/tarifs" className="mt-4 block text-sm font-bold text-orange-700 underline underline-offset-4">
+            Consulter tous les tarifs
           </Link>
           <p className="mt-4 text-sm text-gray-500">Le programme fidélité gratuit reste actif quoi qu&apos;il arrive.</p>
         </div>

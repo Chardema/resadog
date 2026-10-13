@@ -1,4 +1,7 @@
+/* Keep the uploader's bundled utilities below the site's responsive styles. */
+@layer theme, base, vendor, components, utilities;
 @import "tailwindcss";
+@import "@uploadthing/react/styles.css" layer(vendor);
 
 :root {
   --background: #ffffff;
@@ -25,27 +28,7 @@ body {
   font-family: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
 }
 
-.app-nav-desktop-only,
-.app-nav-public-full,
-.app-nav-public-menu,
-.home-signout-desktop {
-  display: none !important;
-}
-
-.app-nav-mobile-actions {
-  display: flex !important;
-}
-
-.app-nav-mobile-bottom,
-.app-nav-mobile-spacer,
-.admin-mobile-only {
-  display: block !important;
-}
-
-.app-nav-public-short {
-  display: inline !important;
-}
-
+/* Shared navigation uses Tailwind breakpoints; only the admin shell needs offsets. */
 .admin-desktop-sidebar {
   transform: translateX(-100%);
 }
@@ -55,42 +38,8 @@ body {
   padding-bottom: 6rem;
 }
 
-@media (min-width: 640px) {
-  .app-nav-public-short {
-    display: none !important;
-  }
-
-  .app-nav-public-full {
-    display: inline !important;
-  }
-
-  .home-signout-desktop {
-    display: block !important;
-  }
-
-  .app-nav-public-menu {
-    display: flex !important;
-  }
-}
-
 @media (min-width: 768px) {
-  .app-nav-desktop-only {
-    display: flex !important;
-  }
-
-  .app-nav-mobile-actions,
-  .app-nav-mobile-bottom,
-  .app-nav-mobile-spacer,
-  .admin-mobile-only {
-    display: none !important;
-  }
-
-  .admin-desktop-sidebar {
-    transform: translateX(0);
-  }
-
-  .admin-shell-main {
-    margin-left: 18rem;
-    padding-bottom: 0;
-  }
+  .admin-mobile-only { display: none; }
+  .admin-desktop-sidebar { transform: translateX(0); }
+  .admin-shell-main { margin-left: 18rem; padding-bottom: 0; }
 }

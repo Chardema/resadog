@@ -1,162 +1,196 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 
 function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState(() =>
-    searchParams.get("registered") === "true"
-      ? "Compte créé avec succès ! Bienvenue 🐾"
-      : ""
-  );
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    secondFactor: "",
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const successMessage =
+    searchParams.get("verification") === "success"
+      ? "Adresse confirmée. Votre compte est maintenant actif."
+      : searchParams.get("reset") === "true"
+        ? "Mot de passe modifié. Toutes vos anciennes sessions ont été révoquées."
+        : "";
+  const verificationError =
+    searchParams.get("verification") === "invalid"
+      ? "Ce lien de vérification est invalide ou a expiré."
+      : searchParams.get("verification") === "rate-limited"
+        ? "Trop de tentatives de vérification. Réessayez plus tard."
+        : searchParams.get("verification") === "error"
+          ? "La vérification est momentanément indisponible."
+          : "";
+
+  const completeSignIn = async () => {
+    const result = await signIn("credentials", {
+      email: formData.email,
+      password: formData.password,
+      secondFactor: formData.secondFactor,
+      redirect: false,
+    });
+    if (result?.error) throw new Error("Identifiants ou code de sécurité incorrects.");
+    router.push("/dashboard");
+    router.refresh();
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError("");
-    setSuccessMessage("");
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email: formData.email,
-        password: formData.password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("Identifiants incorrects 😕");
-        return;
+      if (!needsTwoFactor) {
+        const response = await fetch("/api/auth/preflight", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email, password: formData.password }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Connexion impossible.");
+        if (data.requiresTwoFactor) {
+          setNeedsTwoFactor(true);
+          return;
+        }
       }
-
-      router.push("/dashboard");
-      router.refresh();
-    } catch {
-      setError("Une erreur inattendue est survenue");
+      await completeSignIn();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Connexion impossible.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* 3D Background Elements */}
-      <div className="fixed inset-0 pointer-events-none">
-        <motion.div animate={{ y: [0, -20, 0] }} transition={{ duration: 6, repeat: Infinity }} className="absolute top-20 left-[10%] text-8xl opacity-20 blur-sm">🦴</motion.div>
-        <motion.div animate={{ y: [0, 20, 0] }} transition={{ duration: 7, repeat: Infinity, delay: 1 }} className="absolute bottom-20 right-[10%] text-8xl opacity-20 blur-sm">🎾</motion.div>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-[420px] relative z-10"
-      >
-        {/* Card */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-orange-900/10 border border-white/50 p-10 overflow-hidden relative">
-          
-          {/* Header */}
-          <div className="text-center mb-8">
-            <Link href="/" className="inline-block mb-6 group">
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-amber-600 rounded-2xl flex items-center justify-center text-3xl text-white shadow-lg mx-auto transform group-hover:rotate-12 transition-transform">
-                🐾
-              </div>
-            </Link>
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Bon retour !</h1>
-            <p className="text-gray-500">Connectez-vous pour gérer vos gardes.</p>
-          </div>
-
-          {/* Messages */}
-          {successMessage && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-green-50 text-green-700 p-4 rounded-xl mb-6 text-sm font-bold text-center border border-green-100">
-              {successMessage}
-            </motion.div>
-          )}
-          {error && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-bold text-center border border-red-100">
-              {error}
-            </motion.div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label className="text-gray-700 font-semibold ml-1">Email</Label>
-              <Input
-                type="email"
-                placeholder="vous@exemple.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                className="bg-gray-50 border-gray-200 h-12 rounded-xl focus:ring-orange-500 focus:border-orange-500 transition-all"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center ml-1">
-                <Label className="text-gray-700 font-semibold">Mot de passe</Label>
-                <Link href="/auth/forgot-password" className="text-xs text-orange-600 hover:underline font-medium">
-                  Oublié ?
-                </Link>
-              </div>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                className="bg-gray-50 border-gray-200 h-12 rounded-xl focus:ring-orange-500 focus:border-orange-500 transition-all"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-14 rounded-xl bg-gray-900 hover:bg-orange-600 text-white font-bold text-lg shadow-xl hover:shadow-orange-500/20 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                "Se connecter"
-              )}
-            </Button>
-          </form>
-
-          {/* Footer */}
-          <div className="mt-8 text-center pt-6 border-t border-gray-100">
-            <p className="text-sm text-gray-500">
-              Pas encore de compte ?{" "}
-              <Link href="/auth/signup" className="text-gray-900 font-bold hover:text-orange-600 transition-colors">
-                Créer un compte
-              </Link>
-            </p>
-          </div>
-        </div>
-        
-        {/* Back Link */}
-        <div className="mt-8 text-center">
-          <Link href="/" className="text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors">
-            ← Retour à l'accueil
+    <main className="min-h-screen bg-[#FDFbf7] px-5 py-12 sm:grid sm:place-items-center">
+      <section className="mx-auto w-full max-w-[440px] rounded-[2rem] border border-orange-100 bg-white p-7 shadow-2xl shadow-orange-950/10 sm:p-10">
+        <div className="mb-7 text-center">
+          <Link href="/" className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-orange-600 text-2xl text-white">
+            🐾
           </Link>
+          <h1 className="text-3xl font-extrabold text-gray-950">
+            {needsTwoFactor ? "Vérification de sécurité" : "Bon retour !"}
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-gray-500">
+            {needsTwoFactor
+              ? "Saisissez le code de votre application d'authentification."
+              : "Connectez-vous pour gérer vos gardes."}
+          </p>
         </div>
-      </motion.div>
-    </div>
+
+        {(successMessage || verificationError || error) && (
+          <p className={`mb-5 rounded-xl border p-3 text-sm font-semibold ${
+            successMessage
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}>
+            {successMessage || verificationError || error}
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {!needsTwoFactor ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={(event) => setFormData({ ...formData, email: event.target.value })}
+                  className="h-12 rounded-xl"
+                  placeholder="vous@exemple.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Mot de passe</Label>
+                  <Link href="/auth/forgot-password" className="text-xs font-semibold text-orange-700 hover:underline">
+                    Mot de passe oublié ?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={formData.password}
+                  onChange={(event) => setFormData({ ...formData, password: event.target.value })}
+                  className="h-12 rounded-xl"
+                />
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="second-factor">
+                {useRecoveryCode ? "Code de récupération" : "Code à 6 chiffres"}
+              </Label>
+              <Input
+                id="second-factor"
+                inputMode={useRecoveryCode ? "text" : "numeric"}
+                autoComplete="one-time-code"
+                required
+                autoFocus
+                value={formData.secondFactor}
+                onChange={(event) =>
+                  setFormData({ ...formData, secondFactor: event.target.value })
+                }
+                className="h-14 rounded-xl text-center font-mono text-lg tracking-[0.2em]"
+                placeholder={useRecoveryCode ? "XXXX-XXXX-XXXX" : "000000"}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setUseRecoveryCode(!useRecoveryCode);
+                  setFormData({ ...formData, secondFactor: "" });
+                }}
+                className="text-sm font-semibold text-orange-700 hover:underline"
+              >
+                {useRecoveryCode ? "Utiliser l'application" : "Utiliser un code de récupération"}
+              </button>
+            </div>
+          )}
+
+          <Button type="submit" disabled={isLoading} className="h-13 w-full rounded-xl bg-gray-950 text-base font-bold hover:bg-orange-600">
+            <ShieldCheck className="h-5 w-5" />
+            {isLoading ? "Vérification..." : needsTwoFactor ? "Valider le code" : "Se connecter"}
+          </Button>
+        </form>
+
+        {!needsTwoFactor && <SocialAuthButtons />}
+
+        <p className="mt-7 border-t border-gray-100 pt-6 text-center text-sm text-gray-500">
+          Pas encore de compte ?{" "}
+          <Link href="/auth/signup" className="font-bold text-gray-950 hover:text-orange-700">
+            Créer un compte
+          </Link>
+        </p>
+      </section>
+    </main>
   );
 }
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-4xl">🐾</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#FDFbf7]" />}>
       <SignInContent />
     </Suspense>
   );

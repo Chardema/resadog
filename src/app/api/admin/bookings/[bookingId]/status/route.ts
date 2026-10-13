@@ -1,8 +1,13 @@
+import { isDirectPayment } from "@/lib/direct-booking";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
-import { sendBookingConfirmationEmail, sendBookingRejectionEmail } from "@/lib/email";
+import {
+  sendBookingConfirmationEmail,
+  sendBookingRefundCompletedEmail,
+  sendBookingTeamCancellationEmail,
+} from "@/lib/email";
 import { z } from "zod";
 import {
   BookingConfirmationError,
@@ -11,19 +16,25 @@ import {
 } from "@/lib/booking-confirmation";
 import { awardBookingLoyalty, reverseBookingLoyalty } from "@/lib/loyalty-ledger";
 import { getBookingEmailDetails } from "@/lib/booking-email-details";
-import { sendReviewRequestForBooking } from "@/lib/review-requests";
+import { completeBookings } from "@/lib/complete-bookings";
 import type { BookingStatus } from "@prisma/client";
+import {
+  processTeamCancellationPayment,
+  TeamCancellationPaymentError,
+  type TeamCancellationPaymentResult,
+} from "@/lib/team-booking-cancellation";
 
 const statusUpdateSchema = z.object({
   status: z.enum(["CONFIRMED", "CANCELLED", "COMPLETED"]),
   reason: z.string().trim().max(500).optional(),
   confirmed: z.boolean().optional(),
+  bookingIds: z.array(z.string().min(1)).min(1).max(50).optional(),
 }).superRefine((data, ctx) => {
   if (data.status === "CANCELLED" && !data.reason) {
     ctx.addIssue({
       code: "custom",
       path: ["reason"],
-      message: "Le motif du refus est requis pour informer le client",
+      message: "Le motif de l'annulation est requis pour informer le client",
     });
   }
 });
@@ -46,11 +57,21 @@ export async function PATCH(
     }
 
     const { bookingId } = await params;
-    const { status, reason, confirmed } = statusUpdateSchema.parse(await request.json());
+    const { status, reason, confirmed, bookingIds } = statusUpdateSchema.parse(await request.json());
+
+    if (status !== "COMPLETED") {
+      const direct = await prisma.booking.findUnique({ where: { id: bookingId }, select: { payment: { select: { paymentMethod: true } } } });
+      if (isDirectPayment(direct?.payment?.paymentMethod)) return NextResponse.json({ error: "Utilisez les actions de la réservation directe pour suivre le paiement ou l’annuler." }, { status: 409 });
+    }
+
+    if (status === "COMPLETED") {
+      try { return NextResponse.json(await completeBookings(bookingId, bookingIds || [bookingId])); }
+      catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Impossible de terminer la sélection." }, { status: 409 }); }
+    }
 
     if (status === "CANCELLED" && confirmed !== true) {
       return NextResponse.json(
-        { error: "Confirmation de refus requise" },
+        { error: "Confirmation de l'annulation requise" },
         { status: 400 }
       );
     }
@@ -83,12 +104,30 @@ export async function PATCH(
       );
     }
 
-    if (
-      status === "CANCELLED" &&
-      (booking.status === "ACCEPTING" || booking.status === "CANCELLING")
-    ) {
+    if (status === "CANCELLED" && booking.status === "ACCEPTING") {
       return NextResponse.json(
         { error: "Une opération de paiement est déjà en cours sur cette réservation." },
+        { status: 409 }
+      );
+    }
+
+    if (
+      status === "CANCELLED" &&
+      booking.status === "CANCELLING" &&
+      booking.cancellationOrigin !== "TEAM"
+    ) {
+      return NextResponse.json(
+        { error: "Une annulation client est déjà en cours sur cette réservation." },
+        { status: 409 }
+      );
+    }
+
+    if (
+      status === "CANCELLED" &&
+      !(["PENDING", "CONFIRMED", "CANCELLING"] as BookingStatus[]).includes(booking.status)
+    ) {
+      return NextResponse.json(
+        { error: "Cette réservation ne peut plus être annulée depuis l'administration." },
         { status: 409 }
       );
     }
@@ -126,19 +165,9 @@ export async function PATCH(
     let confirmationEmailError: string | null = null;
     let rejectionEmailSent: boolean | null = null;
     let rejectionEmailError: string | null = null;
-    let reviewRequestEmailSent: boolean | null = null;
-    let reviewRequestEmailError: string | null = null;
-
-    if (
-      status === "COMPLETED" &&
-      booking.status !== "CONFIRMED" &&
-      booking.status !== "IN_PROGRESS"
-    ) {
-      return NextResponse.json(
-        { error: "Seules les réservations confirmées ou en cours peuvent être terminées" },
-        { status: 409 }
-      );
-    }
+    let refundCompletionEmailSent: boolean | null = null;
+    let refundCompletionEmailError: string | null = null;
+    let cancellationPayment: TeamCancellationPaymentResult | null = null;
 
     let updatedBooking = null;
 
@@ -195,10 +224,10 @@ export async function PATCH(
       });
     }
 
-    if (status === "CANCELLED") {
+    if (status === "CANCELLED" && booking.status !== "CANCELLING") {
       const claimed = await prisma.booking.updateMany({
         where: { id: booking.id, status: booking.status },
-        data: { status: "CANCELLING" },
+        data: { status: "CANCELLING", cancellationOrigin: "TEAM" },
       });
       if (claimed.count !== 1) {
         return NextResponse.json(
@@ -209,105 +238,33 @@ export async function PATCH(
       cancellationClaim = { bookingId: booking.id, previousStatus: booking.status };
     }
 
-    // Gestion de l'annulation et du remboursement Stripe (ou libération empreinte)
-    if (status === "CANCELLED" && booking.payment) {
-      if (!booking.payment.stripePaymentId) {
-        if (booking.payment.status === "SUCCEEDED") {
-          await prisma.booking.updateMany({
-            where: { id: booking.id, status: "CANCELLING" },
-            data: { status: booking.status },
-          });
-          cancellationClaim = null;
-          return NextResponse.json(
-            { error: "Paiement marqué encaissé mais identifiant Stripe absent : remboursement manuel requis avant annulation." },
-            { status: 409 }
-          );
-        }
-
-        await prisma.payment.update({
-          where: { id: booking.payment.id },
-          data: { status: "REFUNDED", capturedAmount: 0, refundedAt: new Date(), refundAmount: 0 },
-        });
-      } else {
-      try {
-        const paymentIntent = await stripe.paymentIntents.retrieve(booking.payment.stripePaymentId);
-
-        if (paymentIntent.status === 'requires_capture') {
-           // Annuler l'empreinte (Le client n'est pas débité)
-           await stripe.paymentIntents.cancel(
-             booking.payment.stripePaymentId,
-             {},
-             { idempotencyKey: `booking:${booking.id}:release-authorization` }
-           );
-           await prisma.payment.update({
-             where: { id: booking.payment.id },
-             data: { status: "REFUNDED", capturedAmount: 0, refundedAt: new Date(), refundAmount: 0 },
-           });
-        } else if (paymentIntent.status === 'succeeded') {
-           // Rembourser via Stripe
-           await stripe.refunds.create(
-             { payment_intent: booking.payment.stripePaymentId },
-             { idempotencyKey: `booking:${booking.id}:cancellation-refund` }
-           );
-   
-           // Mettre à jour le statut du paiement
-           await prisma.payment.update({
-             where: { id: booking.payment.id },
-             data: {
-               status: "REFUNDED",
-               capturedAmount: paymentIntent.amount_received / 100,
-               refundedAt: new Date(),
-               refundAmount: paymentIntent.amount_received / 100,
-             },
-           });
-        } else if (paymentIntent.status === 'canceled') {
-           await prisma.payment.update({
-             where: { id: booking.payment.id },
-             data: { status: "REFUNDED", capturedAmount: 0, refundedAt: new Date(), refundAmount: 0 },
-           });
-        } else if (
-          paymentIntent.status === 'requires_payment_method' ||
-          paymentIntent.status === 'requires_confirmation' ||
-          paymentIntent.status === 'requires_action'
-        ) {
-           await prisma.payment.update({
-             where: { id: booking.payment.id },
-             data: { status: "REFUNDED", capturedAmount: 0, refundedAt: new Date(), refundAmount: 0 },
-           });
-        } else {
-          await prisma.booking.updateMany({
-            where: { id: booking.id, status: "CANCELLING" },
-            data: { status: booking.status },
-          });
-          cancellationClaim = null;
-          return NextResponse.json(
-            { error: `Le paiement Stripe ne peut pas être annulé maintenant (statut: ${paymentIntent.status}). Réessayez ou traitez-le depuis Stripe.` },
-            { status: 409 }
-          );
-        }
-      } catch (stripeError) {
-        console.error("Erreur remboursement Stripe:", stripeError);
-        await prisma.booking.updateMany({
-          where: { id: booking.id, status: "CANCELLING" },
-          data: { status: booking.status },
-        });
-        cancellationClaim = null;
-        return NextResponse.json(
-          { error: "Impossible de libérer ou rembourser le paiement Stripe" },
-          { status: 502 }
-        );
-      }
-      }
+    if (status === "CANCELLED") {
+      cancellationPayment = await processTeamCancellationPayment(booking.id, booking.payment);
     }
 
-    // Mettre à jour la réservation
     if (!updatedBooking && status === "CANCELLED") {
-      const cancelled = await prisma.booking.updateMany({
-        where: { id: bookingId, status: "CANCELLING" },
-        data: { status: "CANCELLED", cancellationReason: reason },
+      updatedBooking = await prisma.$transaction(async (tx) => {
+        if (booking.payment && cancellationPayment?.paymentUpdate) {
+          await tx.payment.update({
+            where: { id: booking.payment.id },
+            data: cancellationPayment.paymentUpdate,
+          });
+        }
+
+        const cancelled = await tx.booking.updateMany({
+          where: { id: bookingId, status: "CANCELLING", cancellationOrigin: "TEAM" },
+          data: {
+            status: "CANCELLED",
+            cancellationReason: reason,
+            cancellationOrigin: "TEAM",
+            cancelledAt: new Date(),
+          },
+        });
+        if (cancelled.count !== 1) throw new Error(`Verrou d'annulation perdu pour ${bookingId}`);
+
+        await reverseBookingLoyalty(bookingId, "Réservation annulée par l'équipe", tx);
+        return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
       });
-      if (cancelled.count !== 1) throw new Error(`Verrou d'annulation perdu pour ${bookingId}`);
-      updatedBooking = await prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
       cancellationClaim = null;
     } else if (!updatedBooking) {
       updatedBooking = await prisma.booking.update({
@@ -338,30 +295,64 @@ export async function PATCH(
         console.error("Réservation confirmée, mais email de confirmation non envoyé:", emailError);
       }
     } else if (status === "CANCELLED") {
-      await reverseBookingLoyalty(bookingId, "Réservation annulée par l'équipe");
+      const bookingDetails = getBookingEmailDetails(booking);
+      const isRefund = cancellationPayment?.action === "REFUND_PENDING" || cancellationPayment?.action === "REFUND_SUCCEEDED";
       try {
-        const bookingDetails = getBookingEmailDetails(booking);
-        await sendBookingRejectionEmail(
+        await sendBookingTeamCancellationEmail(
           booking.client.email,
           booking.client.name || "Client",
           reason as string,
           bookingDetails,
-          { idempotencyKey: `booking-rejection-${booking.id}` }
+          {
+            idempotencyKey: `booking-team-cancellation-${booking.id}`,
+            paymentAction: cancellationPayment?.action === "REFUND_SUCCEEDED"
+              ? "REFUND_PENDING"
+              : cancellationPayment?.action || "NO_PAYMENT",
+            amountRefunded: cancellationPayment?.amountRefunded || 0,
+          }
         );
+        if (booking.payment && isRefund) {
+          await prisma.payment.update({
+            where: { id: booking.payment.id },
+            data: { refundStartedEmailSentAt: new Date() },
+          });
+        }
         rejectionEmailSent = true;
       } catch (emailError) {
         rejectionEmailSent = false;
-        rejectionEmailError = emailError instanceof Error ? emailError.message : "Email de refus non envoyé";
-        console.error("Réservation refusée, mais email de refus non envoyé:", emailError);
+        rejectionEmailError = emailError instanceof Error ? emailError.message : "Email d'annulation non envoyé";
+        console.error("Réservation annulée, mais email d'annulation non envoyé:", emailError);
       }
-    } else if (status === "COMPLETED") {
-      try {
-        await sendReviewRequestForBooking(booking);
-        reviewRequestEmailSent = true;
-      } catch (emailError) {
-        reviewRequestEmailSent = false;
-        reviewRequestEmailError = emailError instanceof Error ? emailError.message : "Email de demande d'avis non envoyé";
-        console.error("Réservation terminée, mais email de demande d'avis non envoyé:", emailError);
+
+      if (
+        rejectionEmailSent &&
+        cancellationPayment?.refundStatus === "SUCCEEDED" &&
+        cancellationPayment.refundId &&
+        booking.payment
+      ) {
+        try {
+          await sendBookingRefundCompletedEmail(
+            booking.client.email,
+            booking.client.name || "Client",
+            bookingDetails,
+            {
+              amount: cancellationPayment.amountRefunded,
+              refundId: cancellationPayment.refundId,
+            },
+            { idempotencyKey: `booking-refund-completed-${booking.id}` }
+          );
+          await prisma.payment.update({
+            where: { id: booking.payment.id },
+            data: { refundCompletedEmailSentAt: new Date() },
+          });
+          refundCompletionEmailSent = true;
+        } catch (emailError) {
+          refundCompletionEmailSent = false;
+          refundCompletionEmailError = emailError instanceof Error
+            ? emailError.message
+            : "Email de remboursement finalisé non envoyé";
+          console.error("Remboursement finalisé, mais email client non envoyé:", emailError);
+        }
       }
     }
 
@@ -372,14 +363,19 @@ export async function PATCH(
       confirmationEmailError,
       rejectionEmailSent,
       rejectionEmailError,
-      reviewRequestEmailSent,
-      reviewRequestEmailError,
+      refundCompletionEmailSent,
+      refundCompletionEmailError,
+      cancellationPayment: cancellationPayment && {
+        action: cancellationPayment.action,
+        amountRefunded: cancellationPayment.amountRefunded,
+        refundStatus: cancellationPayment.refundStatus,
+      },
     });
   } catch (error) {
     if (cancellationClaim) {
       await prisma.booking.updateMany({
         where: { id: cancellationClaim.bookingId, status: "CANCELLING" },
-        data: { status: cancellationClaim.previousStatus },
+        data: { status: cancellationClaim.previousStatus, cancellationOrigin: null },
       }).catch((recoveryError) => console.error("Annulation admin non restaurée:", recoveryError));
     }
     if (error instanceof z.ZodError) {
@@ -387,6 +383,10 @@ export async function PATCH(
         { error: error.issues[0]?.message || "Données invalides" },
         { status: 400 }
       );
+    }
+
+    if (error instanceof TeamCancellationPaymentError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
 
     console.error("Erreur lors de la mise à jour du statut:", error);

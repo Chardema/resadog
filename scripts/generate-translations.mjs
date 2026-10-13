@@ -139,10 +139,10 @@ async function translate(text, target) {
         .map((part) => part[0])
         .join("")
         .replace(/XQZ(?:BRAND|MARCA)XQZ/gi, "La Patte Dorée")
-        .replace(/XQZCATPLURALXQZ/gi, target === "en" ? "cats" : "gatos")
-        .replace(/XQZCATSINGULARXQZ/gi, target === "en" ? "cat" : "gato")
-        .replace(/XQZDOGPLURALXQZ/gi, target === "en" ? "dogs" : "perros")
-        .replace(/XQZDOGSINGULARXQZ/gi, target === "en" ? "dog" : "perro")
+        .replace(/XQZ(?:CAT|GATO)PLURALXQZ/gi, target === "en" ? "cats" : "gatos")
+        .replace(/XQZ(?:CAT|GATO)SINGULARXQZ/gi, target === "en" ? "cat" : "gato")
+        .replace(/XQZ(?:DOG|PERRO|PERROS)PLURALXQZ/gi, target === "en" ? "dogs" : "perros")
+        .replace(/XQZ(?:DOG|PERRO|PERROS)SINGULARXQZ/gi, target === "en" ? "dog" : "perro")
         .replace(/XQZPAWPOINTSXQZ/gi, target === "en" ? "Paw points" : "puntos Patita");
       return target === "es"
         ? translated

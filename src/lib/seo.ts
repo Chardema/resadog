@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { LEGAL_INFORMATION } from "@/lib/legal";
+import { INSTAGRAM_URL } from "@/lib/social-links";
 
 export const SITE_NAME = "La Patte Dorée";
-export const SEO_LAST_MODIFIED = "2026-07-17";
+export const SEO_LAST_MODIFIED = "2026-09-04";
 
 export const coreKeywords = [
   "garde chien Disneyland Paris",
@@ -140,9 +142,9 @@ export const localSeoPages: LocalSeoPage[] = [
     slug: "garde-chien-disneyland-paris",
     path: "/garde-chien-disneyland-paris",
     title: "Garde chien près de Disneyland Paris",
-    metaTitle: "Garde chien Disneyland Paris | Petsitter ACACED 77",
+    metaTitle: "Garde chien Disneyland Paris | Petsitter familial 77",
     description:
-      "Garde de chien près de Disneyland Paris : hébergement familial, garderie, visites et promenades autour de Val d'Europe. ACACED, photos et réservation en ligne.",
+      "Garde de chien près de Disneyland Paris : hébergement familial, garderie, visites et promenades autour de Val d'Europe, photos et réservation en ligne.",
     eyebrow: "Garde chien Disneyland Paris",
     lead:
       "Vous passez la journée aux parcs, partez en week-end à Val d'Europe ou cherchez une solution de garde locale ? La Patte Dorée accueille votre chien dans un cadre familial, sans box, avec une prise en charge adaptée à son rythme.",
@@ -157,7 +159,7 @@ export const localSeoPages: LocalSeoPage[] = [
     ],
     areas: ["Disneyland Paris", "Chessy", "Serris", "Montévrain", "Magny-le-Hongre", "Coupvray", "Bailly-Romainvilliers", "Val d'Europe"],
     proofPoints: [
-      "Titulaire de l'ACACED",
+      "Profil animal vérifié avant confirmation",
       "Garde familiale sans box",
       "Photos et nouvelles pendant la garde",
       "Réservation et paiement en ligne",
@@ -323,7 +325,7 @@ export const localSeoPages: LocalSeoPage[] = [
     title: "Garde chien en Seine-et-Marne 77",
     metaTitle: "Garde chien 77 | Pension, garderie et promenade",
     description:
-      "Garde chien 77 : hébergement familial, garderie de jour, promenades et visites à domicile en Seine-et-Marne. Professionnelle ACACED, réservation en ligne.",
+      "Garde chien 77 : hébergement familial, garderie de jour, promenades et visites à domicile en Seine-et-Marne, avec réservation en ligne.",
     eyebrow: "Garde chien 77",
     lead:
       "Besoin d'une garde chien en Seine-et-Marne pour une journée, un week-end ou des vacances ? La Patte Dorée propose une prise en charge familiale, claire et réservée en ligne.",
@@ -338,7 +340,7 @@ export const localSeoPages: LocalSeoPage[] = [
     ],
     areas: ["Seine-et-Marne", "Val d'Europe", "Chessy", "Serris", "Montévrain", "Magny-le-Hongre", "Coupvray", "Bailly-Romainvilliers"],
     proofPoints: [
-      "ACACED",
+      "Profil animal détaillé",
       "Maison et jardin",
       "Promenades incluses selon prestation",
       "Consignes santé suivies",
@@ -413,7 +415,7 @@ export const localSeoPages: LocalSeoPage[] = [
     title: "Pension chien familiale en Seine-et-Marne",
     metaTitle: "Pension chien 77 | Hébergement familial sans box",
     description:
-      "Pension chien 77 en cadre familial : hébergement sans box, promenades, jardin, photos et suivi. Service professionnel ACACED en Seine-et-Marne.",
+      "Pension chien 77 en cadre familial : hébergement sans box, promenades, jardin, photos et suivi personnalisé en Seine-et-Marne.",
     eyebrow: "Pension chien 77",
     lead:
       "La pension chien chez La Patte Dorée privilégie un cadre de maison : présence, sorties, repos et suivi, sans environnement de chenil.",
@@ -594,7 +596,7 @@ export const localSeoPages: LocalSeoPage[] = [
     title: "Garde animaux en Seine-et-Marne",
     metaTitle: "Garde animaux 77 | Chien et chat Seine-et-Marne",
     description:
-      "Garde animaux 77 : chien et chat en Seine-et-Marne, hébergement familial, visites à domicile, garderie et promenades. Service ACACED avec réservation en ligne.",
+      "Garde animaux 77 : chien et chat en Seine-et-Marne, hébergement familial, visites à domicile, garderie et promenades avec réservation en ligne.",
     eyebrow: "Garde animaux Seine-et-Marne",
     lead:
       "La Patte Dorée regroupe les principales solutions de garde animaux dans le 77 : chien, chat, garde à domicile, hébergement, visites et promenades.",
@@ -610,7 +612,7 @@ export const localSeoPages: LocalSeoPage[] = [
     areas: coreServiceAreas,
     proofPoints: [
       "Chien et chat",
-      "ACACED",
+      "Profils animaux détaillés",
       "Tarifs lisibles",
       "Espace client",
     ],
@@ -646,7 +648,7 @@ export const localSeoPages: LocalSeoPage[] = [
       {
         title: "Un service local et vérifiable",
         body:
-          "Les prestations sont encadrées par une titulaire de l'ACACED et s'appuient sur des informations précises avant validation.",
+          "Les prestations s'appuient sur des informations précises concernant chaque animal avant validation.",
         bullets: [
           "Profil animal détaillé",
           "Validation de la demande avant confirmation",
@@ -690,18 +692,29 @@ export function getLocalBusinessJsonLd() {
     "@type": "LocalBusiness",
     "@id": `${getSiteUrl()}/#localbusiness`,
     name: SITE_NAME,
+    alternateName: LEGAL_INFORMATION.commercialName,
+    taxID: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
+    identifier: LEGAL_INFORMATION.siret.replace(/\s/g, ""),
     url: getSiteUrl(),
     image: absoluteUrl("/logo-mark.png"),
     logo: absoluteUrl("/logo-mark.png"),
     description:
       "Service de garde d'animaux pour chiens et chats près de Disneyland Paris, Val d'Europe et en Seine-et-Marne.",
     priceRange: "€€",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "29 boulevard des 100 Arpents",
+      postalCode: "77600",
+      addressLocality: "Bussy-Saint-Georges",
+      addressCountry: "FR",
+    },
     areaServed: coreServiceAreas.map((area) => ({
       "@type": "AdministrativeArea",
       name: area,
     })),
     knowsAbout: coreKeywords,
     sameAs: [
+      INSTAGRAM_URL,
       "https://www.allovoisins.com/p/meganemelique-1#avis",
       "https://www.rover.com/members/megane-m-le-paradis-des-animaux/",
     ],

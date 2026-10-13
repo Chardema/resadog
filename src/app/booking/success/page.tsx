@@ -6,7 +6,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/button";
-import { AppNav } from "@/components/layout/AppNav";
 
 function BookingSuccessContent() {
   const router = useRouter();
@@ -65,7 +64,6 @@ function BookingSuccessContent() {
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] relative overflow-hidden">
-      <AppNav />
       {/* Background Ambience */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-green-100/30 rounded-full blur-[120px]" />

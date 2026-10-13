@@ -34,7 +34,12 @@ export async function POST(request: NextRequest) {
       ]);
 
       const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?email=${encodeURIComponent(accountEmail)}&token=${rawToken}`;
-      await sendPasswordResetEmail(user.email, user.name || "Client", resetUrl);
+      try {
+        await sendPasswordResetEmail(user.email, user.name || "Client", resetUrl);
+      } catch (error) {
+        // Ne jamais révéler l'existence du compte via une différence de réponse.
+        console.error("Email de réinitialisation non envoyé:", error);
+      }
     }
 
     return NextResponse.json({

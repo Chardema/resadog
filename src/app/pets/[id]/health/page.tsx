@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
-import { AppNav } from "@/components/layout/AppNav";
 import { use } from "react";
 import { formatPetAge } from "@/lib/pets";
 
@@ -44,7 +43,7 @@ const COMMON_VACCINES_CAT = ["Rage", "Typhus (Panleucopénie)", "Coryza", "Leuco
 
 export default function PetHealthPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
 
   const [pet, setPet] = useState<Pet | null>(null);
@@ -188,7 +187,6 @@ export default function PetHealthPage({ params }: { params: Promise<{ id: string
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
-      <AppNav userName={session?.user?.name} />
 
       <main className="container mx-auto px-6 pt-32 max-w-4xl">
         {/* Header */}

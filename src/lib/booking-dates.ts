@@ -58,3 +58,20 @@ export const isPositiveSameDayTimeRange = (startTime: string, endTime: string) =
   if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) return false;
   return endTime > startTime;
 };
+
+// Booking dates are UTC calendar keys; hours are Paris wall time, never server time.
+export function parisAppointment(date: Date | string, time?: string | null): Date | null {
+  if (!time || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return null;
+  const key = typeof date === "string" ? date.slice(0, 10) : date.toISOString().slice(0, 10);
+  const target = Date.parse(`${key}T${time}:00Z`);
+  if (!Number.isFinite(target)) return null;
+  let instant = target;
+  for (let n = 0; n < 3; n++) {
+    const parts = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(instant));
+    const p = Object.fromEntries(parts.map(x => [x.type, x.value]));
+    const wall = Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`);
+    if (wall === target) return new Date(instant);
+    instant += target - wall;
+  }
+  return null; // Non-existent hour at the daylight saving transition.
+}

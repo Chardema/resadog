@@ -13,9 +13,12 @@ import {
   PawPrint,
   ShieldCheck,
 } from "lucide-react";
-import { AppNav } from "@/components/layout/AppNav";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { getServiceDisplayPrice, getServiceDisplayPriceForDuration } from "@/lib/pricing";
+import {
+  getServiceDisplayPrice,
+  getServiceDisplayPriceForDuration,
+  HOUSE_SITTING_DURATION_TIERS,
+} from "@/lib/pricing";
 import {
   buildMetadata,
   getBreadcrumbJsonLd,
@@ -77,15 +80,23 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
   const priceHighlights = [
     {
       label: "Hébergement chien",
-      value: `${boardingPrice.dogPrice} € / nuit`,
+      value: `${boardingPrice.dogPrice} € / période de 24 h`,
     },
     {
       label: "Hébergement chat",
-      value: `${boardingPrice.catPrice} € / nuit`,
+      value: `${boardingPrice.catPrice} € / période de 24 h`,
     },
     {
       label: "Garderie chien",
-      value: `${dayCarePrice.dogPrice} € / jour`,
+      value: `${dayCarePrice.dogPrice} € / jusqu’à 10 h`,
+    },
+    {
+      label: "Garderie chat",
+      value: `${dayCarePrice.catPrice} € / jusqu’à 10 h`,
+    },
+    {
+      label: "Visite chien",
+      value: `${dropInPrice.dogPrice} € / ${dropInPrice.durationMinutes || 30} min`,
     },
     {
       label: "Visite chat",
@@ -99,11 +110,14 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
       label: "Visite 2 h chat",
       value: dropInTwoHourCatPrice ? `${dropInTwoHourCatPrice} €` : "Sur demande",
     },
+    {
+      label: "Garde à votre domicile",
+      value: `${HOUSE_SITTING_DURATION_TIERS[0].prices.CAT} à ${HOUSE_SITTING_DURATION_TIERS[2].prices.DOG} € / jour`,
+    },
   ];
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] text-gray-950">
-      <AppNav />
 
       <main className="pt-24 md:pt-32">
         <section className="border-b border-orange-100 bg-white">
@@ -159,8 +173,11 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
               </div>
 
               <p className="mt-4 text-xs leading-5 text-gray-500">
-                Tarifs indicatifs hors suppléments éventuels. Le prix final est calculé au moment de la réservation.
+                Tarifs de base issus de la grille en vigueur. Le prix final est calculé selon les dates, horaires et animaux choisis, puis affiché avant la demande.
               </p>
+              <Link href="/tarifs" className="mt-3 inline-flex text-sm font-bold text-orange-700 underline underline-offset-4">
+                Voir tous les tarifs et conditions
+              </Link>
             </aside>
           </div>
         </section>

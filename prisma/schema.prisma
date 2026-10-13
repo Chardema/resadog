@@ -14,17 +14,22 @@ datasource db {
 // ============================================
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  emailVerified DateTime?
-  name          String?
-  phone         String?
-  role          Role      @default(CLIENT)
-  image         String?
-  passwordHash  String?
-  calendarToken String?   @unique
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                     String    @id @default(cuid())
+  email                  String    @unique
+  emailVerified          DateTime?
+  name                   String?
+  phone                  String?
+  role                   Role      @default(CLIENT)
+  image                  String?
+  passwordHash           String?
+  calendarToken          String?   @unique
+  twoFactorEnabled       Boolean   @default(false)
+  twoFactorSecret        String?
+  twoFactorRecoveryCodes String[]  @default([])
+  sessionVersion         Int       @default(0)
+  lastLoginAt            DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   // Code promo automatique (pour clients VIP)
   autoApplyCouponId String? // Coupon appliqué automatiquement
@@ -135,27 +140,30 @@ model RateLimitBucket {
 // ============================================
 
 model Pet {
-  id               String    @id @default(cuid())
-  name             String
-  species          Species   @default(DOG)
-  breed            String?
-  age              Float?
-  weight           Float?
-  gender           Gender?
-  spayedNeutered   Boolean?
-  imageUrl         String?
-  microchipNumber  String?
-  insuranceInfo    String?   @db.Text
-  allergies        String?   @db.Text
-  medicalInfo      String?   @db.Text
-  behaviorNotes    String?   @db.Text
-  feedingSchedule  String?   @db.Text
-  medications      String?   @db.Text
-  vetInfo          String?   @db.Text
-  emergencyContact String?   @db.Text
-  lastVetVisit     DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  name                String
+  species             Species   @default(DOG)
+  breed               String?
+  age                 Float?
+  birthDate           DateTime?
+  birthDateProofUrl   String?
+  birthDateVerifiedAt DateTime?
+  weight              Float?
+  gender              Gender?
+  spayedNeutered      Boolean?
+  imageUrl            String?
+  microchipNumber     String?
+  insuranceInfo       String?   @db.Text
+  allergies           String?   @db.Text
+  medicalInfo         String?   @db.Text
+  behaviorNotes       String?   @db.Text
+  feedingSchedule     String?   @db.Text
+  medications         String?   @db.Text
+  vetInfo             String?   @db.Text
+  emergencyContact    String?   @db.Text
+  lastVetVisit        DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   ownerId        String
   owner          User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -165,6 +173,7 @@ model Pet {
   vaccines       Vaccine[]
 
   @@index([ownerId])
+  @@index([birthDateVerifiedAt])
 }
 
 model Vaccine {
@@ -200,22 +209,24 @@ enum Gender {
 // ============================================
 
 model Booking {
-  id                 String        @id @default(cuid())
+  id                 String              @id @default(cuid())
   startDate          DateTime
   endDate            DateTime
   startTime          String? // Heure de dépôt (format HH:mm)
   endTime            String? // Heure de récupération (format HH:mm)
-  status             BookingStatus @default(PENDING)
+  status             BookingStatus       @default(PENDING)
   serviceType        ServiceType
   totalPrice         Float
-  depositPaid        Boolean       @default(false)
+  depositPaid        Boolean             @default(false)
   depositAmount      Float?
-  notes              String?       @db.Text
-  specialRequests    String?       @db.Text
-  cancellationReason String?       @db.Text
+  notes              String?             @db.Text
+  specialRequests    String?             @db.Text
+  cancellationReason String?             @db.Text
+  cancellationOrigin CancellationOrigin?
+  cancelledAt        DateTime?
   couponRedeemedAt   DateTime?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   clientId            String
   client              User                 @relation(fields: [clientId], references: [id])
@@ -229,6 +240,8 @@ model Booking {
   messages            Message[]
   loyaltyTransactions LoyaltyTransaction[]
   reviewRequest       ReviewRequest?
+  noShow              BookingNoShow?
+  notices             BookingNotice[]
 
   @@index([clientId])
   @@index([petId])
@@ -246,6 +259,11 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum CancellationOrigin {
+  CLIENT
+  TEAM
+}
+
 enum ServiceType {
   BOARDING // Pension complète
   HOUSE_SITTING // Garde au domicile du propriétaire
@@ -259,26 +277,32 @@ enum ServiceType {
 // ============================================
 
 model Payment {
-  id                      String        @id @default(cuid())
-  amount                  Float
-  capturedAmount          Float         @default(0)
-  currency                String        @default("eur")
-  status                  PaymentStatus @default(PENDING)
-  stripePaymentId         String?
-  stripeCheckoutSessionId String?       @unique
-  stripeCustomerId        String?
-  paymentMethod           String?
-  paidAt                  DateTime?
-  refundedAt              DateTime?
-  refundAmount            Float?
-  createdAt               DateTime      @default(now())
-  updatedAt               DateTime      @updatedAt
+  id                         String        @id @default(cuid())
+  amount                     Float
+  capturedAmount             Float         @default(0)
+  currency                   String        @default("eur")
+  status                     PaymentStatus @default(PENDING)
+  stripePaymentId            String?
+  stripeCheckoutSessionId    String?       @unique
+  stripeCustomerId           String?
+  paymentMethod              String?
+  paidAt                     DateTime?
+  refundedAt                 DateTime?
+  refundAmount               Float?
+  stripeRefundId             String?       @unique
+  refundStatus               RefundStatus?
+  refundFailureReason        String?       @db.Text
+  refundStartedEmailSentAt   DateTime?
+  refundCompletedEmailSentAt DateTime?
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
 
   bookingId String  @unique
   booking   Booking @relation(fields: [bookingId], references: [id])
 
   @@index([stripePaymentId])
   @@index([status])
+  @@index([refundStatus])
 }
 
 // Suppléments facturés après la réservation (retards, extras, etc.)
@@ -299,6 +323,21 @@ model AdditionalCharge {
 
   @@index([bookingId])
   @@index([status])
+}
+
+// Estimations internes uniquement : aucune déclaration ni opération bancaire.
+model FinanceSettings {
+  id        String   @id @default("default")
+  settings  Json
+  updatedAt DateTime @updatedAt
+}
+
+// Copie des montants et frais lus dans Stripe, sans données de carte bancaire.
+model FinanceStripeSnapshot {
+  paymentIntentId String   @id
+  fingerprint     String
+  snapshot        Json
+  syncedAt        DateTime @default(now())
 }
 
 // Coordonne les tentatives Checkout afin qu'une réservation ne puisse pas
@@ -335,6 +374,14 @@ enum PaymentStatus {
   FAILED
   REFUNDED
   PARTIALLY_REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  REQUIRES_ACTION
+  SUCCEEDED
+  FAILED
+  CANCELED
 }
 
 // ============================================
@@ -602,4 +649,38 @@ model StripeWebhookEvent {
 
   @@index([createdAt])
   @@index([status, updatedAt])
+}
+
+
+// Audit and durable outbox for attendance. No payment mutation belongs here.
+model BookingNoShow {
+  bookingId String @id
+  booking Booking @relation(fields: [bookingId], references: [id])
+  actorId String
+  contactEvidence String @db.Text
+  lossEvidence String @db.Text
+  reminderSentAt DateTime
+  responseDeadline DateTime
+  legalVersion String
+  retainedAmount Float
+  createdAt DateTime @default(now())
+}
+
+model BookingNotice {
+  id String @id
+  bookingId String
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  kind String
+  to String
+  subject String
+  text String @db.Text
+  state String @default("PENDING")
+  firstAttemptAt DateTime?
+  lockedUntil DateTime?
+  sentAt DateTime?
+  resendId String?
+  error String? @db.Text
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([state, createdAt])
 }

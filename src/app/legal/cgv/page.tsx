@@ -1,109 +1,170 @@
+import Link from "next/link";
+import {
+  LAST_MINUTE_DESCRIPTION,
+  CAT_VISIT_PRICING_DESCRIPTION,
+  OTHER_ANIMAL_PRICING_DESCRIPTION,
+  EXTRA_DURATION,
+  getServiceDisplayPrice,
+  HOUSE_SITTING_DURATION_TIERS,
+  LONG_BOARDING_DISCOUNT_RATE,
+  LONG_BOARDING_MIN_PERIODS,
+  YOUNG_ANIMAL_SURCHARGE,
+} from "@/lib/pricing";
+import { LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
+
 export default function CGVPage() {
+  const boarding = getServiceDisplayPrice("BOARDING");
+  const dayCare = getServiceDisplayPrice("DAY_CARE");
+  const dropIn = getServiceDisplayPrice("DROP_IN");
+  const walking = getServiceDisplayPrice("DOG_WALKING");
+  const mediatorName = process.env.CONSUMER_MEDIATOR_NAME;
+  const mediatorAddress = process.env.CONSUMER_MEDIATOR_ADDRESS;
+  const mediatorUrl = process.env.CONSUMER_MEDIATOR_URL;
+
   return (
-    <div className="min-h-screen bg-[#FDFbf7] py-20">
-      <div className="container mx-auto px-6 max-w-4xl">
-        <h1 className="text-4xl font-extrabold text-gray-900 mb-8">Conditions Générales de Vente (CGV) 📜</h1>
-        
-        <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-sm space-y-8 text-gray-700">
-          
+    <div data-no-translate className="min-h-screen bg-[#FDFbf7] py-20">
+      <div className="container mx-auto max-w-4xl px-6">
+        <h1 className="mb-3 text-4xl font-extrabold text-gray-900">Conditions générales de vente (CGV)</h1>
+        <p className="mb-8 text-sm text-gray-500">Version en vigueur au {LEGAL_DOCUMENT_VERSION_LABEL}</p>
+
+        <div className="space-y-8 rounded-[2rem] bg-white p-8 text-gray-700 shadow-sm md:p-12">
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Réservation et Paiement</h2>
+            <h2 className="mb-4 text-2xl font-bold text-gray-900">1. Prestataire et champ d’application</h2>
             <p>
-              Toute réservation effectuée sur La Patte Dorée est soumise à validation. 
-              Une empreinte bancaire est prise au moment de la réservation via notre partenaire Stripe.
-              Le débit est effectué uniquement après confirmation de la disponibilité par nos soins (sous 48h).
+              Les présentes CGV encadrent les prestations proposées sous l’appellation <strong>{LEGAL_INFORMATION.brandName}</strong> par <strong>{LEGAL_INFORMATION.commercialName}</strong>, entreprise individuelle immatriculée au RNE sous le SIREN {LEGAL_INFORMATION.siren} (SIRET {LEGAL_INFORMATION.siret}), à l’adresse {LEGAL_INFORMATION.address}.
+            </p>
+            <p className="mt-2 text-sm text-gray-500">Identité légale de l’exploitante : {LEGAL_INFORMATION.ownerName}.</p>
+            <p className="mt-3">
+              L’activité déclarée comprend la garde d’animaux, les visites et promenades ainsi que les soins courants nécessaires aux animaux confiés. Elle n’inclut ni acte vétérinaire ni prestation de toilettage.
+            </p>
+            <p className="mt-3">
+              Contact : <a className="font-semibold text-orange-700 underline" href={`mailto:${LEGAL_INFORMATION.contactEmail}`}>{LEGAL_INFORMATION.contactEmail}</a>
+              {" · "}
+              <a className="font-semibold text-orange-700 underline" href={`tel:${LEGAL_INFORMATION.phone.replace(/\D/g, "")}`}>{LEGAL_INFORMATION.phone}</a>.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Politique d'Annulation</h2>
-            <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg">
-              <p className="font-bold text-orange-800">Annulation Gratuite jusqu'à 48h avant le début</p>
-              <p className="text-sm text-orange-700 mt-1">
-                Vous pouvez annuler sans frais jusqu'à 48 heures avant l'heure prévue de dépôt.
-              </p>
+            <h2 className="mb-4 text-2xl font-bold text-gray-900">2. Réservation, exécution et paiement</h2>
+            <p>
+              Toute demande effectuée sur {LEGAL_INFORMATION.brandName} est soumise à validation, notamment selon les disponibilités, le lieu de la prestation, le profil de l’animal et sa compatibilité avec les conditions d’accueil. Une autorisation bancaire est prise au moment de la réservation via Stripe. Le débit est effectué uniquement après confirmation de la disponibilité, en principe sous 48 heures.
+            </p>
+            <p className="mt-3">
+              Avant le paiement, le client reçoit un récapitulatif des dates, horaires, animaux, prestations, remises et du montant total. Il doit vérifier ces informations et accepter la version en vigueur des présentes CGV.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-4 text-2xl font-bold text-gray-900">3. Annulation et droit de rétractation</h2>
+            <div className="rounded-r-lg border-l-4 border-orange-500 bg-orange-50 p-4">
+              <p className="font-bold text-orange-800">Annulation gratuite au moins 48 h avant le début</p>
+              <p className="mt-1 text-sm text-orange-700">La demande peut être annulée depuis l’espace client. Cette règle de remboursement est identique pour tous les clients.</p>
             </div>
-            <ul className="list-disc pl-5 space-y-2 mt-4">
-              <li><strong>Plus de 48h avant :</strong> Remboursement intégral (ou libération de l'empreinte bancaire).</li>
-              <li><strong>Moins de 48h avant :</strong> 50% du montant total sera retenu à titre de dédommagement.</li>
-              <li><strong>Clients Premium :</strong> l’annulation est gratuite jusqu’à 24h avant le début de la prestation.</li>
-              <li><strong>Non présentation :</strong> La totalité du séjour est due.</li>
+            <ul className="mt-4 list-disc space-y-2 pl-5">
+              <li><strong>Au moins 48 h avant :</strong> remboursement intégral ou libération de l’autorisation bancaire.</li>
+              <li><strong>Moins de 48 h avant :</strong> 50 % du montant total est retenu.</li>
+              <li><strong>Avantage Premium de report :</strong> le client Premium peut demander en priorité un report sans frais au moins 24 h avant le début. Le report dépend des disponibilités et ne constitue pas une annulation remboursable. Si aucun nouveau créneau n’est accepté, les règles d’annulation ci-dessus restent applicables.</li>
+              <li><strong>Non-présentation :</strong> une indemnité correspondant au préjudice justifié (créneau immobilisé, temps mobilisé et impossibilité de réattribuer la place), déduction faite des coûts économisés et des sommes obtenues par une réattribution, peut être retenue dans la limite du prix réservé. Aucun remboursement n’est effectué si cette indemnité justifiée couvre la totalité du montant encaissé. Sinon, la différence est remboursée. Aucun prélèvement supplémentaire n’est automatique.</li>
             </ul>
+            <p className="mt-4">
+              Cette politique commerciale s’applique sans préjudice du droit légal de rétractation lorsqu’il est applicable. Pour un contrat conclu à distance, le consommateur dispose en principe de quatorze jours à compter de sa conclusion. S’il demande que la prestation commence avant la fin de ce délai, un montant proportionnel au service déjà exécuté peut rester dû. Le droit de rétractation ne disparaît après exécution complète qu’avec l’accord préalable exprès du consommateur et sa reconnaissance expresse de cette perte.
+            </p>
+          </section>
+
+          <section id="horaires-retards">
+            <h2 className="mb-4 text-2xl font-bold text-gray-900">3 bis. Horaires, retards et absence au dépôt</h2>
+            <p>Les horaires confirmés sont exprimés dans le fuseau Europe/Paris. Toute modification nécessite l’accord de l’équipe. Le client prévient dès qu’un retard est prévisible au {LEGAL_INFORMATION.phone} ou à {LEGAL_INFORMATION.contactEmail}.</p>
+            <p className="mt-3"><strong>Au dépôt chez MM Services :</strong> une attente de 30 minutes est prévue à compter de l’heure convenue. En l’absence de présentation et de nouvelles, l’équipe adresse une relance écrite demandant au client de se présenter ou de la contacter dans un délai raisonnable, indiqué dans le message et adapté aux circonstances. Cette relance précise qu’à défaut la réservation pourra être annulée pour non-présentation. L’expiration des 30 minutes ne suffit pas à elle seule : le délai de la relance doit aussi être écoulé. L’annulation est décidée manuellement, après vérification des échanges et notification écrite de la décision et de ses motifs.</p>
+            <p className="mt-3">Si un nouvel horaire est accepté, la prestation se termine à l’heure initialement prévue sauf prolongation expressément convenue. Le retard du client ne décale pas automatiquement le départ et ne réduit pas le prix du créneau réservé, sous réserve de ses droits légaux. Pour un séjour ou plusieurs journées, les prestations restantes et les possibilités de report ou de réattribution sont examinées séparément ; 30 minutes de retard ne rendent pas automatiquement exigible la totalité d’un séjour non exécuté.</p>
+            <p className="mt-3"><strong>À la récupération :</strong> une tolérance de 15 minutes est accordée sans supplément. Au-delà, le propriétaire contacte l’équipe pour convenir d’une heure de récupération. Toute prolongation payante fait l’objet d’un montant détaillé, proportionné à la garde supplémentaire, communiqué puis accepté expressément avant facturation. Aucun forfait punitif, nouvelle journée entière ou débit de carte ne s’applique automatiquement. L’équipe continue à assurer la sécurité et le bien-être de l’animal et contacte, si nécessaire, la personne de confiance désignée par le propriétaire.</p>
+            <p className="mt-3"><strong>Visites et prestations chez le client :</strong> les modalités d’accès et les horaires sont convenus à l’avance. Un problème d’accès donne lieu à une tentative de contact et à un examen de la situation ; il n’est pas assimilé automatiquement à une absence au dépôt.</p>
+            <p className="mt-3"><strong>Droits et réciprocité :</strong> ces règles ne limitent ni le droit de rétractation lorsqu’il s’applique, ni les conséquences d’un cas de force majeure, ni le droit de contester une retenue. Si MM Services annule de son fait une prestation non exécutée, les sommes correspondantes sont remboursées intégralement, sans préjudice du droit du client de demander réparation d’un préjudice justifié. Les retards imputables à MM Services ne sont pas facturés au client.</p>
+            <p className="mt-3"><strong>Application dans le temps :</strong> ces règles détaillées s’appliquent aux réservations conclues après acceptation de cette version des CGV. Les réservations antérieures restent régies par les conditions acceptées à leur conclusion ; un nouveau délai ne leur est pas imposé rétroactivement.</p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">3. Responsabilités</h2>
-            <p className="mb-2"><strong>Du Propriétaire :</strong></p>
-            <ul className="list-disc pl-5 mb-4">
-              <li>L'animal doit être identifié (puce/tatouage) et à jour de ses vaccins.</li>
-              <li>Le propriétaire doit signaler tout problème de santé ou de comportement avant le séjour.</li>
-              <li>Le propriétaire reste responsable des dégâts majeurs causés par son animal s'ils résultent d'un comportement non signalé.</li>
+            <h2 className="mb-4 text-2xl font-bold text-gray-900">4. Responsabilités</h2>
+            <p className="mb-2"><strong>Du propriétaire :</strong></p>
+            <ul className="mb-4 list-disc pl-5">
+              <li>L’animal doit être identifié lorsque la réglementation l’exige et à jour des obligations sanitaires applicables.</li>
+              <li>Le propriétaire doit signaler tout problème de santé, traitement, risque ou comportement avant la prestation.</li>
+              <li>Le propriétaire reste responsable des dommages causés par son animal lorsqu’ils résultent notamment d’une information omise ou inexacte.</li>
             </ul>
-            <p className="mb-2"><strong>De La Patte Dorée :</strong></p>
+            <p className="mb-2"><strong>De {LEGAL_INFORMATION.commercialName} :</strong></p>
             <ul className="list-disc pl-5">
-              <li>Nous nous engageons à assurer le bien-être, la sécurité et l'hygiène de l'animal confié.</li>
-              <li>En cas d'urgence médicale, nous nous engageons à contacter le propriétaire et/ou le vétérinaire référent immédiatement.</li>
-              <li>Les prestations sont encadrées par une professionnelle titulaire de l’ACACED.</li>
+              <li>Assurer le bien-être, la sécurité et l’hygiène de l’animal confié dans le cadre de la prestation acceptée.</li>
+              <li>Contacter le propriétaire et, si nécessaire, le vétérinaire référent en cas d’urgence.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Tarifs</h2>
-            <p>
-              Les tarifs sont indiqués en Euros TTC. Ils varient selon le type de service (Hébergement, Garderie, Visite, Promenade), l'espèce (chien/chat), le nombre d'animaux et les suppléments applicables.
-              Un supplément spécifique s'applique pour les jeunes animaux de moins d'un an. Les tarifs sont affichés de manière transparente lors de la réservation.
+            <h2 className="mb-4 text-2xl font-bold text-gray-900">5. Tarifs</h2>
+            <p className="mb-4">
+              Les prix présentés aux consommateurs sont les montants finaux à payer en euros. Le détail complet, tenu à jour à partir des mêmes valeurs que le calculateur, est disponible sur la page <Link href="/tarifs" className="font-bold text-orange-700 underline underline-offset-4">Tarifs</Link>.
             </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">5. Fidélité et abonnement Premium</h2>
-            <p className="mb-2"><strong>Fonctionnement :</strong></p>
-            <ul className="list-disc pl-5 mb-4">
-              <li>Le programme fidélité gratuit permet de gagner 1 Patte par euro dépensé.</li>
-              <li>Les seuils de récompense sont affichés dans l'espace client et peuvent évoluer.</li>
-              <li>L’abonnement Premium donne des avantages, dont -10% sur les réservations et des Pattes doublées.</li>
+            <ul className="list-disc space-y-2 pl-5">
+              <li><strong>Hébergement par période de 24 h commencée :</strong> chien {boarding.dogPrice} €, chat {boarding.catPrice} €.</li>
+              <li><strong>Garderie jusqu’à 10 h par jour :</strong> chien {dayCare.dogPrice} €, chat {dayCare.catPrice} €.</li>
+              <li><strong>Garde au domicile du client, par jour :</strong> chien {HOUSE_SITTING_DURATION_TIERS[0].prices.DOG} € jusqu’à 6 h, {HOUSE_SITTING_DURATION_TIERS[1].prices.DOG} € au-delà de 6 h et jusqu’à 10 h, puis {HOUSE_SITTING_DURATION_TIERS[2].prices.DOG} € au-delà ; chat {HOUSE_SITTING_DURATION_TIERS[0].prices.CAT} €, {HOUSE_SITTING_DURATION_TIERS[1].prices.CAT} € puis {HOUSE_SITTING_DURATION_TIERS[2].prices.CAT} € selon les mêmes tranches.</li>
+              <li><strong>Visite à domicile :</strong> chien {dropIn.dogPrice} € et chat {dropIn.catPrice} € pour 30 minutes, puis {EXTRA_DURATION.DROP_IN.extraRate} € par tranche supplémentaire de {EXTRA_DURATION.DROP_IN.increment} minutes commencée.</li>
+              <li><strong>Promenade de chien :</strong> {walking.dogPrice} € les 30 premières minutes, puis {EXTRA_DURATION.DOG_WALKING.extraRate} € par tranche supplémentaire de 30 minutes commencée. Promenade de chat sur demande.</li>
+              <li><strong>Chiot de moins d’un an :</strong> supplément de {YOUNG_ANIMAL_SURCHARGE} € par jour de garderie ou période de 24 h commencée en hébergement. Ce supplément ne s’applique pas aux chats ni aux autres services.</li>
+              <li><strong>Animal supplémentaire :</strong> {CAT_VISIT_PRICING_DESCRIPTION} {OTHER_ANIMAL_PRICING_DESCRIPTION}</li>
+              <li><strong>Long hébergement :</strong> remise automatique de {LONG_BOARDING_DISCOUNT_RATE * 100} % à partir de {LONG_BOARDING_MIN_PERIODS} périodes de 24 h commencées.</li>
             </ul>
-            <p className="mb-2"><strong>Engagement et Résiliation :</strong></p>
-            <ul className="list-disc pl-5">
-              <li>Premium est facturé mensuellement.</li>
-              <li>Toute période commencée est due.</li>
-              <li>Les Pattes fidélité restent visibles même en cas de résiliation Premium.</li>
+            <p className="mt-4">
+              {LAST_MINUTE_DESCRIPTION} Le supplément de dernière minute est ajouté après les remises. Les jours fériés ne déclenchent aucune majoration automatique. Les frais exceptionnels nécessaires à la prestation, notamment parking, péages ou transports, sont facturés uniquement après accord préalable. Le total détaillé est affiché avant l’envoi de la réservation.
+            </p>
+            <p className="mt-4"><strong>{LEGAL_INFORMATION.vatMention}.</strong></p>
+          </section>
+
+          <section>
+            <h2 className="mb-4 text-2xl font-bold text-gray-900">6. Fidélité et abonnement Premium</h2>
+            <ul className="list-disc space-y-2 pl-5">
+              <li>Le programme de fidélité gratuit permet de gagner 1 Patte par euro dépensé.</li>
+              <li>Les seuils de récompense sont affichés dans l’espace client et peuvent évoluer.</li>
+              <li>L’abonnement Premium donne notamment 10 % de remise, plafonnée à {PREMIUM_SUBSCRIPTION.maximumDiscountPerBooking.toFixed(2).replace(".00", "")} € par réservation, ainsi que des Pattes doublées.</li>
+              <li>La remise Premium ne se cumule pas avec un code promotionnel ni avec une remise automatique de la grille tarifaire. Le calcul retient automatiquement l’avantage le plus favorable ; un code non retenu n’est pas consommé.</li>
+              <li>Son prix est de {PREMIUM_SUBSCRIPTION.monthlyPrice.toFixed(2).replace(".", ",")} € par mois.</li>
+              <li><strong>Engagement initial : trois mois, soit un montant minimum total de {PREMIUM_SUBSCRIPTION.minimumCommitmentTotal.toFixed(2).replace(".", ",")} €.</strong> Premium reste facturé mensuellement à raison de {PREMIUM_SUBSCRIPTION.monthlyPrice.toFixed(2).replace(".", ",")} € au début de chaque période.</li>
+              <li>La résiliation peut être demandée à tout moment depuis le profil. Pendant l’engagement initial, elle est programmée pour sa date de fin et les échéances mensuelles prévues restent dues. Après ces trois mois, l’abonnement est renouvelé mensuellement sans engagement et la résiliation prend effet à la fin de la période déjà payée.</li>
+              <li>Les abonnements souscrits avant la version du {LEGAL_DOCUMENT_VERSION_LABEL} conservent la durée d’engagement acceptée lors de leur souscription.</li>
+              <li>Toute période commencée est due, sauf droit légal contraire ou remboursement exceptionnel accordé par {LEGAL_INFORMATION.commercialName}.</li>
+              <li>Les Pattes fidélité restent visibles après la résiliation Premium.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">6. Réclamation et médiation</h2>
+            <h2 className="mb-4 text-2xl font-bold text-gray-900">7. Réclamation et médiation</h2>
             <p>
-              Toute réclamation doit d'abord être adressée à La Patte Dorée. En l'absence de solution amiable,
-              le consommateur peut saisir gratuitement le médiateur de la consommation indiqué dans les mentions légales du site.
+              Toute réclamation doit d’abord être adressée à {LEGAL_INFORMATION.commercialName} par les coordonnées indiquées dans les <Link href="/legal/mentions-legales" className="font-semibold text-orange-700 underline">mentions légales</Link>.
+            </p>
+            {(mediatorName || mediatorAddress || mediatorUrl) ? (
+              <div className="mt-4 rounded-lg bg-gray-50 p-4">
+                <p className="mb-2">Après une réclamation écrite préalable restée sans solution, le consommateur peut saisir gratuitement le médiateur de la consommation suivant :</p>
+                {mediatorName && <p><strong>Médiateur :</strong> {mediatorName}</p>}
+                {mediatorAddress && <p><strong>Adresse :</strong> {mediatorAddress}</p>}
+                {mediatorUrl && <p><a className="font-semibold text-orange-700 underline" href={mediatorUrl} target="_blank" rel="noreferrer">Site du médiateur</a></p>}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-lg bg-amber-50 p-4 text-amber-950">
+                Les coordonnées du médiateur de la consommation seront publiées ici après la conclusion de la convention requise.
+              </p>
+            )}
+          </section>
+
+          <section>
+            <h2 className="mb-4 text-2xl font-bold text-gray-900">8. Données personnelles et services tiers</h2>
+            <p>
+              Les conditions de traitement des données personnelles sont décrites dans la <Link href="/legal/confidentialite" className="font-semibold text-orange-700 underline">politique de confidentialité</Link>. Les paiements sont traités par Stripe. Les notes, avis et profils identifiés comme provenant de Google Maps sont fournis par Google Maps Platform et restent soumis aux conditions et à la politique de confidentialité de Google.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Contenus et services tiers</h2>
-            <p>
-              Les notes, avis et profils identifiés comme provenant de Google Maps sont fournis par Google Maps Platform.
-              Leur consultation est soumise aux{" "}
-              <a
-                href="https://cloud.google.com/maps-platform/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-orange-700 underline underline-offset-4"
-              >
-                conditions d&apos;utilisation de Google Maps Platform
-              </a>{" "}
-              et à la{" "}
-              <a
-                href="https://policies.google.com/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-orange-700 underline underline-offset-4"
-              >
-                politique de confidentialité de Google
-              </a>.
-            </p>
+            <h2 className="mb-4 text-2xl font-bold text-gray-900">9. Droit applicable</h2>
+            <p>Les présentes CGV sont soumises au droit français. En cas de litige non résolu à l’amiable ou par médiation, les règles légales de compétence juridictionnelle s’appliquent.</p>
           </section>
-
         </div>
       </div>
     </div>

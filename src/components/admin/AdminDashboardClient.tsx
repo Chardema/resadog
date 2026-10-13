@@ -9,7 +9,6 @@ import {
   Clock3,
   CreditCard,
   Euro,
-  MessageSquareText,
   PawPrint,
   ShieldCheck,
   TicketPercent,
@@ -45,22 +44,6 @@ interface Booking {
 interface AdminDashboardClientProps {
   stats: Stats;
   upcomingBookings: Booking[];
-  latestReviewResponses: ReviewResponse[];
-}
-
-interface ReviewResponse {
-  id: string;
-  submittedAt: string | null;
-  serviceRating: number | null;
-  serviceComment: string | null;
-  websiteRating: number | null;
-  websiteComment: string | null;
-  booking: {
-    id: string;
-    clientName: string | null;
-    clientEmail: string;
-    pets: string[];
-  };
 }
 
 const formatMoney = (amount: number) =>
@@ -90,7 +73,7 @@ function getPetNames(booking: Booking) {
   return booking.pet?.name || "Animal non renseigné";
 }
 
-export function AdminDashboardClient({ stats, upcomingBookings, latestReviewResponses }: AdminDashboardClientProps) {
+export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboardClientProps) {
   const hasPendingBookings = stats.pendingBookings > 0;
 
   const metrics = [
@@ -376,62 +359,6 @@ export function AdminDashboardClient({ stats, upcomingBookings, latestReviewResp
           )}
         </section>
       </div>
-
-      <section className="rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between gap-4 border-b border-gray-100 p-5">
-          <div>
-            <h2 className="text-lg font-bold text-gray-950">Dernières réponses d&apos;avis</h2>
-            <p className="mt-1 text-sm text-gray-600">Avis prestation et retour sur le site internet.</p>
-          </div>
-          <Link href="/admin/reviews" className="text-sm font-bold text-orange-700 hover:text-orange-800">
-            Voir tout
-          </Link>
-        </div>
-
-        {latestReviewResponses.length === 0 ? (
-          <div className="p-10 text-center">
-            <MessageSquareText className="mx-auto h-9 w-9 text-gray-400" aria-hidden="true" />
-            <h3 className="mt-3 font-bold text-gray-950">Aucune réponse reçue</h3>
-            <p className="mt-1 text-sm text-gray-600">Les retours clients apparaîtront ici après soumission du formulaire.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {latestReviewResponses.map((response) => (
-              <article key={response.id} className="p-4 sm:p-5">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0">
-                    <p className="font-bold text-gray-950">
-                      {response.booking.clientName || response.booking.clientEmail}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-600">
-                      {response.booking.pets.length > 0 ? response.booking.pets.join(", ") : "Animal non renseigné"}
-                      {response.submittedAt ? ` · ${formatDate(response.submittedAt)}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs font-bold">
-                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800 ring-1 ring-emerald-200">
-                      Prestation {response.serviceRating || "-"} / 5
-                    </span>
-                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-800 ring-1 ring-blue-200">
-                      Site {response.websiteRating || "-"} / 5
-                    </span>
-                  </div>
-                </div>
-                {response.serviceComment && (
-                  <p className="mt-3 rounded-md bg-emerald-50 p-3 text-sm leading-6 text-emerald-950">
-                    &ldquo;{response.serviceComment}&rdquo;
-                  </p>
-                )}
-                {response.websiteComment && (
-                  <p className="mt-2 rounded-md bg-blue-50 p-3 text-sm leading-6 text-blue-950">
-                    Site : &ldquo;{response.websiteComment}&rdquo;
-                  </p>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
         <Link href="/admin/calendar-sync" className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:bg-gray-50">

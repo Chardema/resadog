@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
-import { calculatePremiumSubscriptionPlan } from "@/lib/subscription-pricing";
+import { calculatePremiumSubscriptionPlan, PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
 import Stripe from "stripe";
 import { getStripeCheckoutLocale, getStripeReturnBaseUrl } from "@/lib/stripe/checkout";
+import {
+  getInvoiceLegalFooter,
+  LEGAL_DOCUMENT_VERSION,
+  LEGAL_INFORMATION,
+} from "@/lib/legal";
 
 const premiumPriceId = process.env.STRIPE_PREMIUM_PRICE_ID;
 
@@ -61,6 +66,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const body = await request.json().catch(() => null);
+    if (body?.legalAccepted !== true || body?.legalVersion !== LEGAL_DOCUMENT_VERSION) {
+      return NextResponse.json(
+        { error: "Vous devez accepter la version en vigueur des conditions générales de vente." },
+        { status: 400 }
+      );
+    }
+    const legalAcceptedAt = new Date().toISOString();
+
     const plan = calculatePremiumSubscriptionPlan();
     if (!premiumPriceId) {
       return NextResponse.json(
@@ -102,6 +116,16 @@ export async function POST(request: NextRequest) {
       email: user.email,
       name: user.name,
       stripeCustomerId: user.stripeCustomerId,
+    });
+
+    await stripe.customers.update(stripeCustomerId, {
+      invoice_settings: {
+        custom_fields: [
+          { name: "SIREN", value: LEGAL_INFORMATION.siren },
+          { name: "SIRET", value: LEGAL_INFORMATION.siret },
+        ],
+        footer: getInvoiceLegalFooter(),
+      },
     });
 
     const remoteSubscriptions = await stripe.subscriptions.list({
@@ -146,20 +170,48 @@ export async function POST(request: NextRequest) {
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       mode: "subscription",
+      billing_address_collection: "required",
+      customer_update: {
+        address: "auto",
+        name: "auto",
+      },
       locale: getStripeCheckoutLocale(request),
       payment_method_types: ["card"],
       line_items: [{ price: premiumPriceId, quantity: 1 }],
+      custom_text: {
+        submit: {
+          message: "Engagement initial de 3 mois, facturé 9,99 € par mois, soit un montant minimum total de 29,97 €. Ensuite, renouvellement mensuel sans engagement.",
+        },
+      },
       success_url: `${returnBaseUrl}/dashboard?subscription=success`,
       cancel_url: `${returnBaseUrl}/subscriptions?checkout=cancelled`,
       client_reference_id: session.user.id,
       metadata: {
         userId: session.user.id,
         monthlyPrice: plan.monthlyPrice.toFixed(2),
+        premiumPlanVersion: PREMIUM_SUBSCRIPTION.planVersion,
+        minimumCommitmentMonths: String(plan.minimumCommitmentMonths),
+        minimumCommitmentTotal: plan.minimumCommitmentTotal.toFixed(2),
+        maximumDiscountPerBooking: plan.maximumDiscountPerBooking.toFixed(2),
+        legalAccepted: "true",
+        legalAcceptedAt,
+        legalVersion: LEGAL_DOCUMENT_VERSION,
+        provider: LEGAL_INFORMATION.commercialName,
+        providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
       },
       subscription_data: {
         metadata: {
           userId: session.user.id,
           monthlyPrice: plan.monthlyPrice.toFixed(2),
+          premiumPlanVersion: PREMIUM_SUBSCRIPTION.planVersion,
+          minimumCommitmentMonths: String(plan.minimumCommitmentMonths),
+          minimumCommitmentTotal: plan.minimumCommitmentTotal.toFixed(2),
+          maximumDiscountPerBooking: plan.maximumDiscountPerBooking.toFixed(2),
+          legalAccepted: "true",
+          legalAcceptedAt,
+          legalVersion: LEGAL_DOCUMENT_VERSION,
+          provider: LEGAL_INFORMATION.commercialName,
+          providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
         },
       },
     });

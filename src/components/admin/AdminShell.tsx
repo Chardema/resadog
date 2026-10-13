@@ -1,59 +1,25 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  BarChart3,
-  CalendarCheck,
-  CalendarCog,
-  ChevronRight,
-  CreditCard,
-  LayoutDashboard,
-  MessageSquareText,
-  PawPrint,
-  TicketPercent,
-  UsersRound,
-  X,
-} from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { adminMenuItems } from "./navigation";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { cn } from "@/lib/utils";
 
-const menuItems = [
-  { href: "/admin/dashboard", label: "Vue d'ensemble", icon: LayoutDashboard },
-  { href: "/admin/bookings", label: "Réservations", icon: CalendarCheck },
-  { href: "/admin/calendar", label: "Calendrier", icon: CalendarCog },
-  { href: "/admin/clients", label: "Clients", icon: UsersRound },
-  { href: "/admin/coupons", label: "Codes promo", icon: TicketPercent },
-  { href: "/admin/reviews", label: "Avis", icon: MessageSquareText },
-  { href: "/admin/revenue", label: "Finance", icon: CreditCard },
-  { href: "/admin/calendar-sync", label: "Synchronisation", icon: BarChart3 },
-];
 
-const mobileBarItems = menuItems.slice(0, 5);
-
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({ children, role }: { children: React.ReactNode; role: string }) {
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const visibleMenuItems = adminMenuItems.filter((item) => !item.adminOnly || role === "ADMIN");
+  const mobileBarItems = visibleMenuItems.slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <aside className="admin-desktop-sidebar fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-gray-200 bg-white transition-transform">
-        <div className="border-b border-gray-100 p-5">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-orange-600 text-white shadow-sm">
-              <PawPrint className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-base font-bold text-gray-950">La Patte Dorée</span>
-              <span className="block truncate text-xs font-semibold text-gray-500">Espace administration</span>
-            </span>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-gray-50 pt-28">
+      <aside className="admin-desktop-sidebar fixed bottom-0 left-0 top-28 z-40 hidden w-72 flex-col md:flex border-r border-gray-200 bg-white transition-transform">
+        <p className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">Espace administration</p>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Navigation administration">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
 
@@ -86,31 +52,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <header className="admin-mobile-only sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <Link href="/admin/dashboard" className="flex min-w-0 items-center gap-2">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-orange-600 text-white">
-              <PawPrint className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <span className="truncate font-bold text-gray-950">Admin</span>
-          </Link>
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm font-bold text-gray-800"
-          >
-            Menu
-          </button>
-        </div>
-      </header>
-
       <main className="admin-shell-main min-h-screen">
         <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 md:py-8">
           {children}
         </div>
       </main>
 
-      <nav className="admin-mobile-only fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur">
+      <nav aria-label="Raccourcis administration" className="admin-mobile-only fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur">
         <div className="flex items-stretch justify-around">
           {mobileBarItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -134,66 +82,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="admin-mobile-only fixed inset-0 z-50 bg-black/30"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              className="admin-mobile-only fixed inset-y-0 right-0 z-50 w-[86vw] max-w-sm bg-white shadow-xl"
-            >
-              <div className="flex items-center justify-between border-b border-gray-100 p-4">
-                <div>
-                  <p className="text-sm font-bold text-gray-950">Administration</p>
-                  <p className="text-xs text-gray-500">La Patte Dorée</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-md border border-gray-300 p-2 text-gray-700"
-                  aria-label="Fermer le menu"
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </div>
-
-              <nav className="space-y-1 p-3" aria-label="Menu administration mobile">
-                {menuItems.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={cn(
-                        "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition",
-                        isActive ? "bg-gray-950 text-white" : "text-gray-600 hover:bg-gray-100 hover:text-gray-950"
-                      )}
-                    >
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              <div className="absolute inset-x-0 bottom-0 border-t border-gray-100 p-4">
-                <SignOutButton />
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

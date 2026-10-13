@@ -1,3 +1,4 @@
+import { isDirectPayment } from "@/lib/direct-booking";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
@@ -17,6 +18,13 @@ import {
   WELCOME_OFFER_NOTE,
   isWelcomeOfferCode,
 } from "@/lib/welcome-offer";
+import { getPetProfileCompletion, isPetBirthDateVerified } from "@/lib/pets";
+import {
+  BOOKING_INVOICE_VERSION,
+  LEGAL_DOCUMENT_VERSION,
+  LEGAL_INFORMATION,
+} from "@/lib/legal";
+import { getServiceLabel } from "@/lib/services";
 
 class WelcomeOfferError extends Error {}
 
@@ -126,6 +134,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    if (body.legalAccepted !== true || body.legalVersion !== LEGAL_DOCUMENT_VERSION) {
+      return NextResponse.json(
+        { error: "Vous devez accepter la version en vigueur des conditions générales de vente." },
+        { status: 400 }
+      );
+    }
+    const legalAcceptedAt = new Date().toISOString();
     // Accept either single bookingId (for backward compat) or array of bookingIds
     const bookingIds = body.bookingIds || (body.bookingId ? [body.bookingId] : []);
 
@@ -164,11 +179,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const bookingPets = bookings.flatMap((booking) =>
+      booking.pets.length > 0 ? booking.pets : (booking.pet ? [booking.pet] : [])
+    );
+    const incompletePetNames = [...new Set(bookingPets
+      .filter((pet) => !getPetProfileCompletion(pet).isComplete)
+      .map((pet) => pet.name))];
+
+    if (incompletePetNames.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Le paiement est bloqué tant que le profil de ${incompletePetNames.join(", ")} n'est pas complété à 100 %.`,
+          code: "PET_PROFILE_INCOMPLETE",
+        },
+        { status: 409 }
+      );
+    }
+
+    const unverifiedPetNames = [...new Set(bookingPets
+      .filter((pet) => !isPetBirthDateVerified(pet))
+      .map((pet) => pet.name))];
+    if (unverifiedPetNames.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Le paiement est bloqué tant que la date de naissance n'est pas vérifiée pour : ${unverifiedPetNames.join(", ")}.`,
+          code: "PET_BIRTH_DATE_UNVERIFIED",
+        },
+        { status: 409 }
+      );
+    }
+
     // Le code appliqué vient de la réservation calculée par le serveur, jamais du navigateur.
     const appliedPromoCodes = [...new Set(bookings
       .map((booking) => booking.notes?.match(/(?:^|\n)Code promo: ([A-Z0-9_-]+)/)?.[1])
       .filter((code): code is string => Boolean(code)))];
     const promoCode = appliedPromoCodes.length === 1 ? appliedPromoCodes[0] : "";
+
+    if (bookings.some(booking => isDirectPayment(booking.payment?.paymentMethod))) {
+      return NextResponse.json({ error: "Cette réservation se règle directement auprès de Mégane, selon le mode convenu." }, { status: 409 });
+    }
 
     // Check if any already paid
     for (const booking of bookings) {
@@ -188,6 +237,15 @@ export async function POST(request: NextRequest) {
 
     const checkoutAttempt = await claimCheckoutAttempt(bookings[0].id);
     if (checkoutAttempt.kind === "REUSE") {
+      await stripe.checkout.sessions.update(checkoutAttempt.sessionId, {
+        metadata: {
+          legalAccepted: "true",
+          legalAcceptedAt,
+          legalVersion: LEGAL_DOCUMENT_VERSION,
+          provider: LEGAL_INFORMATION.commercialName,
+          providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
+        },
+      });
       return NextResponse.json({
         checkoutUrl: checkoutAttempt.checkoutUrl,
         sessionId: checkoutAttempt.sessionId,
@@ -231,13 +289,25 @@ export async function POST(request: NextRequest) {
         const petsName = booking.pets.length > 0 
             ? booking.pets.map(p => p.name).join(", ") 
             : (booking.pet?.name || "Animal");
+        const bookingReference = `#${booking.id.slice(-8).toUpperCase()}`;
+        const servicePeriod = [
+          `du ${new Date(booking.startDate).toLocaleDateString("fr-FR", { timeZone: "UTC" })}${booking.startTime ? ` à ${booking.startTime}` : ""}`,
+          `au ${new Date(booking.endDate).toLocaleDateString("fr-FR", { timeZone: "UTC" })}${booking.endTime ? ` à ${booking.endTime}` : ""}`,
+        ].join(" ");
+        const pricingDetail = booking.notes
+          ?.split("\n")
+          .find((line) => line.startsWith("Détail facturation:"));
             
         return {
           price_data: {
             currency: "eur",
             product_data: {
-              name: `Garde de ${petsName}`,
-              description: `Du ${new Date(booking.startDate).toLocaleDateString("fr-FR")} au ${new Date(booking.endDate).toLocaleDateString("fr-FR")}`,
+              name: `${getServiceLabel(booking.serviceType)} – ${petsName}`,
+              description: [
+                `Réservation ${bookingReference}`,
+                `Prestation prévue ${servicePeriod}`,
+                pricingDetail,
+              ].filter(Boolean).join(" · "),
             },
             unit_amount: Math.round(booking.totalPrice * 100),
           },
@@ -257,6 +327,11 @@ export async function POST(request: NextRequest) {
         customer: stripeCustomerId,
         payment_method_types: ["card"],
         mode: "payment",
+        billing_address_collection: "required",
+        customer_update: {
+          address: "auto",
+          name: "auto",
+        },
         locale: getStripeCheckoutLocale(request),
         line_items,
         // 🔑 Empreinte bancaire uniquement (pas de débit immédiat)
@@ -267,6 +342,12 @@ export async function POST(request: NextRequest) {
             bookingIds: bookingIdsStr,
             userId: client.id,
             promoCode,
+            legalAccepted: "true",
+            legalAcceptedAt,
+            legalVersion: LEGAL_DOCUMENT_VERSION,
+            bookingInvoiceVersion: BOOKING_INVOICE_VERSION,
+            provider: LEGAL_INFORMATION.commercialName,
+            providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
           },
         },
         success_url: `${returnBaseUrl}/booking/success?bookingId=${bookingIds[0]}`,
@@ -282,6 +363,12 @@ export async function POST(request: NextRequest) {
           bookingIds: bookingIdsStr,
           userId: client.id,
           promoCode,
+          legalAccepted: "true",
+          legalAcceptedAt,
+          legalVersion: LEGAL_DOCUMENT_VERSION,
+          bookingInvoiceVersion: BOOKING_INVOICE_VERSION,
+          provider: LEGAL_INFORMATION.commercialName,
+          providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
         },
       },
       { idempotencyKey: checkoutAttemptClaim.idempotencyKey }

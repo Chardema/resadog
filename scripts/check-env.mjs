@@ -43,12 +43,12 @@ if (target === "production") {
     "BUSINESS_ADDRESS",
     "SUPPORT_EMAIL",
     "CONSUMER_MEDIATOR_NAME",
+    "CONSUMER_MEDIATOR_ADDRESS",
     "CONSUMER_MEDIATOR_URL",
     "RESEND_FROM",
     "RESEND_BUG_FROM",
     "DEV_EMAIL",
-    "NEXT_PUBLIC_ACACED_NUMBER",
-    "PROFESSIONAL_INSURANCE"
+    "TWO_FACTOR_ENCRYPTION_KEY"
   );
 }
 
@@ -58,6 +58,37 @@ if (!get("AUTH_SECRET") && !get("NEXTAUTH_SECRET")) {
   results.push({ level: "error", message: "AUTH_SECRET ou NEXTAUTH_SECRET est manquant" });
 }
 
+const authSecret = get("AUTH_SECRET") || get("NEXTAUTH_SECRET");
+if (authSecret && authSecret.length < 32) {
+  results.push({ level: "error", message: "AUTH_SECRET/NEXTAUTH_SECRET doit faire au moins 32 caracteres" });
+}
+
+const twoFactorKey = get("TWO_FACTOR_ENCRYPTION_KEY");
+if (twoFactorKey) {
+  const isHexKey = /^[a-f\d]{64}$/i.test(twoFactorKey);
+  let isBase64Key = false;
+  try {
+    isBase64Key = Buffer.from(twoFactorKey, "base64").length === 32;
+  } catch {
+    isBase64Key = false;
+  }
+  if (!isHexKey && !isBase64Key) {
+    results.push({
+      level: "error",
+      message: "TWO_FACTOR_ENCRYPTION_KEY doit encoder exactement 32 octets (hex ou base64)",
+    });
+  }
+}
+
+for (const [idKey, secretKey] of [
+  ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+  ["APPLE_CLIENT_ID", "APPLE_CLIENT_SECRET"],
+]) {
+  if (Boolean(get(idKey)) !== Boolean(get(secretKey))) {
+    results.push({ level: "error", message: `${idKey} et ${secretKey} doivent etre configures ensemble` });
+  }
+}
+
 if (target !== "production") {
   warnEnv("CRON_SECRET");
   warnEnv("RESEND_API_KEY");
@@ -65,9 +96,10 @@ if (target !== "production") {
   warnEnv("DEV_EMAIL");
   warnEnv("RESEND_FROM");
   warnEnv("RESEND_BUG_FROM");
-  warnEnv("NEXT_PUBLIC_ACACED_NUMBER");
-  warnEnv("PROFESSIONAL_INSURANCE");
+  warnEnv("CONSUMER_MEDIATOR_ADDRESS");
 }
+
+warnEnv("PROFESSIONAL_INSURANCE");
 
 const nextAuthUrl = get("NEXTAUTH_URL");
 if (target === "production" && nextAuthUrl) {
@@ -108,6 +140,19 @@ if (devEmail && !devEmail.includes("@")) {
 const siret = get("BUSINESS_SIRET")?.replace(/\s/g, "");
 if (siret && !/^\d{14}$/.test(siret)) {
   results.push({ level: "error", message: "BUSINESS_SIRET doit contenir 14 chiffres" });
+}
+
+const privacyEmail = get("PRIVACY_EMAIL");
+if (privacyEmail && !privacyEmail.includes("@")) {
+  results.push({ level: "error", message: "PRIVACY_EMAIL ne ressemble pas a une adresse email" });
+}
+
+const businessTaxStatus = get("BUSINESS_TAX_STATUS");
+if (businessTaxStatus && !["FRANCHISE_BASE", "VAT_SUBJECT"].includes(businessTaxStatus)) {
+  results.push({ level: "error", message: "BUSINESS_TAX_STATUS doit valoir FRANCHISE_BASE ou VAT_SUBJECT" });
+}
+if (businessTaxStatus === "VAT_SUBJECT" && !get("BUSINESS_VAT_NUMBER")) {
+  results.push({ level: "error", message: "BUSINESS_VAT_NUMBER est requis lorsque BUSINESS_TAX_STATUS vaut VAT_SUBJECT" });
 }
 
 const mediatorUrl = get("CONSUMER_MEDIATOR_URL");

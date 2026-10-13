@@ -21,17 +21,27 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AppNav } from "@/components/layout/AppNav";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { calculatePawsEarned, calculatePremiumDiscount } from "@/lib/loyalty";
+import { calculatePawsEarned } from "@/lib/loyalty";
+import { selectBestBookingDiscount } from "@/lib/booking-discounts";
 import {
   calculateBookingPrice,
+  LAST_MINUTE_LABEL,
+  LAST_MINUTE_DESCRIPTION,
+  CAT_VISIT_PRICING_DESCRIPTION,
   calculateSameDayDurationMinutes,
   calculateServiceDurationMinutes,
+  DOG_DAY_CARE_MAX_MINUTES,
+  DOG_CARE_PERIOD_MINUTES,
   getHouseSittingDurationTier,
   getServiceDisplayPrice,
+  getServiceDisplayPriceForDuration,
+  isValidDayCareSchedule,
   EXTRA_DURATION,
   HOUSE_SITTING_DURATION_TIERS,
+  LONG_BOARDING_DISCOUNT_RATE,
+  LONG_BOARDING_MIN_PERIODS,
+  YOUNG_ANIMAL_SURCHARGE,
   type Species,
   type PriceLine,
 } from "@/lib/pricing";
@@ -40,7 +50,14 @@ import {
   isOvernightServiceType,
   type AppServiceType,
 } from "@/lib/services";
-import { formatPetAge } from "@/lib/pets";
+import { ATTENDANCE_SUMMARY } from "@/lib/booking-attendance";
+import { LEGAL_DOCUMENT_VERSION, LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+import {
+  formatPetAge,
+  getPetProfileCompletion,
+  isPetBirthDateVerified,
+  isPetUnderOneYearOn,
+} from "@/lib/pets";
 import {
   addCalendarDays,
   buildDateRange,
@@ -67,8 +84,8 @@ const serviceTypes: ServiceOption[] = [
   {
     value: "BOARDING",
     name: "Hébergement",
-    unit: "nuit",
-    description: "Votre compagnon vit avec nous, accès canapé et jardin inclus.",
+    unit: "période de 24 h",
+    description: "Votre compagnon vit avec nous, avec nuit, accès canapé et jardin inclus. Le tarif suit des périodes réelles de 24 h à partir de l’arrivée.",
     icon: "🏠",
     maxHours: 24,
     maxPets: 3,
@@ -112,9 +129,21 @@ const serviceTypes: ServiceOption[] = [
 interface Pet {
   id: string;
   name: string;
-  breed: string;
+  breed: string | null;
   species: Species;
   age?: number | null;
+  birthDate?: string | null;
+  birthDateProofUrl?: string | null;
+  birthDateVerifiedAt?: string | null;
+  weight?: number | null;
+  gender?: string | null;
+  spayedNeutered?: boolean | null;
+  medicalInfo?: string | null;
+  behaviorNotes?: string | null;
+  feedingSchedule?: string | null;
+  medications?: string | null;
+  vetInfo?: string | null;
+  emergencyContact?: string | null;
 }
 
 type VisitSlot = {
@@ -139,13 +168,12 @@ type DateConfig = {
 };
 
 const isHourlyService = isHourlyServiceType;
-const isSingleDayServiceType = (serviceType: string) => serviceType === "DAY_CARE";
 const defaultVisitDuration = () => 30;
 const defaultVisitTime = "09:00";
-const boardingCheckoutTime = "10:00";
+const boardingDefaultTime = "18:00";
 
 const serviceDefaultTimes: Record<string, { startTime: string; endTime: string }> = {
-  BOARDING: { startTime: "18:00", endTime: boardingCheckoutTime },
+  BOARDING: { startTime: boardingDefaultTime, endTime: boardingDefaultTime },
   HOUSE_SITTING: { startTime: "09:30", endTime: "19:30" },
   DAY_CARE: { startTime: "09:00", endTime: "18:00" },
   DROP_IN: { startTime: defaultVisitTime, endTime: defaultVisitTime },
@@ -215,6 +243,27 @@ const formatDateKeyRanges = (dateKeys?: string[]) => {
 
 const localeCodes = { fr: "fr-FR", en: "en-GB", es: "es-ES" } as const;
 
+const ResidentCatsNotice = ({ compact = false }: { compact?: boolean }) => {
+  const { t } = useLanguage();
+
+  return (
+    <div
+      role="note"
+      className={`flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 text-sky-950 ${compact ? "px-4 py-3" : "p-5"}`}
+    >
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-xl shadow-sm" aria-hidden="true">
+        🐈
+      </div>
+      <div>
+        <p className="font-bold">{t("Deux chats vivent à la maison")}</p>
+        <p className="mt-1 text-sm leading-6 text-sky-900">
+          {t("Pour la garderie et l'hébergement, la compatibilité est prise en compte. Si la cohabitation avec votre animal n'est pas sereine, nos chats restent dans un espace séparé.")}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig; onChange: (c: DateConfig) => void; serviceType: string }) => {
   const { t, locale } = useLanguage();
   const today = getTodayDateKey();
@@ -222,7 +271,6 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig; o
   const weekend = getNextWeekendRange(today);
   const localeCode = localeCodes[locale];
   const isHourly = isHourlyService(serviceType);
-  const isSingleDayService = isSingleDayServiceType(serviceType);
   const isHouseSitting = serviceType === "HOUSE_SITTING";
   const [batchStartDate, setBatchStartDate] = useState("");
   const [batchEndDate, setBatchEndDate] = useState("");
@@ -536,84 +584,116 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig; o
     );
   }
 
-  if (isSingleDayService) {
-    const selectedDate = config.startDate || config.endDate;
-    const durationMinutes = calculateServiceDurationMinutes({ ...config, startDate: selectedDate, endDate: selectedDate });
+  if (serviceType === "DAY_CARE") {
+    const dayCount = getInclusiveCalendarDayCount(config.startDate, config.endDate);
+    const durationMinutes = calculateSameDayDurationMinutes(config);
     const timeRangeValid = isPositiveSameDayTimeRange(config.startTime, config.endTime);
-    const dayCareTooLong = durationMinutes > 600;
+    const datesValid = dayCount > 0;
+    const dayCareTooLong = durationMinutes > DOG_DAY_CARE_MAX_MINUTES;
     const schedulePresets = [
       { label: "Dépose tôt", helper: "08:00–18:00", startTime: "08:00", endTime: "18:00" },
       { label: "Journée standard", helper: "09:00–18:00", startTime: "09:00", endTime: "18:00" },
       { label: "Dépose tard", helper: "10:00–18:00", startTime: "10:00", endTime: "18:00" },
     ];
-    const setSingleDate = (date: string) => onChange({ ...config, startDate: date, endDate: date });
+    const setDayCareStartDate = (date: string) => onChange({
+      ...config,
+      startDate: date,
+      endDate: !config.endDate || config.endDate < date ? date : config.endDate,
+    });
+    const setSingleDayCareDate = (date: string) => onChange({ ...config, startDate: date, endDate: date });
+    const setDayCareDayCount = (days: number) => {
+      const startDate = config.startDate || today;
+      onChange({ ...config, startDate, endDate: addCalendarDays(startDate, days - 1) });
+    };
 
     return (
       <div data-no-translate className="space-y-5">
         <section className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm sm:p-5">
           <div className="mb-5 flex gap-3 border-b border-gray-100 pb-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700"><CalendarDays className="size-5" /></div>
-            <div><h3 className="font-bold text-gray-950">{t("Choisir le jour de garderie")}</h3><p className="mt-1 text-sm text-gray-500">{t("Commencez par le jour, puis choisissez un créneau adapté à votre routine.")}</p></div>
+            <div><h3 className="font-bold text-gray-950">{t("Planifier les journées de garde")}</h3><p className="mt-1 text-sm text-gray-500">{t("Choisissez une ou plusieurs journées. Les mêmes horaires seront appliqués chaque jour, sans nuitée.")}</p></div>
           </div>
           <div className="space-y-5">
-            {renderDateShortcuts(selectedDate, setSingleDate)}
+            {renderDateShortcuts(config.startDate, setSingleDayCareDate, () => onChange({ ...config, startDate: weekend.startDate, endDate: weekend.endDate }))}
             <div>
-              <Label htmlFor="single-service-date">{t("Jour de garderie")}</Label>
-              <Input id="single-service-date" type="date" className="bg-white" value={selectedDate} onChange={(event) => setSingleDate(event.target.value)} min={today} />
+              <Label className="mb-2 block">{t("Nombre de journées")}</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map((days) => (
+                  <button key={days} type="button" className={shortcutClass(dayCount === days)} aria-pressed={dayCount === days} onClick={() => setDayCareDayCount(days)}>
+                    {days} {t(days > 1 ? "journées" : "journée")}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="day-care-start-date">{t("Première journée")}</Label>
+                <Input id="day-care-start-date" type="date" className="bg-white" value={config.startDate} onChange={(event) => setDayCareStartDate(event.target.value)} min={today} />
+              </div>
+              <div>
+                <Label htmlFor="day-care-end-date">{t("Dernière journée")}</Label>
+                <Input id="day-care-end-date" type="date" className="bg-white" value={config.endDate} onChange={(event) => onChange({ ...config, endDate: event.target.value })} min={config.startDate || today} />
+              </div>
             </div>
             <div>
               <Label className="mb-2 block">{t("Horaires pratiques")}</Label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {schedulePresets.map((preset) => {
                   const selected = config.startTime === preset.startTime && config.endTime === preset.endTime;
-                  return <button key={preset.label} type="button" aria-pressed={selected} className={shortcutClass(selected)} onClick={() => onChange({ ...config, startDate: selectedDate, endDate: selectedDate, startTime: preset.startTime, endTime: preset.endTime })}><span className="block">{t(preset.label)}</span><span className="block text-xs font-normal text-gray-500">{preset.helper}</span></button>;
+                  return <button key={preset.label} type="button" aria-pressed={selected} className={shortcutClass(selected)} onClick={() => onChange({ ...config, startTime: preset.startTime, endTime: preset.endTime })}><span className="block">{t(preset.label)}</span><span className="block text-xs font-normal text-gray-500">{preset.helper}</span></button>;
                 })}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label htmlFor="single-start-time">{t("Heure de début")}</Label><Input id="single-start-time" type="time" className="bg-white" value={config.startTime} onChange={(event) => onChange({ ...config, startTime: event.target.value, startDate: selectedDate, endDate: selectedDate })} /></div>
-              <div><Label htmlFor="single-end-time">{t("Heure de fin")}</Label><Input id="single-end-time" type="time" className="bg-white" value={config.endTime} onChange={(event) => onChange({ ...config, endTime: event.target.value, startDate: selectedDate, endDate: selectedDate })} /></div>
+              <div><Label htmlFor="day-care-start-time">{t("Début chaque jour")}</Label><Input id="day-care-start-time" type="time" className="bg-white" value={config.startTime} onChange={(event) => onChange({ ...config, startTime: event.target.value })} /></div>
+              <div><Label htmlFor="day-care-end-time">{t("Fin chaque jour")}</Label><Input id="day-care-end-time" type="time" className="bg-white" value={config.endTime} onChange={(event) => onChange({ ...config, endTime: event.target.value })} /></div>
             </div>
           </div>
         </section>
-        {selectedDate && timeRangeValid && !dayCareTooLong ? (
+        {datesValid && timeRangeValid && !dayCareTooLong ? (
           <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 sm:flex-row sm:items-center sm:justify-between">
-            <span className="flex items-center gap-2"><CheckCircle2 className="size-4" /><span><strong className="capitalize">{formatDate(selectedDate, { weekday: "long", day: "numeric", month: "long" })}</strong> · {formatElapsedDuration(durationMinutes)}</span></span>
+            <span className="flex items-center gap-2"><CheckCircle2 className="size-4" /><strong>{dayCount} {t(dayCount > 1 ? "journées sélectionnées" : "journée sélectionnée")}</strong></span>
+            <span className="font-semibold">{formatElapsedDuration(durationMinutes)} {t("par jour")}</span>
           </div>
-        ) : selectedDate && (!timeRangeValid || dayCareTooLong) ? (
+        ) : (config.startDate || config.endDate) && (!timeRangeValid || dayCareTooLong) ? (
           <div className="flex gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><AlertCircle className="mt-0.5 size-4 shrink-0" /><span>{t(dayCareTooLong ? "La garderie est limitée à 10 heures par jour. Ajustez l’heure de début ou de fin." : "L’heure de fin doit être postérieure à l’heure de début.")}</span></div>
         ) : null}
         <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-orange-900">
-          {t("La garderie de jour est limitée à une seule journée et à 10 heures. Pour plusieurs jours avec nuit, choisissez l’hébergement.")}
+          {t("Chaque date correspond à une garde en journée aux horaires choisis. Pour une présence pendant la nuit, choisissez l’hébergement.")}
         </div>
       </div>
     );
   }
 
-  const stayNights = getCalendarDayDifference(config.startDate, config.endDate);
-  const stayValid = stayNights > 0;
+  const stayDurationMinutes = calculateServiceDurationMinutes(config);
+  const stayPeriods = stayDurationMinutes > 0
+    ? Math.ceil(stayDurationMinutes / DOG_CARE_PERIOD_MINUTES)
+    : 0;
+  const stayValid = getCalendarDayDifference(config.startDate, config.endDate) > 0 && stayPeriods > 0;
+  const hasPartialPeriod = stayDurationMinutes % DOG_CARE_PERIOD_MINUTES !== 0;
   const setBoardingStart = (date: string) => onChange({
     ...config,
     startDate: date,
     endDate: !config.endDate || config.endDate <= date ? addCalendarDays(date, 1) : config.endDate,
   });
-  const setStayLength = (nights: number) => {
+  const setStayLength = (periods: number) => {
     const startDate = config.startDate || today;
-    onChange({ ...config, startDate, endDate: addCalendarDays(startDate, nights), startTime: config.startTime || "18:00", endTime: config.endTime || boardingCheckoutTime });
+    const startTime = config.startTime || boardingDefaultTime;
+    onChange({ ...config, startDate, endDate: addCalendarDays(startDate, periods), startTime, endTime: startTime });
   };
   return (
     <div data-no-translate className="space-y-5">
       <section className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm sm:p-5">
         <div className="mb-5 flex gap-3 border-b border-gray-100 pb-4">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700"><MoonStar className="size-5" /></div>
-          <div><h3 className="font-bold text-gray-950">{t("Planifier le séjour")}</h3><p className="mt-1 text-sm text-gray-500">{t("Choisissez l’arrivée et le départ. Une nuit minimum est nécessaire.")}</p></div>
+          <div><h3 className="font-bold text-gray-950">{t("Planifier le séjour")}</h3><p className="mt-1 text-sm text-gray-500">{t("Choisissez l’arrivée et le départ. Le tarif est calculé depuis l’heure d’arrivée, par période de 24 h commencée.")}</p></div>
         </div>
         <div className="space-y-5">
-          <div><Label className="mb-2 block">{t("Arrivée rapide")}</Label>{renderDateShortcuts(config.startDate, setBoardingStart, () => onChange({ ...config, startDate: weekend.startDate, endDate: weekend.endDate, startTime: "18:00", endTime: boardingCheckoutTime }))}</div>
+          <div><Label className="mb-2 block">{t("Arrivée rapide")}</Label>{renderDateShortcuts(config.startDate, setBoardingStart, () => onChange({ ...config, startDate: weekend.startDate, endDate: weekend.endDate, startTime: boardingDefaultTime, endTime: boardingDefaultTime }))}</div>
           <div>
             <Label className="mb-2 block">{t("Durée du séjour")}</Label>
             <div className="grid grid-cols-3 gap-2">
-              {[1, 2, 7].map((nights) => <button key={nights} type="button" className={shortcutClass(stayNights === nights)} aria-pressed={stayNights === nights} onClick={() => setStayLength(nights)}>{nights} {t(nights > 1 ? "nuits" : "nuit")}</button>)}
+              {[1, 2, 7].map((periods) => <button key={periods} type="button" className={shortcutClass(stayPeriods === periods && !hasPartialPeriod)} aria-pressed={stayPeriods === periods && !hasPartialPeriod} onClick={() => setStayLength(periods)}>{periods} {t(periods > 1 ? "périodes de 24 h" : "période de 24 h")}</button>)}
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -634,8 +714,9 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig; o
       </section>
       {stayValid && (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-950">
-          <div className="flex items-center gap-2 text-sm font-bold"><CheckCircle2 className="size-4" />{stayNights} {t(stayNights > 1 ? "nuits sélectionnées" : "nuit sélectionnée")}</div>
+          <div className="flex items-center gap-2 text-sm font-bold"><CheckCircle2 className="size-4" />{stayPeriods} {t(stayPeriods > 1 ? "périodes de 24 h facturées" : "période de 24 h facturée")}</div>
           <p className="mt-1 text-sm capitalize">{formatDate(config.startDate, { weekday: "long", day: "numeric", month: "long" })} {t("à")} {config.startTime} → {formatDate(config.endDate, { weekday: "long", day: "numeric", month: "long" })} {t("à")} {config.endTime}</p>
+          <p className="mt-1 text-xs text-emerald-800">{formatElapsedDuration(stayDurationMinutes)} · {hasPartialPeriod ? t("La dernière période est entamée et facturée en entier.") : t("Durée exacte, sans dépassement.")}</p>
         </div>
       )}
     </div>
@@ -655,6 +736,11 @@ export default function BookingPage() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pricingNow, setPricingNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setPricingNow(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Configuration dates
   // Une réservation multi-animaux utilise un planning commun afin qu'un paiement
@@ -828,7 +914,6 @@ export default function BookingPage() {
         ...prev,
         startTime: defaultTimes.startTime,
         endTime: defaultTimes.endTime,
-        endDate: isSingleDayServiceType(formData.serviceType) ? prev.startDate : prev.endDate,
       }));
     }
 
@@ -849,12 +934,6 @@ export default function BookingPage() {
       return newConfigs;
     });
   }, [formData.serviceType]);
-
-  useEffect(() => {
-    if (!isSingleDayServiceType(formData.serviceType)) return;
-    if (!formData.startDate || formData.endDate === formData.startDate) return;
-    setFormData((prev) => ({ ...prev, endDate: prev.startDate }));
-  }, [formData.serviceType, formData.startDate, formData.endDate]);
 
   // Check Availability
   useEffect(() => {
@@ -889,12 +968,14 @@ export default function BookingPage() {
           return getInclusiveCalendarDayCount(config.startDate, config.endDate) > 0
             && calculateSameDayDurationMinutes(config) > 0;
         }
+        if (formData.serviceType === "DAY_CARE") {
+          return isValidDayCareSchedule(config);
+        }
         const durationMinutes = calculateServiceDurationMinutes(config);
         if (isOvernightServiceType(formData.serviceType)) {
           return getCalendarDayDifference(config.startDate, config.endDate) > 0 && durationMinutes > 0;
         }
-        if (durationMinutes <= 0) return false;
-        return formData.serviceType !== "DAY_CARE" || durationMinutes <= 600;
+        return durationMinutes > 0;
       });
       if (!selectionIsComplete) { resetAvailability(); return; }
 
@@ -976,7 +1057,9 @@ export default function BookingPage() {
       };
       if (!service) return emptyDetail;
 
-      const isYoung = pet.age !== undefined && pet.age !== null && pet.age < 1;
+      const isYoung = pet.birthDate
+        ? isPetUnderOneYearOn(pet.birthDate, config.startDate ? `${config.startDate}T12:00:00.000Z` : undefined)
+        : pet.age !== undefined && pet.age !== null && pet.age < 1;
 
       let breakdown = "";
       const validSlots = getValidVisitSlots(config.visitSlots);
@@ -997,6 +1080,11 @@ export default function BookingPage() {
                   return { ...emptyDetail, isPuppy: isYoung };
               }
               breakdown = "jours";
+          } else if (formData.serviceType === "DAY_CARE") {
+              if (!isValidDayCareSchedule(config)) {
+                  return { ...emptyDetail, isPuppy: isYoung };
+              }
+              breakdown = "jours";
           } else {
 
               const start = new Date(`${config.startDate}T${config.startTime}`);
@@ -1009,7 +1097,7 @@ export default function BookingPage() {
 
               if (isOvernightServiceType(formData.serviceType)) {
                   if (getCalendarDayDifference(config.startDate, config.endDate) <= 0) return { ...emptyDetail, isPuppy: isYoung };
-                  breakdown = "nuits";
+                  breakdown = "périodes de 24 h";
               } else {
                   if (getInclusiveCalendarDayCount(config.startDate, config.endDate) <= 0) return { ...emptyDetail, isPuppy: isYoung };
                   breakdown = "jours";
@@ -1023,13 +1111,15 @@ export default function BookingPage() {
           id: candidate.id,
           species: candidate.species || "DOG",
           age: candidate.age,
+          birthDate: candidate.birthDate,
         }));
       const priceResult = calculateBookingPrice({
         serviceType: formData.serviceType,
-        pets: [{
+        pets: useSameDates && isHourlyService(formData.serviceType) ? pricingContextPets : [{
           id: pet.id,
           species: pet.species || "DOG",
           age: pet.age,
+          birthDate: pet.birthDate,
         }],
         pricingContextPets,
         startDate,
@@ -1037,8 +1127,9 @@ export default function BookingPage() {
         startTime: config.startTime,
         endTime: config.endTime,
         visitSlots: validSlots,
+        requestedAt: pricingNow,
       });
-      const petPrice = priceResult.pets[0];
+      const petPrice = priceResult.pets.find((pricedPet) => pricedPet.petId === pet.id);
       if (!petPrice) return { ...emptyDetail, isPuppy: isYoung };
 
       const appliesSharedDurationExtra = !isHourlyService(formData.serviceType) ||
@@ -1063,11 +1154,16 @@ export default function BookingPage() {
         priceLines.push({ label: "Durée prolongée", amount: durationExtraTotal, type: "surcharge", total: durationExtraTotal });
       }
 
+      const lastMinuteFee = (!useSameDates || getPrimarySelectedPetId() === pet.id)
+        ? priceResult.lastMinuteFee : 0;
+      if (lastMinuteFee > 0) {
+        priceLines.push({ label: LAST_MINUTE_LABEL, amount: lastMinuteFee, type: "surcharge", total: lastMinuteFee });
+      }
       return {
-        total: petPrice.total + durationExtraTotal,
+        total: petPrice.total + durationExtraTotal + lastMinuteFee,
         breakdown,
         isPuppy: isYoung,
-        surchargeTotal: 0,
+        surchargeTotal: lastMinuteFee,
         quantity: petPrice.quantity,
         unitPrice: petPrice.unitPrice,
         priceLines,
@@ -1083,10 +1179,38 @@ export default function BookingPage() {
             : petConfigs[id];
 
           if (pet && config) {
-              total += calculatePriceDetailForPet(config, pet).total;
+              const details = calculatePriceDetailForPet(config, pet);
+              total += details.total - details.surchargeTotal;
           }
       });
       return total;
+  };
+
+  const calculateLastMinuteTotal = () => formData.petIds.reduce((sum, id) => {
+    const pet = pets.find(p => p.id === id);
+    const config = useSameDates
+      ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, visitSlots }
+      : petConfigs[id];
+    return sum + (pet && config ? calculatePriceDetailForPet(config, pet).surchargeTotal : 0);
+  }, 0);
+
+  const calculateTotalBeforeDiscounts = () => {
+      let total = 0;
+      formData.petIds.forEach(id => {
+          const pet = pets.find(p => p.id === id);
+          const config = useSameDates
+            ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, visitSlots }
+            : petConfigs[id];
+
+          if (pet && config) {
+              const details = calculatePriceDetailForPet(config, pet);
+              const automaticDiscount = details.priceLines
+                .filter((line) => line.type === "discount" && line.amount < 0)
+                .reduce((sum, line) => sum + Math.abs(line.amount), 0);
+              total += details.total - details.surchargeTotal + automaticDiscount;
+          }
+      });
+      return Math.round(total * 100) / 100;
   };
 
   // Helper pour calculer la durée (pour les coupons)
@@ -1097,7 +1221,7 @@ export default function BookingPage() {
             : Math.max(0, ...Object.values(petConfigs).map(c => getValidVisitSlots(c.visitSlots).length));
       }
 
-      // Services à la date : nuits pour l'hébergement, jours pour garderie/garde au domicile.
+      // Services à la date : périodes réelles de 24 h pour l'hébergement, jours pour les autres services.
       const config = useSameDates
         ? { startDate: formData.startDate, endDate: formData.endDate }
         : Object.values(petConfigs)[0]; // Take first as approx if varying
@@ -1105,7 +1229,13 @@ export default function BookingPage() {
       if (!config?.startDate || !config?.endDate) return 1;
 
       if (isOvernightServiceType(formData.serviceType)) {
-        return getCalendarDayDifference(config.startDate, config.endDate) || 1;
+        const durationMinutes = calculateServiceDurationMinutes({
+          startDate: config.startDate,
+          endDate: config.endDate,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+        });
+        return Math.ceil(durationMinutes / DOG_CARE_PERIOD_MINUTES) || 1;
       }
 
       return getInclusiveCalendarDayCount(config.startDate, config.endDate) || 1;
@@ -1118,7 +1248,7 @@ export default function BookingPage() {
 
   const getHourlyDurationSummary = () => {
       if (formData.serviceType === "DROP_IN") {
-        return "Durées disponibles : 30 min, 1 h, 1 h 30 ou 2 h maximum";
+        return `${EXTRA_DURATION.DROP_IN.baseDuration} min au tarif de base, puis +${EXTRA_DURATION.DROP_IN.extraRate}€ par tranche de ${EXTRA_DURATION.DROP_IN.increment} min supplémentaire`;
       }
 
       const extra = EXTRA_DURATION[formData.serviceType as "DROP_IN" | "DOG_WALKING"];
@@ -1147,7 +1277,7 @@ export default function BookingPage() {
       }
 
       if (!formData.startDate || !formData.endDate) return "Dates non renseignées";
-      if (isSingleDayServiceType(formData.serviceType)) return formData.startDate;
+      if (formData.startDate === formData.endDate) return formData.startDate;
       return `${formData.startDate} au ${formData.endDate}`;
   };
 
@@ -1203,6 +1333,9 @@ export default function BookingPage() {
   };
 
   const togglePet = (id: string) => {
+      const pet = pets.find((candidate) => candidate.id === id);
+      if (!pet || !getPetProfileCompletion(pet).isComplete || !isPetBirthDateVerified(pet)) return;
+
       setFormData(prev => {
           const exists = prev.petIds.includes(id);
           const newIds = exists
@@ -1218,7 +1351,7 @@ export default function BookingPage() {
   };
 
   const validateCoupon = async (codeOverride?: string, isAuto = false) => {
-      const price = calculateTotalPrice();
+      const price = calculateTotalBeforeDiscounts();
 
       if (!useSameDates) {
           setCouponStatus(p => ({ ...p, error: "Un code promo nécessite des dates communes à tous les animaux" }));
@@ -1284,13 +1417,17 @@ export default function BookingPage() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!legalAccepted) {
+      setError("Vous devez accepter les conditions contractuelles avant de continuer.");
+      return;
+    }
     setIsLoading(true);
     setError("");
 
     const bookingsToCreate = [];
 
     if (useSameDates) {
-        const price = couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice();
+        const price = finalDisplayedTotal;
 
         let startDate = formData.startDate;
         let endDate = formData.endDate;
@@ -1307,6 +1444,7 @@ export default function BookingPage() {
             startTime: formData.startTime,
             endTime: formData.endTime,
             serviceType: formData.serviceType,
+            expectedLastMinuteFee: calculateLastMinuteTotal(),
             totalPrice: price,
             depositAmount: price,
             notes: formData.notes,
@@ -1342,6 +1480,7 @@ export default function BookingPage() {
                 startTime: config.startTime,
                 endTime: config.endTime,
                 serviceType: formData.serviceType,
+                expectedLastMinuteFee: details.surchargeTotal,
                 totalPrice: finalPrice,
                 depositAmount: finalPrice,
                 notes: formData.notes,
@@ -1369,13 +1508,19 @@ export default function BookingPage() {
         const resCheckout = await fetch("/api/stripe/checkout", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bookingIds: createdBookingIds, promoCode: formData.promoCode || undefined }),
+            body: JSON.stringify({
+              bookingIds: createdBookingIds,
+              promoCode: formData.promoCode || undefined,
+              legalAccepted: true,
+              legalVersion: LEGAL_DOCUMENT_VERSION,
+            }),
         });
         const dataCheckout = await resCheckout.json();
         if (!resCheckout.ok) throw new Error(dataCheckout.error);
         window.location.href = dataCheckout.checkoutUrl;
 
     } catch (e: unknown) {
+        setPricingNow(new Date());
         setError(e instanceof Error ? e.message : "Erreur de connexion");
         setIsLoading(false);
     }
@@ -1383,15 +1528,39 @@ export default function BookingPage() {
 
   if (status === "loading" || status === "unauthenticated") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>;
 
-  const subtotalAfterCoupon = couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice();
+  const originalDisplayedTotal = calculateTotalBeforeDiscounts();
+  const automaticDisplayedTotal = calculateTotalPrice();
   const hasCustomTotalCoupon = couponStatus.applied && couponStatus.data?.coupon.discountType === "CUSTOM_TOTAL";
-  const premiumPricing = isPremium && !hasCustomTotalCoupon ? calculatePremiumDiscount(subtotalAfterCoupon) : null;
-  const premiumPreviewPricing = !hasCustomTotalCoupon ? calculatePremiumDiscount(subtotalAfterCoupon) : null;
-  const finalDisplayedTotal = premiumPricing?.finalAmount ?? subtotalAfterCoupon;
+  const couponCandidate = couponStatus.applied && couponStatus.data
+    ? {
+        code: couponStatus.data.coupon.code,
+        discountType: couponStatus.data.coupon.discountType,
+        finalAmount: couponStatus.data.finalAmount,
+      }
+    : null;
+  const standardPricing = selectBestBookingDiscount({
+    originalAmount: originalDisplayedTotal,
+    automaticFinalAmount: automaticDisplayedTotal,
+    coupon: couponCandidate,
+    isPremium: false,
+  });
+  const premiumPreviewPricing = selectBestBookingDiscount({
+    originalAmount: originalDisplayedTotal,
+    automaticFinalAmount: automaticDisplayedTotal,
+    coupon: couponCandidate,
+    isPremium: true,
+  });
+  const selectedPricing = isPremium ? premiumPreviewPricing : standardPricing;
+  const premiumPricing = selectedPricing.source === "PREMIUM" ? selectedPricing.premiumDiscount : null;
+  const couponIsSelected = selectedPricing.source === "COUPON";
+  const lastMinuteTotal = calculateLastMinuteTotal();
+  const finalDisplayedTotal = selectedPricing.finalAmount + lastMinuteTotal;
   const estimatedPaws = calculatePawsEarned(finalDisplayedTotal, isPremium);
-  const standardPaws = calculatePawsEarned(subtotalAfterCoupon, false);
-  const premiumPreviewTotal = premiumPricing?.finalAmount ?? premiumPreviewPricing?.finalAmount ?? subtotalAfterCoupon;
-  const premiumPreviewSavings = premiumPricing?.discountAmount ?? premiumPreviewPricing?.discountAmount ?? 0;
+  const standardPaws = calculatePawsEarned(standardPricing.finalAmount + lastMinuteTotal, false);
+  const premiumPreviewTotal = premiumPreviewPricing.finalAmount + lastMinuteTotal;
+  const premiumPreviewSavings = Math.round(
+    Math.max(0, standardPricing.finalAmount + lastMinuteTotal - premiumPreviewTotal) * 100
+  ) / 100;
   const premiumPreviewPaws = calculatePawsEarned(premiumPreviewTotal, true);
 
   // Navigation helpers
@@ -1416,13 +1585,13 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
-      <AppNav userName={session?.user?.name} />
 
       <div className="container mx-auto px-6 pt-32 max-w-4xl overflow-hidden">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Nouvelle Réservation ✨</h1>
           <p className="text-gray-500">Quelques étapes pour des vacances de rêve.</p>
+          <p data-no-translate className="mt-4 text-sm leading-6 text-gray-600">{t(LAST_MINUTE_DESCRIPTION)}</p>
         </motion.div>
 
         {/* Steps */}
@@ -1473,21 +1642,58 @@ export default function BookingPage() {
                       <Link href="/pets/new" className="text-orange-600 font-bold hover:underline">Créer un profil</Link>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {pets.map((pet) => {
-                        const isSelected = formData.petIds.includes(pet.id);
-                        return (
-                        <div key={pet.id} onClick={() => togglePet(pet.id)}
-                          className={`cursor-pointer rounded-2xl p-4 border-2 transition-all flex flex-col items-center gap-2 text-center ${isSelected ? "border-orange-500 bg-orange-50" : "border-gray-100 hover:border-gray-300"}`}
-                        >
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isSelected ? "bg-orange-100" : "bg-gray-100"}`}>{isSelected ? "✅" : "🐾"}</div>
-                          <span className={`font-bold text-sm ${isSelected ? "text-gray-900" : "text-gray-500"}`}>{pet.name}</span>
-                          <span className="text-xs text-gray-500 leading-tight">
-                            {pet.breed || "Race inconnue"} · {formatPetAge(pet.age)}
-                          </span>
+                    <>
+                      {pets.some((pet) => !getPetProfileCompletion(pet).isComplete || !isPetBirthDateVerified(pet)) && (
+                        <div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                          <p className="font-bold">Réservation impossible pour un animal non validé</p>
+                          <p className="mt-1">Chaque animal doit avoir un profil complet et une date de naissance validée par notre équipe. Tant que la validation n’est pas terminée, l’animal ne peut pas être sélectionné et aucune réservation ne peut être créée.</p>
+                          <p className="mt-1 font-semibold">Vous recevrez un e-mail dès que votre animal sera validé et que vous pourrez réserver.</p>
                         </div>
-                      )})}
-                    </div>
+                      )}
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {pets.map((pet) => {
+                          const isSelected = formData.petIds.includes(pet.id);
+                          const completion = getPetProfileCompletion(pet);
+                          const ageVerified = isPetBirthDateVerified(pet);
+                          const canBook = completion.isComplete && ageVerified;
+                          return (
+                          <div
+                            key={pet.id}
+                            onClick={() => togglePet(pet.id)}
+                            aria-disabled={!canBook}
+                            className={`rounded-2xl p-4 border-2 transition-all flex flex-col items-center gap-2 text-center ${
+                              !canBook
+                                ? "cursor-not-allowed border-amber-200 bg-amber-50/60"
+                                : isSelected
+                                  ? "cursor-pointer border-orange-500 bg-orange-50"
+                                  : "cursor-pointer border-gray-100 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isSelected ? "bg-orange-100" : "bg-gray-100"}`}>{isSelected ? "✅" : canBook ? "🐾" : "🔒"}</div>
+                            <span className={`font-bold text-sm ${isSelected ? "text-gray-900" : "text-gray-500"}`}>{pet.name}</span>
+                            <span className="text-xs text-gray-500 leading-tight">
+                              {pet.breed || "Race inconnue"} · {formatPetAge(pet.age)}
+                            </span>
+                            {!canBook && (
+                              <>
+                                <span className="text-xs font-bold text-amber-800">
+                                  {!completion.isComplete
+                                    ? `${completion.percentage} % complété — réservation bloquée`
+                                    : "Réservation bloquée — validation de l’âge en attente"}
+                                </span>
+                                <Link
+                                  href={`/pets/${pet.id}/edit`}
+                                  onClick={(event) => event.stopPropagation()}
+                                  className="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-200"
+                                >
+                                  {completion.isComplete ? "Voir le profil" : "Compléter le profil"}
+                                </Link>
+                              </>
+                            )}
+                          </div>
+                        )})}
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -1534,8 +1740,36 @@ export default function BookingPage() {
                             )}
                           </div>
                           <p className="mt-3 text-sm leading-5 text-gray-500">{s.description}</p>
+                          {s.value === "BOARDING" && (
+                            <p className="mt-2 text-xs leading-5 text-gray-600">
+                              Toute période de 24 h commencée est due : 24 h 01 compte deux périodes. Chiot de moins d’un an : +{YOUNG_ANIMAL_SURCHARGE} € par période. Remise de {LONG_BOARDING_DISCOUNT_RATE * 100} % dès {LONG_BOARDING_MIN_PERIODS} périodes.
+                            </p>
+                          )}
+                          {s.value === "DAY_CARE" && (
+                            <p className="mt-2 text-xs leading-5 text-gray-600">
+                              Maximum {DOG_DAY_CARE_MAX_MINUTES / 60} h par journée. Chiot de moins d’un an : +{YOUNG_ANIMAL_SURCHARGE} € par jour. Au-delà de 10 h, choisissez l’hébergement.
+                            </p>
+                          )}
+                          {s.value === "DROP_IN" && (
+                            <p className="mt-2 text-xs leading-5 text-gray-600">
+                              Puis +{EXTRA_DURATION.DROP_IN.extraRate} € par tranche de {EXTRA_DURATION.DROP_IN.increment} min : chien {getServiceDisplayPriceForDuration("DROP_IN", "DOG", 60)} / {getServiceDisplayPriceForDuration("DROP_IN", "DOG", 90)} / {getServiceDisplayPriceForDuration("DROP_IN", "DOG", 120)} € et chat {getServiceDisplayPriceForDuration("DROP_IN", "CAT", 60)} / {getServiceDisplayPriceForDuration("DROP_IN", "CAT", 90)} / {getServiceDisplayPriceForDuration("DROP_IN", "CAT", 120)} € pour 60 / 90 / 120 min.
+                            </p>
+                          )}
+                          {s.value === "DOG_WALKING" && (
+                            <p className="mt-2 text-xs leading-5 text-gray-600">
+                              30 min incluses, puis +{EXTRA_DURATION.DOG_WALKING.extraRate} € par tranche de 30 min commencée : {getServiceDisplayPriceForDuration("DOG_WALKING", "DOG", 60)} € / 60 min, {getServiceDisplayPriceForDuration("DOG_WALKING", "DOG", 90)} € / 90 min, {getServiceDisplayPriceForDuration("DOG_WALKING", "DOG", 120)} € / 120 min.
+                            </p>
+                          )}
                         </div>
                       )})}
+                    </div>
+                    {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
+                      <div className="mt-4">
+                        <ResidentCatsNotice />
+                      </div>
+                    )}
+                    <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4 text-xs leading-5 text-gray-600">
+                      Chaque animal est facturé au tarif complet correspondant à son espèce et au service choisi. Pour une visite ou promenade partagée, le supplément de durée n’est compté qu’une fois. <Link href="/tarifs" target="_blank" className="font-bold text-orange-700 underline underline-offset-4">Voir tous les tarifs et conditions.</Link>
                     </div>
                   </div>
                 )}
@@ -1604,6 +1838,9 @@ export default function BookingPage() {
                            className="h-12 bg-white"
                          />
                          <p className="text-xs text-gray-500">Utilisée uniquement pour organiser cette visite ou promenade.</p>
+                         {formData.serviceType === "DROP_IN" && (
+                           <p className="text-sm leading-6 text-orange-800">{CAT_VISIT_PRICING_DESCRIPTION} Choisissez un planning commun pour les passages partagés.</p>
+                         )}
                        </div>
                      )}
 
@@ -1634,23 +1871,23 @@ export default function BookingPage() {
                          <div>
                              <p className="text-gray-400 text-sm">Total estimé</p>
                              <div className="flex items-baseline gap-3">
-                                {couponStatus.applied && couponStatus.data ? (
+                                {selectedPricing.discountAmount > 0 ? (
                                   <>
                                     <span className="text-lg text-gray-500 line-through decoration-red-500/50 decoration-2">
-                                      {formatPrice(calculateTotalPrice())}€
+                                      {formatPrice(originalDisplayedTotal + lastMinuteTotal)}€
                                     </span>
                                     <span className="text-3xl font-bold text-green-400">
-                                      {formatPrice(couponStatus.data.finalAmount)}€
+                                      {formatPrice(finalDisplayedTotal)}€
                                     </span>
                                   </>
                                 ) : (
-                                  <div className="text-3xl font-bold">{formatPrice(calculateTotalPrice())}€</div>
+                                  <div className="text-3xl font-bold">{formatPrice(finalDisplayedTotal)}€</div>
                                 )}
                              </div>
                          </div>
                              <div className="flex flex-col items-end gap-1">
                                  <p className="max-w-56 text-right text-[11px] leading-4 text-orange-200">
-                                   5 premiers nouveaux clients : <strong>BIENVENUE10</strong> (-10 %, cumulable avec Premium)
+                                   5 premiers nouveaux clients : <strong>BIENVENUE10</strong> (-10 %). Les remises ne se cumulent pas : la plus avantageuse est retenue.
                                  </p>
                                  <div className="flex gap-2">
                                      <Input
@@ -1673,7 +1910,9 @@ export default function BookingPage() {
                                  </div>
                                  {couponStatus.applied && couponStatus.data && (
                                    <p className="text-green-400 text-xs font-bold">
-                                     {couponStatus.data.message || `-${formatPrice(couponStatus.data.discountAmount)}€`}
+                                     {couponIsSelected
+                                       ? (couponStatus.data.message || `-${formatPrice(couponStatus.data.discountAmount)}€`)
+                                       : "Code valide, mais une remise plus avantageuse est conservée."}
                                    </p>
                                  )}
                                  {couponStatus.error && (
@@ -1723,6 +1962,23 @@ export default function BookingPage() {
                             </div>
                           );
                         })()}
+                        {formData.serviceType === "DAY_CARE" && (() => {
+                          const durationMinutes = calculateSameDayDurationMinutes(formData);
+                          const dayCount = getInclusiveCalendarDayCount(formData.startDate, formData.endDate);
+                          if (!isValidDayCareSchedule(formData)) return null;
+                          return (
+                            <div className="mb-4 rounded-xl border border-emerald-200 bg-white/80 px-4 py-3 text-sm text-gray-700">
+                              <p><span className="font-bold text-gray-900">{t("Journées :")}</span> {dayCount} · {formData.startDate}{dayCount > 1 ? ` au ${formData.endDate}` : ""}</p>
+                              <p className="mt-1"><span className="font-bold text-gray-900">{t("Horaires quotidiens :")}</span> {formData.startTime}–{formData.endTime} · {formatElapsedDuration(durationMinutes)}</p>
+                              <p className="mt-1 text-xs text-gray-500">{t("Aucune nuitée incluse.")}</p>
+                            </div>
+                          );
+                        })()}
+                        {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
+                          <div className="mb-4">
+                            <ResidentCatsNotice compact />
+                          </div>
+                        )}
                         <div className="space-y-4 text-sm text-gray-700">
                             {formData.petIds.map(id => {
                                 const pet = pets.find(p => p.id === id);
@@ -1845,18 +2101,25 @@ export default function BookingPage() {
                             })}
 
                             {/* Sous-total si coupon appliqué */}
-                            {couponStatus.applied && couponStatus.data && (
+                            {selectedPricing.discountAmount > 0 && (
                                 <div className="flex justify-between pt-2 text-gray-500">
-                                    <span>Sous-total</span>
-                                    <span className="line-through">{formatPrice(calculateTotalPrice())}€</span>
+                                    <span>Prix avant remise</span>
+                                    <span className="line-through">{formatPrice(originalDisplayedTotal + lastMinuteTotal)}€</span>
                                 </div>
                             )}
 
                             {/* Réduction si coupon appliqué */}
-                            {couponStatus.applied && couponStatus.data && (
+                            {couponIsSelected && couponStatus.data && (
                                 <div className="flex justify-between text-green-600 font-bold">
                                     <span>Réduction ({couponStatus.data.coupon.code})</span>
-                                    <span>-{formatPrice(calculateTotalPrice() - couponStatus.data.finalAmount)}€</span>
+                                    <span>-{formatPrice(selectedPricing.discountAmount)}€</span>
+                                </div>
+                            )}
+
+                            {selectedPricing.source === "AUTOMATIC" && selectedPricing.discountAmount > 0 && (
+                                <div className="flex justify-between text-green-600 font-bold">
+                                    <span>Remise automatique la plus avantageuse</span>
+                                    <span>-{formatPrice(selectedPricing.discountAmount)}€</span>
                                 </div>
                             )}
 
@@ -1866,6 +2129,14 @@ export default function BookingPage() {
                                     <span>-{formatPrice(premiumPricing.discountAmount)}€</span>
                                 </div>
                             )}
+
+                            {couponStatus.applied && couponStatus.data && !couponIsSelected && (
+                                <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">
+                                  Le code {couponStatus.data.coupon.code} ne sera pas consommé : une autre remise est plus avantageuse.
+                                </p>
+                            )}
+
+                            <p data-no-translate className="text-xs leading-5 text-gray-600">{t(LAST_MINUTE_DESCRIPTION)} {t("Le supplément de dernière minute est ajouté après les remises.")}</p>
 
                             <div className="flex justify-between pt-2 border-t border-orange-200 mt-2">
                                 <span className="font-bold text-xl text-gray-900">Total à payer</span>
@@ -1883,10 +2154,14 @@ export default function BookingPage() {
                                         </p>
                                         <p className="mt-1 text-xs leading-5 text-gray-600">
                                             {isPremium
-                                              ? `Vous économisez ${formatPrice(premiumPreviewSavings)}€ et vos Pattes sont doublées.`
+                                              ? premiumPricing
+                                                ? `Votre remise Premium est de ${formatPrice(premiumPricing.discountAmount)}€ et vos Pattes sont doublées.`
+                                                : "La remise la plus avantageuse est conservée et vos Pattes restent doublées."
                                               : hasCustomTotalCoupon
-                                                ? `Avec Premium : ${premiumPreviewPaws} Pattes. Le tarif personnalisé reste à ${formatPrice(subtotalAfterCoupon)}€.`
-                                                : `Avec Premium : ${formatPrice(premiumPreviewSavings)}€ économisés et ${premiumPreviewPaws} Pattes.`}
+                                                ? `Avec Premium : ${premiumPreviewPaws} Pattes. Le tarif personnalisé reste à ${formatPrice(standardPricing.finalAmount + lastMinuteTotal)}€.`
+                                                : premiumPreviewSavings > 0
+                                                  ? `Avec Premium : ${formatPrice(premiumPreviewSavings)}€ économisés et ${premiumPreviewPaws} Pattes.`
+                                                  : `Avec Premium : la meilleure remise reste inchangée et vous gagnez ${premiumPreviewPaws} Pattes.`}
                                         </p>
                                     </div>
 
@@ -1900,7 +2175,7 @@ export default function BookingPage() {
                                 <div className="grid border-t border-amber-200/70 bg-white/70 text-xs sm:grid-cols-2">
                                   <div className="p-4">
                                     <p className="font-bold text-gray-500">Sans Premium</p>
-                                    <p className="mt-1 text-base font-extrabold text-gray-950">{formatPrice(subtotalAfterCoupon)}€</p>
+                                    <p className="mt-1 text-base font-extrabold text-gray-950">{formatPrice(standardPricing.finalAmount + lastMinuteTotal)}€</p>
                                     <p className="mt-1 text-gray-600">{standardPaws} Pattes</p>
                                   </div>
                                   <div className="border-t border-amber-200/70 p-4 sm:border-l sm:border-t-0">
@@ -1954,8 +2229,8 @@ export default function BookingPage() {
                             onChange={(e) => setLegalAccepted(e.target.checked)}
                             className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
                         />
-                        <label htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
-                            J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions Générales de Vente</Link> et la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de Confidentialité</Link>. Je reconnais que l&apos;annulation est gratuite jusqu&apos;à 48h avant le début de la garde, ou 24h avec Premium.
+                        <label data-no-translate htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
+                            J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de confidentialité</Link>. L&apos;annulation est gratuite au moins 48 h avant le début de la garde. Passé ce délai, 50 % du montant est retenu, sous réserve des droits légaux. {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
                         </label>
                     </div>
 

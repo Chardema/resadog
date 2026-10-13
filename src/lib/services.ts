@@ -17,7 +17,7 @@ const SERVICE_LABELS: Record<AppServiceType, string> = {
 };
 
 export const SERVICE_UNITS: Record<AppServiceType, string> = {
-  BOARDING: "nuit",
+  BOARDING: "période de 24 h",
   HOUSE_SITTING: "jour",
   DAY_CARE: "jour",
   DROP_IN: "visite",

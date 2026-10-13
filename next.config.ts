@@ -13,12 +13,15 @@ const contentSecurityPolicy = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://uploadthing.com https://*.uploadthing.com https://utfs.io https://*.utfs.io https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://www.googleadservices.com https://googleads.g.doubleclick.net",
-  "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
+  "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://www.google.com/maps",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: {
+    "/api/admin/quotes/cat-visits/*": ["./public/logo-mark.png", "./public/fonts/devis/**"],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "utfs.io" },
@@ -31,6 +34,24 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/auth/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, max-age=0, must-revalidate",
+          },
+        ],
+      },
+      {
+        source: "/api/auth/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, max-age=0, must-revalidate",
+          },
+        ],
+      },
       {
         source: "/subscriptions",
         headers: [
@@ -61,7 +82,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
+            value: "no-referrer",
           },
           {
             key: "Permissions-Policy",

@@ -7,12 +7,11 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { AppNav } from "@/components/layout/AppNav";
+import { getPetProfileCompletion, requiresPetBirthDateProof } from "@/lib/pets";
 import {
   emptyPetFormData,
   PetProfileForm,
   toPetPayload,
-  type AgeUnit,
   type PetFormData,
 } from "@/components/pets/PetProfileForm";
 
@@ -25,8 +24,9 @@ export default function EditPetPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-  const [ageUnit, setAgeUnit] = useState<AgeUnit>("YEARS");
+  const [birthDateVerified, setBirthDateVerified] = useState(false);
   const [formData, setFormData] = useState<PetFormData>(emptyPetFormData);
+  const birthDateProofRequired = requiresPetBirthDateProof(session?.user?.role);
 
   useEffect(() => {
     const fetchPet = async () => {
@@ -40,29 +40,17 @@ export default function EditPetPage() {
         const data = await response.json();
         const pet = data.pet;
 
-        let displayAge = "";
-        let unit: AgeUnit = "YEARS";
-
-        if (pet.age !== null && pet.age !== undefined) {
-          if (pet.age < 1 && pet.age > 0) {
-            displayAge = Math.round(pet.age * 12).toString();
-            unit = "MONTHS";
-          } else {
-            displayAge = pet.age.toString();
-            unit = "YEARS";
-          }
-        }
-
-        setAgeUnit(unit);
+        setBirthDateVerified(Boolean(pet.birthDateVerifiedAt));
         setFormData({
           ...emptyPetFormData,
           name: pet.name || "",
           species: pet.species || "DOG",
           breed: pet.breed || "",
-          age: displayAge,
+          birthDate: pet.birthDate ? pet.birthDate.split("T")[0] : "",
+          birthDateProofUrl: pet.birthDateProofUrl || "",
           weight: pet.weight?.toString() || "",
           gender: pet.gender || "UNKNOWN",
-          spayedNeutered: pet.spayedNeutered || false,
+          spayedNeutered: pet.spayedNeutered ?? null,
           imageUrl: pet.imageUrl || "",
           medicalInfo: pet.medicalInfo || "",
           behaviorNotes: pet.behaviorNotes || "",
@@ -84,13 +72,19 @@ export default function EditPetPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
+    const payload = toPetPayload(formData);
+    const completion = getPetProfileCompletion(payload, { requireBirthDateProof: birthDateProofRequired });
+    if (!completion.isComplete) {
+      setError(`Profil incomplet : ${completion.missingFields.map((field) => field.label).join(", ")}.`);
+      return;
+    }
     setIsSaving(true);
 
     try {
       const response = await fetch(`/api/pets/${petId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toPetPayload(formData, ageUnit)),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -118,9 +112,8 @@ export default function EditPetPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
-      <AppNav userName={session?.user?.name} />
 
-      <main className="container mx-auto max-w-5xl px-4 pt-6 sm:px-6 md:pt-32">
+      <main className="container mx-auto max-w-5xl px-4 pt-28 sm:px-6 md:pt-32">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <Link href="/pets" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-orange-700">
@@ -135,7 +128,7 @@ export default function EditPetPage() {
               Modifier {formData.name || "l'animal"}
             </motion.h1>
             <p className="mt-2 max-w-2xl text-base text-gray-600 md:text-lg">
-              Mettez à jour les informations importantes pour les prochaines prestations.
+              Complétez tous les champs marqués d’un * pour pouvoir effectuer une réservation.
             </p>
           </div>
 
@@ -157,9 +150,9 @@ export default function EditPetPage() {
           <PetProfileForm
             formData={formData}
             setFormData={setFormData}
-            ageUnit={ageUnit}
-            setAgeUnit={setAgeUnit}
             uploadButtonLabel="Modifier la photo"
+            birthDateVerified={birthDateVerified}
+            birthDateProofRequired={birthDateProofRequired}
           />
 
           <div className="sticky bottom-4 z-10 grid gap-3 rounded-lg border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:grid-cols-2">

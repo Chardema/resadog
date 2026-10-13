@@ -4,9 +4,12 @@ import type { Dispatch, ReactNode, SetStateAction } from "react";
 import Image from "next/image";
 import { UploadButton } from "@uploadthing/react";
 import {
+  BadgeCheck,
+  CalendarDays,
   Camera,
   Cat,
   Dog,
+  FileText,
   HeartPulse,
   Mars,
   PawPrint,
@@ -23,16 +26,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
 
-export type AgeUnit = "YEARS" | "MONTHS";
-
 export type PetFormData = {
   name: string;
   species: "DOG" | "CAT";
   breed: string;
-  age: string;
+  birthDate: string;
+  birthDateProofUrl: string;
   weight: string;
   gender: "MALE" | "FEMALE" | "UNKNOWN";
-  spayedNeutered: boolean;
+  spayedNeutered: boolean | null;
   imageUrl: string;
   medicalInfo: string;
   behaviorNotes: string;
@@ -46,10 +48,11 @@ export const emptyPetFormData: PetFormData = {
   name: "",
   species: "DOG",
   breed: "",
-  age: "",
+  birthDate: "",
+  birthDateProofUrl: "",
   weight: "",
   gender: "UNKNOWN",
-  spayedNeutered: false,
+  spayedNeutered: null,
   imageUrl: "",
   medicalInfo: "",
   behaviorNotes: "",
@@ -59,20 +62,12 @@ export const emptyPetFormData: PetFormData = {
   emergencyContact: "",
 };
 
-export function toPetPayload(formData: PetFormData, ageUnit: AgeUnit) {
-  const parsedAge = Number.parseFloat(formData.age);
-  const age = Number.isNaN(parsedAge)
-    ? undefined
-    : ageUnit === "MONTHS"
-      ? Number.parseFloat((parsedAge / 12).toFixed(2))
-      : parsedAge;
-
+export function toPetPayload(formData: PetFormData) {
   const parsedWeight = Number.parseFloat(formData.weight);
   const weight = Number.isNaN(parsedWeight) ? undefined : parsedWeight;
 
   return {
     ...formData,
-    age,
     weight,
   };
 }
@@ -80,18 +75,19 @@ export function toPetPayload(formData: PetFormData, ageUnit: AgeUnit) {
 type PetProfileFormProps = {
   formData: PetFormData;
   setFormData: Dispatch<SetStateAction<PetFormData>>;
-  ageUnit: AgeUnit;
-  setAgeUnit: Dispatch<SetStateAction<AgeUnit>>;
   uploadButtonLabel: string;
+  birthDateVerified?: boolean;
+  birthDateProofRequired?: boolean;
 };
 
 export function PetProfileForm({
   formData,
   setFormData,
-  ageUnit,
-  setAgeUnit,
   uploadButtonLabel,
+  birthDateVerified = false,
+  birthDateProofRequired = true,
 }: PetProfileFormProps) {
+  const birthDateLocked = birthDateVerified && birthDateProofRequired;
   const updateField = <K extends keyof PetFormData>(field: K, value: PetFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -168,22 +164,18 @@ export function PetProfileForm({
               />
             </Field>
 
-            <Field label="Race">
+            <Field label="Race" required>
               <Input
                 placeholder={formData.species === "DOG" ? "Golden Retriever" : "Siamois"}
                 className="h-12 rounded-md border-gray-200 bg-gray-50 text-base"
                 value={formData.breed}
                 onChange={(event) => updateField("breed", event.target.value)}
+                required
               />
             </Field>
 
-            <Field label="Genre">
-              <div className="grid grid-cols-3 gap-2">
-                <GenderButton
-                  active={formData.gender === "UNKNOWN"}
-                  label="?"
-                  onClick={() => updateField("gender", "UNKNOWN")}
-                />
+            <Field label="Sexe" required>
+              <div className="grid grid-cols-2 gap-2">
                 <GenderButton
                   active={formData.gender === "MALE"}
                   label="Mâle"
@@ -197,41 +189,37 @@ export function PetProfileForm({
                   onClick={() => updateField("gender", "FEMALE")}
                 />
               </div>
+              {formData.gender === "UNKNOWN" && (
+                <p className="mt-2 text-xs font-semibold text-amber-700">Choisissez mâle ou femelle.</p>
+              )}
             </Field>
 
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
               <div className="mb-3 flex items-center gap-2">
-                <PawPrint className="h-4 w-4 text-orange-600" />
-                <Label className="font-bold text-gray-800">Âge</Label>
+                <CalendarDays className="h-4 w-4 text-orange-600" />
+                <Label className="font-bold text-gray-800">Date de naissance <span className="text-orange-600">*</span></Label>
               </div>
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  max={ageUnit === "YEARS" ? 30 : 360}
-                  placeholder={ageUnit === "YEARS" ? "Ex : 2" : "Ex : 8"}
-                  step={ageUnit === "YEARS" ? "0.1" : "1"}
-                  className="h-12 min-w-0 rounded-md border-gray-200 bg-white text-base"
-                  value={formData.age}
-                  onChange={(event) => updateField("age", event.target.value)}
-                />
-                <div className="grid h-12 grid-cols-2 rounded-md bg-gray-200 p-1">
-                  <UnitButton active={ageUnit === "YEARS"} onClick={() => setAgeUnit("YEARS")}>
-                    Ans
-                  </UnitButton>
-                  <UnitButton active={ageUnit === "MONTHS"} onClick={() => setAgeUnit("MONTHS")}>
-                    Mois
-                  </UnitButton>
-                </div>
-              </div>
-              <p className="mt-2 text-xs text-gray-500">Utilisez les mois pour les chiots et chatons.</p>
+              <Input
+                type="date"
+                min={`${new Date().getFullYear() - 30}-01-01`}
+                max={new Date().toISOString().split("T")[0]}
+                className="h-12 rounded-md border-gray-200 bg-white text-base"
+                value={formData.birthDate}
+                onChange={(event) => updateField("birthDate", event.target.value)}
+                disabled={birthDateLocked}
+                required
+              />
+              <p className={`mt-2 text-xs ${birthDateLocked ? "font-semibold text-emerald-700" : "text-gray-500"}`}>
+                {birthDateLocked
+                  ? "Date vérifiée par l’équipe et désormais verrouillée."
+                  : "L’âge sera calculé automatiquement. Pour un chien de moins d’un an, le supplément chiot concerne uniquement la garderie et l’hébergement."}
+              </p>
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Scale className="h-4 w-4 text-orange-600" />
-                <Label className="font-bold text-gray-800">Poids</Label>
+                <Label className="font-bold text-gray-800">Poids <span className="text-orange-600">*</span></Label>
               </div>
               <div className="relative">
                 <Input
@@ -243,6 +231,7 @@ export function PetProfileForm({
                   className="h-12 rounded-md border-gray-200 bg-white pr-12 text-base"
                   value={formData.weight}
                   onChange={(event) => updateField("weight", event.target.value)}
+                  required
                 />
                 <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">
                   kg
@@ -251,23 +240,92 @@ export function PetProfileForm({
               <p className="mt-2 text-xs text-gray-500">Même une estimation aide à adapter la prestation.</p>
             </div>
 
-            <label className="md:col-span-2 flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3 hover:border-orange-200 hover:bg-orange-50">
+            <div className="md:col-span-2 flex min-h-14 flex-col gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <span className="flex items-center gap-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-md bg-orange-100 text-orange-700">
                   <ShieldCheck className="h-5 w-5" />
                 </span>
                 <span>
-                  <span className="block font-bold text-gray-900">Stérilisé / castré</span>
-                  <span className="block text-xs text-gray-500">Information utile pour les gardes avec d'autres animaux.</span>
+                  <span className="block font-bold text-gray-900">Stérilisé / castré <span className="text-orange-600">*</span></span>
+                  <span className="block text-xs text-gray-500">Choisissez une réponse, même si la réponse est non.</span>
                 </span>
               </span>
-              <input
-                type="checkbox"
-                className="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                checked={formData.spayedNeutered}
-                onChange={(event) => updateField("spayedNeutered", event.target.checked)}
-              />
-            </label>
+              <div className="grid min-w-40 grid-cols-2 gap-2">
+                <ChoiceButton
+                  active={formData.spayedNeutered === true}
+                  label="Oui"
+                  onClick={() => updateField("spayedNeutered", true)}
+                />
+                <ChoiceButton
+                  active={formData.spayedNeutered === false}
+                  label="Non"
+                  onClick={() => updateField("spayedNeutered", false)}
+                />
+              </div>
+            </div>
+
+            {birthDateProofRequired ? (
+              <div className="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-amber-700">
+                    {birthDateVerified ? <BadgeCheck className="h-5 w-5 text-emerald-600" /> : <FileText className="h-5 w-5" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-gray-900">
+                      Justificatif de date de naissance <span className="text-orange-600">*</span>
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-gray-600">
+                      Carnet de santé, passeport ou certificat vétérinaire. Masquez l’adresse et les autres données personnelles inutiles.
+                    </p>
+
+                    {formData.birthDateProofUrl ? (
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <a
+                          href={formData.birthDateProofUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-md border border-amber-200 bg-white px-3 py-2 text-sm font-bold text-amber-900 hover:bg-amber-100"
+                        >
+                          <FileText className="h-4 w-4" />
+                          Voir le justificatif
+                        </a>
+                        {!birthDateVerified && (
+                          <button
+                            type="button"
+                            onClick={() => updateField("birthDateProofUrl", "")}
+                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
+                          >
+                            <X className="h-4 w-4" />
+                            Remplacer
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <UploadButton<OurFileRouter, "petAgeProof">
+                          endpoint="petAgeProof"
+                          onClientUploadComplete={(res) => res?.[0] && updateField("birthDateProofUrl", res[0].url)}
+                          onUploadError={() => alert("Erreur lors de l’envoi du justificatif")}
+                          appearance={{
+                            container: "w-full",
+                            button: "w-full rounded-md bg-amber-700 px-4 py-2 text-sm font-bold text-white after:bg-amber-800 hover:bg-amber-800",
+                            allowedContent: "text-xs text-gray-500",
+                          }}
+                          content={{
+                            button: "Ajouter le justificatif",
+                            allowedContent: "Image ou PDF · 4 Mo maximum",
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {!birthDateVerified && formData.birthDateProofUrl && (
+                      <p className="mt-2 text-xs font-semibold text-amber-800">En attente de vérification par l’équipe.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
@@ -277,18 +335,20 @@ export function PetProfileForm({
 
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <TextAreaField
-            label="Informations médicales"
+            label="Maladies et informations médicales"
             icon={HeartPulse}
-            placeholder="Allergies, maladies chroniques, vaccins..."
+            placeholder="Allergies, maladies chroniques… Écrivez « Aucune connue » si nécessaire."
             value={formData.medicalInfo}
             onChange={(value) => updateField("medicalInfo", value)}
+            required
           />
           <TextAreaField
             label="Médicaments"
             icon={Syringe}
-            placeholder="Traitements, doses, horaires..."
+            placeholder="Traitements, doses, horaires… Écrivez « Aucun » si nécessaire."
             value={formData.medications}
             onChange={(value) => updateField("medications", value)}
+            required
           />
           <TextAreaField
             label="Comportement"
@@ -296,6 +356,7 @@ export function PetProfileForm({
             placeholder="Entente avec les animaux, enfants, peurs, habitudes..."
             value={formData.behaviorNotes}
             onChange={(value) => updateField("behaviorNotes", value)}
+            required
           />
           <TextAreaField
             label="Repas"
@@ -303,6 +364,7 @@ export function PetProfileForm({
             placeholder="Quantité, fréquence, croquettes, pâtée..."
             value={formData.feedingSchedule}
             onChange={(value) => updateField("feedingSchedule", value)}
+            required
           />
           <TextAreaField
             label="Vétérinaire"
@@ -310,6 +372,7 @@ export function PetProfileForm({
             placeholder="Nom, clinique, téléphone"
             value={formData.vetInfo}
             onChange={(value) => updateField("vetInfo", value)}
+            required
           />
           <TextAreaField
             label="Contact d'urgence"
@@ -317,6 +380,7 @@ export function PetProfileForm({
             placeholder="Personne à contacter en cas d'urgence"
             value={formData.emergencyContact}
             onChange={(value) => updateField("emergencyContact", value)}
+            required
           />
         </div>
       </section>
@@ -410,24 +474,27 @@ function GenderButton({
   );
 }
 
-function UnitButton({
+function ChoiceButton({
   active,
+  label,
   onClick,
-  children,
 }: {
   active: boolean;
+  label: string;
   onClick: () => void;
-  children: ReactNode;
 }) {
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
-      className={`rounded text-sm font-bold transition ${
-        active ? "bg-white text-gray-950 shadow-sm" : "text-gray-600 hover:text-gray-950"
+      className={`h-11 rounded-md border px-4 text-sm font-bold transition ${
+        active
+          ? "border-orange-500 bg-orange-50 text-orange-800"
+          : "border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-200"
       }`}
     >
-      {children}
+      {label}
     </button>
   );
 }
@@ -438,24 +505,27 @@ function TextAreaField({
   placeholder,
   value,
   onChange,
+  required = false,
 }: {
   label: string;
   icon: LucideIcon;
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
+  required?: boolean;
 }) {
   return (
     <div>
       <Label className="mb-2 flex items-center gap-2 font-bold text-gray-800">
         <Icon className="h-4 w-4 text-orange-600" />
-        {label}
+        {label} {required && <span className="text-orange-600">*</span>}
       </Label>
       <textarea
         className="min-h-28 w-full resize-none rounded-md border border-gray-200 bg-gray-50 p-3 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
         placeholder={placeholder}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        required={required}
       />
     </div>
   );

@@ -14,17 +14,25 @@
     "check:env:production": "CHECK_ENV_TARGET=production node scripts/check-env.mjs",
     "check:live": "CHECK_ENV_TARGET=production node scripts/check-env.mjs && node scripts/check-stripe-live.mjs",
     "check:pricing": "tsx scripts/check-pricing.ts",
+    "check:pets": "tsx scripts/check-pet-profiles.ts",
     "check:payments": "tsx scripts/check-payment-invariants.ts",
+    "check:finance": "tsx scripts/check-finance.ts",
     "check:translations": "node scripts/generate-translations.mjs --check",
     "check:types": "tsc --noEmit",
-    "preflight": "npm run check:env && npm run check:pricing && npm run check:payments && npm run check:translations && npm run check:types && npm run lint && npm run build",
+    "preflight": "npm run check:env && npm run check:two-factor && npm run check:pricing && npm run check:quote-email && npm run check:pets && npm run check:payments && npm run check:attendance && npm run check:finance && npm run check:direct-bookings && npm run check:translations && npm run check:types && npm run lint && npm run build",
     "postinstall": "prisma generate",
     "create-admin": "tsx scripts/create-admin.ts",
-    "reset-admin": "tsx scripts/reset-admin-password.ts"
+    "reset-admin": "tsx scripts/reset-admin-password.ts",
+    "check:quote-email": "tsx scripts/check-cat-visit-quote-email.ts",
+    "check:attendance": "tsx scripts/check-booking-attendance.ts && tsx scripts/check-booking-notices.ts",
+    "check:direct-bookings": "tsx scripts/check-direct-booking.ts && tsx scripts/check-direct-booking-api.ts",
+    "check:two-factor": "tsx scripts/check-two-factor.ts"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
+    "@auth/prisma-adapter": "^2.11.3",
+    "@prisma/adapter-pg": "7.8.0",
+    "@prisma/client": "7.8.0",
+    "@react-pdf/renderer": "4.9.0",
     "@uploadthing/react": "^7.3.3",
     "@upstash/redis": "^1.38.0",
     "bcryptjs": "^3.0.3",
@@ -33,9 +41,10 @@
     "dotenv": "^17.2.3",
     "framer-motion": "^12.23.26",
     "lucide-react": "^0.561.0",
-    "next": "^16.2.10",
-    "next-auth": "^5.0.0-beta.30",
+    "next": "16.2.11",
+    "next-auth": "5.0.0-beta.32",
     "pg": "^8.16.3",
+    "qrcode": "^1.5.4",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "resend": "^6.6.0",
@@ -50,22 +59,24 @@
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/pg": "^8.16.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.2.10",
-    "prisma": "^7.8.0",
+    "prisma": "7.8.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"
   },
   "overrides": {
-    "@hono/node-server": "1.19.14",
+    "@hono/node-server": "2.0.11",
     "brace-expansion": "1.1.16",
     "effect": "3.20.0",
     "eslint-plugin-react-hooks": "7.0.1",
     "next": {
       "postcss": "8.5.20"
-    }
+    },
+    "sharp": "0.35.3"
   }
 }

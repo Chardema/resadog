@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { AppNav } from "@/components/layout/AppNav";
 
 export const metadata: Metadata = {
   robots: {
@@ -10,9 +9,8 @@ export const metadata: Metadata = {
 
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <AppNav />
+    <div className="bg-[#FDFbf7] pt-12">
       {children}
-    </>
+    </div>
   );
 }

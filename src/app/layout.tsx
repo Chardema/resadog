@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "@uploadthing/react/styles.css";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { BetaBanner } from "@/components/layout/BetaBanner";
 import { CookieConsent } from "@/components/layout/CookieConsent";
+import { AppNav } from "@/components/layout/AppNav";
 import { Footer } from "@/components/layout/Footer";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { coreKeywords, getLocalBusinessJsonLd, getSiteUrl, SITE_NAME } from "@/lib/seo";
@@ -19,6 +19,7 @@ import {
   GOOGLE_CONSENT_BOOTSTRAP,
   GOOGLE_TAG_CONFIGURATION,
 } from "@/lib/google-analytics";
+import { TwoFactorGuard } from "@/components/auth/TwoFactorGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -98,6 +99,8 @@ export default async function RootLayout({
         <JsonLd data={getLocalBusinessJsonLd()} />
         <LanguageProvider initialLocale={initialLocale}>
           <SessionProvider>
+            <TwoFactorGuard />
+            <AppNav />
             <div className="flex-1">
               {children}
             </div>
@@ -107,22 +110,22 @@ export default async function RootLayout({
             <LanguageSwitcher />
           </SessionProvider>
         </LanguageProvider>
+        <Script
+          id="google-consent-default"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: GOOGLE_CONSENT_BOOTSTRAP }}
+        />
+        <Script
+          id="google-tag-manager"
+          strategy="beforeInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
+        />
+        <Script
+          id="google-tag-config"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: GOOGLE_TAG_CONFIGURATION }}
+        />
       </body>
-      <Script
-        id="google-consent-default"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: GOOGLE_CONSENT_BOOTSTRAP }}
-      />
-      <Script
-        id="google-tag-manager"
-        strategy="beforeInteractive"
-        src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
-      />
-      <Script
-        id="google-tag-config"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: GOOGLE_TAG_CONFIGURATION }}
-      />
     </html>
   );
 }

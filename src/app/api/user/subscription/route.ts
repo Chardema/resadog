@@ -3,7 +3,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { getPremiumBenefits } from "@/lib/loyalty";
 import { getLoyaltyAccount } from "@/lib/loyalty-ledger";
-import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
+import {
+  getPremiumCommitmentEnd,
+  getPremiumCommitmentMonths,
+  PREMIUM_SUBSCRIPTION,
+} from "@/lib/subscription-pricing";
 import { stripe } from "@/lib/stripe/config";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -31,6 +35,8 @@ export async function GET(request: NextRequest) {
   let cancellationEffectiveAt = null;
   let cancelAtPeriodEnd = false;
   let isLocked = false;
+  let minimumCommitmentMonths = PREMIUM_SUBSCRIPTION.minimumCommitmentMonths;
+  let isLegacyPlan = false;
   let invoices: {
     id: string;
     number: string | null;
@@ -55,6 +61,11 @@ export async function GET(request: NextRequest) {
         : stripeSub.cancel_at_period_end
           ? currentPeriodEnd
           : null;
+      minimumCommitmentMonths = getPremiumCommitmentMonths(stripeSub.metadata);
+      isLegacyPlan = minimumCommitmentMonths !== PREMIUM_SUBSCRIPTION.minimumCommitmentMonths;
+      const commitmentStart = new Date((stripeSub.start_date || stripeSub.created) * 1000);
+      commitmentEndsAt = getPremiumCommitmentEnd(commitmentStart, minimumCommitmentMonths);
+      isLocked = new Date() < commitmentEndsAt;
     } catch (e) {
       if (e instanceof Stripe.errors.StripeError && (e.statusCode === 404 || e.code === "resource_missing")) {
         await prisma.userSubscription.update({
@@ -66,16 +77,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const startDate = new Date(subscription.createdAt);
-    commitmentEndsAt = new Date(startDate);
-    commitmentEndsAt.setMonth(commitmentEndsAt.getMonth() + 1);
-    isLocked = new Date() < commitmentEndsAt;
-
     if (user?.stripeCustomerId) {
       try {
+        const returnUrl = `${getStripeReturnBaseUrl(request)}/profile`;
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: user.stripeCustomerId,
-          return_url: `${getStripeReturnBaseUrl(request)}/profile`,
+          return_url: returnUrl,
+          flow_data: {
+            type: "payment_method_update",
+            after_completion: {
+              type: "redirect",
+              redirect: { return_url: returnUrl },
+            },
+          },
         });
         portalUrl = portalSession.url;
       } catch (error) {
@@ -153,6 +167,8 @@ export async function GET(request: NextRequest) {
     cancelAtPeriodEnd,
     cancellationEffectiveAt,
     isLocked,
+    minimumCommitmentMonths,
+    isLegacyPlan,
     invoices,
   });
 }
@@ -226,29 +242,43 @@ export async function POST(request: NextRequest) {
       currentStripeSubscription.cancel_at_period_end ||
       Boolean(currentStripeSubscription.cancel_at);
 
-    if (action === "cancel_at_period_end" && cancellationAlreadyScheduled) {
-      const firstItem = currentStripeSubscription.items.data[0];
-      const effectiveAt = currentStripeSubscription.cancel_at
-        ? new Date(currentStripeSubscription.cancel_at * 1000)
-        : firstItem?.current_period_end
-          ? new Date(firstItem.current_period_end * 1000)
-          : null;
+    const firstItem = currentStripeSubscription.items.data[0];
+    const currentPeriodEnd = firstItem?.current_period_end
+      ? new Date(firstItem.current_period_end * 1000)
+      : null;
+    const minimumCommitmentMonths = getPremiumCommitmentMonths(currentStripeSubscription.metadata);
+    const commitmentStart = new Date(
+      (currentStripeSubscription.start_date || currentStripeSubscription.created) * 1000
+    );
+    const commitmentEndsAt = getPremiumCommitmentEnd(commitmentStart, minimumCommitmentMonths);
+    const isWithinCommitment = new Date() < commitmentEndsAt;
+    const scheduledEffectiveAt = currentStripeSubscription.cancel_at
+      ? new Date(currentStripeSubscription.cancel_at * 1000)
+      : currentStripeSubscription.cancel_at_period_end
+        ? currentPeriodEnd
+        : null;
+    const scheduledTooEarly = Boolean(
+      isWithinCommitment && scheduledEffectiveAt && scheduledEffectiveAt < commitmentEndsAt
+    );
+
+    if (action === "cancel_at_period_end" && cancellationAlreadyScheduled && !scheduledTooEarly) {
       return NextResponse.json({
         success: true,
         cancelAtPeriodEnd: true,
-        currentPeriodEnd: effectiveAt,
-        cancellationEffectiveAt: effectiveAt,
+        currentPeriodEnd,
+        cancellationEffectiveAt: scheduledEffectiveAt,
+        commitmentEndsAt,
+        minimumCommitmentMonths,
       });
     }
 
     if (action === "resume" && !cancellationAlreadyScheduled) {
-      const firstItem = currentStripeSubscription.items.data[0];
       return NextResponse.json({
         success: true,
         cancelAtPeriodEnd: false,
-        currentPeriodEnd: firstItem?.current_period_end
-          ? new Date(firstItem.current_period_end * 1000)
-          : null,
+        currentPeriodEnd,
+        commitmentEndsAt,
+        minimumCommitmentMonths,
       });
     }
 
@@ -258,7 +288,12 @@ export async function POST(request: NextRequest) {
         ? currentStripeSubscription.cancel_at
           ? { cancel_at: "" }
           : { cancel_at_period_end: false }
-        : { cancel_at_period_end: true }
+        : isWithinCommitment
+          ? {
+              cancel_at: Math.floor(commitmentEndsAt.getTime() / 1000),
+              cancel_at_period_end: false,
+            }
+          : { cancel_at_period_end: true }
     );
 
     if (action === "resume") {
@@ -268,19 +303,24 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const firstItem = stripeSubscription.items.data[0];
+    const updatedFirstItem = stripeSubscription.items.data[0];
+    const updatedCurrentPeriodEnd = updatedFirstItem?.current_period_end
+      ? new Date(updatedFirstItem.current_period_end * 1000)
+      : null;
     const effectiveAt = stripeSubscription.cancel_at
       ? new Date(stripeSubscription.cancel_at * 1000)
-      : stripeSubscription.cancel_at_period_end && firstItem?.current_period_end
-        ? new Date(firstItem.current_period_end * 1000)
+      : stripeSubscription.cancel_at_period_end && updatedCurrentPeriodEnd
+        ? updatedCurrentPeriodEnd
         : null;
 
     return NextResponse.json({
       success: true,
       cancelAtPeriodEnd:
         stripeSubscription.cancel_at_period_end || Boolean(stripeSubscription.cancel_at),
-      currentPeriodEnd: effectiveAt,
+      currentPeriodEnd: updatedCurrentPeriodEnd,
       cancellationEffectiveAt: effectiveAt,
+      commitmentEndsAt,
+      minimumCommitmentMonths,
     });
   } catch (error) {
     console.error("Erreur gestion abonnement:", error);

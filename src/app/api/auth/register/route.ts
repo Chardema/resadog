@@ -3,19 +3,20 @@ import { prisma } from "@/lib/db/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { distributedRateLimit } from "@/lib/rate-limit";
-import { sendWelcomeEmail } from "@/lib/email";
+import { issueEmailVerification } from "@/lib/auth/email-verification";
+import { getClientIp, normalizeEmail, passwordSchema } from "@/lib/auth/password";
 
 const registerSchema = z.object({
-  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+  name: z.string().trim().min(2, "Le nom doit contenir au moins 2 caractères").max(80),
   email: z.string().email("Email invalide"),
-  password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
-  phone: z.string().optional(),
+  password: passwordSchema,
+  phone: z.string().trim().max(30).optional(),
 });
 
 export async function POST(request: Request) {
   try {
     // Rate limiting : 5 inscriptions par IP par heure
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const ip = getClientIp(request);
     const { success } = await distributedRateLimit(`register:${ip}`, { maxRequests: 5, windowSeconds: 3600 });
     if (!success) {
       return NextResponse.json(
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     // Validation des données
     const validatedData = registerSchema.parse(body);
 
-    const normalizedEmail = validatedData.email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(validatedData.email);
 
     // PostgreSQL compare les chaînes avec leur casse par défaut. Cette recherche
     // empêche donc la création de deux comptes pour le même email.
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
     }
 
     // Hasher le mot de passe
-    const passwordHash = await bcrypt.hash(validatedData.password, 10);
+    const passwordHash = await bcrypt.hash(validatedData.password, 12);
 
     // Créer l'utilisateur
     const user = await prisma.user.create({
@@ -58,11 +59,17 @@ export async function POST(request: Request) {
       },
     });
 
-    sendWelcomeEmail(user.email, user.name || "Client", {
-      idempotencyKey: `welcome-${user.id}`,
-    }).catch((error) => {
-      console.error("Compte créé, mais email de bienvenue non envoyé:", error);
-    });
+    let verificationEmailSent = true;
+    try {
+      await issueEmailVerification({
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+      });
+    } catch (error) {
+      verificationEmailSent = false;
+      console.error("Compte créé, mais email de vérification non envoyé:", error);
+    }
 
     // Retourner les données de l'utilisateur (sans le mot de passe)
     return NextResponse.json({
@@ -72,7 +79,11 @@ export async function POST(request: Request) {
         email: user.email,
         role: user.role,
       },
-      message: "Compte créé avec succès",
+      message: verificationEmailSent
+        ? "Compte créé. Consultez votre boîte mail pour l'activer."
+        : "Compte créé. L'email n'a pas pu être envoyé ; utilisez le bouton de renvoi.",
+      verificationRequired: true,
+      verificationEmailSent,
     }, { status: 201 });
 
   } catch (error) {

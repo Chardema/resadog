@@ -118,6 +118,7 @@ export async function getGooglePlaceReviews(
 
   const response = await fetch(url, {
     cache: "no-store",
+    signal: AbortSignal.timeout(7000),
     headers: {
       "X-Goog-Api-Key": apiKey,
       "X-Goog-FieldMask": [
