@@ -28,10 +28,6 @@ const catalogue: Record<string, Translation> = {
     en: "Dog sitting near Disneyland Paris",
     es: "Cuidado de perros cerca de Disneyland Paris",
   },
-  "Garde chat en Seine-et-Marne 77": {
-    en: "Cat sitting in Seine-et-Marne (77)",
-    es: "Cuidado de gatos en Seine-et-Marne (77)",
-  },
   "Pension chien familiale en Seine-et-Marne": {
     en: "Family dog boarding in Seine-et-Marne",
     es: "Alojamiento familiar para perros en Seine-et-Marne",
@@ -197,7 +193,6 @@ const catalogue: Record<string, Translation> = {
     es: "Su mascota vive con nosotros en casa. Sin jaulas, con acceso ilimitado al jardín y muchos mimos en el sofá. Como en casa, pero aún mejor.",
   },
   "Vie de famille 24/7": { en: "Family life 24/7", es: "Vida familiar 24/7" },
-  "Promenades incluses": { en: "Walks included", es: "Paseos incluidos" },
   "Photos tous les jours": { en: "Daily photos", es: "Fotos diarias" },
   "Garde à votre domicile": { en: "Sitting in your home", es: "Cuidado en su domicilio" },
   "Garde au domicile du client": { en: "Pet sitting in your home", es: "Cuidado en su domicilio" },
@@ -349,10 +344,8 @@ const catalogue: Record<string, Translation> = {
     es: "Cree su cuenta gratis y reserve el primer cuidado de su mascota en menos de 2 minutos.",
   },
   "Garde chien Disneyland Paris": { en: "Dog sitting near Disneyland Paris", es: "Cuidado de perros cerca de Disneyland Paris" },
-  "Garde chat 77": { en: "Cat sitting in Seine-et-Marne", es: "Cuidado de gatos en Seine-et-Marne" },
   "Pension chien 77": { en: "Dog boarding in Seine-et-Marne", es: "Alojamiento canino en Seine-et-Marne" },
   "Garde animaux Seine-et-Marne": { en: "Pet care in Seine-et-Marne", es: "Cuidado de mascotas en Seine-et-Marne" },
-  "Garde chien 77": { en: "Dog sitting in Seine-et-Marne", es: "Cuidado de perros en Seine-et-Marne" },
   "Garde animaux 77": { en: "Pet care in Seine-et-Marne", es: "Cuidado de mascotas en Seine-et-Marne" },
   "minutes · chat sur demande": { en: "minutes · cats on request", es: "minutos · gatos bajo petición" },
 
@@ -633,7 +626,6 @@ const catalogue: Record<string, Translation> = {
   "nuit": { en: "night", es: "noche" },
   "jour": { en: "day", es: "día" },
   "visite": { en: "visit", es: "visita" },
-  "dès": { en: "from", es: "desde" },
 
   // Customer area and pet profiles
   "Toutes vos réservations": { en: "All your bookings", es: "Todas sus reservas" },
@@ -838,6 +830,520 @@ const catalogue: Record<string, Translation> = {
   "Qualification professionnelle": { en: "Professional qualification", es: "Cualificación profesional" },
   "Médiation de la consommation": { en: "Consumer mediation", es: "Mediación de consumo" },
   "Hébergement du site": { en: "Website hosting", es: "Alojamiento del sitio web" },
+  // Hero & Home (Chantier 1)
+  "Bussy-Saint-Georges · Val d’Europe · Disneyland Paris": {
+    en: "Bussy-Saint-Georges · Val d’Europe · Disneyland Paris",
+    es: "Bussy-Saint-Georges · Val d’Europe · Disneyland Paris",
+  },
+  "· Avis vérifiés": { en: "· Verified reviews", es: "· Opiniones verificadas" },
+  "Avis vérifiés": { en: "Verified reviews", es: "Opiniones verificadas" },
+  "Garde familiale de chiens & chats près de Disneyland Paris,": {
+    en: "Family dog & cat boarding near Disneyland Paris,",
+    es: "Alojamiento familiar para perros y gatos cerca de Disneyland Paris,",
+  },
+  "comme à la maison.": { en: "just like home.", es: "como en casa." },
+  "100 % sans box ni cage": {
+    en: "100% cage-free and kennel-free",
+    es: "100 % sin jaulas ni perreras",
+  },
+  ", garderie de jour, visites à domicile et promenades en Seine-et-Marne (77). Partez l’esprit tranquille avec des photos et nouvelles chaque jour.": {
+    en: ", day care, home visits and dog walks in Seine-et-Marne (77). Enjoy complete peace of mind with daily photos and updates.",
+    es: ", guardería de día, visitas a domicilio y paseos en Seine-et-Marne (77). Viaje con total tranquilidad con fotos y noticias cada día.",
+  },
+  "Hébergement familial 100 % sans box ni cage, garderie de jour, visites à domicile et promenades en Seine-et-Marne (77). Partez l’esprit tranquille avec des photos et nouvelles chaque jour.": {
+    en: "100% cage-free family boarding, day care, home visits and dog walks in Seine-et-Marne (77). Enjoy complete peace of mind with daily photos and updates.",
+    es: "Alojamiento familiar 100 % sin jaulas, guardería de día, visitas a domicilio y paseos en Seine-et-Marne (77). Viaje con total tranquilidad con fotos y noticias cada día.",
+  },
+  "Vérifier mes dates & simuler mon tarif": {
+    en: "Check my dates & estimate my price",
+    es: "Comprobar mis fechas y calcular mi tarifa",
+  },
+  "Découvrir les services & tarifs": {
+    en: "Explore services & pricing",
+    es: "Descubrir servicios y tarifas",
+  },
+  "Tarif calculé à la durée réelle": {
+    en: "Price calculated on actual duration",
+    es: "Tarifa calculada según la duración real",
+  },
+  "Consignes santé & habitudes vérifiées avant chaque garde": {
+    en: "Health instructions & routines checked before every stay",
+    es: "Instrucciones de salud y rutinas verificadas antes de cada estancia",
+  },
+  "Garde familiale de chiens et chats chez La Patte Dorée": {
+    en: "Family dog and cat boarding at La Patte Dorée",
+    es: "Cuidado familiar de perros y gatos en La Patte Dorée",
+  },
+  "Cadre 100 % familial": {
+    en: "100% family home environment",
+    es: "Entorno 100 % familiar",
+  },
+  "Maison & suivi personnalisé": {
+    en: "Home setting & personalised care",
+    es: "Hogar y seguimiento personalizado",
+  },
+  "Dès": { en: "From", es: "Desde" },
+  "dès": { en: "from", es: "desde" },
+  "% dès": { en: "% from", es: "% desde" },
+  "Dès 35 €": { en: "From €35", es: "Desde 35 €" },
+  "Zéro box, zéro cage": {
+    en: "Zero kennels, zero cages",
+    es: "Cero perreras, cero jaulas",
+  },
+  "Votre compagnon vit avec nous dans la maison, à son rythme, avec sorties et moments de jeu adaptés.": {
+    en: "Your pet lives with us inside our home at their own pace, with tailored outings and playtime.",
+    es: "Su mascota vive con nosotros en casa, a su propio ritmo, con salidas y momentos de juego adaptados.",
+  },
+  "Photos & nouvelles quotidiennes": {
+    en: "Daily photos & updates",
+    es: "Fotos y noticias diarias",
+  },
+  "Vous suivez son séjour chaque jour pendant votre visite à Disneyland Paris ou vos vacances.": {
+    en: "Follow their stay every day during your visit to Disneyland Paris or your holiday.",
+    es: "Siga su estancia cada día durante su visita a Disneyland Paris o sus vacaciones.",
+  },
+  "Titulaire ACACED Chien & Chat": {
+    en: "State-certified ACACED Dog & Cat holder",
+    es: "Titular del certificado oficial ACACED Perro y Gato",
+  },
+  "Certificat officiel de capacité, vérification du carnet de santé et respect strict des consignes.": {
+    en: "Official French pet care certification, health record check and strict adherence to your instructions.",
+    es: "Certificado oficial de capacidad, verificación de la cartilla sanitaria y estricto respeto de sus indicaciones.",
+  },
+  "Bussy-Saint-Georges · à 10 min des parcs Disney": {
+    en: "Bussy-Saint-Georges · 10 min from the Disney parks",
+    es: "Bussy-Saint-Georges · a 10 min de los parques Disney",
+  },
+  "Lire les avis →": { en: "Read reviews →", es: "Leer opiniones →" },
+  "Qualifié ACACED": { en: "ACACED Certified", es: "Certificado ACACED" },
+  "Chien & chat certifié": {
+    en: "Certified for dogs & cats",
+    es: "Certificado para perros y gatos",
+  },
+  "100 % sans box": { en: "100% kennel-free", es: "100 % sin jaulas" },
+  "Cadre familial calme": {
+    en: "Calm family home",
+    es: "Entorno familiar tranquilo",
+  },
+  "Suivi quotidien": { en: "Daily updates", es: "Seguimiento diario" },
+  "Photos & nouvelles": { en: "Photos & updates", es: "Fotos y noticias" },
+  "Note 5,0 / 5": { en: "Rated 5.0 / 5", es: "Nota 5,0 / 5" },
+  "Note": { en: "Rated", es: "Nota" },
+  "Voir les avis clients →": {
+    en: "See client reviews →",
+    es: "Ver opiniones de clientes →",
+  },
+  "Un cadre familial": {
+    en: "A family home setting",
+    es: "Un entorno familiar",
+  },
+  "Promenades incluses": {
+    en: "Walks included",
+    es: "Paseos incluidos",
+  },
+
+  // Footer & Nav
+  "Dog boarding Disneyland Paris (EN)": {
+    en: "Dog boarding Disneyland Paris (EN)",
+    es: "Guardería y alojamiento canino Disneyland Paris (EN)",
+  },
+  "Cookies": { en: "Cookies", es: "Cookies" },
+  "· SIREN": { en: "· SIREN", es: "· SIREN" },
+  "Historique": { en: "History", es: "Historial" },
+
+  // Local SEO & Disneyland Paris (src/lib/seo.ts & src/app/(local-seo)/[slug]/page.tsx)
+  "Page introuvable": { en: "Page not found", es: "Página no encontrada" },
+  "Cette page n'existe pas.": {
+    en: "This page does not exist.",
+    es: "Esta página no existe.",
+  },
+  "animaux": { en: "pets", es: "mascotas" },
+  "total": { en: "total", es: "total" },
+  "Garderie de jour chien (jusqu’à 10 h)": {
+    en: "Dog day care (up to 10 hours)",
+    es: "Guardería de día para perros (hasta 10 h)",
+  },
+  "Garderie de jour chien (jusqu'à 10 h)": {
+    en: "Dog day care (up to 10 hours)",
+    es: "Guardería de día para perros (hasta 10 h)",
+  },
+  "Hébergement familial 24 h": {
+    en: "24-hour family boarding",
+    es: "Alojamiento familiar 24 h",
+  },
+  "Hébergement familial chien (période de 24 h)": {
+    en: "Family dog boarding (24-hour period)",
+    es: "Alojamiento familiar para perros (periodo de 24 h)",
+  },
+  "garde de jour jusqu'à 10 h": {
+    en: "day care up to 10 hours",
+    es: "guardería de día hasta 10 h",
+  },
+  "Promenade 30 min": { en: "30-min dog walk", es: "Paseo de 30 min" },
+  "Visite 30 min": { en: "30-min home visit", es: "Visita de 30 min" },
+  "Garde à votre domicile / hôtel": {
+    en: "Sitting at your home / hotel",
+    es: "Cuidado en su domicilio / hotel",
+  },
+  "Sur demande": { en: "On request", es: "Bajo petición" },
+  "Diplômée d’État ACACED Chien & Chat": {
+    en: "State-certified ACACED Dog & Cat",
+    es: "Certificado estatal ACACED Perro y Gato",
+  },
+  "RER A Bussy-Saint-Georges (8 min) · A4 sortie 12 (10 min)": {
+    en: "RER A Bussy-Saint-Georges (8 min) · A4 exit 12 (10 min)",
+    es: "RER A Bussy-Saint-Georges (8 min) · A4 salida 12 (10 min)",
+  },
+  "Simuler mon tarif": { en: "Estimate my price", es: "Calcular mi tarifa" },
+  "Visiting from abroad? Read this page in English": {
+    en: "Visiting from abroad? Read this page in English",
+    es: "¿Nos visita desde el extranjero? Lea esta página en inglés",
+  },
+  "Service indépendant de garde d'animaux certifié ACACED, non affilié à Disneyland Paris.": {
+    en: "Independent ACACED-certified pet sitting service, not affiliated with Disneyland Paris.",
+    es: "Servicio independiente de cuidado de mascotas certificado por ACACED, no afiliado a Disneyland Paris.",
+  },
+  "Service de garde d'animaux pour chiens et chats près de Disneyland Paris, Bussy-Saint-Georges, Val d'Europe et en Seine-et-Marne.": {
+    en: "Dog and cat sitting and boarding service near Disneyland Paris, Bussy-Saint-Georges, Val d'Europe and in Seine-et-Marne.",
+    es: "Servicio de cuidado y alojamiento de perros y gatos cerca de Disneyland Paris, Bussy-Saint-Georges, Val d'Europe y en Seine-et-Marne.",
+  },
+  "Garde familiale chien · À 10 min de Disneyland Paris": {
+    en: "Family dog boarding · 10 min from Disneyland Paris",
+    es: "Alojamiento familiar canino · A 10 min de Disneyland Paris",
+  },
+  "Garde chien et chat dans le 77": {
+    en: "Dog and cat sitting in Seine-et-Marne (77)",
+    es: "Cuidado de perros y gatos en Seine-et-Marne (77)",
+  },
+  "✓ Diplômée ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 sortie 12 10 min)": {
+    en: "✓ ACACED certified · ✓ Bussy-Saint-Georges (RER A 8 min / A4 exit 12 10 min)",
+    es: "✓ Certificada ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 salida 12 10 min)",
+  },
+  "Horaires réels : la période de 24 h démarre à l’heure de dépôt (le passage de minuit ne déclenche jamais une seconde journée facturée).": {
+    en: "Real-time billing: the 24-hour period starts at drop-off time (crossing midnight never triggers a second billed day).",
+    es: "Horarios reales: el periodo de 24 h comienza a la hora de entrega (el paso de la medianoche nunca genera un segundo día facturado).",
+  },
+  "Formules & Tarifs clairs": {
+    en: "Clear packages & pricing",
+    es: "Fórmulas y tarifas claras",
+  },
+  "Quelle garde choisir pendant votre séjour à Disneyland Paris ?": {
+    en: "Which care option should you choose during your stay at Disneyland Paris?",
+    es: "¿Qué opción de cuidado elegir durante su estancia en Disneyland Paris?",
+  },
+  "Besoin d'une garde fiable dans le 77 ?": {
+    en: "Need reliable pet sitting in Seine-et-Marne (77)?",
+    es: "¿Necesita un cuidado de mascotas de confianza en el 77?",
+  },
+  "Hébergement chien": { en: "Dog boarding", es: "Alojamiento para perros" },
+  "Hébergement chat": { en: "Cat boarding", es: "Alojamiento para gatos" },
+  "Garderie chien": { en: "Dog day care", es: "Guardería para perros" },
+  "Garderie chat": { en: "Cat day care", es: "Guardería para gatos" },
+  "Visite chien": { en: "Dog home visit", es: "Visita para perros" },
+  "Visite chat": { en: "Cat home visit", es: "Visita para gatos" },
+  "Promenade chien": { en: "Dog walk", es: "Paseo para perros" },
+  "Visite 2 h chat": { en: "2-hour cat visit", es: "Visita de 2 h para gatos" },
+  "Garde de chien près de Disneyland Paris : l'alternative familiale sans box": {
+    en: "Dog Boarding & Daycare Near Disneyland Paris: The Cage-Free Family Alternative",
+    es: "Cuidado de perros cerca de Disneyland Paris: la alternativa familiar sin jaulas",
+  },
+  "Garde Chien Disneyland Paris : Alternative au Chenil (Sans Box)": {
+    en: "Dog Boarding Near Disneyland Paris: Cage-Free Alternative to the Kennel",
+    es: "Guardería y Alojamiento Canino en Disneyland Paris: Alternativa sin Jaulas",
+  },
+  "Alternative familiale au chenil de Disneyland Paris : garde chien sans box à 10 min des parcs (Bussy-St-Georges). Garderie jour 35 €, pension 24h 45 €, photos.": {
+    en: "Family alternative to the Disneyland Paris kennel: cage-free dog boarding 10 min from the parks (Bussy-St-Georges). Day care €35, 24h boarding €45, photo updates.",
+    es: "Alternativa familiar a la perrera de Disneyland Paris: cuidado de perros sin jaulas a 10 min de los parques (Bussy-St-Georges). Guardería 35 €, pensión 24h 45 €, fotos.",
+  },
+  "Garde chien Disneyland Paris · À 10 min des parcs (Bussy-Saint-Georges)": {
+    en: "Dog boarding Disneyland Paris · 10 min from the parks (Bussy-Saint-Georges)",
+    es: "Cuidado de perros Disneyland Paris · A 10 min de los parques (Bussy-Saint-Georges)",
+  },
+  "Vous visitez Disneyland Paris pour la journée ou séjournez dans un hôtel à Val d'Europe ? Offrez à votre chien de vraies vacances pendant que vous profitez des attractions. Située à Bussy-Saint-Georges (à 2 stations de RER A ou 10 minutes en voiture des parcs), La Patte Dorée accueille votre compagnon dans une vraie maison avec jardin, sans box ni cage, avec promenades incluses et photos envoyées dans la journée.": {
+    en: "Visiting Disneyland Paris for the day or staying at a hotel in Val d'Europe? Give your dog a real holiday while you enjoy the attractions. Located in Bussy-Saint-Georges (just 2 RER A stops or a 10-minute drive from the parks), La Patte Dorée welcomes your dog into a real family house with a fenced garden, 100% cage-free and kennel-free, with walks included and photo updates sent throughout the day.",
+    es: "¿Visita Disneyland Paris por el día o se aloja en un hotel en Val d'Europe? Ofrezca a su perro unas verdaderas vacaciones mientras disfruta de las atracciones. Situada en Bussy-Saint-Georges (a 2 paradas de RER A o 10 minutos en coche de los parques), La Patte Dorée acoge a su compañero en una verdadera casa familiar con jardín, sin jaulas ni perreras, con paseos incluidos y fotos enviadas durante el día.",
+  },
+  "Que vous veniez pour une journée aux parcs ou pour un séjour de plusieurs nuits dans un hôtel Disney, Val d'Europe ou Villages Nature, notre tarification s'adapte à vos horaires réels (le passage de minuit ne déclenche jamais une seconde journée facturée).": {
+    en: "Whether you are visiting the parks for a single day or staying several nights at a Disney, Val d'Europe or Villages Nature hotel, our pricing adapts to your actual schedule (crossing midnight never triggers an extra billed day).",
+    es: "Tanto si viene a pasar el día en los parques como si se aloja varias noches en un hotel Disney, Val d'Europe o Villages Nature, nuestra tarifa se adapta a sus horarios reales (el paso de la medianoche nunca genera un segundo día facturado).",
+  },
+  "Vérifier les disponibilités & réserver": {
+    en: "Check availability & book",
+    es: "Comprobar disponibilidad y reservar",
+  },
+  "Maison & jardin clos — 100 % sans box ni cage": {
+    en: "House & fenced garden — 100% cage-free and kennel-free",
+    es: "Casa y jardín vallado — 100 % sin jaulas ni perreras",
+  },
+  "À 10 min de Disneyland Paris (A4 sortie 12 / RER A Bussy-St-Georges)": {
+    en: "10 min from Disneyland Paris (A4 exit 12 / RER A Bussy-St-Georges)",
+    es: "A 10 min de Disneyland Paris (A4 salida 12 / RER A Bussy-St-Georges)",
+  },
+  "Promenades incluses & photos envoyées pendant votre journée au parc": {
+    en: "Walks included & photo updates sent during your day at the park",
+    es: "Paseos incluidos y fotos enviadas durante su día en el parque",
+  },
+  "Pet-sitter diplômée ACACED · Réservation en ligne sécurisée": {
+    en: "ACACED-certified pet sitter · Secure online booking",
+    es: "Cuidadora certificada ACACED · Reserva online segura",
+  },
+  "Garderie de jour — 35 € (jusqu'à 10 h)": {
+    en: "Day care — €35 (up to 10 hours)",
+    es: "Guardería de día — 35 € (hasta 10 h)",
+  },
+  "Idéal pour une journée au parc Disneyland ou Walt Disney Studios. Déposez votre chien le matin avant l'ouverture, profitez des attractions l'esprit léger et récupérez-le après sa journée de jeux, de balades et de repos au calme.": {
+    en: "Ideal for a day at Disneyland Park or Walt Disney Studios. Drop your dog off in the morning before park opening, enjoy the rides with peace of mind, and pick them up after a day of play, walks, and quiet rest.",
+    es: "Ideal para pasar el día en Disneyland Park o Walt Disney Studios. Deje a su perro por la mañana antes de la apertura, disfrute de las atracciones con tranquilidad y recójalo después de su día de juegos, paseos y descanso.",
+  },
+  "Hébergement familial 24 h — 45 € / 24 h": {
+    en: "24-hour family boarding — €45 / 24h",
+    es: "Alojamiento familiar 24 h — 45 € / 24 h",
+  },
+  "La formule préférée des visiteurs qui restent pour le spectacle nocturne ou dorment à l'hôtel. Le tarif est calculé par période glissante de 24 h à partir de l'heure de dépôt (ex. : arrivée à 9 h le samedi → départ jusqu'à 9 h le dimanche = 45 €).": {
+    en: "The favourite option for visitors staying for the evening fireworks show or sleeping at a hotel. Pricing is calculated per rolling 24-hour period from drop-off time (e.g. Saturday 9 am arrival → Sunday up to 9 am pick-up = €45).",
+    es: "La opción preferida de los visitantes que se quedan para el espectáculo nocturno o duermen en el hotel. La tarifa se calcula por periodo continuo de 24 h desde la hora de entrega (ej.: llegada el sábado a las 9 h → salida hasta el domingo a las 9 h = 45 €).",
+  },
+  "Séjour multi-jours & week-end Disney": {
+    en: "Multi-day stay & Disney weekend",
+    es: "Estancia de varios días y fin de semana en Disney",
+  },
+  "Vous logez dans un hôtel de Marne-la-Vallée qui n'accepte pas les animaux ? Votre chien séjourne avec nous comme à la maison (canapé, jardin, sorties régulières et suivi quotidien).": {
+    en: "Staying at a hotel in Marne-la-Vallée that doesn't allow pets? Your dog stays with us just like at home (sofa, garden, regular walks, and daily photo updates).",
+    es: "¿Se aloja en un hotel de Marne-la-Vallée que no admite mascotas? Su perro se queda con nosotros como en casa (sofá, jardín, salidas regulares y seguimiento diario).",
+  },
+  "Visites & promenades autour de Val d'Europe": {
+    en: "Home visits & dog walks around Val d'Europe",
+    es: "Visitas y paseos alrededor de Val d'Europe",
+  },
+  "Vous résidez ou louez un hébergement acceptant les animaux à Chessy, Serris, Montévrain ou Bussy-Saint-Georges ? Nous passons sortir, nourrir et câliner votre compagnon à domicile (dès 15 € / 30 min).": {
+    en: "Staying in a pet-friendly rental in Chessy, Serris, Montévrain or Bussy-Saint-Georges? We stop by to walk, feed, and cuddle your pet at your accommodation (from €15 / 30 min).",
+    es: "¿Reside o alquila un alojamiento que admite mascotas en Chessy, Serris, Montévrain o Bussy-Saint-Georges? Pasamos a pasear, alimentar y mimar a su mascota a domicilio (desde 15 € / 30 min).",
+  },
+  "Pourquoi choisir une garde familiale plutôt que le chenil de Disneyland Paris ?": {
+    en: "Why choose family boarding over the official Disneyland Paris kennel?",
+    es: "¿Por qué elegir un alojamiento familiar en lugar de la perrera de Disneyland Paris?",
+  },
+  "Le chenil officiel du parc (Animal Care Center) dépanne, mais impose des contraintes lourdes : votre chien y est placé en box individuel et le personnel n'est pas autorisé à le promener (vous devez sortir du parc en cours de journée pour venir le balader vous-même). Avec La Patte Dorée, vous n'avez aucun aller-retour à faire en pleine journée : nous nous occupons de tout.": {
+    en: "The park's official kennel (Animal Care Center) is a basic fallback, but comes with strict limitations: dogs are kept in individual kennels and staff are not allowed to walk them (you must leave the park during the day to walk your dog yourself). With La Patte Dorée, you never have to leave the park mid-day: we take care of everything.",
+    es: "La perrera oficial del parque (Animal Care Center) saca de un apuro, pero impone fuertes limitaciones: su perro permanece en un box individual y el personal no está autorizado a pasearlo (usted debe salir del parque durante el día para pasearlo). Con La Patte Dorée, no tendrá que hacer idas y vueltas a mitad del día: nos ocupamos de todo.",
+  },
+  "Zéro cage, zéro box : vie de famille en maison avec accès au jardin et au canapé": {
+    en: "Zero cages, zero kennels: family life in a real house with access to the garden and sofa",
+    es: "Cero jaulas, cero perreras: vida familiar en casa con acceso al jardín y al sofá",
+  },
+  "Promenades assurées par nos soins : profitez des deux parcs sans devoir ressortir à midi": {
+    en: "Walks handled by us: enjoy both Disney parks without having to leave at midday",
+    es: "Paseos realizados por nosotros: disfrute de los dos parques sin tener que salir al mediodía",
+  },
+  "Idéal si vous voulez rester jusqu'au spectacle pyrotechnique du soir (formule 24 h à 45 €)": {
+    en: "Ideal if you want to stay until the evening fireworks show (24-hour boarding package at €45)",
+    es: "Ideal si desea quedarse hasta el espectáculo pirotécnico nocturno (fórmula 24 h a 45 €)",
+  },
+  "Nouvelles et photos envoyées pour rassurer toute la famille dans les files d'attente": {
+    en: "Photos and updates sent to reassure the whole family while waiting in line for rides",
+    es: "Noticias y fotos enviadas para tranquilizar a toda la familia en las colas de las atracciones",
+  },
+  "Accès ultra-rapide depuis les parcs, la gare TGV/RER de Chessy et l'autoroute A4": {
+    en: "Ultra-fast access from the parks, Marne-la-Vallée Chessy TGV/RER station and the A4 motorway",
+    es: "Acceso ultrarrápido desde los parques, la estación TGV/RER de Chessy y la autopista A4",
+  },
+  "Notre maison d'accueil est située à Bussy-Saint-Georges (77600), sur votre trajet direct vers Disneyland Paris. Le dépôt et la reprise se font sur rendez-vous rapide pour ne pas retarder votre entrée aux parcs.": {
+    en: "Our family home is located in Bussy-Saint-Georges (77600), right on your route to Disneyland Paris. Drop-off and pick-up are arranged by quick appointment so you don't delay your park entry.",
+    es: "Nuestra casa de acogida está situada en Bussy-Saint-Georges (77600), en su trayecto directo hacia Disneyland Paris. La entrega y recogida se realizan con cita rápida para no retrasar su entrada a los parques.",
+  },
+  "En voiture : à 10 minutes des parkings Disney et des hôtels via l'A4 (sortie 12 Bussy-Saint-Georges)": {
+    en: "By car: 10 minutes from Disney parking lots and hotels via the A4 motorway (Exit 12 Bussy-Saint-Georges)",
+    es: "En coche: a 10 minutos de los aparcamientos Disney y de los hoteles por la A4 (salida 12 Bussy-Saint-Georges)",
+  },
+  "En RER A : station Bussy-Saint-Georges, à seulement 2 arrêts (8 minutes) de Marne-la-Vallée Chessy": {
+    en: "By RER A train: Bussy-Saint-Georges station, just 2 stops (8 minutes) from Marne-la-Vallée Chessy",
+    es: "En RER A: estación Bussy-Saint-Georges, a solo 2 paradas (8 minutos) de Marne-la-Vallée Chessy",
+  },
+  "Proche de tous les hôtels de Val d'Europe, Serris, Chessy, Coupvray, Magny-le-Hongre et Bailly-Romainvilliers": {
+    en: "Close to all hotels in Val d'Europe, Serris, Chessy, Coupvray, Magny-le-Hongre and Bailly-Romainvilliers",
+    es: "Cerca de todos los hoteles de Val d'Europe, Serris, Chessy, Coupvray, Magny-le-Hongre y Bailly-Romainvilliers",
+  },
+  "Profil santé, habitudes et ententes vérifiés avant confirmation pour garantir la sécurité de chaque chien": {
+    en: "Health profile, habits and compatibility checked before confirmation to guarantee every dog's safety",
+    es: "Perfil de salud, hábitos y sociabilidad verificados antes de la confirmación para garantizar la seguridad de cada perro",
+  },
+  "Quelle est la différence entre La Patte Dorée et le chenil officiel de Disneyland Paris (Animal Care Center) ?": {
+    en: "What is the difference between La Patte Dorée and the official Disneyland Paris kennel (Animal Care Center)?",
+    es: "¿Cuál es la diferencia entre La Patte Dorée y la perrera oficial de Disneyland Paris (Animal Care Center)?",
+  },
+  "Au chenil officiel de Disneyland Paris, les chiens sont gardés en box individuel et le personnel ne les promène pas : les propriétaires doivent revenir eux-mêmes pendant la journée pour les sortir. Chez La Patte Dorée, votre chien est accueilli dans une vraie maison familiale avec jardin à Bussy-Saint-Georges (à 10 min du parc), sans cage ni box. Nous assurons ses promenades, ses repas et ses moments de jeu, et nous vous envoyons des photos pendant que vous profitez des parcs sans interruption.": {
+    en: "At the official Disneyland Paris kennel, dogs are kept in individual runs and staff do not walk them: owners must come back during the day to take them out themselves. At La Patte Dorée, your dog stays in a real family home with a garden in Bussy-Saint-Georges (10 minutes from the park), with no cages or kennels. We handle their walks, meals, and playtime, and send you photo updates while you enjoy the parks uninterrupted.",
+    es: "En la perrera oficial de Disneyland Paris, los perros permanecen en boxes individuales y el personal no los pasea: los propietarios deben volver durante el día para sacarlos. En La Patte Dorée, su perro es acogido en una verdadera casa familiar con jardín en Bussy-Saint-Georges (a 10 min del parque), sin jaulas ni boxes. Nos encargamos de sus paseos, comidas y juegos, y le enviamos fotos mientras disfruta de los parques sin interrupciones.",
+  },
+  "Comment choisir entre la garderie de jour (35 €) et l'hébergement 24 h (45 €) pour une journée à Disney ?": {
+    en: "How do I choose between day care (€35) and 24-hour boarding (€45) for a day at Disney?",
+    es: "¿Cómo elegir entre la guardería de día (35 €) y el alojamiento 24 h (45 €) para un día en Disney?",
+  },
+  "Si vous restez aux parcs jusqu'à 10 heures maximum dans la même journée, la garderie de jour à 35 € suffit. Si vous souhaitez arriver dès l'ouverture (ex. 8h30 / 9h00) et rester jusqu'à la fermeture après le spectacle nocturne (souvent 22h00 ou 23h00, soit plus de 10 heures de présence), ou laisser votre chien dormir au calme pour le récupérer le lendemain matin, la formule hébergement 24 h à 45 € s'applique automatiquement.": {
+    en: "If you stay at the parks for up to 10 hours on the same day, the €35 day care option is all you need. If you want to arrive right at park opening (e.g. 8:30 / 9:00 am) and stay until closing after the evening fireworks show (often 10:00 or 11:00 pm, i.e. more than 10 hours), or let your dog sleep peacefully overnight and pick them up the next morning, the €45 24-hour boarding rate applies automatically.",
+    es: "Si permanece en los parques hasta un máximo de 10 horas en el mismo día, la guardería de día a 35 € es suficiente. Si desea llegar desde la apertura (ej. 8:30 / 9:00) y quedarse hasta el cierre tras el espectáculo nocturno (a menudo 22:00 o 23:00, es decir, más de 10 horas), o dejar que su perro duerma tranquilo para recogerlo a la mañana siguiente, se aplica automáticamente la fórmula de alojamiento 24 h a 45 €.",
+  },
+  "À quelle distance de Disneyland Paris et des hôtels Disney êtes-vous situés ?": {
+    en: "How far are you located from Disneyland Paris and the Disney hotels?",
+    es: "¿A qué distancia de Disneyland Paris y de los hoteles Disney se encuentran?",
+  },
+  "Nous sommes situés à Bussy-Saint-Georges (77600), à environ 10 minutes en voiture de Disneyland Paris, de Val d'Europe et des hôtels partenaires (via l'autoroute A4, sortie 12), et à seulement 2 stations de RER A (8 minutes) de la gare de Marne-la-Vallée Chessy.": {
+    en: "We are located in Bussy-Saint-Georges (77600), about a 10-minute drive from Disneyland Paris, Val d'Europe and partner hotels (via the A4 motorway, Exit 12), and just 2 RER A train stops (8 minutes) from Marne-la-Vallée Chessy station.",
+    es: "Estamos situados en Bussy-Saint-Georges (77600), a unos 10 minutos en coche de Disneyland Paris, Val d'Europe y los hoteles asociados (por la autopista A4, salida 12), y a solo 2 paradas de RER A (8 minutos) de la estación de Marne-la-Vallée Chessy.",
+  },
+  "Mon chien sera-t-il enfermé en box ou en cage ?": {
+    en: "Will my dog be locked in a kennel run or cage?",
+    es: "¿Estará mi perro encerrado en un box o jaula?",
+  },
+  "Jamais. L'accueil est 100 % familial : votre chien vit avec nous dans la maison, profite du salon, du jardin clos et de vraies balades. Pour garantir une ambiance sereine, nous validons au préalable le profil de chaque animal (sociabilité, habitudes, santé). Deux chats habitués aux chiens vivent également à la maison et disposent d'un espace séparé si nécessaire.": {
+    en: "Never. Our care is 100% family-style: your dog lives with us inside our house, enjoys the living room, the fenced garden, and real walks. To guarantee a peaceful atmosphere, we review each pet's profile beforehand (socialisation, habits, health). Two dog-friendly cats also live in the house and have their own separate space if needed.",
+    es: "Jamás. La acogida es 100 % familiar: su perro vive con nosotros en la casa, disfruta del salón, del jardín vallado y de verdaderos paseos. Para garantizar un ambiente tranquilo, validamos previamente el perfil de cada animal (sociabilidad, hábitos, salud). Dos gatos acostumbrados a los perros viven también en la casa y disponen de un espacio separado si es necesario.",
+  },
+  "Puis-je déposer mon chien tôt le matin avant l'ouverture des parcs ?": {
+    en: "Can I drop my dog off early in the morning before the parks open?",
+    es: "¿Puedo dejar a mi perro temprano por la mañana antes de la apertura de los parques?",
+  },
+  "Oui, les horaires de dépôt et de reprise sont définis lors de votre réservation en ligne afin de s'adapter aux horaires d'ouverture des parcs Disney et à votre heure d'arrivée.": {
+    en: "Yes, drop-off and pick-up times are set during your online booking to match Disney park opening hours and your arrival time.",
+    es: "Sí, los horarios de entrega y recogida se definen durante su reserva en línea para adaptarse a los horarios de apertura de los parques Disney y a su hora de llegada.",
+  },
+  "Que dois-je apporter le jour de la garde ?": {
+    en: "What should I bring on the day of the stay?",
+    es: "¿Qué debo llevar el día de la estancia?",
+  },
+  "Apportez la nourriture habituelle de votre chien (pour éviter tout changement digestif), son collier ou harnais, sa laisse, son carnet de santé à jour et, si vous le souhaitez, son panier ou jouet préféré pour qu'il garde ses repères.": {
+    en: "Bring your dog's usual food (to avoid any digestive upset), their collar or harness, leash, up-to-date health/vaccination record, and if you wish, their favourite bed or toy so they feel right at home.",
+    es: "Traiga la comida habitual de su perro (para evitar cambios digestivos), su collar o arnés, su correa, su cartilla sanitaria al día y, si lo desea, su cama o juguete favorito para que conserve sus referencias.",
+  },
+  "Non. La Patte Dorée est un service indépendant de garde d'animaux déclaré et certifié ACACED en Seine-et-Marne (77), sans aucune affiliation commerciale avec Disneyland Paris / Euro Disney.": {
+    en: "No. La Patte Dorée is an independent, registered and ACACED-certified pet sitting service in Seine-et-Marne (77), with no commercial affiliation with Disneyland Paris / Euro Disney.",
+    es: "No. La Patte Dorée es un servicio independiente de cuidado de mascotas declarado y certificado por ACACED en Seine-et-Marne (77), sin ninguna afiliación comercial con Disneyland Paris / Euro Disney.",
+  },
+  "Animal Care Center Disneyland Paris": {
+    en: "Animal Care Center Disneyland Paris",
+    es: "Animal Care Center Disneyland Paris",
+  },
+  "garde chien Bussy-Saint-Georges": {
+    en: "dog boarding Bussy-Saint-Georges",
+    es: "cuidado de perros Bussy-Saint-Georges",
+  },
+  "garde chien sans box Disneyland Paris": {
+    en: "cage-free dog boarding Disneyland Paris",
+    es: "alojamiento canino sin jaulas Disneyland Paris",
+  },
+  "garderie chien journée Disneyland Paris": {
+    en: "dog day care Disneyland Paris",
+    es: "guardería de día para perros Disneyland Paris",
+  },
+  "laisser son chien à Disneyland Paris": {
+    en: "where to leave your dog at Disneyland Paris",
+    es: "dónde dejar a su perro en Disneyland Paris",
+  },
+  "Marne-la-Vallée Chessy": {
+    en: "Marne-la-Vallée Chessy",
+    es: "Marne-la-Vallée Chessy",
+  },
+  "Soins simples selon consignes": {
+    en: "Basic care according to your instructions",
+    es: "Cuidados básicos según sus indicaciones",
+  },
+  "Respect des horaires de repas et des consignes": {
+    en: "Strict adherence to meal times and instructions",
+    es: "Respeto de los horarios de comida y de las indicaciones",
+  },
+  "Maison et jardin": { en: "House and garden", es: "Casa y jardín" },
+  "Promenades incluses selon prestation": {
+    en: "Walks included depending on the service",
+    es: "Paseos incluidos según el servicio",
+  },
+  "Les promenades sont-elles incluses ?": {
+    en: "Are walks included?",
+    es: "¿Están incluidos los paseos?",
+  },
+  "Comment savoir si ma commune est couverte ?": {
+    en: "How do I know if my town is covered?",
+    es: "¿Cómo saber si mi municipio está cubierto?",
+  },
+  "Sans box ni chenil": {
+    en: "No cages or kennels",
+    es: "Sin jaulas ni perreras",
+  },
+  "Validation avant confirmation": {
+    en: "Review before confirmation",
+    es: "Validación antes de la confirmación",
+  },
+  "Vacances longues": { en: "Long holidays", es: "Vacaciones largas" },
+  "Jardin et sorties": { en: "Garden and outings", es: "Jardín y salidas" },
+  "Une alternative au chenil classique": {
+    en: "An alternative to traditional kennels",
+    es: "Una alternativa a la perrera tradicional",
+  },
+  "Recevrai-je des photos ?": {
+    en: "Will I receive photos?",
+    es: "¿Recibiré fotos?",
+  },
+  "Surveillance du comportement": {
+    en: "Behaviour monitoring",
+    es: "Supervisión del comportamiento",
+  },
+  "Soins simples": { en: "Basic care", es: "Cuidados básicos" },
+  "Organisation selon vos dates et consignes": {
+    en: "Tailored to your dates and instructions",
+    es: "Organización según sus fechas e indicaciones",
+  },
+  "Tarifs lisibles": { en: "Clear pricing", es: "Tarifas claras" },
+  "Visites": { en: "Home visits", es: "Visitas" },
+  "Validation de la demande avant confirmation": {
+    en: "Request reviewed before confirmation",
+    es: "Validación de la solicitud antes de la confirmación",
+  },
+  "Garde chat en Seine-et-Marne 77": {
+    en: "Cat sitting in Seine-et-Marne (77)",
+    es: "Cuidado de gatos en Seine-et-Marne (77)",
+  },
+  "Garde chat 77 | Visite chat à domicile Seine-et-Marne": {
+    en: "Cat Sitting 77 | Cat Home Visits & Boarding in Seine-et-Marne",
+    es: "Cuidado de gatos 77 | Visitas a domicilio en Seine-et-Marne",
+  },
+  "Garde chat 77": { en: "Cat sitting 77", es: "Cuidado de gatos 77" },
+  "Réserver une garde chat": {
+    en: "Book cat sitting",
+    es: "Reservar cuidado de gatos",
+  },
+  "Faites-vous la garde chat dans tout le 77 ?": {
+    en: "Do you offer cat sitting across all of Seine-et-Marne (77)?",
+    es: "¿Ofrecen cuidado de gatos en todo Seine-et-Marne (77)?",
+  },
+  "Garde chien en Seine-et-Marne 77": {
+    en: "Dog boarding & sitting in Seine-et-Marne (77)",
+    es: "Cuidado y alojamiento de perros en Seine-et-Marne (77)",
+  },
+  "Garde chien 77 | Pension, garderie et promenade": {
+    en: "Dog Boarding 77 | Family Boarding, Day Care & Walks",
+    es: "Cuidado de perros 77 | Alojamiento familiar, guardería y paseos",
+  },
+  "Garde chien 77 : hébergement familial, garderie de jour, promenades et visites à domicile en Seine-et-Marne, avec réservation en ligne.": {
+    en: "Dog sitting in Seine-et-Marne (77): family boarding, day care, dog walks and home visits, with online booking.",
+    es: "Cuidado de perros en Seine-et-Marne (77): alojamiento familiar, guardería de día, paseos y visitas a domicilio, con reserva online.",
+  },
+  "Garde chien 77": { en: "Dog sitting 77", es: "Cuidado de perros 77" },
+  "Réserver une garde chien 77": {
+    en: "Book dog care in 77",
+    es: "Reservar cuidado de perros en el 77",
+  },
+  "Garde de nuit": { en: "Overnight care", es: "Cuidado nocturno" },
+  "Visite chat domicile 77 | Garde chat Seine-et-Marne": {
+    en: "Cat Home Visits 77 | Cat Sitting in Seine-et-Marne",
+    es: "Visitas a domicilio para gatos 77 | Cuidado de gatos en Seine-et-Marne",
+  },
+  "Réserver une visite chat": {
+    en: "Book a cat visit",
+    es: "Reservar una visita para gatos",
+  },
+  "Non. La visite s'adapte au caractère du chat. Pour un chat craintif, le passage privilégie le calme, la routine et la surveillance discrète.": {
+    en: "No. Each visit adapts to your cat's personality. For a shy cat, we prioritise calm, routine and gentle, discreet supervision.",
+    es: "No. La visita se adapta al carácter del gato. Para un gato tímido, priorizamos la calma, la rutina y una supervisión discreta.",
+  },
 };
 
 const completeCatalogue: Record<string, Translation> = {
@@ -845,7 +1351,55 @@ const completeCatalogue: Record<string, Translation> = {
   ...catalogue,
 };
 
-const orderedEntries = Object.entries(completeCatalogue).sort(([a], [b]) => b.length - a.length);
+const WORD_CHAR_RE = /[\p{L}\p{N}]/u;
+const NON_PARTIAL_SOURCES = new Set([
+  "de",
+  "De",
+  "du",
+  "des",
+  "au",
+  "aux",
+  "ou",
+  "ou à",
+  "et",
+  "et la",
+  "à",
+  "en",
+  "par",
+  "pour",
+  "sur",
+  "dans",
+  "avec",
+  "sans",
+  "sous",
+  "vers",
+  "chez",
+  "mais",
+  "donc",
+  "or",
+  "ni",
+  "car",
+  "enter",
+  "exit",
+  "ghost",
+  "green",
+  "amber",
+  "icon",
+  "name",
+  "none",
+  "round",
+  "sm",
+  "true",
+  "wait",
+]);
+
+function isWordChar(char: string | undefined): boolean {
+  return Boolean(char && WORD_CHAR_RE.test(char));
+}
+
+const orderedEntries = Object.entries(completeCatalogue)
+  .filter(([source]) => source.length >= 2 && !NON_PARTIAL_SOURCES.has(source))
+  .sort(([a], [b]) => b.length - a.length);
 
 export function translateFrenchText(value: string, locale: Locale): string {
   if (locale === "fr" || !value.trim()) return value;
@@ -856,20 +1410,49 @@ export function translateFrenchText(value: string, locale: Locale): string {
   const exact = completeCatalogue[core];
   if (exact) return `${leading}${exact[locale]}${trailing}`;
 
-  const matches: Array<{ start: number; end: number; replacement: string }> = [];
+  const matches: Array<{ start: number; end: number; source: string; replacement: string }> = [];
   for (const [source, targets] of orderedEntries) {
+    const startsWithWord = isWordChar(source[0]);
+    const endsWithWord = isWordChar(source[source.length - 1]);
     let start = core.indexOf(source);
     while (start !== -1) {
       const end = start + source.length;
+      const prevChar = start > 0 ? core[start - 1] : undefined;
+      const nextChar = end < core.length ? core[end] : undefined;
+      const hasValidStartBoundary = !startsWithWord || !isWordChar(prevChar);
+      const hasValidEndBoundary = !endsWithWord || !isWordChar(nextChar);
       const overlapsLongerMatch = matches.some((match) => start < match.end && end > match.start);
-      if (!overlapsLongerMatch) {
-        matches.push({ start, end, replacement: targets[locale] });
+      if (hasValidStartBoundary && hasValidEndBoundary && !overlapsLongerMatch) {
+        matches.push({ start, end, source, replacement: targets[locale] });
+        start = core.indexOf(source, end);
+      } else {
+        start = core.indexOf(source, start + 1);
       }
-      start = core.indexOf(source, Math.max(end, start + 1));
     }
   }
 
+  if (matches.length === 0) return value;
+
   matches.sort((a, b) => a.start - b.start);
+
+  let unmatched = "";
+  let checkCursor = 0;
+  for (const match of matches) {
+    unmatched += " " + core.slice(checkCursor, match.start);
+    checkCursor = match.end;
+  }
+  unmatched += " " + core.slice(checkCursor);
+
+  const allowedUnmatchedTokens =
+    /^(min|mins|h|hr|hrs|j|kg|km|max|ttc|ht|rer|tgv|a4|acaced|siren|siret|bussy|saint|georges|st|disneyland|paris|disney|val|europe|marne|vallée|chessy|serris|coupvray|montévrain|magny|hongre|bailly|romainvilliers|seine|patte|dorée)$/i;
+  const unmatchedWords = (unmatched.match(/\p{L}{2,}/gu) ?? []).filter(
+    (word) => !allowedUnmatchedTokens.test(word)
+  );
+
+  if (unmatchedWords.length > 0) {
+    return value;
+  }
+
   let cursor = 0;
   let translated = "";
   for (const match of matches) {

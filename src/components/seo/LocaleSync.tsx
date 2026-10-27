@@ -5,15 +5,17 @@ import Link, { type LinkProps } from "next/link";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import type { Locale } from "@/lib/i18n";
 
+const STORAGE_KEY = "la-patte-doree-language";
+
 export function LocaleSync({ locale }: { locale: Locale }) {
-  const { locale: currentLocale, setLocale } = useLanguage();
+  const { locale: currentLocale } = useLanguage();
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    if (currentLocale !== locale) {
-      setLocale(locale);
-    }
-  }, [currentLocale, locale, setLocale]);
+    return () => {
+      document.documentElement.lang = currentLocale;
+    };
+  }, [currentLocale, locale]);
 
   return null;
 }
@@ -36,8 +38,12 @@ export function LocaleBookingLink({
     <Link
       {...props}
       onClick={(e) => {
-        setLocale(locale);
-        document.documentElement.lang = locale;
+        const storedLocale =
+          typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
+        if (locale === "fr" || storedLocale !== "fr") {
+          setLocale(locale);
+          document.documentElement.lang = locale;
+        }
         onClick?.(e);
       }}
     >

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   ArrowRight,
   Award,
@@ -326,14 +325,15 @@ export default function EnglishDisneyDogBoardingPage() {
               </div>
 
               <div className="mt-4">
-                <Link
+                <LocaleBookingLink
                   href={FR_PATH}
+                  locale="fr"
                   className="inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50/70 px-3.5 py-2 text-xs sm:text-sm font-bold text-orange-900 transition-colors hover:bg-orange-100"
                 >
                   <span aria-hidden="true">🇫🇷</span>
                   <span>Voir cette page en français</span>
                   <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                </Link>
+                </LocaleBookingLink>
               </div>
 
               <p className="mt-4 max-w-2xl text-xs leading-5 text-gray-500">
@@ -503,12 +503,13 @@ export default function EnglishDisneyDogBoardingPage() {
                   Check Availability &amp; Book
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </LocaleBookingLink>
-                <Link
+                <LocaleBookingLink
                   href={FR_PATH}
+                  locale="fr"
                   className="inline-flex min-h-12 items-center justify-center rounded-lg border border-white/20 px-6 text-sm font-bold text-white transition-colors hover:bg-white/10"
                 >
                   🇫🇷 Version française
-                </Link>
+                </LocaleBookingLink>
               </div>
             </div>
           </div>

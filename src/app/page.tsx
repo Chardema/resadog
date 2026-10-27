@@ -146,10 +146,9 @@ export default function Home() {
                 </div>
               </div>
               <span
-                data-no-translate
                 className="shrink-0 rounded-full border border-orange-200 bg-white px-3.5 py-1.5 text-xs sm:text-sm font-extrabold text-orange-800 shadow-sm"
               >
-                Dès {dayCarePrice.dogPrice} €
+                Dès <span data-no-translate>{dayCarePrice.dogPrice} €</span>
               </span>
             </div>
 
@@ -243,7 +242,7 @@ export default function Home() {
               <Star className="h-5 w-5 fill-amber-400 text-amber-400" aria-hidden="true" />
             </div>
             <div>
-              <p data-no-translate className="text-sm font-bold text-gray-900">Note 5,0 / 5</p>
+              <p className="text-sm font-bold text-gray-900">Note 5,0 / 5</p>
               <p className="text-xs font-semibold text-orange-700">Voir les avis clients →</p>
             </div>
           </Link>
