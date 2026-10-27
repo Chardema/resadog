@@ -32,6 +32,12 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.googleusercontent.com" },
     ],
   },
+  async redirects() {
+    return [
+      { source: "/services", destination: "/#services", permanent: true },
+      { source: "/contact", destination: "/#nous-trouver", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

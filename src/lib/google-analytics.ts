@@ -1,7 +1,4 @@
-import {
-  GOOGLE_CONSENT_REQUIRED_REGIONS,
-  GOOGLE_CONSENT_STORAGE_KEY,
-} from "@/lib/google-consent";
+import { GOOGLE_CONSENT_STORAGE_KEY } from "@/lib/google-consent";
 
 export const GOOGLE_ANALYTICS_ID =
   process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID?.trim() || "G-6HN68EFFPH";
@@ -12,18 +9,10 @@ export const GOOGLE_CONSENT_BOOTSTRAP = `
   window.gtag = window.gtag || gtag;
 
   gtag('consent', 'default', {
-    analytics_storage: 'granted',
-    ad_storage: 'granted',
-    ad_user_data: 'granted',
-    ad_personalization: 'granted'
-  });
-
-  gtag('consent', 'default', {
     analytics_storage: 'denied',
     ad_storage: 'denied',
     ad_user_data: 'denied',
     ad_personalization: 'denied',
-    region: ${JSON.stringify(GOOGLE_CONSENT_REQUIRED_REGIONS)},
     wait_for_update: 500
   });
 

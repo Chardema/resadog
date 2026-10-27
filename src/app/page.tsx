@@ -33,7 +33,7 @@ export default function Home() {
       <section className="relative z-10 pt-32 pb-20 container mx-auto px-6" ref={ref}>
         <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
           <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
+            initial={{ scale: 0.5 }}
             animate={{ scale: 1, opacity: 1 }}
             className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-950 px-4 py-2 text-sm font-bold text-white shadow-sm"
           >
@@ -42,7 +42,7 @@ export default function Home() {
           </motion.div>
 
           <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
+            initial={{ scale: 0.5 }}
             animate={{ scale: 1, opacity: 1 }}
             className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-100 bg-orange-50 px-4 py-1.5 text-sm font-medium text-orange-700 shadow-sm"
           >
@@ -54,7 +54,7 @@ export default function Home() {
           </motion.div>
 
           <motion.h1
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: 20 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
             className="text-3xl sm:text-5xl md:text-7xl font-extrabold text-gray-900 leading-[1.1] mb-6 tracking-tight"
@@ -69,7 +69,7 @@ export default function Home() {
           </motion.h1>
 
           <motion.p
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: 20 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
             className="text-xl text-gray-600 mb-10 max-w-2xl leading-relaxed"
@@ -79,7 +79,7 @@ export default function Home() {
           </motion.p>
 
           <motion.div
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: 20 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"

@@ -693,8 +693,6 @@ export function getLocalBusinessJsonLd() {
     "@id": `${getSiteUrl()}/#localbusiness`,
     name: SITE_NAME,
     alternateName: LEGAL_INFORMATION.commercialName,
-    taxID: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
-    identifier: LEGAL_INFORMATION.siret.replace(/\s/g, ""),
     url: getSiteUrl(),
     image: absoluteUrl("/logo-mark.png"),
     logo: absoluteUrl("/logo-mark.png"),
