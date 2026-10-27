@@ -14,7 +14,7 @@ const extraFiles = [
 
 // The admin interface is internal. Public API messages are included because
 // validation and booking errors are rendered in customer-facing screens.
-const ignoredSegments = ["/admin/"];
+const ignoredSegments = ["/admin/", "/en/"];
 const ignoredAttributes = new Set([
   "className", "href", "src", "type", "name", "value", "method", "action",
   "rel", "target", "role", "id", "htmlFor", "content", "property", "key",

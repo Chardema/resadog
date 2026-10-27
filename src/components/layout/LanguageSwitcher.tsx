@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { Languages } from "lucide-react";
 import { localeNames, supportedLocales, type Locale } from "@/lib/i18n";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -8,6 +9,17 @@ const shortLabels: Record<Locale, string> = { fr: "FR", en: "EN", es: "ES" };
 
 export function LanguageSwitcher() {
   const { locale, setLocale } = useLanguage();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSelectLocale = (nextLocale: Locale) => {
+    setLocale(nextLocale);
+    if (nextLocale === "fr" && pathname === "/en/dog-boarding-disneyland-paris") {
+      router.push("/garde-chien-disneyland-paris");
+    } else if (nextLocale === "en" && pathname === "/garde-chien-disneyland-paris") {
+      router.push("/en/dog-boarding-disneyland-paris");
+    }
+  };
 
   return (
     <div
@@ -20,7 +32,7 @@ export function LanguageSwitcher() {
         <button
           key={item}
           type="button"
-          onClick={() => setLocale(item)}
+          onClick={() => handleSelectLocale(item)}
           aria-label={localeNames[item]}
           aria-pressed={locale === item}
           title={localeNames[item]}
