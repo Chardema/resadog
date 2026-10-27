@@ -116,18 +116,18 @@ export function buildMetadata({
       type: "website",
       images: [
         {
-          url: "/logo-mark.png",
-          width: 512,
-          height: 512,
-          alt: "Emblème La Patte Dorée",
+          url: "/opengraph-image",
+          width: 1200,
+          height: 630,
+          alt: "La Patte Dorée — Garde familiale de chiens et chats près de Disneyland Paris",
         },
       ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: ["/logo-mark.png"],
+      images: ["/opengraph-image"],
     },
     robots: noIndex
       ? {
@@ -147,6 +147,8 @@ export function buildMetadata({
         },
   };
 }
+
+export const buildPublicMetadata = buildMetadata;
 
 export const localSeoPages: LocalSeoPage[] = [
   {
