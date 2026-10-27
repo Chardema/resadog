@@ -1,15 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 
-export default function SignUpPage() {
+function SignUpContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawCallbackUrl = searchParams.get("callbackUrl");
+  const callbackUrl =
+    rawCallbackUrl && rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
+      ? rawCallbackUrl
+      : "/dashboard";
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
@@ -26,7 +32,10 @@ export default function SignUpPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Inscription impossible.");
-      router.push(`/auth/verify-email/sent?email=${encodeURIComponent(formData.email)}`);
+      const verifyUrl = `/auth/verify-email/sent?email=${encodeURIComponent(formData.email)}${
+        callbackUrl !== "/dashboard" ? `&callbackUrl=${encodeURIComponent(callbackUrl)}` : ""
+      }`;
+      router.push(verifyUrl);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Erreur de connexion.");
     } finally {
@@ -72,15 +81,23 @@ export default function SignUpPage() {
           </Button>
         </form>
 
-        <SocialAuthButtons />
+        <SocialAuthButtons callbackUrl={callbackUrl} />
 
         <p className="mt-7 border-t border-gray-100 pt-6 text-center text-sm text-gray-500">
           Déjà membre ?{" "}
-          <Link href="/auth/signin" className="font-bold text-gray-950 hover:text-orange-700">
+          <Link href={callbackUrl !== "/dashboard" ? `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/auth/signin"} className="font-bold text-gray-950 hover:text-orange-700">
             Me connecter
           </Link>
         </p>
       </section>
     </main>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FDFbf7]" />}>
+      <SignUpContent />
+    </Suspense>
   );
 }

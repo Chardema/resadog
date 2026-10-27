@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
@@ -15,8 +15,14 @@ import {
   type PetFormData,
 } from "@/components/pets/PetProfileForm";
 
-export default function NewPetPage() {
+function NewPetContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawReturnTo = searchParams.get("returnTo");
+  const returnTo =
+    rawReturnTo && rawReturnTo.startsWith("/") && !rawReturnTo.startsWith("//")
+      ? rawReturnTo
+      : "/pets";
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -48,7 +54,7 @@ export default function NewPetPage() {
         return;
       }
 
-      router.push("/pets");
+      router.push(returnTo);
       router.refresh();
     } catch {
       setError("Une erreur est survenue lors de l'ajout");
@@ -63,9 +69,9 @@ export default function NewPetPage() {
       <main className="container mx-auto max-w-5xl px-4 pt-28 sm:px-6 md:pt-32">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <Link href="/pets" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-orange-700">
+            <Link href={returnTo} className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-orange-700">
               <ArrowLeft className="h-4 w-4" />
-              Retour aux animaux
+              {returnTo === "/booking" ? "Retour à ma simulation" : "Retour aux animaux"}
             </Link>
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
@@ -103,7 +109,7 @@ export default function NewPetPage() {
           />
 
           <div className="sticky bottom-4 z-10 grid gap-3 rounded-lg border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:grid-cols-2">
-            <Button type="button" variant="outline" onClick={() => router.push("/pets")} className="h-12 rounded-md border-gray-300">
+            <Button type="button" variant="outline" onClick={() => router.push(returnTo)} className="h-12 rounded-md border-gray-300">
               Annuler
             </Button>
             <Button type="submit" disabled={isLoading} className="h-12 rounded-md bg-gray-950 text-white hover:bg-orange-600">
@@ -113,5 +119,13 @@ export default function NewPetPage() {
         </form>
       </main>
     </div>
+  );
+}
+
+export default function NewPetPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FDFbf7]" />}>
+      <NewPetContent />
+    </Suspense>
   );
 }

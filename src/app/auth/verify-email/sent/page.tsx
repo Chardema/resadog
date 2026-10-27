@@ -8,6 +8,11 @@ import { MailCheck } from "lucide-react";
 function VerificationSentContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
+  const rawCallbackUrl = searchParams.get("callbackUrl");
+  const callbackUrl =
+    rawCallbackUrl && rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
+      ? rawCallbackUrl
+      : "/dashboard";
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,7 +59,7 @@ function VerificationSentContent() {
         >
           {loading ? "Envoi..." : "Renvoyer l'email"}
         </button>
-        <Link href="/auth/signin" className="mt-5 inline-block text-sm font-bold text-orange-700 hover:underline">
+        <Link href={callbackUrl !== "/dashboard" ? `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/auth/signin"} className="mt-5 inline-block text-sm font-bold text-orange-700 hover:underline">
           Retour à la connexion
         </Link>
       </section>

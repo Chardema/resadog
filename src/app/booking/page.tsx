@@ -723,6 +723,68 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig; o
   );
 };
 
+const BOOKING_DRAFT_STORAGE_KEY = "resadog_booking_draft_v1";
+const MAX_SIM_PETS = 4;
+
+type SimCounts = {
+  adultDog: number;
+  puppy: number;
+  adultCat: number;
+  kitten: number;
+};
+
+const DEFAULT_SIM_COUNTS: SimCounts = {
+  adultDog: 1,
+  puppy: 0,
+  adultCat: 0,
+  kitten: 0,
+};
+
+function buildSimulatedPets(counts: SimCounts): Pet[] {
+  const virtualPets: Pet[] = [];
+  for (let i = 1; i <= counts.adultDog; i += 1) {
+    virtualPets.push({
+      id: `sim-adult-dog-${i}`,
+      name: counts.adultDog > 1 ? `Chien adulte ${i}` : "Chien adulte",
+      breed: "Simulation",
+      species: "DOG",
+      age: 3,
+      birthDate: null,
+    });
+  }
+  for (let i = 1; i <= counts.puppy; i += 1) {
+    virtualPets.push({
+      id: `sim-puppy-${i}`,
+      name: counts.puppy > 1 ? `Chiot ${i}` : "Chiot",
+      breed: "Simulation",
+      species: "DOG",
+      age: 0.5,
+      birthDate: null,
+    });
+  }
+  for (let i = 1; i <= counts.adultCat; i += 1) {
+    virtualPets.push({
+      id: `sim-adult-cat-${i}`,
+      name: counts.adultCat > 1 ? `Chat adulte ${i}` : "Chat adulte",
+      breed: "Simulation",
+      species: "CAT",
+      age: 3,
+      birthDate: null,
+    });
+  }
+  for (let i = 1; i <= counts.kitten; i += 1) {
+    virtualPets.push({
+      id: `sim-kitten-${i}`,
+      name: counts.kitten > 1 ? `Chaton ${i}` : "Chaton",
+      breed: "Simulation",
+      species: "CAT",
+      age: 0.5,
+      birthDate: null,
+    });
+  }
+  return virtualPets;
+}
+
 export default function BookingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -799,14 +861,132 @@ export default function BookingPage() {
     createEmptyVisitSlot(),
   ]);
 
+  const [simCounts, setSimCounts] = useState<SimCounts>(DEFAULT_SIM_COUNTS);
+  const [isSimulationManual, setIsSimulationManual] = useState(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+
+  const eligiblePets = pets.filter(
+    (pet) => getPetProfileCompletion(pet).isComplete && isPetBirthDateVerified(pet)
+  );
+  const isSimulationMode =
+    status !== "authenticated" || eligiblePets.length === 0 || isSimulationManual;
+  const simulatedPets = buildSimulatedPets(simCounts);
+  const activePets = isSimulationMode ? simulatedPets : pets;
+  const activePetIds = isSimulationMode ? simulatedPets.map((pet) => pet.id) : formData.petIds;
+  const totalSimPets =
+    simCounts.adultDog + simCounts.puppy + simCounts.adultCat + simCounts.kitten;
+
   // Configurations individuelles par animal (si useSameDates = false)
   const [petConfigs, setPetConfigs] = useState<Record<string, DateConfig>>({});
+
+  // Hydrate booking draft from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(BOOKING_DRAFT_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          if (parsed.simCounts && typeof parsed.simCounts === "object") {
+            const clamp = (val: unknown, fallback: number) =>
+              typeof val === "number" && Number.isFinite(val)
+                ? Math.max(0, Math.min(MAX_SIM_PETS, Math.floor(val)))
+                : fallback;
+            const nextCounts: SimCounts = {
+              adultDog: clamp(parsed.simCounts.adultDog, 1),
+              puppy: clamp(parsed.simCounts.puppy, 0),
+              adultCat: clamp(parsed.simCounts.adultCat, 0),
+              kitten: clamp(parsed.simCounts.kitten, 0),
+            };
+            const sum = nextCounts.adultDog + nextCounts.puppy + nextCounts.adultCat + nextCounts.kitten;
+            setSimCounts(sum > 0 && sum <= MAX_SIM_PETS ? nextCounts : DEFAULT_SIM_COUNTS);
+          }
+          if (typeof parsed.isSimulationManual === "boolean") {
+            setIsSimulationManual(parsed.isSimulationManual);
+          }
+          const validServiceTypes: AppServiceType[] = [
+            "BOARDING",
+            "HOUSE_SITTING",
+            "DAY_CARE",
+            "DROP_IN",
+            "DOG_WALKING",
+          ];
+          const restoredServiceType: AppServiceType = validServiceTypes.includes(parsed.serviceType)
+            ? parsed.serviceType
+            : "BOARDING";
+          const defaults = serviceDefaultTimes[restoredServiceType] || {
+            startTime: "18:00",
+            endTime: "10:00",
+          };
+          setFormData((prev) => ({
+            ...prev,
+            serviceType: restoredServiceType,
+            startDate: typeof parsed.startDate === "string" ? parsed.startDate : prev.startDate,
+            endDate: typeof parsed.endDate === "string" ? parsed.endDate : prev.endDate,
+            startTime: typeof parsed.startTime === "string" && parsed.startTime ? parsed.startTime : defaults.startTime,
+            endTime: typeof parsed.endTime === "string" && parsed.endTime ? parsed.endTime : defaults.endTime,
+            serviceAddress: typeof parsed.serviceAddress === "string" ? parsed.serviceAddress : prev.serviceAddress,
+            promoCode: typeof parsed.promoCode === "string" ? parsed.promoCode : prev.promoCode,
+            notes: typeof parsed.notes === "string" ? parsed.notes : prev.notes,
+          }));
+          if (Array.isArray(parsed.visitSlots) && parsed.visitSlots.length > 0) {
+            setVisitSlots(
+              parsed.visitSlots.map((slot: Partial<VisitSlot>) => ({
+                date: typeof slot?.date === "string" ? slot.date : "",
+                startTime: typeof slot?.startTime === "string" ? slot.startTime : "14:00",
+                duration: slot?.duration === 60 || slot?.duration === 90 || slot?.duration === 120 ? slot.duration : 30,
+              }))
+            );
+          }
+          if (parsed.step === 1 || parsed.step === 2 || parsed.step === 3) {
+            setStep(parsed.step);
+          }
+        }
+      }
+    } catch {}
+    setDraftHydrated(true);
+  }, []);
+
+  // Save booking draft to sessionStorage whenever fields change
+  useEffect(() => {
+    if (!draftHydrated) return;
+    try {
+      const payload = {
+        simCounts,
+        isSimulationManual,
+        serviceType: formData.serviceType,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        visitSlots,
+        serviceAddress: formData.serviceAddress,
+        promoCode: formData.promoCode,
+        notes: formData.notes,
+        step,
+      };
+      window.sessionStorage.setItem(BOOKING_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+    } catch {}
+  }, [
+    draftHydrated,
+    simCounts,
+    isSimulationManual,
+    formData.serviceType,
+    formData.startDate,
+    formData.endDate,
+    formData.startTime,
+    formData.endTime,
+    visitSlots,
+    formData.serviceAddress,
+    formData.promoCode,
+    formData.notes,
+    step,
+  ]);
 
   // Initialize pet configs when pets change
   useEffect(() => {
     setPetConfigs((currentConfigs) => {
       const initialConfig: Record<string, DateConfig> = {};
-      formData.petIds.forEach((id) => {
+      activePetIds.forEach((id) => {
         initialConfig[id] = currentConfigs[id] || {
           startDate: formData.startDate,
           endDate: formData.endDate,
@@ -818,9 +998,9 @@ export default function BookingPage() {
       return initialConfig;
     });
   }, [
+    activePetIds,
     formData.endDate,
     formData.endTime,
-    formData.petIds,
     formData.startDate,
     formData.startTime,
     useSameDates,
@@ -869,19 +1049,24 @@ export default function BookingPage() {
   // --- LOGIQUE ---
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/auth/signin");
-  }, [status, router]);
-
-  useEffect(() => {
     const fetchPets = async () => {
       const res = await fetch("/api/pets");
       if (res.ok) {
         const data = await res.json();
-        setPets(data.pets || []);
+        const loadedPets: Pet[] = data.pets || [];
+        setPets(loadedPets);
+        const verified = loadedPets.filter(
+          (pet) => getPetProfileCompletion(pet).isComplete && isPetBirthDateVerified(pet)
+        );
+        if (verified.length > 0) {
+          setFormData((prev) =>
+            prev.petIds.length > 0 ? prev : { ...prev, petIds: [verified[0].id] }
+          );
+        }
       }
     };
-    if (session?.user) fetchPets();
-  }, [session]);
+    if (status === "authenticated" && session?.user) fetchPets();
+  }, [session, status]);
 
   useEffect(() => {
     const fetchAutoCoupon = async () => {
@@ -896,30 +1081,20 @@ export default function BookingPage() {
       } catch {}
     };
 
-    if (session?.user) fetchAutoCoupon();
-  }, [session]);
+    if (status === "authenticated" && session?.user) fetchAutoCoupon();
+  }, [session, status]);
 
-  useEffect(() => {
-    const hasSelectedCat = pets.some((pet) => formData.petIds.includes(pet.id) && pet.species === "CAT");
-    if (formData.serviceType === "DOG_WALKING" && hasSelectedCat) {
-      setFormData((prev) => ({ ...prev, serviceType: "BOARDING" }));
-    }
-  }, [formData.petIds, formData.serviceType, pets]);
-
-  // Reset visit slots when service changes
-  useEffect(() => {
-    const defaultTimes = serviceDefaultTimes[formData.serviceType];
-    if (defaultTimes) {
-      setFormData((prev) => ({
-        ...prev,
-        startTime: defaultTimes.startTime,
-        endTime: defaultTimes.endTime,
-      }));
-    }
-
+  const handleSelectServiceType = (nextServiceType: AppServiceType) => {
+    if (nextServiceType === formData.serviceType) return;
+    const defaultTimes = serviceDefaultTimes[nextServiceType];
+    setFormData((prev) => ({
+      ...prev,
+      serviceType: nextServiceType,
+      ...(defaultTimes
+        ? { startTime: defaultTimes.startTime, endTime: defaultTimes.endTime }
+        : {}),
+    }));
     setVisitSlots([createEmptyVisitSlot()]);
-
-    // Reset configs
     setPetConfigs((currentConfigs) => {
       const newConfigs = { ...currentConfigs };
       Object.keys(newConfigs).forEach((key) => {
@@ -933,7 +1108,17 @@ export default function BookingPage() {
       });
       return newConfigs;
     });
-  }, [formData.serviceType]);
+  };
+
+  useEffect(() => {
+    const hasSelectedCat = activePets.some(
+      (pet) => activePetIds.includes(pet.id) && pet.species === "CAT"
+    );
+    if (formData.serviceType === "DOG_WALKING" && hasSelectedCat) {
+      handleSelectServiceType("BOARDING");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePetIds.join(","), formData.serviceType, isSimulationMode]);
 
   // Check Availability
   useEffect(() => {
@@ -942,7 +1127,7 @@ export default function BookingPage() {
 
       if (useSameDates) {
           configsToCheck.push({
-              petIds: formData.petIds,
+              petIds: activePetIds,
               config: {
                   startDate: formData.startDate,
                   endDate: formData.endDate,
@@ -952,7 +1137,7 @@ export default function BookingPage() {
               }
           });
       } else {
-          formData.petIds.forEach(id => {
+          activePetIds.forEach(id => {
               if (petConfigs[id]) {
                   configsToCheck.push({ petIds: [id], config: petConfigs[id] });
               }
@@ -1033,14 +1218,83 @@ export default function BookingPage() {
 
     const timer = setTimeout(check, 800);
     return () => clearTimeout(timer);
-  }, [formData, visitSlots, petConfigs, useSameDates]);
+  }, [formData, visitSlots, petConfigs, useSameDates, activePetIds]);
 
   const resetAvailability = () => setAvailabilityStatus({ checking: false, available: true, message: "", unavailableDates: [] });
 
   const getSelectedService = () => serviceTypes.find(s => s.value === formData.serviceType);
 
   const getPrimarySelectedPetId = () => {
-    return formData.petIds[0] || null;
+    return activePetIds[0] || null;
+  };
+
+  const updateSimCount = (key: keyof SimCounts, delta: number) => {
+    setSimCounts((prev) => {
+      const currentVal = prev[key];
+      const nextVal = Math.max(0, Math.min(MAX_SIM_PETS, currentVal + delta));
+      if (nextVal === currentVal) return prev;
+      const nextTotal =
+        prev.adultDog + prev.puppy + prev.adultCat + prev.kitten - currentVal + nextVal;
+      if (nextTotal > MAX_SIM_PETS) return prev;
+      return { ...prev, [key]: nextVal };
+    });
+  };
+
+  const getServicePreviewForSelection = (serviceValue: AppServiceType) => {
+    const selectedPetsForPreview = activePets.filter((pet) => activePetIds.includes(pet.id));
+    if (selectedPetsForPreview.length === 0) return null;
+    const hasCat = selectedPetsForPreview.some((pet) => pet.species === "CAT");
+    if (serviceValue === "DOG_WALKING" && hasCat) return null;
+    const serviceDef = serviceTypes.find((s) => s.value === serviceValue);
+    if (serviceDef && selectedPetsForPreview.length > serviceDef.maxPets) return null;
+
+    const previewPets = selectedPetsForPreview.map((pet) => ({
+      id: pet.id,
+      species: (pet.species || "DOG") as "DOG" | "CAT",
+      age: pet.age,
+      birthDate: pet.birthDate,
+    }));
+
+    const refStart = "2027-06-10";
+    const refEnd = serviceValue === "BOARDING" ? "2027-06-11" : "2027-06-10";
+    const refStartTime =
+      serviceValue === "BOARDING"
+        ? "18:00"
+        : serviceValue === "HOUSE_SITTING"
+          ? "09:30"
+          : "09:00";
+    const refEndTime =
+      serviceValue === "BOARDING"
+        ? "18:00"
+        : serviceValue === "HOUSE_SITTING"
+          ? "19:30"
+          : "18:00";
+
+    const result = calculateBookingPrice({
+      serviceType: serviceValue,
+      pets: previewPets,
+      pricingContextPets: previewPets,
+      startDate: refStart,
+      endDate: refEnd,
+      startTime: refStartTime,
+      endTime: refEndTime,
+      visitSlots: isHourlyService(serviceValue)
+        ? [{ date: refStart, startTime: "14:00", duration: 30 }]
+        : [],
+      requestedAt: new Date("2027-05-01T12:00:00.000Z"),
+    });
+
+    const amount = result.total - result.lastMinuteFee;
+    if (amount <= 0) return null;
+    const unitLabel =
+      serviceValue === "BOARDING"
+        ? "période de 24 h"
+        : serviceValue === "DROP_IN"
+          ? "visite de 30 min"
+          : serviceValue === "DOG_WALKING"
+            ? "promenade de 30 min"
+            : "journée";
+    return { amount, unitLabel };
   };
 
   // Retourne le détail du prix pour UN animal donné
@@ -1105,8 +1359,8 @@ export default function BookingPage() {
           }
       }
 
-      const pricingContextPets = pets
-        .filter((candidate) => formData.petIds.includes(candidate.id))
+      const pricingContextPets = activePets
+        .filter((candidate) => activePetIds.includes(candidate.id))
         .map((candidate) => ({
           id: candidate.id,
           species: candidate.species || "DOG",
@@ -1172,8 +1426,8 @@ export default function BookingPage() {
 
   const calculateTotalPrice = () => {
       let total = 0;
-      formData.petIds.forEach(id => {
-          const pet = pets.find(p => p.id === id);
+      activePetIds.forEach(id => {
+          const pet = activePets.find(p => p.id === id);
           const config = useSameDates
             ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, visitSlots }
             : petConfigs[id];
@@ -1186,8 +1440,8 @@ export default function BookingPage() {
       return total;
   };
 
-  const calculateLastMinuteTotal = () => formData.petIds.reduce((sum, id) => {
-    const pet = pets.find(p => p.id === id);
+  const calculateLastMinuteTotal = () => activePetIds.reduce((sum, id) => {
+    const pet = activePets.find(p => p.id === id);
     const config = useSameDates
       ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, visitSlots }
       : petConfigs[id];
@@ -1196,8 +1450,8 @@ export default function BookingPage() {
 
   const calculateTotalBeforeDiscounts = () => {
       let total = 0;
-      formData.petIds.forEach(id => {
-          const pet = pets.find(p => p.id === id);
+      activePetIds.forEach(id => {
+          const pet = activePets.find(p => p.id === id);
           const config = useSameDates
             ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, visitSlots }
             : petConfigs[id];
@@ -1283,8 +1537,8 @@ export default function BookingPage() {
 
   const buildPriceIssueDescription = () => {
       const selectedService = getSelectedService();
-      const selectedPets = pets
-        .filter((pet) => formData.petIds.includes(pet.id))
+      const selectedPets = activePets
+        .filter((pet) => activePetIds.includes(pet.id))
         .map((pet) => `${pet.name} (${pet.species === "CAT" ? "chat" : "chien"})`)
         .join(", ") || "Aucun animal sélectionné";
       const total = couponStatus.applied && couponStatus.data ? couponStatus.data.finalAmount : calculateTotalPrice();
@@ -1526,7 +1780,7 @@ export default function BookingPage() {
     }
   };
 
-  if (status === "loading" || status === "unauthenticated") return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>;
+  if (status === "loading" && !draftHydrated) return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>;
 
   const originalDisplayedTotal = calculateTotalBeforeDiscounts();
   const automaticDisplayedTotal = calculateTotalPrice();
@@ -1566,6 +1820,19 @@ export default function BookingPage() {
   // Navigation helpers
   const goNext = () => { setDirection(1); setStep(step + 1); };
   const goBack = () => { setDirection(-1); setStep(step - 1); };
+  const step1CanContinue = activePetIds.length > 0;
+  const step2CanContinue =
+    availabilityStatus.available &&
+    calculateTotalPrice() > 0 &&
+    (!isHourlyService(formData.serviceType) || formData.serviceAddress.trim().length >= 8);
+  const canConfirmAndPay =
+    status === "authenticated" && !isSimulationMode && formData.petIds.length > 0;
+  const currentServicePreview = getServicePreviewForSelection(formData.serviceType);
+  const stickySteps = [
+    { id: 1, title: "1. Compagnon & Service", shortTitle: "1. Service" },
+    { id: 2, title: "2. Dates & Disponibilités", shortTitle: "2. Dates" },
+    { id: 3, title: "3. Récapitulatif", shortTitle: "3. Récap." },
+  ] as const;
 
   // Animation variants
   const variants = {
@@ -1584,30 +1851,62 @@ export default function BookingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFbf7] pb-24">
+    <div className="min-h-screen bg-[#FDFbf7] pb-28 md:pb-24">
 
-      <div className="container mx-auto px-6 pt-32 max-w-4xl overflow-hidden">
+      <div className="container mx-auto px-4 sm:px-6 pt-28 sm:pt-32 max-w-4xl overflow-hidden">
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Nouvelle Réservation ✨</h1>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8 sm:mb-10">
+          <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1 text-xs font-bold text-orange-800 mb-3">
+            <span>✨</span>
+            <span>Simulation &amp; disponibilités en accès libre</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">Nouvelle Réservation ✨</h1>
           <p className="text-gray-500">Quelques étapes pour des vacances de rêve.</p>
-          <p data-no-translate className="mt-4 text-sm leading-6 text-gray-600">{t(LAST_MINUTE_DESCRIPTION)}</p>
+          <p data-no-translate className="mt-3 text-sm leading-6 text-gray-600">{t(LAST_MINUTE_DESCRIPTION)}</p>
         </motion.div>
 
-        {/* Steps */}
-        <div className="flex justify-center mb-12">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className="flex items-center">
-              <motion.div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 ${step >= s ? "bg-gray-900 text-white shadow-lg" : "bg-gray-200 text-gray-500"}`}
-                animate={{ scale: step === s ? 1.2 : 1 }}
+        {/* Explicit 3-Card Stepper */}
+        <nav aria-label="Étapes de réservation" className="grid grid-cols-3 gap-2 sm:gap-4 mb-8 sm:mb-10">
+          {stickySteps.map((item) => {
+            const isCurrent = step === item.id;
+            const isCompleted = step > item.id;
+            const canClickStep =
+              isCompleted ||
+              (item.id === 2 && step1CanContinue) ||
+              (item.id === 3 && step1CanContinue && step2CanContinue);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                disabled={!canClickStep && !isCurrent}
+                aria-current={isCurrent ? "step" : undefined}
+                onClick={() => {
+                  if (item.id === step || !canClickStep) return;
+                  setDirection(item.id > step ? 1 : -1);
+                  setStep(item.id);
+                }}
+                className={`rounded-2xl border px-3 py-3 sm:px-4 sm:py-3.5 text-left transition-all ${
+                  isCurrent
+                    ? "border-orange-500 bg-gray-900 text-white shadow-md"
+                    : isCompleted
+                      ? "cursor-pointer border-emerald-200 bg-emerald-50/80 text-emerald-950 hover:border-emerald-300"
+                      : canClickStep
+                        ? "cursor-pointer border-gray-200 bg-white text-gray-700 hover:border-orange-300"
+                        : "cursor-default border-gray-200/80 bg-white/70 text-gray-400"
+                }`}
               >
-                {s}
-              </motion.div>
-              {s < 3 && <div className={`w-16 h-1 rounded-full mx-2 transition-colors duration-300 ${step > s ? "bg-gray-900" : "bg-gray-200"}`} />}
-            </div>
-          ))}
-        </div>
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className={`text-xs sm:text-sm font-extrabold leading-tight ${isCurrent ? "text-white" : isCompleted ? "text-emerald-900" : "text-gray-800"}`}>
+                    {item.title}
+                  </span>
+                  {isCompleted && (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </nav>
 
         {error && (
           <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-center border border-red-100 font-medium">
@@ -1636,10 +1935,167 @@ export default function BookingPage() {
                 className="space-y-8"
               >
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Qui gardons-nous ? 🐾</h2>
-                  {pets.length === 0 ? (
-                    <div className="text-center py-8 bg-gray-50 rounded-2xl border-dashed border-2 border-gray-200">
-                      <Link href="/pets/new" className="text-orange-600 font-bold hover:underline">Créer un profil</Link>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <h2 className="text-2xl font-bold text-gray-900">1. Qui gardons-nous ? 🐾</h2>
+                    {status === "authenticated" && eligiblePets.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setIsSimulationManual((prev) => !prev)}
+                        className="inline-flex items-center justify-center rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-bold text-orange-800 hover:bg-orange-100 transition-colors"
+                      >
+                        {isSimulationManual ? "Mes compagnons enregistrés" : "Simuler un tarif rapide"}
+                      </button>
+                    )}
+                  </div>
+
+                  {isSimulationMode ? (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-orange-200/80 bg-gradient-to-br from-orange-50/90 via-amber-50/60 to-white p-4 sm:p-5">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-extrabold text-gray-900">
+                              Simulez votre tarif et vérifiez nos disponibilités en direct
+                            </p>
+                            <p className="mt-0.5 text-xs sm:text-sm text-gray-600">
+                              Sélectionnez vos compagnons (jusqu&apos;à 4) pour calculer immédiatement votre tarif exact. Vos choix sont sauvegardés automatiquement.
+                            </p>
+                          </div>
+                          {status === "authenticated" && pets.length === 0 && (
+                            <Link
+                              href="/pets/new?returnTo=/booking"
+                              className="shrink-0 inline-flex items-center justify-center rounded-xl border border-orange-300 bg-white px-3.5 py-2 text-xs font-bold text-orange-800 hover:bg-orange-50"
+                            >
+                              Créer un profil
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+
+                      {status === "authenticated" &&
+                        pets.some(
+                          (pet) =>
+                            !getPetProfileCompletion(pet).isComplete || !isPetBirthDateVerified(pet)
+                        ) && (
+                          <div
+                            role="alert"
+                            className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+                          >
+                            <p className="font-bold">
+                              Profil compagnon en attente — mode simulation actif
+                            </p>
+                            <p className="mt-1">
+                              Vous pouvez simuler votre tarif et vérifier nos disponibilités dès maintenant. Pour confirmer le paiement à l&apos;étape 3, votre compagnon devra avoir un profil complet et validé.
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {pets.map((pet) => (
+                                <Link
+                                  key={pet.id}
+                                  href={`/pets/${pet.id}/edit`}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-200"
+                                >
+                                  <span>🐾 {pet.name}</span>
+                                  <span>·</span>
+                                  <span>
+                                    {getPetProfileCompletion(pet).isComplete
+                                      ? "Voir le profil"
+                                      : "Compléter le profil"}
+                                  </span>
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {([
+                          {
+                            key: "adultDog" as const,
+                            emoji: "🐕",
+                            label: "Chien adulte",
+                            subtitle: "1 an et +",
+                          },
+                          {
+                            key: "puppy" as const,
+                            emoji: "🐶",
+                            label: "Chiot",
+                            subtitle: "Moins d'1 an (+5 €/période)",
+                          },
+                          {
+                            key: "adultCat" as const,
+                            emoji: "🐈",
+                            label: "Chat adulte",
+                            subtitle: "1 an et +",
+                          },
+                          {
+                            key: "kitten" as const,
+                            emoji: "🐱",
+                            label: "Chaton",
+                            subtitle: "Moins d'1 an (+5 €/période)",
+                          },
+                        ]).map((item) => {
+                          const count = simCounts[item.key];
+                          const isSelected = count > 0;
+                          return (
+                            <div
+                              key={item.key}
+                              className={`flex items-center justify-between gap-3 rounded-2xl border-2 p-4 transition-all ${
+                                isSelected
+                                  ? "border-orange-500 bg-orange-50/70 shadow-sm"
+                                  : "border-gray-100 bg-white hover:border-gray-200"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div
+                                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl ${
+                                    isSelected ? "bg-orange-100" : "bg-gray-100"
+                                  }`}
+                                >
+                                  {item.emoji}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-gray-900 text-sm sm:text-base">
+                                    {item.label}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{item.subtitle}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  aria-label={`Retirer ${item.label}`}
+                                  disabled={count <= 0}
+                                  onClick={() => updateSimCount(item.key, -1)}
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-base font-extrabold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  −
+                                </button>
+                                <span
+                                  data-no-translate
+                                  className="w-6 text-center text-base font-extrabold text-gray-900"
+                                >
+                                  {count}
+                                </span>
+                                <button
+                                  type="button"
+                                  aria-label={`Ajouter ${item.label}`}
+                                  disabled={totalSimPets >= MAX_SIM_PETS}
+                                  onClick={() => updateSimCount(item.key, 1)}
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-900 bg-gray-900 text-base font-extrabold text-white hover:bg-orange-600 hover:border-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {totalSimPets === 0 && (
+                        <p className="text-xs font-semibold text-orange-700">
+                          Sélectionnez au moins 1 compagnon pour simuler votre tarif et vérifier les disponibilités.
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -1697,86 +2153,93 @@ export default function BookingPage() {
                   )}
                 </div>
 
-                {formData.petIds.length > 0 && (
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Quel service ? 🏠</h2>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {serviceTypes.map((s) => {
-                        const displayPrice = getServiceDisplayPrice(s.value);
-                        const selectedPets = pets.filter((pet) => formData.petIds.includes(pet.id));
-                        const hasSelectedCat = selectedPets.some((pet) => pet.species === "CAT");
-                        const isCatWalkRequestOnly = s.value === "DOG_WALKING" && hasSelectedCat;
-                        const isMaxPetsDisabled = s.maxPets < formData.petIds.length;
-                        const isDisabled = isMaxPetsDisabled || isCatWalkRequestOnly;
-                        return (
-                        <div key={s.value} onClick={() => !isDisabled && setFormData({ ...formData, serviceType: s.value })}
-                          className={`relative p-6 rounded-2xl border-2 transition-all ${isDisabled ? "opacity-50 cursor-not-allowed bg-gray-50" : "cursor-pointer hover:border-gray-300"} ${!isDisabled && formData.serviceType === s.value ? "border-orange-500 bg-orange-50" : "border-gray-100"}`}
-                        >
-                          {isMaxPetsDisabled && <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full">Max {s.maxPets}</div>}
-                          {isCatWalkRequestOnly && <div className="absolute top-2 right-2 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-full">Chat sur demande</div>}
-                          <div className="text-3xl mb-2">{s.icon}</div>
-                          <div>
-                            <h3 className="font-bold text-gray-900">{s.name}</h3>
-                            {s.value === "HOUSE_SITTING" ? (
-                              <div className="mt-1 space-y-2 text-sm">
-                                <p data-no-translate className="font-bold text-emerald-700">{t("À partir de")} {displayPrice.dogPrice} €</p>
-                                <div className="grid gap-1 text-xs text-gray-600 sm:grid-cols-3">
-                                  {HOUSE_SITTING_DURATION_TIERS.map((tier) => (
-                                    <span data-no-translate key={tier.label}>{t(tier.label)} : 🐕 {tier.prices.DOG} € · 🐈 {tier.prices.CAT} €</span>
-                                  ))}
-                                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Quel service ? 🏠</h2>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {serviceTypes.map((s) => {
+                      const displayPrice = getServiceDisplayPrice(s.value);
+                      const selectedPets = activePets.filter((pet) => activePetIds.includes(pet.id));
+                      const hasSelectedCat = selectedPets.some((pet) => pet.species === "CAT");
+                      const isCatWalkRequestOnly = s.value === "DOG_WALKING" && hasSelectedCat;
+                      const isMaxPetsDisabled = activePetIds.length > 0 && s.maxPets < activePetIds.length;
+                      const isDisabled = isMaxPetsDisabled || isCatWalkRequestOnly;
+                      const selectionPreview = getServicePreviewForSelection(s.value);
+                      return (
+                      <div key={s.value} onClick={() => !isDisabled && handleSelectServiceType(s.value)}
+                        className={`relative p-6 rounded-2xl border-2 transition-all ${isDisabled ? "opacity-50 cursor-not-allowed bg-gray-50" : "cursor-pointer hover:border-gray-300"} ${!isDisabled && formData.serviceType === s.value ? "border-orange-500 bg-orange-50" : "border-gray-100"}`}
+                      >
+                        {isMaxPetsDisabled && <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full">Max {s.maxPets}</div>}
+                        {isCatWalkRequestOnly && <div className="absolute top-2 right-2 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-full">Chat sur demande</div>}
+                        <div className="text-3xl mb-2">{s.icon}</div>
+                        <div>
+                          <h3 className="font-bold text-gray-900">{s.name}</h3>
+                          {s.value === "HOUSE_SITTING" ? (
+                            <div className="mt-1 space-y-2 text-sm">
+                              <p data-no-translate className="font-bold text-emerald-700">{t("À partir de")} {displayPrice.dogPrice} €</p>
+                              <div className="grid gap-1 text-xs text-gray-600 sm:grid-cols-3">
+                                {HOUSE_SITTING_DURATION_TIERS.map((tier) => (
+                                  <span data-no-translate key={tier.label}>{t(tier.label)} : 🐕 {tier.prices.DOG} € · 🐈 {tier.prices.CAT} €</span>
+                                ))}
                               </div>
-                            ) : (
-                              <div data-no-translate className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm">
-                                <span className="text-orange-600 font-bold">🐕 {displayPrice.dogPrice}€</span>
-                                <span className="text-blue-600 font-bold">
-                                  🐈 {displayPrice.catRequestOnly ? t("sur demande") : `${displayPrice.catPrice}€`}
-                                </span>
-                                <span className="text-gray-400">/ {t(displayPrice.unit)}</span>
-                                {displayPrice.durationMinutes && (
-                                  <span className="text-gray-500">{displayPrice.durationMinutes} min</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <p className="mt-3 text-sm leading-5 text-gray-500">{s.description}</p>
-                          {s.value === "BOARDING" && (
-                            <p className="mt-2 text-xs leading-5 text-gray-600">
-                              Toute période de 24 h commencée est due : 24 h 01 compte deux périodes. Chiot de moins d’un an : +{YOUNG_ANIMAL_SURCHARGE} € par période. Remise de {LONG_BOARDING_DISCOUNT_RATE * 100} % dès {LONG_BOARDING_MIN_PERIODS} périodes.
-                            </p>
+                            </div>
+                          ) : (
+                            <div data-no-translate className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm">
+                              <span className="text-orange-600 font-bold">🐕 {displayPrice.dogPrice}€</span>
+                              <span className="text-blue-600 font-bold">
+                                🐈 {displayPrice.catRequestOnly ? t("sur demande") : `${displayPrice.catPrice}€`}
+                              </span>
+                              <span className="text-gray-400">/ {t(displayPrice.unit)}</span>
+                              {displayPrice.durationMinutes && (
+                                <span className="text-gray-500">{displayPrice.durationMinutes} min</span>
+                              )}
+                            </div>
                           )}
-                          {s.value === "DAY_CARE" && (
-                            <p className="mt-2 text-xs leading-5 text-gray-600">
-                              Maximum {DOG_DAY_CARE_MAX_MINUTES / 60} h par journée. Chiot de moins d’un an : +{YOUNG_ANIMAL_SURCHARGE} € par jour. Au-delà de 10 h, choisissez l’hébergement.
-                            </p>
-                          )}
-                          {s.value === "DROP_IN" && (
-                            <p className="mt-2 text-xs leading-5 text-gray-600">
-                              Puis +{EXTRA_DURATION.DROP_IN.extraRate} € par tranche de {EXTRA_DURATION.DROP_IN.increment} min : chien {getServiceDisplayPriceForDuration("DROP_IN", "DOG", 60)} / {getServiceDisplayPriceForDuration("DROP_IN", "DOG", 90)} / {getServiceDisplayPriceForDuration("DROP_IN", "DOG", 120)} € et chat {getServiceDisplayPriceForDuration("DROP_IN", "CAT", 60)} / {getServiceDisplayPriceForDuration("DROP_IN", "CAT", 90)} / {getServiceDisplayPriceForDuration("DROP_IN", "CAT", 120)} € pour 60 / 90 / 120 min.
-                            </p>
-                          )}
-                          {s.value === "DOG_WALKING" && (
-                            <p className="mt-2 text-xs leading-5 text-gray-600">
-                              30 min incluses, puis +{EXTRA_DURATION.DOG_WALKING.extraRate} € par tranche de 30 min commencée : {getServiceDisplayPriceForDuration("DOG_WALKING", "DOG", 60)} € / 60 min, {getServiceDisplayPriceForDuration("DOG_WALKING", "DOG", 90)} € / 90 min, {getServiceDisplayPriceForDuration("DOG_WALKING", "DOG", 120)} € / 120 min.
-                            </p>
+                          {selectionPreview && (
+                            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gray-900 px-3 py-1 text-xs font-bold text-white">
+                              <span>{t("Votre sélection")} :</span>
+                              <span data-no-translate className="text-orange-300">
+                                {formatPrice(selectionPreview.amount)} € / {t(selectionPreview.unitLabel)}
+                              </span>
+                            </div>
                           )}
                         </div>
-                      )})}
-                    </div>
-                    {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
-                      <div className="mt-4">
-                        <ResidentCatsNotice />
+                        <p className="mt-3 text-sm leading-5 text-gray-500">{s.description}</p>
+                        {s.value === "BOARDING" && (
+                          <p className="mt-2 text-xs leading-5 text-gray-600">
+                            Toute période de 24 h commencée est due : 24 h 01 compte deux périodes. Chiot de moins d’un an : +{YOUNG_ANIMAL_SURCHARGE} € par période. Remise de {LONG_BOARDING_DISCOUNT_RATE * 100} % dès {LONG_BOARDING_MIN_PERIODS} périodes.
+                          </p>
+                        )}
+                        {s.value === "DAY_CARE" && (
+                          <p className="mt-2 text-xs leading-5 text-gray-600">
+                            Maximum {DOG_DAY_CARE_MAX_MINUTES / 60} h par journée. Chiot de moins d’un an : +{YOUNG_ANIMAL_SURCHARGE} € par jour. Au-delà de 10 h, choisissez l’hébergement.
+                          </p>
+                        )}
+                        {s.value === "DROP_IN" && (
+                          <p className="mt-2 text-xs leading-5 text-gray-600">
+                            Puis +{EXTRA_DURATION.DROP_IN.extraRate} € par tranche de {EXTRA_DURATION.DROP_IN.increment} min : chien {getServiceDisplayPriceForDuration("DROP_IN", "DOG", 60)} / {getServiceDisplayPriceForDuration("DROP_IN", "DOG", 90)} / {getServiceDisplayPriceForDuration("DROP_IN", "DOG", 120)} € et chat {getServiceDisplayPriceForDuration("DROP_IN", "CAT", 60)} / {getServiceDisplayPriceForDuration("DROP_IN", "CAT", 90)} / {getServiceDisplayPriceForDuration("DROP_IN", "CAT", 120)} € pour 60 / 90 / 120 min.
+                          </p>
+                        )}
+                        {s.value === "DOG_WALKING" && (
+                          <p className="mt-2 text-xs leading-5 text-gray-600">
+                            30 min incluses, puis +{EXTRA_DURATION.DOG_WALKING.extraRate} € par tranche de 30 min commencée : {getServiceDisplayPriceForDuration("DOG_WALKING", "DOG", 60)} € / 60 min, {getServiceDisplayPriceForDuration("DOG_WALKING", "DOG", 90)} € / 90 min, {getServiceDisplayPriceForDuration("DOG_WALKING", "DOG", 120)} € / 120 min.
+                          </p>
+                        )}
                       </div>
-                    )}
-                    <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4 text-xs leading-5 text-gray-600">
-                      Chaque animal est facturé au tarif complet correspondant à son espèce et au service choisi. Pour une visite ou promenade partagée, le supplément de durée n’est compté qu’une fois. <Link href="/tarifs" target="_blank" className="font-bold text-orange-700 underline underline-offset-4">Voir tous les tarifs et conditions.</Link>
-                    </div>
+                    )})}
                   </div>
-                )}
+                  {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
+                    <div className="mt-4">
+                      <ResidentCatsNotice />
+                    </div>
+                  )}
+                  <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4 text-xs leading-5 text-gray-600">
+                    Chaque animal est facturé au tarif complet correspondant à son espèce et au service choisi. Pour une visite ou promenade partagée, le supplément de durée n’est compté qu’une fois. <Link href="/tarifs" target="_blank" className="font-bold text-orange-700 underline underline-offset-4">Voir tous les tarifs et conditions.</Link>
+                  </div>
+                </div>
 
                 <div className="flex gap-4">
-                    <Button type="button" variant="ghost" onClick={() => router.push('/dashboard')} className="flex-1 h-14 rounded-xl text-gray-500">Annuler</Button>
-                    <Button type="button" onClick={goNext} disabled={formData.petIds.length === 0} className="flex-[2] h-14 rounded-xl text-lg bg-gray-900 hover:bg-orange-600">Continuer vers les dates</Button>
+                    <Button type="button" variant="ghost" onClick={() => router.push(status === "authenticated" ? "/dashboard" : "/")} className="flex-1 h-14 rounded-xl text-gray-500">Annuler</Button>
+                    <Button type="button" onClick={goNext} disabled={!step1CanContinue} className="flex-[2] h-14 rounded-xl text-lg bg-gray-900 hover:bg-orange-600">Continuer vers les dates</Button>
                 </div>
               </motion.div>
             )}
@@ -1808,8 +2271,8 @@ export default function BookingPage() {
                          />
                      ) : (
                          <div className="space-y-6">
-                             {formData.petIds.map(id => {
-                                 const pet = pets.find(p => p.id === id);
+                             {activePetIds.map(id => {
+                                 const pet = activePets.find(p => p.id === id);
                                  const config = petConfigs[id];
                                  if (!pet || !config) return null;
                                  return (
@@ -1867,7 +2330,7 @@ export default function BookingPage() {
 
                  {/* Total Price Bar */}
                  {calculateTotalPrice() > 0 && (
-                     <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6 rounded-3xl flex justify-between items-center">
+                     <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-5 sm:p-6 rounded-3xl grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
                          <div>
                              <p className="text-gray-400 text-sm">Total estimé</p>
                              <div className="flex items-baseline gap-3">
@@ -1885,8 +2348,8 @@ export default function BookingPage() {
                                 )}
                              </div>
                          </div>
-                             <div className="flex flex-col items-end gap-1">
-                                 <p className="max-w-56 text-right text-[11px] leading-4 text-orange-200">
+                             <div className="flex flex-col items-start sm:items-end gap-1.5">
+                                 <p className="max-w-xs sm:max-w-56 text-left sm:text-right text-[11px] leading-4 text-orange-200">
                                    5 premiers nouveaux clients : <strong>BIENVENUE10</strong> (-10 %). Les remises ne se cumulent pas : la plus avantageuse est retenue.
                                  </p>
                                  <div className="flex gap-2">
@@ -1924,7 +2387,7 @@ export default function BookingPage() {
 
                  <div className="flex gap-4">
                   <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-14 rounded-xl">Retour</Button>
-                  <Button type="button" onClick={goNext} disabled={!availabilityStatus.available || calculateTotalPrice() === 0 || (isHourlyService(formData.serviceType) && formData.serviceAddress.trim().length < 8)} className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600">Récapitulatif</Button>
+                  <Button type="button" onClick={goNext} disabled={!step2CanContinue} className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600">Voir le récapitulatif →</Button>
                 </div>
               </motion.div>
             )}
@@ -1980,8 +2443,8 @@ export default function BookingPage() {
                           </div>
                         )}
                         <div className="space-y-4 text-sm text-gray-700">
-                            {formData.petIds.map(id => {
-                                const pet = pets.find(p => p.id === id);
+                            {activePetIds.map(id => {
+                                const pet = activePets.find(p => p.id === id);
                                 const config = useSameDates
                                     ? { startDate: formData.startDate, endDate: formData.endDate, startTime: formData.startTime, endTime: formData.endTime, visitSlots }
                                     : petConfigs[id];
@@ -2220,37 +2683,245 @@ export default function BookingPage() {
                         </div>
                     </div>
 
-                    {/* Validation légale */}
-                    <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                        <input
-                            type="checkbox"
-                            id="legal-checkbox"
-                            checked={legalAccepted}
-                            onChange={(e) => setLegalAccepted(e.target.checked)}
-                            className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
-                        />
-                        <label data-no-translate htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
-                            J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de confidentialité</Link>. L&apos;annulation est gratuite au moins 48 h avant le début de la garde. Passé ce délai, 50 % du montant est retenu, sous réserve des droits légaux. {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
-                        </label>
-                    </div>
-
                     <div>
                       <Label>Instructions spéciales</Label>
                       <textarea className="w-full p-4 bg-gray-50 border-gray-200 rounded-2xl h-32 mt-2" placeholder="Allergies, habitudes..." value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
                     </div>
 
-                    <div className="flex gap-4">
-                      <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-14 rounded-xl">Retour</Button>
-                      <Button type="submit" disabled={isLoading || !legalAccepted} className="flex-1 h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg">
-                          {isLoading ? "Chargement..." : "Payer et Confirmer 💳"}
-                      </Button>
-                    </div>
+                    {status !== "authenticated" ? (
+                      <div className="space-y-4">
+                        <div className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-orange-50 p-6 shadow-sm">
+                          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-900">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+                            <span>Vos dates sont disponibles</span>
+                          </div>
+                          <h4 className="mt-3 text-xl font-extrabold text-gray-900">
+                            Créez votre compte gratuit en 1 minute pour enregistrer votre compagnon et confirmer ces dates
+                          </h4>
+                          <p className="mt-2 text-sm leading-6 text-gray-600">
+                            Votre simulation (dates, horaires, service et tarif estimé) est sauvegardée automatiquement : vous la retrouverez immédiatement après votre connexion.
+                          </p>
+                          <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                            <Link
+                              href="/auth/signup?callbackUrl=/booking"
+                              className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-6 py-4 text-center text-base font-bold text-white shadow-md hover:bg-orange-600 transition-colors"
+                            >
+                              Créer mon compte &amp; continuer →
+                            </Link>
+                            <Link
+                              href="/auth/signin?callbackUrl=/booking"
+                              className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-6 py-4 text-center text-base font-bold text-gray-900 hover:bg-gray-50 transition-colors"
+                            >
+                              J&apos;ai déjà un compte
+                            </Link>
+                          </div>
+                        </div>
+                        <div className="flex">
+                          <Button type="button" variant="outline" onClick={goBack} className="w-full sm:w-auto px-8 h-12 rounded-xl">
+                            Retour
+                          </Button>
+                        </div>
+                      </div>
+                    ) : !canConfirmAndPay ? (
+                      <div className="space-y-4">
+                        <div className="rounded-3xl border-2 border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 p-6 shadow-sm">
+                          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-900">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+                            <span>Vos dates sont disponibles</span>
+                          </div>
+                          {eligiblePets.length > 0 ? (
+                            <>
+                              <h4 className="mt-3 text-xl font-extrabold text-gray-900">
+                                Sélectionnez votre compagnon enregistré pour confirmer ces dates
+                              </h4>
+                              <p className="mt-2 text-sm leading-6 text-gray-600">
+                                Vous êtes actuellement en mode simulation rapide. Basculez sur votre compagnon validé pour accéder au paiement sécurisé.
+                              </p>
+                              <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsSimulationManual(false);
+                                    if (formData.petIds.length === 0) {
+                                      setFormData((prev) => ({ ...prev, petIds: [eligiblePets[0].id] }));
+                                    }
+                                  }}
+                                  className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-6 py-4 text-center text-base font-bold text-white shadow-md hover:bg-orange-600 transition-colors"
+                                >
+                                  Utiliser mon compagnon enregistré →
+                                </button>
+                                <Link
+                                  href="/pets/new?returnTo=/booking"
+                                  className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-6 py-4 text-center text-base font-bold text-gray-900 hover:bg-gray-50 transition-colors"
+                                >
+                                  Ajouter un compagnon
+                                </Link>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <h4 className="mt-3 text-xl font-extrabold text-gray-900">
+                                Enregistrez ou complétez la fiche de votre compagnon pour confirmer ces dates
+                              </h4>
+                              <p className="mt-2 text-sm leading-6 text-gray-600">
+                                Vos dates et votre tarif estimé restent sauvegardés. Dès que la fiche de votre compagnon est complète et validée, vous pourrez finaliser la réservation.
+                              </p>
+                              <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                                {pets.length > 0 ? (
+                                  <Link
+                                    href={`/pets/${pets[0].id}/edit`}
+                                    className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-6 py-4 text-center text-base font-bold text-white shadow-md hover:bg-orange-600 transition-colors"
+                                  >
+                                    Compléter la fiche de mon compagnon →
+                                  </Link>
+                                ) : null}
+                                <Link
+                                  href="/pets/new?returnTo=/booking"
+                                  className={`${pets.length === 0 ? "flex-1 bg-gray-950 text-white hover:bg-orange-600 shadow-md" : "border border-gray-300 bg-white text-gray-900 hover:bg-gray-50"} inline-flex items-center justify-center rounded-xl px-6 py-4 text-center text-base font-bold transition-colors`}
+                                >
+                                  Ajouter mon compagnon →
+                                </Link>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex">
+                          <Button type="button" variant="outline" onClick={goBack} className="w-full sm:w-auto px-8 h-12 rounded-xl">
+                            Retour
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Validation légale */}
+                        <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                            <input
+                                type="checkbox"
+                                id="legal-checkbox"
+                                checked={legalAccepted}
+                                onChange={(e) => setLegalAccepted(e.target.checked)}
+                                className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
+                            />
+                            <label data-no-translate htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
+                                J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de confidentialité</Link>. L&apos;annulation est gratuite au moins 48 h avant le début de la garde. Passé ce délai, 50 % du montant est retenu, sous réserve des droits légaux. {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
+                            </label>
+                        </div>
+
+                        <div className="flex gap-4">
+                          <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-14 rounded-xl">Retour</Button>
+                          <Button type="submit" disabled={isLoading || !legalAccepted} className="flex-1 h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg">
+                              {isLoading ? "Chargement..." : "Payer et Confirmer 💳"}
+                          </Button>
+                        </div>
+                      </>
+                    )}
               </motion.div>
             )}
 
             </AnimatePresence>
           </form>
         </motion.div>
+      </div>
+
+      {/* Sticky Mobile Bottom Bar */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-orange-200/80 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_25px_rgba(31,41,51,0.08)] backdrop-blur-md md:hidden">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                Total estimé
+              </span>
+              {availabilityStatus.checking ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                  Vérification…
+                </span>
+              ) : calculateTotalPrice() > 0 ? (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    availabilityStatus.available
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {availabilityStatus.available ? "Disponible" : "Indisponible"}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-800">
+                  Simulation en direct
+                </span>
+              )}
+            </div>
+            <p data-no-translate className="text-lg font-extrabold text-gray-950 truncate">
+              {finalDisplayedTotal > 0
+                ? `${formatPrice(finalDisplayedTotal)} €`
+                : currentServicePreview
+                  ? `${t("Dès")} ${formatPrice(currentServicePreview.amount)} €`
+                  : `${t("Dès")} 35 €`}
+            </p>
+          </div>
+
+          <div className="shrink-0">
+            {step === 1 && (
+              <Button
+                type="button"
+                onClick={goNext}
+                disabled={!step1CanContinue}
+                className="h-11 rounded-xl bg-gray-900 px-4 text-sm font-bold text-white hover:bg-orange-600"
+              >
+                Choisir les dates →
+              </Button>
+            )}
+            {step === 2 && (
+              <Button
+                type="button"
+                onClick={goNext}
+                disabled={!step2CanContinue}
+                className="h-11 rounded-xl bg-gray-900 px-4 text-sm font-bold text-white hover:bg-orange-600"
+              >
+                Voir le récapitulatif →
+              </Button>
+            )}
+            {step === 3 && (
+              canConfirmAndPay ? (
+                <Button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={isLoading || !legalAccepted}
+                  className="h-11 rounded-xl bg-green-600 px-4 text-sm font-bold text-white hover:bg-green-700"
+                >
+                  {isLoading ? "Chargement..." : "Payer & confirmer"}
+                </Button>
+              ) : status !== "authenticated" ? (
+                <Link
+                  href="/auth/signup?callbackUrl=/booking"
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-gray-950 px-4 text-sm font-bold text-white hover:bg-orange-600"
+                >
+                  Continuer &amp; réserver →
+                </Link>
+              ) : eligiblePets.length > 0 ? (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setIsSimulationManual(false);
+                    if (formData.petIds.length === 0) {
+                      setFormData((prev) => ({ ...prev, petIds: [eligiblePets[0].id] }));
+                    }
+                  }}
+                  className="h-11 rounded-xl bg-gray-950 px-4 text-sm font-bold text-white hover:bg-orange-600"
+                >
+                  Continuer &amp; réserver →
+                </Button>
+              ) : (
+                <Link
+                  href={pets.length > 0 ? `/pets/${pets[0].id}/edit` : "/pets/new?returnTo=/booking"}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-gray-950 px-4 text-sm font-bold text-white hover:bg-orange-600"
+                >
+                  Continuer &amp; réserver →
+                </Link>
+              )
+            )}
+          </div>
+        </div>
       </div>
 
       <AnimatePresence>

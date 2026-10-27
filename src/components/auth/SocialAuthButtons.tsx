@@ -5,7 +5,11 @@ import { signIn } from "next-auth/react";
 
 type Provider = { id: string; name: string; type: string };
 
-export function SocialAuthButtons() {
+export function SocialAuthButtons({ callbackUrl = "/dashboard" }: { callbackUrl?: string }) {
+  const safeCallbackUrl =
+    callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+      ? callbackUrl
+      : "/dashboard";
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
 
@@ -36,7 +40,7 @@ export function SocialAuthButtons() {
             onClick={async () => {
               setLoadingProvider(provider.id);
               await signIn(provider.id, {
-                callbackUrl: "/auth/two-factor?next=/dashboard",
+                callbackUrl: `/auth/two-factor?next=${encodeURIComponent(safeCallbackUrl)}`,
               });
               setLoadingProvider(null);
             }}

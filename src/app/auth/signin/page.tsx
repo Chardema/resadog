@@ -13,6 +13,11 @@ import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const rawCallbackUrl = searchParams.get("callbackUrl");
+  const callbackUrl =
+    rawCallbackUrl && rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
+      ? rawCallbackUrl
+      : "/dashboard";
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
@@ -46,7 +51,7 @@ function SignInContent() {
       redirect: false,
     });
     if (result?.error) throw new Error("Identifiants ou code de sécurité incorrects.");
-    router.push("/dashboard");
+    router.push(callbackUrl);
     router.refresh();
   };
 
@@ -175,11 +180,11 @@ function SignInContent() {
           </Button>
         </form>
 
-        {!needsTwoFactor && <SocialAuthButtons />}
+        {!needsTwoFactor && <SocialAuthButtons callbackUrl={callbackUrl} />}
 
         <p className="mt-7 border-t border-gray-100 pt-6 text-center text-sm text-gray-500">
           Pas encore de compte ?{" "}
-          <Link href="/auth/signup" className="font-bold text-gray-950 hover:text-orange-700">
+          <Link href={callbackUrl !== "/dashboard" ? `/auth/signup?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/auth/signup"} className="font-bold text-gray-950 hover:text-orange-700">
             Créer un compte
           </Link>
         </p>
