@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getClientIp } from "@/lib/auth/password";
+import { distributedRateLimit } from "@/lib/rate-limit";
 import { isHourlyServiceType, SERVICE_TYPES, type AppServiceType } from "@/lib/services";
 import {
   countBookingsByDate,
@@ -36,6 +38,22 @@ function parseRequestedSlots(value: string | null): RequestedSlot[] {
 
 export async function GET(request: NextRequest) {
   try {
+    const identifier = getClientIp(request);
+    const rateLimit = await distributedRateLimit(`availability-check:${identifier}`, {
+      maxRequests: 60,
+      windowSeconds: 60,
+    });
+
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Trop de vérifications de disponibilités. Veuillez réessayer dans un instant." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.resetIn) },
+        }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");

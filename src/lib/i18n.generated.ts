@@ -657,6 +657,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "First 5 new customers:",
     "es": "Primeros 5 nuevos clientes:"
   },
+  "5,0 / 5 Avis vérifiés": {
+    "en": "5.0 / 5 Verified reviews",
+    "es": "5,0 / 5 Reseñas verificadas"
+  },
   "5. Durées de conservation": {
     "en": "5. Shelf life",
     "es": "5. Vida útil"
@@ -728,6 +732,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "9. Droit applicable": {
     "en": "9. Applicable law",
     "es": "9. Ley aplicable"
+  },
+  "À 10 min de Disneyland Paris · Bussy-Saint-Georges (77)": {
+    "en": "10 mins from Disneyland Paris · Bussy-Saint-Georges (77)",
+    "es": "A 10 min de Disneyland Paris · Bussy-Saint-Georges (77)"
   },
   "À 10 min de Disneyland Paris (A4 sortie 12 / RER A Bussy-St-Georges)": {
     "en": "10 min from Disneyland Paris (A4 exit 12 / RER A Bussy-St-Georges)",
@@ -2677,6 +2685,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "From €35",
     "es": "Desde 35 €"
   },
+  "Dès 35 € / jour": {
+    "en": "From €35 / day",
+    "es": "Desde 35 € / día"
+  },
   "Dès 40 € / jour": {
     "en": "From €40 / day",
     "es": "Desde 40 € / día"
@@ -2756,6 +2768,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Deux chats vivent à la maison": {
     "en": "Two cats live in the house",
     "es": "Dos gatos viven en la casa"
+  },
+  "Diplômé ACACED": {
+    "en": "State-certified (ACACED)",
+    "es": "Titulado ACACED"
   },
   "Diplômée d’État ACACED Chien & Chat": {
     "en": "State-certified ACACED Dog & Cat",
@@ -3697,6 +3713,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Family dog boarding · 10 min from Disneyland Paris",
     "es": "Alojamiento familiar canino · A 10 min de Disneyland Paris"
   },
+  "Garde familiale de chiens & chats — en maison avec jardin clos, sans box ni chenil": {
+    "en": "Family dog & cat boarding — in a home with an enclosed garden, cage-free and kennel-free",
+    "es": "Guardería familiar de perros y gatos — en casa con jardín cerrado, sin jaulas ni perreras"
+  },
   "Garde familiale de chiens & chats près de Disneyland Paris,": {
     "en": "Family dog & cat boarding near Disneyland Paris,",
     "es": "Alojamiento familiar para perros y gatos cerca de Disneyland Paris,"
@@ -4524,6 +4544,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "La Patte Dorée — Accueil": {
     "en": "La Patte Dorée — Home",
     "es": "La Patte Dorée — Inicio"
+  },
+  "La Patte Dorée — Garde familiale de chiens & chats près de Disneyland Paris": {
+    "en": "La Patte Dorée — Family dog & cat boarding near Disneyland Paris",
+    "es": "La Patte Dorée — Guardería familiar de perros y gatos cerca de Disneyland Paris"
+  },
+  "La Patte Dorée — Garde familiale de chiens et chats près de Disneyland Paris": {
+    "en": "La Patte Dorée — Family dog and cat boarding near Disneyland Paris",
+    "es": "La Patte Dorée — Guardería familiar de perros y gatos cerca de Disneyland Paris"
   },
   "La Patte Dorée | Pet-sitter près de Disneyland Paris": {
     "en": "La Patte Dorée | Pet-sitter near Disneyland Paris",
@@ -7977,6 +8005,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Too many attempts. Try again later.",
     "es": "Demasiados intentos. Vuelve a intentarlo más tarde."
   },
+  "Trop de vérifications de disponibilités. Veuillez réessayer dans un instant.": {
+    "en": "Too many availability checks. Please try again in a moment.",
+    "es": "Demasiadas comprobaciones de disponibilidad. Inténtelo de nuevo en un momento."
+  },
   "true": {
     "en": "true",
     "es": "verdadero"
@@ -8768,6 +8800,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "wait": {
     "en": "wait",
     "es": "esperar"
+  },
+  "www.lapatte-doree.fr": {
+    "en": "www.lapatte-doree.fr",
+    "es": "www.lapatte-doree.fr"
   },
   "X-WR-CALNAME:La Patte Dorée — Planning": {
     "en": "X-WR-CALNAME:La Patte Dorée — Schedule",
