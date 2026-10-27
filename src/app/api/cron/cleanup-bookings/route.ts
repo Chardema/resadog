@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { groupNearbyBookings } from "@/lib/booking-completion";
 import { prisma } from "@/lib/db/prisma";
+import { getBookingCompletionDate, sendGoogleReviewForBookings } from "@/lib/google-review-requests";
+
+const REVIEW_REQUEST_DELAY_MS = 24 * 60 * 60 * 1000;
+const ABANDONED_CHECKOUT_DELAY_MS = 60 * 60 * 1000;
 
 export async function GET(request: NextRequest) {
   // Vérification de sécurité (Vercel Cron envoie un header spécifique)
@@ -10,47 +15,110 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Calculer la date il y a 1 heure
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const abandonedBefore = new Date(Date.now() - ABANDONED_CHECKOUT_DELAY_MS);
 
-    // Supprimer les réservations PENDING créées il y a plus d'1h et sans paiement réussi
-    const deleted = await prisma.booking.deleteMany({
+    // Le webhook d'expiration est le chemin normal. Ce nettoyage est le filet de
+    // sécurité si Stripe n'a pas pu joindre le webhook. Les Checkout de
+    // réservation expirent au bout de 31 minutes, donc une heure laisse une marge.
+    const deletedAbandoned = await prisma.$transaction(async (tx) => {
+      const candidates = await tx.booking.findMany({
+        where: {
+          status: "PENDING",
+          depositPaid: false,
+          createdAt: { lt: abandonedBefore },
+          OR: [
+            { payment: { is: null } },
+            {
+              payment: {
+                is: {
+                  stripePaymentId: null,
+                  status: { not: "SUCCEEDED" },
+                },
+              },
+            },
+          ],
+        },
+        select: { id: true },
+      });
+
+      const candidateIds = candidates.map((booking) => booking.id);
+      if (candidateIds.length === 0) return 0;
+
+      // Payment n'a pas de cascade SQL : le supprimer d'abord est obligatoire.
+      // Les gardes empêchent toute suppression si un webhook vient d'ajouter un
+      // PaymentIntent ou de réussir le paiement entre-temps.
+      await tx.payment.deleteMany({
+        where: {
+          bookingId: { in: candidateIds },
+          stripePaymentId: null,
+          status: { not: "SUCCEEDED" },
+        },
+      });
+
+      const deletedBookings = await tx.booking.deleteMany({
+        where: {
+          id: { in: candidateIds },
+          status: "PENDING",
+          depositPaid: false,
+          payment: { is: null },
+        },
+      });
+
+      return deletedBookings.count;
+    });
+
+    const now = new Date();
+    const reviewEligibleBefore = new Date(now.getTime() - REVIEW_REQUEST_DELAY_MS);
+    const completionCandidates = await prisma.booking.findMany({
       where: {
-        status: "PENDING",
-        createdAt: {
-          lt: oneHourAgo,
-        },
-        // S'assurer qu'on ne supprime pas une résa qui a un paiement en cours/réussi
-        // (bien que normalement PENDING = pas encore validé par webhook)
-        payment: {
-          is: null, // Pas de tentative de paiement enregistrée
-        },
+        status: { in: ["CONFIRMED", "IN_PROGRESS"] },
+        endDate: { lte: reviewEligibleBefore },
+      },
+      include: {
+        client: true,
+        pets: true,
+        pet: true,
       },
     });
 
-    // Nettoyer aussi les paiements "PROCESSING" abandonnés depuis 24h (au cas où)
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const oldBookings = await prisma.booking.findMany({
-      where: {
-        status: "PENDING",
-        createdAt: { lt: oneHourAgo },
-        payment: {
-          status: "PROCESSING", // Paiement initié mais jamais fini
-          createdAt: { lt: oneDayAgo } // Abandonné depuis longtemps
-        }
+    let completedBookings = 0;
+    const reviewEmailErrors: string[] = [];
+
+    const completed = [];
+    for (const booking of completionCandidates) {
+      if (getBookingCompletionDate(booking).getTime() + REVIEW_REQUEST_DELAY_MS > now.getTime()) continue;
+
+      const updated = await prisma.booking.updateMany({
+        where: {
+          id: booking.id,
+          status: { in: ["CONFIRMED", "IN_PROGRESS"] },
+        },
+        data: { status: "COMPLETED" },
+      });
+
+      if (updated.count === 0) continue;
+      completedBookings += 1;
+
+      completed.push(booking);
+    }
+
+    for (const group of groupNearbyBookings(completed)) {
+      try {
+        await sendGoogleReviewForBookings(group);
+      } catch (emailError) {
+        const message = emailError instanceof Error ? emailError.message : "Email de demande d'avis non envoyé";
+        reviewEmailErrors.push(`${group.map(b => b.id).join(",")}: ${message}`);
+        console.error("Réservation terminée automatiquement, mais email d'avis non envoyé:", emailError);
       }
-    });
-    
-    // On supprime ces réservations une par une (cascade supprimera le paiement)
-    for (const b of oldBookings) {
-      await prisma.booking.delete({ where: { id: b.id } });
     }
 
     return NextResponse.json({
       success: true,
-      deletedPending: deleted.count,
-      deletedAbandoned: oldBookings.length,
-      message: `Nettoyage effectué : ${deleted.count + oldBookings.length} réservations supprimées.`
+      deletedPending: deletedAbandoned,
+      deletedAbandoned,
+      completedBookings,
+      reviewEmailErrors,
+      message: `Nettoyage effectué : ${deletedAbandoned} réservation(s) abandonnée(s) supprimée(s), ${completedBookings} prestation(s) terminée(s).`
     });
   } catch (error) {
     console.error("Erreur Cron Cleanup:", error);

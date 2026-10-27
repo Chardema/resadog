@@ -1,90 +1,78 @@
-# La Patte Doree
+# La Patte Dorée
 
-Application Next.js de reservation pour La Patte Doree : reservations, paiement Stripe avec empreinte bancaire, espace client, administration, disponibilites, coupons, credits, abonnements et emails transactionnels.
+Application de réservation pour services de garde d'animaux : demandes, disponibilités, paiement Stripe avec capture manuelle, espace client, administration, fidélité, avis et emails transactionnels.
 
 ## Stack
 
-- Next.js 16, React 19, TypeScript
-- Prisma 7 et PostgreSQL
-- NextAuth v5
+- Next.js 16 et React 19
+- TypeScript et Tailwind CSS 4
+- Prisma 7 et PostgreSQL/Supabase
+- Auth.js/NextAuth 5 avec vérification d'email, Google, Apple et 2FA TOTP
 - Stripe Checkout, PaymentIntents et abonnements
-- Resend pour les emails
-- UploadThing pour les fichiers
-- Vercel pour l'hebergement et les crons
+- Resend et UploadThing
+- Vercel
 
-## Demarrage local
+## Installation locale
+
+Prérequis : Node.js 20.9 ou supérieur et une base PostgreSQL dédiée au développement.
 
 ```bash
-npm install
+cp .env.example .env.local
+npm ci
+npx prisma migrate deploy
 npm run dev
 ```
 
-L'application demarre sur [http://localhost:3000](http://localhost:3000).
+Le site est ensuite accessible sur [http://localhost:3000](http://localhost:3000).
 
-## Scripts utiles
+Ne lancez jamais `prisma db push` ou `prisma migrate reset` sur la base de production.
 
-```bash
-npm run dev          # serveur local
-npm run lint         # ESLint
-npm run build        # build production Next.js
-npm run check:env    # controle des variables d'environnement de production
-npm run preflight    # env + lint + build
-npm run create-admin # creation d'un admin
-npm run reset-admin  # reset du mot de passe admin
-```
-
-## Variables d'environnement
-
-Le controle de production se lance avec :
+## Contrôles
 
 ```bash
-npm run check:env
-```
-
-Variables requises en production :
-
-- `DATABASE_URL`
-- `NEXTAUTH_URL`
-- `AUTH_SECRET` ou `NEXTAUTH_SECRET`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `CRON_SECRET`
-- `UPLOADTHING_TOKEN`
-- `UPLOADTHING_APP_ID`
-- `RESEND_API_KEY`
-- `ADMIN_EMAIL`
-
-Variables conseillees :
-
-- `RESEND_FROM`
-- `RESEND_BUG_FROM`
-- `DEV_EMAIL`
-
-Voir [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) pour la checklist complete de mise en production.
-
-## Deploiement
-
-Le projet est lie a Vercel. Le flux normal est :
-
-```bash
-npm run check:env
+npm run check:env          # environnement local
+npm run check:types        # TypeScript
+npm run check:pricing      # tarification, coupons et fidélité
+npm run check:payments     # invariants d'encaissement/remboursement
+npm run check:translations # couverture FR/EN/ES
 npm run lint
 npm run build
-git push origin main
 ```
 
-Le push sur `main` declenche le deploiement Vercel de production via l'integration Git.
+Le contrôle complet avant livraison est :
 
-## Paiements
-
-Les reservations utilisent Stripe Checkout avec PaymentIntent en capture manuelle. Le client autorise le paiement, puis l'admin confirme la reservation pour capturer le paiement. Une annulation admin annule l'autorisation ou rembourse selon l'etat du paiement.
-
-Webhook Stripe production :
-
-```text
-https://resadog.vercel.app/api/stripe/webhook
+```bash
+npm run preflight
 ```
+
+Le contrôle des services Live nécessite les variables de production :
+
+```bash
+npm run check:live
+```
+
+## Administration
+
+```bash
+npm run create-admin
+npm run reset-admin
+```
+
+Les scripts utilisent la base définie dans l'environnement courant. Vérifiez toujours la cible avant de les lancer.
+
+## Déploiement
+
+Le projet Vercel est `pattedoree`. Le flux recommandé est :
+
+1. sauvegarder la base ;
+2. exécuter `npm run preflight` ;
+3. appliquer `npx prisma migrate deploy` ;
+4. valider un Preview Vercel ;
+5. promouvoir l'artefact testé en production ;
+6. contrôler les routes publiques et les logs runtime.
+
+Voir [la procédure de production](docs/PRODUCTION_DEPLOYMENT.md) et [le dossier de stabilisation V2](docs/PHASE_1_V2_STABILISATION.md).
 
 ## Licence
 
-Projet proprietaire.
+Projet propriétaire.

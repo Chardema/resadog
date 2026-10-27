@@ -1,0 +1,107 @@
+.document {
+  --ink: #182b35;
+  --gold: #ad711c;
+  --muted: #65717a;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 38px 42px 24px;
+  border: 1px solid #e7e1d6;
+  background: #fff;
+  color: var(--ink);
+  font: 12px/1.5 Arial, Helvetica, sans-serif;
+  box-shadow: 0 8px 32px #172c3510;
+  overflow-wrap: anywhere;
+}
+.document p, .document h2, .document h3 { margin: 0; }
+.header { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 23px; border-bottom: 2px solid var(--gold); }
+.brand { display: flex; align-items: center; gap: 12px; align-self: flex-start; padding-top: 5px; }
+.brand img { flex-shrink: 0; border-radius: 12px; }
+.brandName { font: 700 26px/1.15 Georgia, 'Times New Roman', serif; letter-spacing: -.6px; }
+.tagline { margin-top: 6px !important; color: var(--muted); font-size: 10px; }
+.documentTitle { text-align: right; flex-shrink: 0; }
+.documentTitle h2 { font: 400 43px/1.2 Georgia, 'Times New Roman', serif; letter-spacing: -1px; }
+.eyebrow { color: var(--gold); text-transform: uppercase; font-size: 9px; font-weight: 700; letter-spacing: 1.4px; }
+.reference { margin-top: 5px !important; font-size: 10px; color: var(--muted); }
+.draft { display: inline-block; margin-top: 7px; padding: 3px 7px; background: #fbf3e4; color: #795012; border-radius: 3px; font-size: 9px; }
+.parties { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; padding: 24px 0; }
+.name { margin: 7px 0 4px !important; font-size: 14px; font-weight: 700; }
+.contact { margin-top: 7px !important; }
+.muted { color: var(--muted); font-size: 10px; }
+.client { padding: 15px 18px; border: 1px solid #e8e2d8; background: #fbfaf7; border-radius: 5px; }
+.address { white-space: pre-wrap; }
+.dates { margin-top: 14px; border-top: 1px solid #e8e2d8; padding-top: 9px; font-size: 10px; }
+.dates p { display: flex; justify-content: space-between; gap: 12px; }
+.dates span { color: var(--muted); }
+.dates strong { font-weight: 500; text-align: right; }
+.service { padding: 0 0 18px; }
+.service h3 { margin: 5px 0 6px; font: 700 20px/1.3 Georgia, 'Times New Roman', serif; }
+.serviceDescription { margin-top: 7px !important; max-width: 640px; color: var(--muted); font-size: 11px; }
+.petNames { margin-top: 3px !important; color: var(--gold); font-weight: 700; }
+.table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11px; }
+.table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.descriptionColumn { width: 49%; }
+.quantityColumn { width: 9%; }
+.priceColumn { width: 21%; }
+.table th { padding: 10px 12px; background: var(--ink); color: white; font-size: 10px; font-weight: 500; }
+.table td { padding: 9px 12px; border-bottom: 1px solid #e6e9e9; }
+.table td, .table th { text-align: right; font-variant-numeric: tabular-nums; }
+.table td:first-child, .table th:first-child { text-align: left; }
+.table td:nth-child(2), .table th:nth-child(2) { text-align: center; }
+.table td strong { display: block; font-size: 11px; font-weight: 500; }
+.table td span { display: block; color: var(--muted); font-size: 9px; margin-top: 1px; }
+.table tbody tr:nth-child(even) { background: #fcfcfa; }
+.travelRow { background: #f6f5f1 !important; }
+.summary { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; padding-top: 19px; }
+.included { font-size: 10px; }
+.included p + p { margin-top: 7px; }
+.totals > p { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 6px; font-size: 11px; }
+.grandTotal { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 12px 15px; background: #f5eddd; border-left: 3px solid var(--gold); }
+.grandTotal span { font-size: 11px; font-weight: 700; }
+.grandTotal strong { font-size: 25px; line-height: 1.2; white-space: nowrap; }
+.totals .taxNote { display: block; margin: 7px 0 0; color: var(--muted); font-size: 8px; line-height: 1.4; }
+.notes { margin-top: 19px; padding: 12px 15px; background: #fbfaf7; border-left: 2px solid #d9c5a2; font-size: 10px; }
+.notes p { margin-top: 4px; white-space: pre-wrap; }
+.agreement { display: grid; grid-template-columns: 1.15fr 1fr; gap: 32px; padding: 22px 0 18px; }
+.terms { color: var(--muted); font-size: 9px; line-height: 1.5; }
+.terms p { margin-top: 6px; }
+.signature { padding: 12px 14px; border: 1px solid #d9dfe1; border-radius: 4px; font-size: 8px; }
+.signature h3 { font-size: 12px; font-weight: 700; }
+.signature p { margin-top: 5px; color: var(--muted); }
+.signature .signatureLabel { margin-top: 12px; color: var(--ink); }
+.signatureSpace { height: 34px; }
+.footer { display: flex; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid #d5b582; font-size: 9px; color: var(--muted); }
+@media screen and (max-width: 640px) {
+  .document { padding: 22px 16px 16px; }
+  .header { gap: 12px; }
+  .brand { gap: 7px; }
+  .brand img { width: 34px; height: 34px; }
+  .brandName { font-size: 18px; }
+  .tagline { max-width: 100px; font-size: 8px; }
+  .documentTitle h2 { font-size: 32px; }
+  .eyebrow { font-size: 8px; letter-spacing: .8px; }
+  .reference { font-size: 8px; }
+  .parties { grid-template-columns: 1fr; gap: 18px; padding: 20px 0; }
+  .table th, .table td { padding: 8px 5px; font-size: 9px; }
+  .table td strong { font-size: 10px; }
+  .table td span { font-size: 8px; }
+  .summary, .agreement { grid-template-columns: 1fr; gap: 18px; }
+  .footer { font-size: 8px; }
+}
+@media print {
+  @page { size: A4; margin: 12mm; }
+  :global(body:has(#cat-visit-print) > :not(#cat-visit-print)) { display: none !important; }
+  :global(#cat-visit-print) { display: block !important; }
+  :global(body:has(#cat-visit-print)) { margin: 0 !important; padding: 0 !important; background: white !important; }
+  .document { width: 100%; max-width: none; padding: 0; border: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .header { padding-bottom: 12px; }
+  .parties { padding: 16px 0; }
+  .service { padding-bottom: 14px; }
+  .table td { padding: 7px 12px; }
+  .summary { padding-top: 15px; }
+  .agreement { padding: 14px 0 10px; }
+  .header, .parties, .service, .summary, .agreement, .footer, .table tr { break-inside: avoid; }
+  .table thead { display: table-header-group; }
+  .table tr { break-after: auto; }
+  .notes { box-decoration-break: clone; }
+}

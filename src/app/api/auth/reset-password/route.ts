@@ -3,15 +3,28 @@ import { prisma } from "@/lib/db/prisma";
 import { createHash } from "crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { getClientIp, passwordSchema } from "@/lib/auth/password";
+import { distributedRateLimit } from "@/lib/rate-limit";
 
 const schema = z.object({
   email: z.string().email(),
   token: z.string().min(32),
-  password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+  password: passwordSchema,
 });
 
 export async function POST(request: NextRequest) {
   try {
+    const { success } = await distributedRateLimit(`reset-password:${getClientIp(request)}`, {
+      maxRequests: 10,
+      windowSeconds: 3600,
+    });
+    if (!success) {
+      return NextResponse.json(
+        { error: "Trop de tentatives. Réessayez plus tard." },
+        { status: 429 }
+      );
+    }
+
     const data = schema.parse(await request.json());
     const email = data.email.trim().toLowerCase();
     const token = createHash("sha256").update(data.token).digest("hex");
@@ -30,7 +43,10 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await bcrypt.hash(data.password, 12);
     await prisma.$transaction([
-      prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash, sessionVersion: { increment: 1 } },
+      }),
       prisma.verificationToken.deleteMany({ where: { identifier } }),
     ]);
 

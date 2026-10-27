@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Check, Mail, Pencil, Phone, UserRound, X } from "lucide-react";
-import { AppNav } from "@/components/layout/AppNav";
+import { Check, ChevronRight, Mail, Pencil, Phone, ShieldCheck, UserRound, X } from "lucide-react";
+import Link from "next/link";
 import { SubscriptionManager } from "@/components/subscription/SubscriptionManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ type ProfileForm = {
 const emptyProfile: ProfileForm = { name: "", email: "", phone: "", image: "" };
 
 export default function ProfilePage() {
-  const { data: session, status, update } = useSession();
+  const { status, update } = useSession();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -99,9 +99,8 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 md:pb-10">
-      <AppNav userName={session?.user?.name} />
 
-      <main className="mx-auto max-w-4xl px-4 pt-6 sm:px-6 md:pt-32">
+      <main className="mx-auto max-w-4xl px-4 pt-28 sm:px-6 md:pt-32">
         <header className="mb-6 flex items-center gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xl font-bold text-orange-700">
             {formData.name?.charAt(0).toUpperCase() || <UserRound className="h-6 w-6" />}
@@ -200,6 +199,22 @@ export default function ProfilePage() {
               )}
             </form>
           </section>
+
+          <Link
+            href="/profile/security"
+            className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-5 transition hover:border-orange-300 hover:shadow-sm sm:p-6"
+          >
+            <div className="rounded-xl bg-emerald-100 p-3 text-emerald-700">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-bold text-gray-950">Sécurité du compte</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Double authentification, codes de récupération et méthodes de connexion
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-gray-400" />
+          </Link>
         </div>
       </main>
     </div>

@@ -1,0 +1,882 @@
+import { generatedCatalogue } from "@/lib/i18n.generated";
+
+export const supportedLocales = ["fr", "en", "es"] as const;
+
+export type Locale = (typeof supportedLocales)[number];
+
+export const localeNames: Record<Locale, string> = {
+  fr: "Français",
+  en: "English",
+  es: "Español",
+};
+
+export function isLocale(value: string | null | undefined): value is Locale {
+  return supportedLocales.includes(value as Locale);
+}
+
+type Translation = { en: string; es: string };
+
+/**
+ * Source copy stays in French, the business' primary language. The client-side
+ * translator uses this catalogue for both static and dynamically rendered UI.
+ * Longer entries are intentionally preferred before shorter fragments.
+ */
+const catalogue: Record<string, Translation> = {
+  // Brand and high-visibility local landing-page copy are curated by hand.
+  "La Patte": { en: "La Patte", es: "La Patte" },
+  "Garde chien près de Disneyland Paris": {
+    en: "Dog sitting near Disneyland Paris",
+    es: "Cuidado de perros cerca de Disneyland Paris",
+  },
+  "Garde chat en Seine-et-Marne 77": {
+    en: "Cat sitting in Seine-et-Marne (77)",
+    es: "Cuidado de gatos en Seine-et-Marne (77)",
+  },
+  "Pension chien familiale en Seine-et-Marne": {
+    en: "Family dog boarding in Seine-et-Marne",
+    es: "Alojamiento familiar para perros en Seine-et-Marne",
+  },
+  "Garde d'animaux en Seine-et-Marne": {
+    en: "Pet sitting in Seine-et-Marne",
+    es: "Cuidado de mascotas en Seine-et-Marne",
+  },
+  "Photos après passage": {
+    en: "Photos after each visit",
+    es: "Fotos después de cada visita",
+  },
+  "La Patte Dorée | Pet-sitter près de Disneyland Paris": {
+    en: "La Patte Dorée | Pet sitter near Disneyland Paris",
+    es: "La Patte Dorée | Cuidadora de mascotas cerca de Disneyland Paris",
+  },
+  "Comme à la maison,": { en: "Just like home,", es: "Como en casa," },
+  "même quand vous êtes loin.": { en: "even when you are away.", es: "incluso cuando está lejos." },
+  "Hébergement familial sans box, visites à domicile et promenades, tout près de Disneyland Paris. Partez l'esprit tranquille, on s'occupe du reste.": {
+    en: "Cage-free family boarding, home visits and walks near Disneyland Paris. Relax and enjoy your time away — we will take care of everything.",
+    es: "Alojamiento familiar sin jaulas, visitas a domicilio y paseos cerca de Disneyland Paris. Disfrute con tranquilidad: nosotros nos ocupamos del resto.",
+  },
+  "Services": { en: "Services", es: "Servicios" },
+  "Près de chez vous": { en: "Near you", es: "Cerca de usted" },
+  "Autour de Disneyland Paris": { en: "Around Disneyland Paris", es: "Alrededor de Disneyland Paris" },
+  "Pour les chats": { en: "For cats", es: "Para gatos" },
+  "Hébergement familial": { en: "Family boarding", es: "Alojamiento familiar" },
+  "Toutes nos zones": { en: "All service areas", es: "Todas nuestras zonas" },
+  "janvier": { en: "January", es: "enero" },
+  "février": { en: "February", es: "febrero" },
+  "mars": { en: "March", es: "marzo" },
+  "avril": { en: "April", es: "abril" },
+  "Mai": { en: "May", es: "mayo" },
+  "juin": { en: "June", es: "junio" },
+  "juillet": { en: "July", es: "julio" },
+  "août": { en: "August", es: "agosto" },
+  "septembre": { en: "September", es: "septiembre" },
+  "octobre": { en: "October", es: "octubre" },
+  "novembre": { en: "November", es: "noviembre" },
+  "décembre": { en: "December", es: "diciembre" },
+  "janv.": { en: "Jan", es: "ene" },
+  "févr.": { en: "Feb", es: "feb" },
+  "avr.": { en: "Apr", es: "abr" },
+  "juil.": { en: "Jul", es: "jul" },
+  "sept.": { en: "Sep", es: "sept" },
+  "oct.": { en: "Oct", es: "oct" },
+  "nov.": { en: "Nov", es: "nov" },
+  "déc.": { en: "Dec", es: "dic" },
+  "Garde chien Disneyland Paris & garde chat 77 | La Patte Dorée": {
+    en: "Dog sitting near Disneyland Paris & cat sitting in Seine-et-Marne | La Patte Dorée",
+    es: "Cuidado de perros cerca de Disneyland Paris y de gatos en Seine-et-Marne | La Patte Dorée",
+  },
+  "Disponibilités ouvertes pour 2026": {
+    en: "2026 bookings now open",
+    es: "Reservas abiertas para 2026",
+  },
+  "Garde chien et chat": { en: "Dog and cat sitting", es: "Cuidado de perros y gatos" },
+  "près de Disneyland Paris.": { en: "near Disneyland Paris.", es: "cerca de Disneyland Paris." },
+  "Garde chien Disneyland Paris, garde chat 77, visites à domicile, promenades et hébergement familial sans box. Partez l'esprit tranquille.": {
+    en: "Dog sitting near Disneyland Paris, cat care in Seine-et-Marne, home visits, walks and cage-free family boarding. Travel with complete peace of mind.",
+    es: "Cuidado de perros cerca de Disneyland Paris, cuidado de gatos en Seine-et-Marne, visitas a domicilio, paseos y alojamiento familiar sin jaulas. Viaje con total tranquilidad.",
+  },
+  "Réserver un séjour": { en: "Book a stay", es: "Reservar una estancia" },
+  "Accéder à mon espace": { en: "Go to my account", es: "Ir a mi cuenta" },
+  "Créer un compte": { en: "Create an account", es: "Crear una cuenta" },
+  "Créer mon compte": { en: "Create my account", es: "Crear mi cuenta" },
+  "Mon espace": { en: "My account", es: "Mi cuenta" },
+  "Compétence professionnelle": { en: "Professional expertise", es: "Experiencia profesional" },
+  "Une prise en charge fondée sur la connaissance des besoins biologiques, physiologiques et comportementaux des chiens et des chats.": {
+    en: "Care based on a thorough understanding of dogs' and cats' biological, physiological and behavioural needs.",
+    es: "Un cuidado basado en el conocimiento de las necesidades biológicas, fisiológicas y de comportamiento de perros y gatos.",
+  },
+  "Besoins individualisés": { en: "Personalised care", es: "Atención personalizada" },
+  "Qualification ACACED chien et chat": {
+    en: "ACACED qualification for dogs and cats",
+    es: "Cualificación ACACED para perros y gatos",
+  },
+  "Photos et nouvelles": { en: "Photos and updates", es: "Fotos y noticias" },
+  "Paiement sécurisé": { en: "Secure payment", es: "Pago seguro" },
+  "Garde locale 77": { en: "Local pet care in Seine-et-Marne", es: "Cuidado local en Seine-et-Marne" },
+  "Garde d'animaux près de Disneyland Paris et en Seine-et-Marne": {
+    en: "Pet care near Disneyland Paris and across Seine-et-Marne",
+    es: "Cuidado de mascotas cerca de Disneyland Paris y en Seine-et-Marne",
+  },
+  "La Patte Dorée répond aux recherches locales les plus utiles : garde chien Disneyland Paris, garde chat 77, pension chien 77, visites à domicile et petsitter autour de Val d'Europe.": {
+    en: "La Patte Dorée provides the local services visitors need most: dog sitting near Disneyland Paris, cat sitting and dog boarding in Seine-et-Marne, home visits and pet care around Val d'Europe.",
+    es: "La Patte Dorée ofrece los servicios locales más buscados: cuidado de perros cerca de Disneyland Paris, cuidado de gatos y alojamiento canino en Seine-et-Marne, visitas a domicilio y cuidado de mascotas en Val d'Europe.",
+  },
+  "Garderie, hébergement familial, visites et promenades autour de Val d'Europe.": {
+    en: "Day care, family boarding, home visits and walks around Val d'Europe.",
+    es: "Guardería, alojamiento familiar, visitas y paseos en Val d'Europe.",
+  },
+  "Visites à domicile pour repas, litière, présence, soins simples et photos.": {
+    en: "Home visits for feeding, litter care, company, basic care and photos.",
+    es: "Visitas a domicilio para comida, arenero, compañía, cuidados básicos y fotos.",
+  },
+  "Une pension familiale sans box, avec routine et suivi pendant le séjour.": {
+    en: "Cage-free family boarding, with a familiar routine and regular updates.",
+    es: "Alojamiento familiar sin jaulas, con su rutina habitual y seguimiento durante la estancia.",
+  },
+  "Chien et chat dans le 77 : garde à domicile, hébergement, garderie et sorties.": {
+    en: "Dog and cat care in Seine-et-Marne: in-home sitting, boarding, day care and walks.",
+    es: "Cuidado de perros y gatos en Seine-et-Marne: cuidado a domicilio, alojamiento, guardería y paseos.",
+  },
+  "Services sur-mesure": { en: "Tailored services", es: "Servicios a medida" },
+  "Garde de chien": { en: "Dog care", es: "Cuidado de perros" },
+  "Un tarif calculé sur la durée réelle": { en: "Pricing based on actual duration", es: "Una tarifa calculada según la duración real" },
+  "Le compteur commence au moment du dépôt et s’arrête à la reprise. Le changement de date à minuit ne déclenche jamais une nouvelle facturation.": {
+    en: "Time starts at drop-off and stops at pick-up. Crossing midnight never triggers a new charge on its own.",
+    es: "El tiempo empieza con la entrega y termina con la recogida. El cambio de fecha a medianoche nunca genera un nuevo cobro por sí solo.",
+  },
+  "Garde de jour, jusqu’à 10 h": { en: "Day care, up to 10 hours", es: "Guardería de día, hasta 10 h" },
+  "garde de jour jusqu’à 10 h": { en: "day care up to 10 hours", es: "guardería de día hasta 10 h" },
+  "Par jour, jusqu’à 10 h": { en: "Per day, up to 10 hours", es: "Por día, hasta 10 h" },
+  "Par période de 24 h commencée": { en: "Per started 24-hour period", es: "Por cada periodo de 24 h iniciado" },
+  "Période de 24 h, avec nuit": { en: "24-hour period, including overnight", es: "Periodo de 24 h, con noche" },
+  "Comment sont comptés les dépassements ?": { en: "How is extra time charged?", es: "¿Cómo se cobran los excesos de tiempo?" },
+  "Dès qu’une période de 24 h est dépassée, même de quelques minutes, une nouvelle période commence. Les durées intermédiaires restent ainsi simples et prévisibles.": {
+    en: "As soon as a 24-hour period is exceeded, even by a few minutes, a new period begins. This keeps intermediate durations simple and predictable.",
+    es: "En cuanto se supera un periodo de 24 h, aunque solo sea por unos minutos, comienza un nuevo periodo. Así, las duraciones intermedias siguen siendo sencillas y previsibles.",
+  },
+  "Vendredi 18 h → samedi 18 h": { en: "Friday 6 pm → Saturday 6 pm", es: "Viernes 18 h → sábado 18 h" },
+  "10 h 01 à 24 h de garde": { en: "10 hours 1 minute to 24 hours of care", es: "De 10 h 01 a 24 h de cuidado" },
+  "Vendredi 18 h → dimanche 18 h": { en: "Friday 6 pm → Sunday 6 pm", es: "Viernes 18 h → domingo 18 h" },
+  "Exemple de dépassement : samedi 18 h 01 démarre une deuxième période de 24 h.": {
+    en: "Overrun example: Saturday at 6:01 pm starts a second 24-hour period.",
+    es: "Ejemplo de exceso: el sábado a las 18:01 comienza un segundo periodo de 24 h.",
+  },
+  "période de 24 h": { en: "24-hour period", es: "periodo de 24 h" },
+  "périodes de 24 h": { en: "24-hour periods", es: "periodos de 24 h" },
+  "périodes de 24 h et +": { en: "24-hour periods or more", es: "periodos de 24 h o más" },
+  "période de 24 h facturée": { en: "24-hour period charged", es: "periodo de 24 h facturado" },
+  "périodes de 24 h facturées": { en: "24-hour periods charged", es: "periodos de 24 h facturados" },
+  "€ / période de 24 h": { en: "€ / 24-hour period", es: "€ / periodo de 24 h" },
+  "€ / jusqu’à 10 h": { en: "€ / up to 10 hours", es: "€ / hasta 10 h" },
+  "45 € / période de 24 h": { en: "€45 / 24-hour period", es: "45 € / periodo de 24 h" },
+  "23 € / période de 24 h": { en: "€23 / 24-hour period", es: "23 € / periodo de 24 h" },
+  "35 € / jusqu’à 10 h": { en: "€35 / up to 10 hours", es: "35 € / hasta 10 h" },
+  "30 € / jusqu’à 10 h": { en: "€30 / up to 10 hours", es: "30 € / hasta 10 h" },
+  "16 € / 30 min": { en: "€16 / 30 min", es: "16 € / 30 min" },
+  "15 € / 30 min": { en: "€15 / 30 min", es: "15 € / 30 min" },
+  "40 à 80 € / jour": { en: "€40 to €80 / day", es: "De 40 € a 80 € / día" },
+  "La dernière période est entamée et facturée en entier.": { en: "The final period has started and is charged in full.", es: "El último periodo ha comenzado y se factura completo." },
+  "Durée exacte, sans dépassement.": { en: "Exact duration, with no overrun.", es: "Duración exacta, sin exceso." },
+  "Choisissez l’arrivée et le départ. Le tarif est calculé depuis l’heure d’arrivée, par période de 24 h commencée.": {
+    en: "Choose arrival and departure. Pricing starts at the arrival time and is calculated per started 24-hour period.",
+    es: "Elija la llegada y la salida. La tarifa se calcula desde la hora de llegada, por cada periodo de 24 h iniciado.",
+  },
+  "Votre compagnon vit avec nous, avec nuit, accès canapé et jardin inclus. Le tarif suit des périodes réelles de 24 h à partir de l’arrivée.": {
+    en: "Your pet stays with us overnight, with sofa and garden access included. Pricing follows actual 24-hour periods from arrival.",
+    es: "Su mascota se queda con nosotros por la noche, con acceso al sofá y al jardín. La tarifa sigue periodos reales de 24 h desde la llegada.",
+  },
+  "Tout ce qu'il faut pour son bonheur.": { en: "Everything they need to feel happy.", es: "Todo lo que necesita para ser feliz." },
+  "Hébergement Familial": { en: "Family boarding", es: "Alojamiento familiar" },
+  "Hébergement et garderie": { en: "Boarding and day care", es: "Alojamiento y guardería" },
+  "Hébergement avec nuit": { en: "Overnight boarding", es: "Alojamiento con noche" },
+  "Le calcul se fait sur la durée réelle entre le dépôt et la reprise, sans nouvelle facturation au simple passage de minuit.": {
+    en: "Pricing is based on the actual time between drop-off and pick-up. Crossing midnight does not trigger a new charge on its own.",
+    es: "La tarifa se calcula según el tiempo real entre la entrega y la recogida. El paso de la medianoche no genera por sí solo un nuevo cobro.",
+  },
+  "Votre compagnon vit avec nous, dans la maison. Pas de box, accès jardin illimité et séances de câlins sur le canapé. C'est comme chez vous, en mieux.": {
+    en: "Your pet lives with us in our home. No cages, unlimited garden access and plenty of sofa cuddles. Just like home, only better.",
+    es: "Su mascota vive con nosotros en casa. Sin jaulas, con acceso ilimitado al jardín y muchos mimos en el sofá. Como en casa, pero aún mejor.",
+  },
+  "Vie de famille 24/7": { en: "Family life 24/7", es: "Vida familiar 24/7" },
+  "Promenades incluses": { en: "Walks included", es: "Paseos incluidos" },
+  "Photos tous les jours": { en: "Daily photos", es: "Fotos diarias" },
+  "Garde à votre domicile": { en: "Sitting in your home", es: "Cuidado en su domicilio" },
+  "Garde au domicile du client": { en: "Pet sitting in your home", es: "Cuidado en su domicilio" },
+  "À partir de": { en: "From", es: "Desde" },
+  "Jusqu’à 6 h": { en: "Up to 6 hours", es: "Hasta 6 h" },
+  "De 6 h à 10 h": { en: "Over 6 and up to 10 hours", es: "Más de 6 y hasta 10 h" },
+  "Plus de 6 h et jusqu’à 10 h": { en: "Over 6 and up to 10 hours", es: "Más de 6 y hasta 10 h" },
+  "Plus de 10 h": { en: "Over 10 hours", es: "Más de 10 h" },
+  "Jusqu'à 2 h": { en: "Up to 2 hours", es: "Hasta 2 h" },
+  "Une présence prolongée chez vous : repas, sorties, compagnie, surveillance et respect de la routine habituelle de votre animal.": {
+    en: "Extended care in your home, including meals, walks, company and supervision while respecting your pet's usual routine.",
+    es: "Una presencia prolongada en su hogar con comidas, salidas, compañía y supervisión, respetando la rutina habitual de su mascota.",
+  },
+  "Une présence longue chez vous sur la journée : repas, sorties, compagnie, surveillance et routine habituelle conservée.": {
+    en: "All-day care in your home: meals, walks, company and supervision while keeping your pet's usual routine.",
+    es: "Cuidado durante el día en su casa: comidas, salidas, compañía y supervisión, manteniendo su rutina habitual.",
+  },
+  "Promenades": { en: "Dog walks", es: "Paseos" },
+  "Chat : sur demande": { en: "Cat: on request", es: "Gato: bajo petición" },
+  "Promenade de chat : sur demande.": { en: "Cat walks: on request.", es: "Paseo de gatos: bajo petición." },
+  "par tranche supplémentaire de 30 minutes commencée. Promenade de chat : sur demande.": {
+    en: "per additional started 30-minute period. Cat walks: on request.",
+    es: "por cada tramo adicional de 30 minutos iniciado. Paseo de gatos: bajo petición.",
+  },
+  "sur demande": { en: "on request", es: "bajo petición" },
+  "minutes": { en: "minutes", es: "minutos" },
+  "Besoin de se dépenser ? Je viens chercher votre compagnon pour une balade active.": {
+    en: "Need to burn off some energy? I will collect your pet for an active walk.",
+    es: "¿Necesita gastar energía? Recogeré a su mascota para un paseo activo.",
+  },
+  "Visites à domicile": { en: "Home visits", es: "Visitas a domicilio" },
+  "Passage ponctuel": { en: "Home visit", es: "Visita a domicilio" },
+  "Visite de 30 minutes": { en: "30-minute visit", es: "Visita de 30 minutos" },
+  "Visite de 60, 90 ou 120 minutes": { en: "60, 90 or 120-minute visit", es: "Visita de 60, 90 o 120 minutos" },
+  "Par visite, même prix entre 1 h et 2 h": { en: "Per visit, same price from 1 to 2 hours", es: "Por visita, mismo precio entre 1 y 2 h" },
+  "Tarif de départ pour": { en: "Starting price for", es: "Precio inicial para" },
+  "minutes, puis": { en: "minutes, then", es: "minutos, después" },
+  "€ par tranche supplémentaire de": { en: "€ per additional", es: "€ por cada tramo adicional de" },
+  "par tranche supplémentaire de": { en: "per additional", es: "por cada tramo adicional de" },
+  "minutes commencée.": { en: "minute period started.", es: "minutos iniciado." },
+  "Visite à domicile :": { en: "Home visit:", es: "Visita a domicilio:" },
+  "€ et chat": { en: "€ and cat", es: "€ y gato" },
+  "€ pour 30 minutes, puis": { en: "€ for 30 minutes, then", es: "€ por 30 minutos, después" },
+  "Puis +": { en: "Then +", es: "Después +" },
+  "€ par tranche de": { en: "€ per additional", es: "€ por cada" },
+  "min : chien": { en: "min: dog", es: "min: perro" },
+  "€ pour 60 / 90 / 120 min.": { en: "€ for 60 / 90 / 120 min.", es: "€ para 60 / 90 / 120 min." },
+  "2 h :": { en: "2 hrs:", es: "2 h:" },
+  "Un passage ponctuel chez vous pour les repas, la litière, les soins simples, les sorties et un moment de présence.": {
+    en: "A one-off visit to your home for meals, litter care, basic care, outings and companionship.",
+    es: "Una visita puntual a su domicilio para las comidas, el arenero, los cuidados básicos, las salidas y un momento de compañía.",
+  },
+  "Un passage ponctuel chez vous pour repas, litière, soins simples et présence.": {
+    en: "A home visit for feeding, litter care, basic care and company.",
+    es: "Una visita a domicilio para comida, arenero, cuidados básicos y compañía.",
+  },
+  "Garderie de Jour": { en: "Day care", es: "Guardería de día" },
+  "Plusieurs jours peuvent être réservés : chaque journée respecte les mêmes horaires et reste limitée à 10 h.": {
+    en: "Several days can be booked: each day uses the same schedule and remains limited to 10 hours.",
+    es: "Se pueden reservar varios días: cada jornada mantiene el mismo horario y sigue limitada a 10 h.",
+  },
+  "Long hébergement": { en: "Long boarding stay", es: "Alojamiento de larga duración" },
+  "Garderie de jour au domicile du pet-sitter": { en: "Day care at the pet sitter's home", es: "Guardería de día en el domicilio del cuidador" },
+  "Déposez votre compagnon le matin et récupérez-le le soir. Repas, jeux, repos et promenades selon ses habitudes.": {
+    en: "Drop your pet off in the morning and collect them in the evening. Meals, play, rest and walks are tailored to their usual routine.",
+    es: "Deje a su mascota por la mañana y recójala por la tarde. Comidas, juegos, descanso y paseos según sus hábitos.",
+  },
+  "Prestation soumise à disponibilité et à compatibilité avec les animaux déjà présents.": {
+    en: "Subject to availability and compatibility with pets already present.",
+    es: "Servicio sujeto a disponibilidad y compatibilidad con los animales ya presentes.",
+  },
+  "Soumise à disponibilité et à compatibilité avec les animaux déjà présents.": {
+    en: "Subject to availability and compatibility with pets already present.",
+    es: "Sujeto a disponibilidad y compatibilidad con los animales ya presentes.",
+  },
+  "Les horaires exacts doivent être indiqués lors de la réservation. Les frais exceptionnels nécessaires à la prestation, notamment le parking, les péages ou les transports, sont facturés en supplément après accord préalable.": {
+    en: "Exact times must be provided when booking. Exceptional expenses required for the service, including parking, tolls or transport, are charged separately with prior approval.",
+    es: "Los horarios exactos deben indicarse al reservar. Los gastos excepcionales necesarios para el servicio, incluidos el aparcamiento, los peajes o el transporte, se facturan por separado previo acuerdo.",
+  },
+  "Règle chien à retenir": { en: "Dog pricing rule", es: "Regla de precio para perros" },
+  "Jusqu’à 10 h le même jour :": { en: "Up to 10 hours on the same day:", es: "Hasta 10 h el mismo día:" },
+  ". De 10 h 01 à 24 h :": { en: ". From 10 hours 1 minute to 24 hours:", es: ". De 10 h 01 a 24 h:" },
+  ". À 24 h 01, une deuxième période commence, soit": { en: ". At 24 hours 1 minute, a second period starts, for a total of", es: ". A las 24 h 01 comienza un segundo periodo, con un total de" },
+  "Chiot de moins d’un an": { en: "Puppy under one year old", es: "Cachorro menor de un año" },
+  "5 € par jour de garderie ou par période de 24 h commencée en hébergement. Aucun supplément jeune animal pour les chats ni pour les autres services.": {
+    en: "€5 per day of day care or per started 24-hour boarding period. No age-related surcharge applies to cats or any other service.",
+    es: "5 € por día de guardería o por cada periodo de alojamiento de 24 h iniciado. No se aplica ningún suplemento por edad a los gatos ni a otros servicios.",
+  },
+  "Remise automatique de 10 % à partir de 14 périodes de 24 h commencées.": {
+    en: "Automatic 10% discount from 14 started 24-hour periods.",
+    es: "Descuento automático del 10 % a partir de 14 periodos de 24 h iniciados.",
+  },
+  "Premium": { en: "Premium", es: "Premium" },
+  "Premium ✨": { en: "Premium ✨", es: "Premium ✨" },
+  "100 % de la prestation est due.": {
+    en: "100% of the service fee is due.",
+    es: "Se debe abonar el 100 % del importe de la prestación.",
+  },
+  "Sortie individuelle": { en: "Individual outing", es: "Salida individual" },
+  "Un supplément peut être appliqué les jours fériés et pour les demandes de dernière minute.": {
+    en: "A surcharge may apply on public holidays and for last-minute requests.",
+    es: "Puede aplicarse un suplemento los días festivos y para las solicitudes de última hora.",
+  },
+  "Les jours fériés et les demandes de dernière minute ne déclenchent aucune majoration automatique dans le calcul en ligne.": {
+    en: "Public holidays and last-minute requests do not trigger any automatic surcharge in the online calculation.",
+    es: "Los días festivos y las solicitudes de última hora no generan ningún recargo automático en el cálculo en línea.",
+  },
+  "Heure de début": { en: "Start time", es: "Hora de inicio" },
+  "Heure de fin": { en: "End time", es: "Hora de finalización" },
+  "Durée calculée :": { en: "Calculated duration:", es: "Duración calculada:" },
+  "Horaires :": { en: "Times:", es: "Horarios:" },
+  "Déposez-le le matin, récupérez-le le soir. Idéal pour vos journées de travail. Socialisation et jeux garantis.": {
+    en: "Drop your pet off in the morning and collect them in the evening. Ideal for workdays, with plenty of play and socialisation.",
+    es: "Déjelo por la mañana y recójalo por la tarde. Ideal para los días de trabajo, con juegos y socialización.",
+  },
+  "Plus d'avantages,": { en: "More benefits,", es: "Más ventajas," },
+  "plus de Pattes.": { en: "more Paw points.", es: "más puntos Patita." },
+  "Activez Premium pour obtenir": { en: "Join Premium to receive", es: "Active Premium para obtener" },
+  "-10% sur chaque réservation": { en: "10% off every booking", es: "un 10% de descuento en cada reserva" },
+  ", des Pattes doublées et une priorité pendant les vacances.": {
+    en: ", double Paw points and priority during holiday periods.",
+    es: ", puntos Patita dobles y prioridad durante las vacaciones.",
+  },
+  "Découvrir le concept": { en: "Discover how it works", es: "Descubrir cómo funciona" },
+  "Voir Premium": { en: "View Premium", es: "Ver Premium" },
+  "Pattes doublées": { en: "Double Paw points", es: "Puntos Patita dobles" },
+  "1 euro dépensé rapporte 2 Pattes avec Premium.": {
+    en: "Earn 2 Paw points for every euro spent with Premium.",
+    es: "Gane 2 puntos Patita por cada euro gastado con Premium.",
+  },
+  "-10% immédiat": { en: "Instant 10% off", es: "10% de descuento inmediato" },
+  "La remise s'applique automatiquement sur les réservations.": {
+    en: "The discount is applied automatically to bookings.",
+    es: "El descuento se aplica automáticamente a las reservas.",
+  },
+  "Badge Premium": { en: "Premium badge", es: "Insignia Premium" },
+  "Votre statut est visible dans votre espace client.": {
+    en: "Your status is displayed in your account.",
+    es: "Su estado aparece en su cuenta.",
+  },
+  "Priorité vacances": { en: "Holiday priority", es: "Prioridad en vacaciones" },
+  "Vos demandes sont priorisées sur les périodes chargées.": {
+    en: "Your requests receive priority during busy periods.",
+    es: "Sus solicitudes tienen prioridad durante los periodos de mayor demanda.",
+  },
+  "Rejoignez la famille.": { en: "Join the family.", es: "Únase a la familia." },
+  "Créez votre compte gratuitement et réservez votre première garde en moins de 2 minutes.": {
+    en: "Create your free account and book your first pet stay in under 2 minutes.",
+    es: "Cree su cuenta gratis y reserve el primer cuidado de su mascota en menos de 2 minutos.",
+  },
+  "Garde chien Disneyland Paris": { en: "Dog sitting near Disneyland Paris", es: "Cuidado de perros cerca de Disneyland Paris" },
+  "Garde chat 77": { en: "Cat sitting in Seine-et-Marne", es: "Cuidado de gatos en Seine-et-Marne" },
+  "Pension chien 77": { en: "Dog boarding in Seine-et-Marne", es: "Alojamiento canino en Seine-et-Marne" },
+  "Garde animaux Seine-et-Marne": { en: "Pet care in Seine-et-Marne", es: "Cuidado de mascotas en Seine-et-Marne" },
+  "Garde chien 77": { en: "Dog sitting in Seine-et-Marne", es: "Cuidado de perros en Seine-et-Marne" },
+  "Garde animaux 77": { en: "Pet care in Seine-et-Marne", es: "Cuidado de mascotas en Seine-et-Marne" },
+  "minutes · chat sur demande": { en: "minutes · cats on request", es: "minutos · gatos bajo petición" },
+
+  // Loyalty concept
+  "Nouveau : Premium et fidélité": { en: "New: Premium and loyalty rewards", es: "Nuevo: Premium y recompensas" },
+  "Des récompenses claires,": { en: "Clear rewards,", es: "Recompensas claras," },
+  "faciles à suivre.": { en: "easy to track.", es: "fáciles de seguir." },
+  "Tous les clients gagnent des Pattes à chaque réservation. Premium ajoute une remise automatique, les Pattes doublées et des avantages de confort.": {
+    en: "Every customer earns Paw points with each booking. Premium adds an automatic discount, double points and extra convenience.",
+    es: "Todos los clientes ganan puntos Patita con cada reserva. Premium añade un descuento automático, puntos dobles y ventajas adicionales.",
+  },
+  "1. Réservez": { en: "1. Book", es: "1. Reserve" },
+  "Chaque euro dépensé rapporte 1 Patte dans le programme gratuit.": {
+    en: "Earn 1 Paw point for every euro spent with the free programme.",
+    es: "Gane 1 punto Patita por cada euro gastado con el programa gratuito.",
+  },
+  "2. Montez de niveau": { en: "2. Level up", es: "2. Suba de nivel" },
+  "Bronze, Argent, Or puis Diamant : votre statut progresse automatiquement.": {
+    en: "Bronze, Silver, Gold then Diamond: your status progresses automatically.",
+    es: "Bronce, Plata, Oro y Diamante: su nivel progresa automáticamente.",
+  },
+  "3. Débloquez des récompenses": { en: "3. Unlock rewards", es: "3. Desbloquee recompensas" },
+  "300, 700 et 1500 Pattes ouvrent des réductions et avantages fidélité.": {
+    en: "Reach 300, 700 and 1,500 Paw points to unlock discounts and loyalty benefits.",
+    es: "Alcance 300, 700 y 1500 puntos Patita para obtener descuentos y ventajas.",
+  },
+  "300 Pattes donnent 5 €, 700 Pattes donnent 15 € et 1500 Pattes donnent 24 € de réduction.": {
+    en: "300 Paw points give €5 off, 700 Paw points give €15 off and 1,500 Paw points give €24 off.",
+    es: "300 puntos Patita dan 5 € de descuento, 700 dan 15 € y 1500 dan 24 € de descuento.",
+  },
+  "Gratuit ou Premium ?": { en: "Free or Premium?", es: "¿Gratis o Premium?" },
+  "Le programme fidélité reste inclus pour tous les clients.": {
+    en: "The loyalty programme remains included for every customer.",
+    es: "El programa de fidelidad está incluido para todos los clientes.",
+  },
+  "Fidélité gratuite": { en: "Free loyalty programme", es: "Fidelidad gratuita" },
+  "Pattes gagnées": { en: "Paw points earned", es: "Puntos Patita ganados" },
+  "Niveaux": { en: "Levels", es: "Niveles" },
+  "Bronze à Diamant": { en: "Bronze to Diamond", es: "De Bronce a Diamante" },
+  "Récompenses": { en: "Rewards", es: "Recompensas" },
+  "5 euros de réduction": { en: "€5 discount", es: "5 euros de descuento" },
+  "15 euros de réduction": { en: "€15 discount", es: "15 euros de descuento" },
+  "24 euros de réduction": { en: "€24 discount", es: "24 euros de descuento" },
+  "Prix": { en: "Price", es: "Precio" },
+  "Remise": { en: "Discount", es: "Descuento" },
+  "Incluse": { en: "Included", es: "Incluida" },
+  "Annulation": { en: "Cancellation", es: "Cancelación" },
+  "Gratuite jusqu'à 24h": { en: "Free up to 24 hours", es: "Gratis hasta 24 horas antes" },
+  "Gratuite au moins 24h avant": { en: "Free at least 24 hours before", es: "Gratis al menos 24 horas antes" },
+  "Prix mensuel": { en: "Monthly price", es: "Precio mensual" },
+  "Questions fréquentes": { en: "Frequently asked questions", es: "Preguntas frecuentes" },
+  "Est-ce que le programme fidélité est payant ?": { en: "Does the loyalty programme cost anything?", es: "¿El programa de fidelidad es de pago?" },
+  "Non. Tous les clients gagnent des Pattes automatiquement à chaque réservation.": {
+    en: "No. Every customer automatically earns Paw points with each booking.",
+    es: "No. Todos los clientes ganan automáticamente puntos Patita con cada reserva.",
+  },
+  "Que donne Premium ?": { en: "What does Premium include?", es: "¿Qué incluye Premium?" },
+  "Que deviennent mes Pattes si j’arrête Premium ?": { en: "What happens to my Paw points if I cancel Premium?", es: "¿Qué ocurre con mis puntos Patita si cancelo Premium?" },
+  "Elles restent dans votre espace client. Seuls les avantages Premium s’arrêtent.": {
+    en: "They stay in your account. Only your Premium benefits end.",
+    es: "Permanecen en su cuenta. Solo finalizan las ventajas Premium.",
+  },
+  "Prêt à passer Premium ?": { en: "Ready to join Premium?", es: "¿Listo/a para pasarse a Premium?" },
+  "Le programme fidélité gratuit reste actif quoi qu'il arrive.": {
+    en: "Your free loyalty programme remains active whatever you decide.",
+    es: "El programa de fidelidad gratuito seguirá activo decida lo que decida.",
+  },
+
+  // Navigation, account and authentication
+  "Navigation principale": { en: "Main navigation", es: "Navegación principal" },
+  "Accueil": { en: "Home", es: "Inicio" },
+  "Réserver": { en: "Book", es: "Reservar" },
+  "Animaux": { en: "Pets", es: "Mascotas" },
+  "Mes Animaux": { en: "My pets", es: "Mis mascotas" },
+  "Profil": { en: "Profile", es: "Perfil" },
+  "Tarifs": { en: "Pricing", es: "Precios" },
+  "Garde 77": { en: "Local pet care", es: "Cuidado local" },
+  "Connexion": { en: "Sign in", es: "Iniciar sesión" },
+  "S’inscrire": { en: "Sign up", es: "Registrarse" },
+  "S'inscrire": { en: "Sign up", es: "Registrarse" },
+  "Créer": { en: "Sign up", es: "Registro" },
+  "Bonjour": { en: "Hello", es: "Hola" },
+  "Espace admin": { en: "Admin area", es: "Área de administración" },
+  "Mon Espace": { en: "My account", es: "Mi cuenta" },
+  "Se déconnecter": { en: "Sign out", es: "Cerrar sesión" },
+  "Déconnexion...": { en: "Signing out...", es: "Cerrando sesión..." },
+  "Bon retour !": { en: "Welcome back!", es: "¡Qué alegría volver a verle!" },
+  "Connectez-vous pour gérer vos gardes.": { en: "Sign in to manage your bookings.", es: "Inicie sesión para gestionar sus reservas." },
+  "Compte créé avec succès ! Bienvenue 🐾": { en: "Account created successfully! Welcome 🐾", es: "¡Cuenta creada correctamente! Bienvenido/a 🐾" },
+  "Identifiants incorrects 😕": { en: "Incorrect email or password 😕", es: "Correo o contraseña incorrectos 😕" },
+  "Une erreur inattendue est survenue": { en: "An unexpected error occurred", es: "Se ha producido un error inesperado" },
+  "Mot de passe": { en: "Password", es: "Contraseña" },
+  "Mot de passe oublié ?": { en: "Forgot your password?", es: "¿Ha olvidado su contraseña?" },
+  "Oublié ?": { en: "Forgot it?", es: "¿La olvidó?" },
+  "Se connecter": { en: "Sign in", es: "Iniciar sesión" },
+  "Pas encore de compte ?": { en: "Don't have an account yet?", es: "¿Todavía no tiene cuenta?" },
+  "Retour à l'accueil": { en: "Back to home", es: "Volver al inicio" },
+  "Bienvenue !": { en: "Welcome!", es: "¡Bienvenido/a!" },
+  "Rejoignez la famille et offrez le meilleur à votre compagnon.": {
+    en: "Join the family and give your pet the very best.",
+    es: "Únase a la familia y ofrezca lo mejor a su mascota.",
+  },
+  "Prénom": { en: "First name", es: "Nombre" },
+  "Votre prénom": { en: "Your first name", es: "Su nombre" },
+  "Déjà membre ?": { en: "Already a member?", es: "¿Ya tiene cuenta?" },
+  "Me connecter": { en: "Sign in", es: "Iniciar sesión" },
+  "Nouveau mot de passe": { en: "New password", es: "Nueva contraseña" },
+  "Choisissez au moins 8 caractères.": { en: "Choose at least 8 characters.", es: "Elija al menos 8 caracteres." },
+  "Saisissez l'adresse email de votre compte. Le lien reçu sera valable une heure.": {
+    en: "Enter your account email address. The link you receive will be valid for one hour.",
+    es: "Introduzca el correo de su cuenta. El enlace que reciba será válido durante una hora.",
+  },
+  "Retour à la connexion": { en: "Back to sign in", es: "Volver al inicio de sesión" },
+
+  // Booking flow
+  "Hébergement": { en: "Boarding", es: "Alojamiento" },
+  "Garderie Jour": { en: "Day care", es: "Guardería de día" },
+  "Visite à votre domicile": { en: "Home visit", es: "Visita a domicilio" },
+  "Promenade": { en: "Dog walk", es: "Paseo" },
+  "Votre compagnon vit avec nous, accès canapé et jardin inclus.": {
+    en: "Your pet stays in our home, with sofa and garden access included.",
+    es: "Su mascota se queda en nuestra casa, con acceso al sofá y al jardín.",
+  },
+  "Présence longue chez vous sur une journée complète : repas, sorties, compagnie et surveillance.": {
+    en: "Full-day care in your home: meals, walks, company and supervision.",
+    es: "Cuidado durante todo el día en su casa: comidas, paseos, compañía y supervisión.",
+  },
+  "Déposez-le le matin, récupérez-le le soir.": { en: "Drop off in the morning and collect in the evening.", es: "Déjelo por la mañana y recójalo por la tarde." },
+  "Passage ponctuel chez vous de 30 min à 2 h : repas, litière, soins simples et présence.": {
+    en: "A 30-minute to 2-hour home visit for feeding, litter care, basic care and company.",
+    es: "Una visita a domicilio de 30 minutos a 2 horas para comida, arenero, cuidados básicos y compañía.",
+  },
+  "Balade de 30 min dans le quartier.": { en: "A 30-minute walk around the neighbourhood.", es: "Un paseo de 30 minutos por el barrio." },
+  "Créer les passages": { en: "Schedule visits", es: "Programar visitas" },
+  "Choisissez les dates, le nombre de passages par jour et leur durée. Le planning apparaîtra juste en dessous.": {
+    en: "Choose the dates, number of visits per day and duration. Your schedule will appear below.",
+    es: "Elija las fechas, el número de visitas al día y su duración. El horario aparecerá debajo.",
+  },
+  "Rythme souhaité": { en: "Preferred frequency", es: "Frecuencia deseada" },
+  "1 passage": { en: "1 visit", es: "1 visita" },
+  "2 passages": { en: "2 visits", es: "2 visitas" },
+  "3 passages": { en: "3 visits", es: "3 visitas" },
+  "Matin": { en: "Morning", es: "Mañana" },
+  "Matin et midi": { en: "Morning and midday", es: "Mañana y mediodía" },
+  "Matin, midi et soir": { en: "Morning, midday and evening", es: "Mañana, mediodía y tarde" },
+  "Date de début": { en: "Start date", es: "Fecha de inicio" },
+  "Date de fin": { en: "End date", es: "Fecha de fin" },
+  "Jour de garde": { en: "Sitting day", es: "Día de cuidado" },
+  "Jour de garderie": { en: "Day-care date", es: "Día de guardería" },
+  "Passages / jour": { en: "Visits per day", es: "Visitas al día" },
+  "Durée": { en: "Duration", es: "Duración" },
+  "Passages sélectionnés": { en: "Selected visits", es: "Visitas seleccionadas" },
+  "Aucun passage généré pour le moment.": { en: "No visits scheduled yet.", es: "Todavía no hay visitas programadas." },
+  "Ajouter un passage": { en: "Add a visit", es: "Añadir una visita" },
+  "Dates rapides": { en: "Quick dates", es: "Fechas rápidas" },
+  "Aujourd’hui": { en: "Today", es: "Hoy" },
+  "Demain": { en: "Tomorrow", es: "Mañana" },
+  "Ce week-end": { en: "This weekend", es: "Este fin de semana" },
+  "Composer le planning": { en: "Build your schedule", es: "Crear el horario" },
+  "Ajoutez un jour ponctuel ou plusieurs jours d’un coup. Vous pourrez ensuite ajuster chaque passage.": {
+    en: "Add a single day or several days at once. You can then adjust each visit.",
+    es: "Añada un día o varios días a la vez. Después podrá ajustar cada visita.",
+  },
+  "Choisir rapidement": { en: "Quick selection", es: "Selección rápida" },
+  "Durée de chaque passage": { en: "Duration of each visit", es: "Duración de cada visita" },
+  "Heure": { en: "Time", es: "Hora" },
+  "passages prêts à être ajoutés": { en: "visits ready to add", es: "visitas listas para añadir" },
+  "passage prêt à être ajouté": { en: "visit ready to add", es: "visita lista para añadir" },
+  "jours": { en: "days", es: "días" },
+  "Ajouter au planning": { en: "Add to schedule", es: "Añadir al horario" },
+  "Créer le planning": { en: "Create schedule", es: "Crear horario" },
+  "Planning sélectionné": { en: "Selected schedule", es: "Horario seleccionado" },
+  "passages": { en: "visits", es: "visitas" },
+  "passage": { en: "visit", es: "visita" },
+  "Aucun passage ajouté pour le moment.": { en: "No visits added yet.", es: "Todavía no se han añadido visitas." },
+  "Passage": { en: "Visit", es: "Visita" },
+  "Vider": { en: "Clear", es: "Vaciar" },
+  "Choisissez une date et ajoutez-la au planning.": { en: "Choose a date and add it to the schedule.", es: "Elija una fecha y añádala al horario." },
+  "Ajouter un passage ce jour": { en: "Add a visit on this day", es: "Añadir una visita este día" },
+  "Heure du passage": { en: "Visit time", es: "Hora de la visita" },
+  "Durée du passage": { en: "Visit duration", es: "Duración de la visita" },
+  "Supprimer ce passage": { en: "Delete this visit", es: "Eliminar esta visita" },
+  "Choisir le jour de garde": { en: "Choose the sitting date", es: "Elegir el día de cuidado" },
+  "Choisir le jour de garderie": { en: "Choose the day-care date", es: "Elegir el día de guardería" },
+  "Commencez par le jour, puis choisissez un créneau adapté à votre routine.": {
+    en: "Start with the date, then choose a time slot that suits your routine.",
+    es: "Empiece por la fecha y elija un horario adaptado a su rutina.",
+  },
+  "Horaires pratiques": { en: "Convenient times", es: "Horarios prácticos" },
+  "Planifier les journées de garde": { en: "Plan the sitting days", es: "Planificar los días de cuidado" },
+  "Choisissez une ou plusieurs journées. Les mêmes horaires seront appliqués chaque jour, sans nuitée.": {
+    en: "Choose one or more days. The same hours will apply each day, with no overnight stay.",
+    es: "Elija uno o varios días. Se aplicará el mismo horario cada día, sin estancia nocturna.",
+  },
+  "Nombre de journées": { en: "Number of days", es: "Número de días" },
+  "journée": { en: "day", es: "día" },
+  "journées": { en: "days", es: "días" },
+  "Première journée": { en: "First day", es: "Primer día" },
+  "Dernière journée": { en: "Last day", es: "Último día" },
+  "Demi-journée": { en: "Half day", es: "Medio día" },
+  "Journée Disneyland": { en: "Disneyland day", es: "Día en Disneyland" },
+  "Soirée au parc": { en: "Evening at the park", es: "Tarde en el parque" },
+  "Disney + soirée": { en: "Disney + evening", es: "Disney + tarde-noche" },
+  "Début chaque jour": { en: "Start each day", es: "Inicio cada día" },
+  "Fin chaque jour": { en: "End each day", es: "Fin cada día" },
+  "journées sélectionnées": { en: "days selected", es: "días seleccionados" },
+  "journée sélectionnée": { en: "day selected", es: "día seleccionado" },
+  "par jour": { en: "per day", es: "al día" },
+  "La fin doit être après le début le même jour. Les créneaux de nuit ne sont pas acceptés.": {
+    en: "The end time must be after the start time on the same day. Overnight slots are not accepted.",
+    es: "La hora de fin debe ser posterior a la de inicio el mismo día. No se aceptan horarios nocturnos.",
+  },
+  "Chaque date correspond à une garde en journée aux horaires choisis. Pour une présence pendant la nuit, choisissez l’hébergement.": {
+    en: "Each date is a daytime sitting session at the selected hours. For overnight care, choose boarding.",
+    es: "Cada fecha corresponde a un cuidado diurno en el horario elegido. Para cuidado nocturno, elija alojamiento.",
+  },
+  "Une présence prolongée chez vous, sur une ou plusieurs journées sans nuitée : repas, sorties, compagnie, surveillance et respect de la routine habituelle.": {
+    en: "Extended care in your home over one or more days without overnight stays: meals, outings, company, supervision and respect for the usual routine.",
+    es: "Cuidado prolongado en su domicilio durante uno o varios días sin pernocta: comidas, salidas, compañía, supervisión y respeto de la rutina habitual.",
+  },
+  "Horaires quotidiens :": { en: "Daily hours:", es: "Horario diario:" },
+  "Journées :": { en: "Days:", es: "Días:" },
+  "Aucune nuitée incluse.": { en: "No overnight stay included.", es: "No incluye estancia nocturna." },
+  "Journée": { en: "Full day", es: "Día completo" },
+  "Soirée": { en: "Evening", es: "Tarde-noche" },
+  "Longue présence": { en: "Extended stay", es: "Estancia prolongada" },
+  "Dépose tôt": { en: "Early drop-off", es: "Entrega temprana" },
+  "Journée standard": { en: "Standard day", es: "Día estándar" },
+  "Dépose tard": { en: "Late drop-off", es: "Entrega tardía" },
+  "La garderie est limitée à 10 heures par jour. Ajustez l’heure de début ou de fin.": {
+    en: "Day care is limited to 10 hours per day. Adjust the start or end time.",
+    es: "La guardería está limitada a 10 horas al día. Ajuste la hora de inicio o de fin.",
+  },
+  "L’heure de fin doit être postérieure à l’heure de début.": {
+    en: "The end time must be later than the start time.",
+    es: "La hora de fin debe ser posterior a la hora de inicio.",
+  },
+  "La garderie de jour est limitée à une seule journée et à 10 heures. Pour plusieurs jours avec nuit, choisissez l’hébergement.": {
+    en: "Day care is limited to one day and 10 hours. For overnight stays across several days, choose boarding.",
+    es: "La guardería está limitada a un día y 10 horas. Para varios días con noche, elija alojamiento.",
+  },
+  "Planifier le séjour": { en: "Plan your stay", es: "Planificar la estancia" },
+  "Choisissez l’arrivée et le départ. Une nuit minimum est nécessaire.": {
+    en: "Choose arrival and departure. A minimum stay of one night is required.",
+    es: "Elija la llegada y la salida. Se requiere al menos una noche.",
+  },
+  "Arrivée rapide": { en: "Quick arrival", es: "Llegada rápida" },
+  "Durée du séjour": { en: "Length of stay", es: "Duración de la estancia" },
+  "nuits": { en: "nights", es: "noches" },
+  "Arrivée": { en: "Arrival", es: "Llegada" },
+  "Heure d’arrivée": { en: "Arrival time", es: "Hora de llegada" },
+  "Départ": { en: "Departure", es: "Salida" },
+  "Heure de départ": { en: "Departure time", es: "Hora de salida" },
+  "nuits sélectionnées": { en: "nights selected", es: "noches seleccionadas" },
+  "nuit sélectionnée": { en: "night selected", es: "noche seleccionada" },
+  "à": { en: "at", es: "a las" },
+  "Créneau disponible": { en: "Time slot available", es: "Horario disponible" },
+  "Créneau indisponible": { en: "Time slot unavailable", es: "Horario no disponible" },
+  "Vérification des disponibilités…": { en: "Checking availability…", es: "Comprobando disponibilidad…" },
+  "Certaines dates sont indisponibles": { en: "Some dates are unavailable", es: "Algunas fechas no están disponibles" },
+  "Dates concernées": { en: "Affected dates", es: "Fechas afectadas" },
+  "Sélectionnez vos dates": { en: "Select your dates", es: "Seleccione sus fechas" },
+  "Vos animaux": { en: "Your pets", es: "Sus mascotas" },
+  "Choisissez le service": { en: "Choose a service", es: "Elija un servicio" },
+  "Nouvelle réservation": { en: "New booking", es: "Nueva reserva" },
+  "Récapitulatif": { en: "Summary", es: "Resumen" },
+  "Total": { en: "Total", es: "Total" },
+  "Continuer": { en: "Continue", es: "Continuar" },
+  "Retour": { en: "Back", es: "Atrás" },
+  "Payer et réserver": { en: "Pay and book", es: "Pagar y reservar" },
+  "Paiement en ligne sécurisé par Stripe.": { en: "Secure online payment powered by Stripe.", es: "Pago seguro en línea con Stripe." },
+  "Aucun animal enregistré": { en: "No pets registered", es: "No hay mascotas registradas" },
+  "Ajouter un animal": { en: "Add a pet", es: "Añadir una mascota" },
+  "Chien": { en: "Dog", es: "Perro" },
+  "Chat": { en: "Cat", es: "Gato" },
+  "Chien :": { en: "Dog:", es: "Perro:" },
+  "Chat :": { en: "Cat:", es: "Gato:" },
+  "nuit": { en: "night", es: "noche" },
+  "jour": { en: "day", es: "día" },
+  "visite": { en: "visit", es: "visita" },
+  "dès": { en: "from", es: "desde" },
+
+  // Customer area and pet profiles
+  "Toutes vos réservations": { en: "All your bookings", es: "Todas sus reservas" },
+  "Confirmée": { en: "Confirmed", es: "Confirmada" },
+  "Terminée": { en: "Completed", es: "Finalizada" },
+  "Annulée": { en: "Cancelled", es: "Cancelada" },
+  "Terminées": { en: "Completed", es: "Finalizadas" },
+  "Annulées": { en: "Cancelled", es: "Canceladas" },
+  "Aucune réservation trouvée": { en: "No bookings found", es: "No se encontraron reservas" },
+  "Annuler cette réservation ?": { en: "Cancel this booking?", es: "¿Cancelar esta reserva?" },
+  "Compte": { en: "Account", es: "Cuenta" },
+  "Mes informations": { en: "My details", es: "Mis datos" },
+  "Informations enregistrées.": { en: "Details saved.", es: "Datos guardados." },
+  "Profils complets": { en: "Complete profiles", es: "Perfiles completos" },
+  "À compléter": { en: "Needs completing", es: "Por completar" },
+  "Aucun profil animal": { en: "No pet profiles", es: "No hay perfiles de mascotas" },
+  "Race non renseignée": { en: "Breed not provided", es: "Raza no indicada" },
+  "Mâle": { en: "Male", es: "Macho" },
+  "Femelle": { en: "Female", es: "Hembra" },
+  "Genre inconnu": { en: "Unknown sex", es: "Sexo desconocido" },
+  "Âge": { en: "Age", es: "Edad" },
+  "Poids": { en: "Weight", es: "Peso" },
+  "Stérilisé": { en: "Neutered", es: "Esterilizado" },
+  "Oui": { en: "Yes", es: "Sí" },
+  "Non / inconnu": { en: "No / unknown", es: "No / desconocido" },
+  "Identité": { en: "Identity", es: "Identidad" },
+  "Santé & habitudes": { en: "Health & habits", es: "Salud y hábitos" },
+  "Informations médicales": { en: "Medical information", es: "Información médica" },
+  "Médicaments": { en: "Medication", es: "Medicamentos" },
+  "Vétérinaire": { en: "Vet", es: "Veterinario" },
+  "Carnet de santé": { en: "Health record", es: "Historial de salud" },
+  "Carnet de vaccination": { en: "Vaccination record", es: "Cartilla de vacunación" },
+  "Aucun vaccin enregistré": { en: "No vaccines recorded", es: "No hay vacunas registradas" },
+  "Ajouter un vaccin": { en: "Add a vaccine", es: "Añadir una vacuna" },
+  "Enregistrer": { en: "Save", es: "Guardar" },
+
+  // Reviews, subscriptions and shared UI
+  "Avis clients": { en: "Customer reviews", es: "Opiniones de clientes" },
+  "Ils nous font confiance ❤️": { en: "Trusted by pet owners ❤️", es: "Propietarios que confían en nosotros ❤️" },
+  "Découvrez les retours de nos clients sur nos plateformes partenaires. Votre compagnon mérite ce qu'il y a de mieux.": {
+    en: "Read what our customers say on our partner platforms. Your companion deserves the very best.",
+    es: "Descubra las opiniones de nuestros clientes en nuestras plataformas asociadas. Su mascota merece lo mejor.",
+  },
+  "Propriétaire vérifié": { en: "Verified owner", es: "Propietario verificado" },
+  "Voir tous les avis": { en: "View all reviews", es: "Ver todas las opiniones" },
+  "Partager aussi votre expérience sur Google": {
+    en: "Share your experience on Google too",
+    es: "Comparta también su experiencia en Google",
+  },
+  "Votre avis Google aide les familles près de Disneyland Paris à trouver une personne de confiance pour leur animal.": {
+    en: "Your Google review helps families near Disneyland Paris find someone they can trust with their pet.",
+    es: "Su opinión en Google ayuda a las familias cerca de Disneyland Paris a encontrar a alguien de confianza para cuidar de su mascota.",
+  },
+  "Publier mon avis sur Google": {
+    en: "Post my review on Google",
+    es: "Publicar mi opinión en Google",
+  },
+  "La publication sur Google est facultative et s’ouvre dans un nouvel onglet.": {
+    en: "Posting on Google is optional and opens in a new tab.",
+    es: "Publicar en Google es opcional y se abre en una nueva pestaña.",
+  },
+  "Voir le profil": { en: "View profile", es: "Ver perfil" },
+  "Plus d'avantages, tout simplement": { en: "More benefits, made simple", es: "Más ventajas, así de fácil" },
+  "Votre abonnement Premium est actif": { en: "Your Premium membership is active", es: "Su suscripción Premium está activa" },
+  "Premium ajoute des avantages concrets à chaque réservation. Le programme de fidélité gratuit reste ouvert à tous.": {
+    en: "Premium adds valuable benefits to every booking. The free loyalty programme remains open to everyone.",
+    es: "Premium añade ventajas concretas a cada reserva. El programa de fidelidad gratuito sigue abierto a todos.",
+  },
+  "Vous bénéficiez déjà de la remise de 10 %, des Pattes doublées et du badge Premium.": {
+    en: "You already receive 10% off, double Paw points and the Premium badge.",
+    es: "Ya disfruta de un 10% de descuento, puntos Patita dobles y la insignia Premium.",
+  },
+  "Gérer Premium": { en: "Manage Premium", es: "Gestionar Premium" },
+  "Avantages Premium": { en: "Premium benefits", es: "Ventajas Premium" },
+  "La remise s’applique automatiquement sur toutes les réservations.": {
+    en: "The discount is applied automatically to every booking.",
+    es: "El descuento se aplica automáticamente a todas las reservas.",
+  },
+  "1 euro dépensé rapporte 2 Pattes au lieu de 1.": {
+    en: "Earn 2 Paw points instead of 1 for every euro spent.",
+    es: "Gane 2 puntos Patita en lugar de 1 por cada euro gastado.",
+  },
+  "Vos demandes passent en priorité sur les périodes chargées.": {
+    en: "Your requests receive priority during busy periods.",
+    es: "Sus solicitudes tienen prioridad durante los periodos de mayor demanda.",
+  },
+  "Votre statut est visible dans l’espace client.": { en: "Your status is displayed in your account.", es: "Su estado aparece en su cuenta." },
+  "Fidélité gratuite incluse pour tous": { en: "Free loyalty programme for everyone", es: "Fidelidad gratuita para todos" },
+  "Sans Premium : 1 euro dépensé = 1 Patte. Avec Premium : 1 euro dépensé = 2 Pattes.": {
+    en: "Without Premium: €1 spent = 1 Paw point. With Premium: €1 spent = 2 Paw points.",
+    es: "Sin Premium: 1 € gastado = 1 punto Patita. Con Premium: 1 € gastado = 2 puntos Patita.",
+  },
+  "Les avantages s'appliquent automatiquement à vos réservations.": {
+    en: "Benefits are applied automatically to your bookings.",
+    es: "Las ventajas se aplican automáticamente a sus reservas.",
+  },
+  "Premium actif": { en: "Premium active", es: "Premium activo" },
+  "Activer Premium": { en: "Join Premium", es: "Activar Premium" },
+  "Préparation": { en: "Preparing", es: "Preparando" },
+  "Chargement": { en: "Loading", es: "Cargando" },
+  "Paiement sécurisé par Stripe. Résiliation depuis votre profil.": {
+    en: "Secure payment by Stripe. Cancel anytime from your profile.",
+    es: "Pago seguro con Stripe. Cancele desde su perfil.",
+  },
+  "Mensuel": { en: "Monthly", es: "Mensual" },
+  "/mois": { en: "/month", es: "/mes" },
+  "Programme fidélité gratuit": { en: "Free loyalty programme", es: "Programa de fidelidad gratuito" },
+  "Mes Pattes": { en: "My Paw points", es: "Mis puntos Patita" },
+  "Solde fidélité": { en: "Loyalty balance", es: "Saldo de fidelidad" },
+  "Utiliser": { en: "Use", es: "Canjear" },
+  "Pas assez": { en: "Not enough", es: "Insuficiente" },
+  "Abonnement Premium": { en: "Premium membership", es: "Suscripción Premium" },
+  "Gratuit": { en: "Free", es: "Gratis" },
+  "Résilier Premium": { en: "Cancel Premium", es: "Cancelar Premium" },
+  "Factures Premium": { en: "Premium invoices", es: "Facturas Premium" },
+  "Télécharger la facture PDF": { en: "Download PDF invoice", es: "Descargar factura en PDF" },
+  "Cookies essentiels": { en: "Essential cookies", es: "Cookies esenciales" },
+  "Nécessaires pour la connexion et les paiements Stripe. Aucun cookie publicitaire.": {
+    en: "Required for sign-in and Stripe payments. No advertising cookies.",
+    es: "Necesarias para iniciar sesión y realizar pagos con Stripe. Sin cookies publicitarias.",
+  },
+  "Accepter": { en: "Accept", es: "Aceptar" },
+  "En savoir plus": { en: "Learn more", es: "Más información" },
+  "Vos préférences de cookies": { en: "Your cookie preferences", es: "Sus preferencias de cookies" },
+  "Les cookies essentiels assurent la connexion et les paiements. Avec votre accord, Google Analytics nous aide à mesurer les visites et l’efficacité de nos annonces.": {
+    en: "Essential cookies support sign-in and payments. With your permission, Google Analytics helps us measure visits and the effectiveness of our ads.",
+    es: "Las cookies esenciales permiten el inicio de sesión y los pagos. Con su permiso, Google Analytics nos ayuda a medir las visitas y la eficacia de nuestros anuncios.",
+  },
+  "Tout accepter": { en: "Accept all", es: "Aceptar todo" },
+  "Refuser": { en: "Reject", es: "Rechazar" },
+  "En savoir plus et gérer mes préférences": {
+    en: "Learn more and manage my preferences",
+    es: "Más información y gestionar mis preferencias",
+  },
+  "Gérer mes cookies": { en: "Manage my cookies", es: "Gestionar mis cookies" },
+  "Mesure d’audience et des annonces": {
+    en: "Audience and ad measurement",
+    es: "Medición de audiencia y anuncios",
+  },
+  "Avec votre accord uniquement, nous utilisons Google Analytics et la mesure Google Ads afin de comprendre quelles pages sont consultées et si nos annonces permettent de trouver nos services. Le tag utilisé est": {
+    en: "Only with your permission, we use Google Analytics and Google Ads measurement to understand which pages are viewed and whether our ads help people find our services. The tag used is",
+    es: "Solo con su permiso, utilizamos Google Analytics y la medición de Google Ads para saber qué páginas se visitan y si nuestros anuncios ayudan a encontrar nuestros servicios. La etiqueta utilizada es",
+  },
+  "Durée maximale": { en: "Maximum duration", es: "Duración máxima" },
+  "Mesure d’audience et attribution des campagnes Google.": {
+    en: "Audience measurement and Google campaign attribution.",
+    es: "Medición de audiencia y atribución de campañas de Google.",
+  },
+  "13 mois": { en: "13 months", es: "13 meses" },
+  "Si vous refusez, ces stockages restent désactivés. Vous pouvez modifier votre choix à tout moment depuis le lien « Gérer mes cookies » situé en bas du site. Nous ne revendons pas vos données.": {
+    en: "If you reject, this storage remains disabled. You can change your choice at any time from the “Manage my cookies” link at the bottom of the site. We do not sell your data.",
+    es: "Si rechaza, este almacenamiento permanecerá desactivado. Puede cambiar su elección en cualquier momento desde el enlace «Gestionar mis cookies» situado al pie del sitio. No vendemos sus datos.",
+  },
+  "Signaler un problème": { en: "Report a problem", es: "Informar de un problema" },
+  "Fermer": { en: "Close", es: "Cerrar" },
+  "Merci ! Le message a été envoyé.": { en: "Thank you! Your message has been sent.", es: "¡Gracias! Su mensaje ha sido enviado." },
+  "Description du bug": { en: "Problem description", es: "Descripción del problema" },
+  "Décrivez ce qui ne marche pas... (ex: le bouton X ne clique pas sur la page Y)": {
+    en: "Describe what is not working... (e.g. button X does not work on page Y)",
+    es: "Describa lo que no funciona... (p. ej., el botón X no funciona en la página Y)",
+  },
+  "Annuler": { en: "Cancel", es: "Cancelar" },
+  "Envoi...": { en: "Sending...", es: "Enviando..." },
+  "Envoyer le rapport": { en: "Send report", es: "Enviar informe" },
+
+  // Welcome offer
+  "Offre de bienvenue": { en: "Welcome offer", es: "Oferta de bienvenida" },
+  "-10 % sur votre première réservation": { en: "10% off your first booking", es: "10 % de descuento en su primera reserva" },
+  "Réservée aux 5 premiers nouveaux clients · code": { en: "For the first 5 new clients · code", es: "Para los 5 primeros clientes nuevos · código" },
+  "J'en profite": { en: "Claim the offer", es: "Aprovechar la oferta" },
+  "5 premiers nouveaux clients :": { en: "First 5 new clients:", es: "5 primeros clientes nuevos:" },
+  "Offre de bienvenue : 10 % de réduction appliquée": { en: "Welcome offer: 10% discount applied", es: "Oferta de bienvenida: 10 % de descuento aplicado" },
+  "Cette offre est réservée aux nouveaux clients, pour leur première réservation.": { en: "This offer is for new clients on their first booking.", es: "Esta oferta está reservada a nuevos clientes en su primera reserva." },
+  "Les 5 offres de bienvenue ont déjà été attribuées.": { en: "All 5 welcome offers have already been claimed.", es: "Las 5 ofertas de bienvenida ya han sido asignadas." },
+  "Votre offre de bienvenue est déjà associée à une autre réservation.": { en: "Your welcome offer is already linked to another booking.", es: "Su oferta de bienvenida ya está vinculada a otra reserva." },
+  "L'offre de bienvenue n'est pas associée à cette réservation.": { en: "The welcome offer is not linked to this booking.", es: "La oferta de bienvenida no está vinculada a esta reserva." },
+
+  // Resident cats shown during bookings hosted at the pet-sitter's home
+  "Deux chats vivent à la maison": {
+    en: "Two cats live in the house",
+    es: "Dos gatos viven en la casa",
+  },
+  "Pour la garderie et l'hébergement, la compatibilité est prise en compte. Si la cohabitation avec votre animal n'est pas sereine, nos chats restent dans un espace séparé.": {
+    en: "For day care and boarding, compatibility is taken into account. If they are not comfortable sharing the space with your pet, our cats are kept in a separate area.",
+    es: "Para la guardería y el alojamiento, se tiene en cuenta la compatibilidad. Si no están cómodos compartiendo el espacio con su mascota, nuestros gatos permanecen en una zona separada.",
+  },
+
+  // Footer and legal navigation
+  "Service de garde d’animaux premium avec suivi en temps réel. Offrez à vos compagnons des vacances aussi belles que les vôtres.": {
+    en: "Premium pet care with regular real-time updates. Give your companions a holiday as wonderful as yours.",
+    es: "Cuidado premium de mascotas con seguimiento en tiempo real. Ofrezca a sus compañeros unas vacaciones tan bonitas como las suyas.",
+  },
+  "Navigation": { en: "Navigation", es: "Navegación" },
+  "Le Club (Abonnements) ✨": { en: "The Club (Memberships) ✨", es: "El Club (Suscripciones) ✨" },
+  "Garde locale": { en: "Local pet care", es: "Cuidado local" },
+  "Légal": { en: "Legal", es: "Legal" },
+  "Mentions légales": { en: "Legal notice", es: "Aviso legal" },
+  "CGV & Annulation": { en: "Terms & cancellations", es: "Condiciones y cancelaciones" },
+  "Politique de Confidentialité": { en: "Privacy policy", es: "Política de privacidad" },
+  "Tous droits réservés.": { en: "All rights reserved.", es: "Todos los derechos reservados." },
+  "Éditeur du site": { en: "Website publisher", es: "Editor del sitio" },
+  "Qualification professionnelle": { en: "Professional qualification", es: "Cualificación profesional" },
+  "Médiation de la consommation": { en: "Consumer mediation", es: "Mediación de consumo" },
+  "Hébergement du site": { en: "Website hosting", es: "Alojamiento del sitio web" },
+};
+
+const completeCatalogue: Record<string, Translation> = {
+  ...generatedCatalogue,
+  ...catalogue,
+};
+
+const orderedEntries = Object.entries(completeCatalogue).sort(([a], [b]) => b.length - a.length);
+
+export function translateFrenchText(value: string, locale: Locale): string {
+  if (locale === "fr" || !value.trim()) return value;
+
+  const leading = value.match(/^\s*/)?.[0] ?? "";
+  const trailing = value.match(/\s*$/)?.[0] ?? "";
+  const core = value.slice(leading.length, value.length - trailing.length || undefined);
+  const exact = completeCatalogue[core];
+  if (exact) return `${leading}${exact[locale]}${trailing}`;
+
+  const matches: Array<{ start: number; end: number; replacement: string }> = [];
+  for (const [source, targets] of orderedEntries) {
+    let start = core.indexOf(source);
+    while (start !== -1) {
+      const end = start + source.length;
+      const overlapsLongerMatch = matches.some((match) => start < match.end && end > match.start);
+      if (!overlapsLongerMatch) {
+        matches.push({ start, end, replacement: targets[locale] });
+      }
+      start = core.indexOf(source, Math.max(end, start + 1));
+    }
+  }
+
+  matches.sort((a, b) => a.start - b.start);
+  let cursor = 0;
+  let translated = "";
+  for (const match of matches) {
+    translated += core.slice(cursor, match.start);
+    translated += match.replacement;
+    cursor = match.end;
+  }
+  translated += core.slice(cursor);
+  return `${leading}${translated}${trailing}`;
+}

@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
-import { AppNav } from "@/components/layout/AppNav";
 import { use } from "react";
 import { formatPetAge } from "@/lib/pets";
 
@@ -43,7 +43,7 @@ const COMMON_VACCINES_CAT = ["Rage", "Typhus (Panleucopénie)", "Coryza", "Leuco
 
 export default function PetHealthPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
 
   const [pet, setPet] = useState<Pet | null>(null);
@@ -61,38 +61,43 @@ export default function PetHealthPage({ params }: { params: Promise<{ id: string
   });
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/auth/signin");
-    else if (status === "authenticated") fetchData();
-  }, [status]);
-
-  const fetchData = async () => {
-    try {
-      const [petRes, vaccRes] = await Promise.all([
-        fetch(`/api/pets/${id}`),
-        fetch(`/api/pets/${id}/vaccines`),
-      ]);
-      if (petRes.ok) {
-        const { pet: p } = await petRes.json();
-        setPet(p);
-        setMedicalForm({
-          microchipNumber: p.microchipNumber || "",
-          allergies: p.allergies || "",
-          insuranceInfo: p.insuranceInfo || "",
-          medicalInfo: p.medicalInfo || "",
-          medications: p.medications || "",
-          lastVetVisit: p.lastVetVisit ? p.lastVetVisit.split("T")[0] : "",
-        });
-      }
-      if (vaccRes.ok) {
-        const { vaccines: v } = await vaccRes.json();
-        setVaccines(v);
-      }
-    } catch (error) {
-      console.error("Erreur:", error);
-    } finally {
-      setIsLoading(false);
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+      return;
     }
-  };
+    if (status !== "authenticated") return;
+
+    const fetchData = async () => {
+      try {
+        const [petRes, vaccRes] = await Promise.all([
+          fetch(`/api/pets/${id}`),
+          fetch(`/api/pets/${id}/vaccines`),
+        ]);
+        if (petRes.ok) {
+          const { pet: p } = await petRes.json();
+          setPet(p);
+          setMedicalForm({
+            microchipNumber: p.microchipNumber || "",
+            allergies: p.allergies || "",
+            insuranceInfo: p.insuranceInfo || "",
+            medicalInfo: p.medicalInfo || "",
+            medications: p.medications || "",
+            lastVetVisit: p.lastVetVisit ? p.lastVetVisit.split("T")[0] : "",
+          });
+        }
+        if (vaccRes.ok) {
+          const { vaccines: v } = await vaccRes.json();
+          setVaccines(v);
+        }
+      } catch (error) {
+        console.error("Erreur:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchData();
+  }, [id, router, status]);
 
   const handleAddVaccine = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,7 +187,6 @@ export default function PetHealthPage({ params }: { params: Promise<{ id: string
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
-      <AppNav userName={session?.user?.name} />
 
       <main className="container mx-auto px-6 pt-32 max-w-4xl">
         {/* Header */}
@@ -193,8 +197,8 @@ export default function PetHealthPage({ params }: { params: Promise<{ id: string
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-6 mb-10">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-4xl overflow-hidden shadow-lg flex-shrink-0">
-            {pet.imageUrl ? <img src={pet.imageUrl} alt={pet.name} className="w-full h-full object-cover" /> : "🐾"}
+          <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-4xl overflow-hidden shadow-lg flex-shrink-0">
+            {pet.imageUrl ? <Image src={pet.imageUrl} alt={pet.name} fill sizes="80px" className="object-cover" /> : "🐾"}
           </div>
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900">Carnet de santé</h1>

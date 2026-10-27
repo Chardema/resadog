@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { AppNav } from "@/components/layout/AppNav";
+import { LEGAL_INFORMATION } from "@/lib/legal";
 
 interface Booking {
   id: string;
@@ -23,7 +23,6 @@ interface Booking {
   } | null;
   pets: { name: string; breed?: string }[];
   totalPrice: number;
-  creditsUsed?: number;
   createdAt: string;
 }
 
@@ -37,14 +36,25 @@ const SERVICE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   PENDING: { label: "En attente", color: "bg-orange-100 text-orange-700" },
+  ACCEPTING: { label: "Validation en cours", color: "bg-orange-100 text-orange-700" },
+  CANCELLING: { label: "Annulation en cours", color: "bg-orange-100 text-orange-700" },
   CONFIRMED: { label: "Confirmée", color: "bg-green-100 text-green-700" },
   IN_PROGRESS: { label: "En cours", color: "bg-blue-100 text-blue-700" },
   COMPLETED: { label: "Terminée", color: "bg-gray-100 text-gray-700" },
   CANCELLED: { label: "Annulée", color: "bg-red-100 text-red-700" },
 };
 
+function getRescheduleMailto(booking: Booking) {
+  const reference = `#${booking.id.slice(-8).toUpperCase()}`;
+  const subject = encodeURIComponent(`Demande de report Premium ${reference}`);
+  const body = encodeURIComponent(
+    `Bonjour,\n\nJe souhaite demander le report de la réservation ${reference} prévue à partir du ${new Date(booking.startDate).toLocaleDateString("fr-FR")}.\n\nMerci.`
+  );
+  return `mailto:${LEGAL_INFORMATION.contactEmail}?subject=${subject}&body=${body}`;
+}
+
 export default function HistoryPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,7 +89,7 @@ export default function HistoryPage() {
   const filteredBookings = bookings.filter((b) => {
     if (filter === "all") return true;
     if (filter === "past") return ["COMPLETED", "CANCELLED"].includes(b.status);
-    if (filter === "active") return ["PENDING", "CONFIRMED", "IN_PROGRESS"].includes(b.status);
+    if (filter === "active") return ["PENDING", "ACCEPTING", "CANCELLING", "CONFIRMED", "IN_PROGRESS"].includes(b.status);
     return b.status === filter;
   });
 
@@ -115,7 +125,6 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFbf7] pb-24">
-      <AppNav userName={session?.user?.name} />
 
       <main className="container mx-auto px-6 pt-32">
         <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
@@ -209,11 +218,7 @@ export default function HistoryPage() {
 
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        {booking.creditsUsed && booking.creditsUsed > 0 ? (
-                          <p className="font-bold text-gray-900">{booking.creditsUsed} crédits</p>
-                        ) : (
-                          <p className="font-bold text-gray-900">{booking.totalPrice}€</p>
-                        )}
+                        <p className="font-bold text-gray-900">{booking.totalPrice}€</p>
                       </div>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-bold ${statusInfo.color}`}
@@ -221,17 +226,25 @@ export default function HistoryPage() {
                         {statusInfo.label}
                       </span>
                       {["PENDING", "CONFIRMED"].includes(booking.status) && new Date(booking.startDate) > new Date() && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBookingToCancel(booking);
-                            setCancelConfirmed(false);
-                            setCancelError("");
-                          }}
-                          className="text-sm font-bold text-red-600 hover:text-red-800"
-                        >
-                          Annuler
-                        </button>
+                        <div className="flex flex-col items-end gap-1">
+                          <a
+                            href={getRescheduleMailto(booking)}
+                            className="text-sm font-bold text-blue-700 hover:text-blue-900"
+                          >
+                            Demander un report
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBookingToCancel(booking);
+                              setCancelConfirmed(false);
+                              setCancelError("");
+                            }}
+                            className="text-sm font-bold text-red-600 hover:text-red-800"
+                          >
+                            Annuler
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -246,9 +259,16 @@ export default function HistoryPage() {
             <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-2xl">
               <h2 className="text-xl font-bold text-gray-900">Annuler cette réservation ?</h2>
               <p className="mt-3 text-sm text-gray-600">
-                Plus de 48 h avant la prestation, le paiement ou les crédits sont restitués intégralement.
-                À moins de 48 h, 50% du paiement est retenu et un crédit utilisé n&apos;est pas restitué.
+                Au moins 48 h avant la prestation, le paiement est restitué intégralement.
+                En dessous de ce délai, 50% du paiement est retenu. Une non-présentation reste due en totalité.
+                Si vous êtes Premium, vous pouvez demander en priorité un report au moins 24 h avant, sous réserve de disponibilité ; ce report n’est pas une annulation remboursable.
               </p>
+              <a
+                href={getRescheduleMailto(bookingToCancel)}
+                className="mt-3 inline-flex text-sm font-bold text-blue-700 underline underline-offset-4"
+              >
+                Demander un report à la place
+              </a>
               <label className="mt-5 flex items-start gap-3 text-sm text-gray-700">
                 <input
                   type="checkbox"

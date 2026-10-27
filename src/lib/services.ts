@@ -8,16 +8,16 @@ export const SERVICE_TYPES = [
 
 export type AppServiceType = (typeof SERVICE_TYPES)[number];
 
-export const SERVICE_LABELS: Record<AppServiceType, string> = {
+const SERVICE_LABELS: Record<AppServiceType, string> = {
   BOARDING: "Hébergement",
-  HOUSE_SITTING: "Garde au domicile",
+  HOUSE_SITTING: "Garde à votre domicile",
   DAY_CARE: "Garderie",
-  DROP_IN: "Visite à domicile",
+  DROP_IN: "Visite à votre domicile",
   DOG_WALKING: "Promenade",
 };
 
 export const SERVICE_UNITS: Record<AppServiceType, string> = {
-  BOARDING: "nuit",
+  BOARDING: "période de 24 h",
   HOUSE_SITTING: "jour",
   DAY_CARE: "jour",
   DROP_IN: "visite",

@@ -1,8 +1,12 @@
+import { isDirectPayment } from "@/lib/direct-booking";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
+import { reverseBookingLoyalty } from "@/lib/loyalty-ledger";
+import { STANDARD_FREE_CANCELLATION_HOURS } from "@/lib/subscription-pricing";
 import { z } from "zod";
+import type { RefundStatus } from "@prisma/client";
 
 const cancelSchema = z.object({
   confirmed: z.literal(true),
@@ -32,6 +36,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ bookingId: string }> }
 ) {
+  let cancellationClaim: {
+    bookingId: string;
+    previousStatus: "PENDING" | "CONFIRMED";
+  } | null = null;
+
   try {
     const session = await auth();
     if (!session?.user?.id) return NextResponse.json({ error: "Non connecté" }, { status: 401 });
@@ -42,10 +51,14 @@ export async function POST(
     const { bookingId } = await params;
     const booking = await prisma.booking.findFirst({
       where: { id: bookingId, clientId: session.user.id },
-      include: { payment: true },
+      include: {
+        payment: true,
+        client: { select: { subscription: { select: { status: true } } } },
+      },
     });
 
     if (!booking) return NextResponse.json({ error: "Réservation introuvable" }, { status: 404 });
+    if (isDirectPayment(booking.payment?.paymentMethod)) return NextResponse.json({ error: "Pour annuler une réservation directe, contactez Mégane au 07 71 59 30 16." }, { status: 409 });
     if (booking.status === "CANCELLED") return NextResponse.json({ success: true, unchanged: true });
     if (!(["PENDING", "CONFIRMED"] as string[]).includes(booking.status)) {
       return NextResponse.json({ error: "Cette réservation ne peut plus être annulée en ligne" }, { status: 409 });
@@ -57,16 +70,46 @@ export async function POST(
       return NextResponse.json({ error: "La prestation a déjà commencé" }, { status: 409 });
     }
 
-    const freeCancellation = hoursBeforeStart >= 48;
-    let creditsRestored = 0;
+    const freeCancellationWindowHours = STANDARD_FREE_CANCELLATION_HOURS;
+    const freeCancellation = hoursBeforeStart >= freeCancellationWindowHours;
     let amountRefunded = 0;
     let amountRetained = 0;
+    let capturedAmount = booking.payment?.capturedAmount || 0;
+    let stripeRefundId: string | null = null;
+    let refundStatus: RefundStatus | null = null;
 
-    if (booking.creditsUsed > 0) {
-      if (freeCancellation) creditsRestored = booking.creditsUsed;
-    } else if (booking.payment) {
+    const previousStatus = booking.status === "PENDING" ? "PENDING" : "CONFIRMED";
+    const claimed = await prisma.booking.updateMany({
+      where: { id: booking.id, status: previousStatus },
+      data: { status: "CANCELLING", cancellationOrigin: "CLIENT" },
+    });
+    if (claimed.count !== 1) {
+      return NextResponse.json(
+        { error: "La réservation vient d'être modifiée. Rechargez la page." },
+        { status: 409 }
+      );
+    }
+    cancellationClaim = { bookingId: booking.id, previousStatus };
+
+    if (booking.payment) {
       if (booking.payment.status === "PROCESSING" && !booking.payment.stripePaymentId) {
+        await prisma.booking.updateMany({
+          where: { id: booking.id, status: "CANCELLING" },
+          data: { status: previousStatus, cancellationOrigin: null },
+        });
+        cancellationClaim = null;
         return NextResponse.json({ error: "Autorisation Stripe introuvable, contactez le support" }, { status: 409 });
+      }
+      if (booking.payment.status === "SUCCEEDED" && !booking.payment.stripePaymentId) {
+        await prisma.booking.updateMany({
+          where: { id: booking.id, status: "CANCELLING" },
+          data: { status: previousStatus, cancellationOrigin: null },
+        });
+        cancellationClaim = null;
+        return NextResponse.json(
+          { error: "Paiement encaissé sans identifiant Stripe : remboursement manuel requis." },
+          { status: 409 }
+        );
       }
 
       if (booking.payment.stripePaymentId) {
@@ -81,26 +124,46 @@ export async function POST(
             );
           } else {
             const amountToCapture = Math.round(paymentIntent.amount * 0.5);
-            await stripe.paymentIntents.capture(
+            const capturedPaymentIntent = await stripe.paymentIntents.capture(
               paymentIntent.id,
               { amount_to_capture: amountToCapture },
               { idempotencyKey: `booking:${booking.id}:late-cancellation-capture` }
             );
-            amountRetained = amountToCapture / 100;
+            capturedAmount = capturedPaymentIntent.amount_received / 100;
+            amountRetained = capturedAmount;
           }
         } else if (paymentIntent.status === "succeeded") {
+          capturedAmount = paymentIntent.amount_received / 100;
           const refundCents = freeCancellation
             ? paymentIntent.amount_received
             : Math.round(paymentIntent.amount_received * 0.5);
           if (refundCents > 0) {
-            await stripe.refunds.create(
-              { payment_intent: paymentIntent.id, amount: refundCents },
-              { idempotencyKey: `booking:${booking.id}:cancellation-refund` }
+            const refund = await stripe.refunds.create(
+              {
+                payment_intent: paymentIntent.id,
+                amount: refundCents,
+                metadata: { bookingId: booking.id, cancellationOrigin: "CLIENT" },
+              },
+              { idempotencyKey: `booking:${booking.id}:client-cancellation-refund` }
             );
+            if (refund.status === "failed" || refund.status === "canceled" || !refund.status) {
+              throw new Error(`Le remboursement Stripe a échoué (statut : ${refund.status || "inconnu"})`);
+            }
+            stripeRefundId = refund.id;
+            refundStatus = refund.status === "succeeded"
+              ? "SUCCEEDED"
+              : refund.status === "requires_action"
+                ? "REQUIRES_ACTION"
+                : "PENDING";
             amountRefunded = refundCents / 100;
             amountRetained = paymentIntent.amount_received / 100 - amountRefunded;
           }
         } else if (paymentIntent.status !== "canceled") {
+          await prisma.booking.updateMany({
+            where: { id: booking.id, status: "CANCELLING" },
+            data: { status: previousStatus, cancellationOrigin: null },
+          });
+          cancellationClaim = null;
           return NextResponse.json(
             { error: `Le paiement ne peut pas être annulé (statut Stripe: ${paymentIntent.status})` },
             { status: 409 }
@@ -110,18 +173,6 @@ export async function POST(
     }
 
     await prisma.$transaction(async (tx) => {
-      if (creditsRestored > 0) {
-        await tx.creditBatch.create({
-          data: {
-            userId: session.user.id,
-            amount: creditsRestored,
-            remaining: creditsRestored,
-            serviceType: booking.serviceType,
-            expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
-          },
-        });
-      }
-
       if (booking.payment) {
         const paymentStatus = freeCancellation
           ? "REFUNDED"
@@ -134,30 +185,47 @@ export async function POST(
           where: { id: booking.payment.id },
           data: {
             status: paymentStatus,
-            refundedAt: amountRefunded > 0 || freeCancellation ? new Date() : booking.payment.refundedAt,
+            refundedAt: refundStatus === "SUCCEEDED" || (freeCancellation && !stripeRefundId)
+              ? new Date()
+              : booking.payment.refundedAt,
             refundAmount: amountRefunded,
-            amount: amountRetained > 0 ? amountRetained : booking.payment.amount,
+            capturedAmount,
+            stripeRefundId,
+            refundStatus,
+            refundFailureReason: null,
           },
         });
       }
 
-      await tx.booking.update({
-        where: { id: booking.id },
+      const cancelled = await tx.booking.updateMany({
+        where: { id: booking.id, status: "CANCELLING", cancellationOrigin: "CLIENT" },
         data: {
           status: "CANCELLED",
           cancellationReason: reason || "Annulation demandée par le client",
+          cancellationOrigin: "CLIENT",
+          cancelledAt: new Date(),
         },
       });
+      if (cancelled.count !== 1) throw new Error(`Verrou d'annulation perdu pour ${booking.id}`);
+
+      await reverseBookingLoyalty(booking.id, "Réservation annulée par le client", tx);
     });
+    cancellationClaim = null;
 
     return NextResponse.json({
       success: true,
       policy: freeCancellation ? "FREE" : "LATE",
-      creditsRestored,
+      freeCancellationWindowHours,
       amountRefunded,
       amountRetained,
     });
   } catch (error) {
+    if (cancellationClaim) {
+      await prisma.booking.updateMany({
+        where: { id: cancellationClaim.bookingId, status: "CANCELLING" },
+        data: { status: cancellationClaim.previousStatus, cancellationOrigin: null },
+      }).catch((recoveryError) => console.error("Annulation non restaurée:", recoveryError));
+    }
     console.error("Erreur annulation client:", error);
     if (error instanceof z.ZodError) return NextResponse.json({ error: "Confirmation invalide" }, { status: 400 });
     return NextResponse.json({ error: "Impossible d'annuler la réservation" }, { status: 500 });

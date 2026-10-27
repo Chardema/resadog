@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { UserMenu } from "@/components/layout/UserMenu";
-import { CalendarOff, LoaderCircle, RotateCcw } from "lucide-react";
-import type { AppServiceType } from "@/lib/services";
+import {
+  CalendarDays,
+  CalendarOff,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  LoaderCircle,
+  RotateCcw,
+  XCircle,
+} from "lucide-react";
+import { isHourlyServiceType, type AppServiceType } from "@/lib/services";
 
 interface Availability {
   id: string;
@@ -19,6 +25,23 @@ interface Availability {
 }
 
 type AvailabilityApiItem = Omit<Availability, "date"> & { date: string };
+type BookedDateSummary = {
+  count: number;
+  bookings: Array<{
+    id: string;
+    clientName: string;
+    petNames: string;
+    timeLabel: string | null;
+  }>;
+};
+
+const serviceOptions: Array<{ value: AppServiceType; label: string; shortLabel: string; icon: string }> = [
+  { value: "BOARDING", label: "Hébergement", shortLabel: "Hébergement", icon: "🏠" },
+  { value: "HOUSE_SITTING", label: "Garde au domicile", shortLabel: "Domicile", icon: "🛏️" },
+  { value: "DAY_CARE", label: "Garderie", shortLabel: "Garderie", icon: "☀️" },
+  { value: "DROP_IN", label: "Visite à domicile", shortLabel: "Visite", icon: "🚪" },
+  { value: "DOG_WALKING", label: "Promenade", shortLabel: "Promenade", icon: "🐾" },
+];
 
 function formatDateInput(date: Date) {
   const year = date.getFullYear();
@@ -33,6 +56,7 @@ export default function AdminCalendarPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedServiceType, setSelectedServiceType] = useState<AppServiceType>("BOARDING");
   const [availabilities, setAvailabilities] = useState<Record<string, Availability>>({});
+  const [bookedDates, setBookedDates] = useState<Record<string, BookedDateSummary>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [vacationStart, setVacationStart] = useState("");
   const [vacationEnd, setVacationEnd] = useState("");
@@ -52,11 +76,7 @@ export default function AdminCalendarPage() {
     }
   }, [session, status, router]);
 
-  useEffect(() => {
-    fetchAvailabilities();
-  }, [selectedMonth, selectedServiceType]);
-
-  const fetchAvailabilities = async (monthToFetch = selectedMonth) => {
+  const fetchAvailabilities = useCallback(async (monthToFetch = selectedMonth) => {
     try {
       setIsLoading(true);
       const response = await fetch(
@@ -80,13 +100,18 @@ export default function AdminCalendarPage() {
         });
 
         setAvailabilities(availabilityMap);
+        setBookedDates(data.bookedDates || {});
       }
     } catch (error) {
       console.error("Erreur lors du chargement des disponibilités:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedMonth, selectedServiceType]);
+
+  useEffect(() => {
+    fetchAvailabilities();
+  }, [fetchAvailabilities]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -160,8 +185,9 @@ export default function AdminCalendarPage() {
           });
         } else {
           // Supprimer l'entrée si elle n'existait pas avant
-          const { [dateKey]: removed, ...rest } = availabilities;
-          setAvailabilities(rest);
+          const nextAvailabilities = { ...availabilities };
+          delete nextAvailabilities[dateKey];
+          setAvailabilities(nextAvailabilities);
         }
         console.error("Erreur lors de la sauvegarde de la disponibilité");
       }
@@ -173,8 +199,9 @@ export default function AdminCalendarPage() {
           [dateKey]: currentAvailability,
         });
       } else {
-        const { [dateKey]: removed, ...rest } = availabilities;
-        setAvailabilities(rest);
+        const nextAvailabilities = { ...availabilities };
+        delete nextAvailabilities[dateKey];
+        setAvailabilities(nextAvailabilities);
       }
       console.error("Erreur lors de la sauvegarde:", error);
     }
@@ -231,275 +258,211 @@ export default function AdminCalendarPage() {
   ];
 
   const dayNames = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+  const currentService = serviceOptions.find((service) => service.value === selectedServiceType) || serviceOptions[0];
+  const isHourlyService = isHourlyServiceType(selectedServiceType);
+  const today = new Date(new Date().setHours(0, 0, 0, 0));
+  const currentMonthDateKeys = Array.from({ length: daysInMonth }).map((_, index) => {
+    const day = index + 1;
+    return new Date(Date.UTC(year, month, day, 12, 0, 0)).toISOString().split("T")[0];
+  });
+  const unavailableDateKeys = new Set(
+    Object.entries(availabilities)
+      .filter(([, availability]) => !availability.available || availability.maxSlots <= 0)
+      .map(([dateKey]) => dateKey)
+  );
+  const bookedDateKeys = new Set(Object.keys(bookedDates).filter((dateKey) => bookedDates[dateKey]?.count > 0));
+  const blockedDateKeys = new Set([
+    ...unavailableDateKeys,
+    ...(isHourlyService ? [] : bookedDateKeys),
+  ]);
+  const unavailableCount = currentMonthDateKeys.filter((dateKey) => unavailableDateKeys.has(dateKey)).length;
+  const bookedCount = currentMonthDateKeys.filter((dateKey) => bookedDateKeys.has(dateKey)).length;
+  const availableCount = currentMonthDateKeys.filter((dateKey) => {
+    const [dateYear, dateMonth, dateDay] = dateKey.split("-").map(Number);
+    const date = new Date(Date.UTC(dateYear, dateMonth - 1, dateDay, 12, 0, 0));
+    return date >= today && !blockedDateKeys.has(dateKey);
+  }).length;
 
   if (status === "loading" || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4 animate-bounce">🐾</div>
-          <p className="text-gray-700 font-semibold">Chargement...</p>
-        </div>
+      <div className="rounded-lg border border-gray-200 bg-white p-12 text-center shadow-sm">
+        <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-gray-500" />
+        <p className="mt-3 text-sm font-semibold text-gray-600">Chargement du calendrier...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Navigation Admin */}
-      <motion.nav
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="bg-gradient-to-r from-white to-orange-50 border-b border-orange-200 shadow-lg"
-      >
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/admin/dashboard" className="flex items-center gap-3">
-              <motion.div
-                whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 0] }}
-                transition={{ duration: 0.5 }}
-                className="relative"
-              >
-                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-600 flex items-center justify-center text-white font-bold text-xl shadow-lg transform rotate-12">
-                  🐾
-                </div>
-                <div className="absolute -top-1 -right-1 text-yellow-400 text-lg animate-pulse">
-                  ✨
-                </div>
-              </motion.div>
-              <div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent">
-                  La Patte Dorée
-                </span>
-                <p className="text-xs text-orange-600 font-medium">Gestion du calendrier</p>
+    <div className="space-y-6">
+      <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Administration</p>
+          <h1 className="mt-1 text-3xl font-extrabold text-gray-950">Calendrier</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+            Gérez les disponibilités par service. Un clic bloque ou rouvre une date pour le service sélectionné.
+          </p>
+        </div>
+        <Button type="button" variant="outline" onClick={() => fetchAvailabilities()} disabled={isLoading}>
+          <RotateCcw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          Actualiser
+        </Button>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {[
+          { label: "Service actif", value: currentService.shortLabel, icon: CalendarDays },
+          { label: "Disponibles", value: availableCount.toString(), icon: CheckCircle2 },
+          { label: isHourlyService ? "Jours avec passage" : "Réservées", value: bookedCount.toString(), icon: CalendarDays },
+          { label: "Bloquées", value: unavailableCount.toString(), icon: XCircle },
+          { label: "Mois affiché", value: `${monthNames[month]} ${year}`, icon: CalendarDays },
+        ].map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.label} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{stat.label}</p>
+                <Icon className="h-4 w-4 text-gray-400" aria-hidden="true" />
               </div>
-            </Link>
-            <UserMenu variant="light" />
+              <p className="mt-2 truncate text-2xl font-bold text-gray-950">{stat.value}</p>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <CalendarOff className="h-5 w-5 text-gray-700" aria-hidden="true" />
+              <h2 className="text-lg font-bold text-gray-950">Mode vacances</h2>
+            </div>
+            <p className="mt-1 text-sm text-gray-600">Bloque ou rouvre une période pour tous les services.</p>
           </div>
         </div>
-      </motion.nav>
-
-      {/* Contenu */}
-      <div className="container mx-auto px-6 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-5xl mx-auto"
-        >
-          <div className="mb-10">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent mb-2">
-              Gestion du calendrier 📅
-            </h1>
-            <p className="text-gray-700 text-lg">
-              Définissez vos disponibilités pour les réservations
-            </p>
-          </div>
-
-          <section className="mb-6 border-y border-orange-200 bg-white px-6 py-5 shadow-sm">
-            <div className="mb-4 flex items-center gap-3">
-              <CalendarOff className="h-5 w-5 text-orange-700" aria-hidden="true" />
-              <h2 className="text-lg font-bold text-gray-900">Mode vacances</h2>
-            </div>
-            <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.3fr]">
-              <label className="text-sm font-semibold text-gray-800">
-                Du
-                <input
-                  type="date"
-                  value={vacationStart}
-                  min={formatDateInput(new Date())}
-                  onChange={(event) => {
-                    setVacationStart(event.target.value);
-                    if (!vacationEnd || vacationEnd < event.target.value) {
-                      setVacationEnd(event.target.value);
-                    }
-                  }}
-                  className="mt-1 block h-11 w-full rounded-md border border-gray-300 bg-white px-3 font-normal text-gray-900"
-                />
-              </label>
-              <label className="text-sm font-semibold text-gray-800">
-                Au
-                <input
-                  type="date"
-                  value={vacationEnd}
-                  min={vacationStart || formatDateInput(new Date())}
-                  onChange={(event) => setVacationEnd(event.target.value)}
-                  className="mt-1 block h-11 w-full rounded-md border border-gray-300 bg-white px-3 font-normal text-gray-900"
-                />
-              </label>
-              <label className="text-sm font-semibold text-gray-800">
-                Libellé (facultatif)
-                <input
-                  type="text"
-                  value={vacationLabel}
-                  maxLength={120}
-                  onChange={(event) => setVacationLabel(event.target.value)}
-                  placeholder="Vacances d'été"
-                  className="mt-1 block h-11 w-full rounded-md border border-gray-300 bg-white px-3 font-normal text-gray-900"
-                />
-              </label>
-            </div>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <Button
-                type="button"
-                onClick={() => handleVacation("BLOCK")}
-                disabled={vacationAction !== null}
-                className="bg-red-700 text-white hover:bg-red-800"
-              >
-                {vacationAction === "BLOCK" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CalendarOff className="h-4 w-4" />}
-                Activer les vacances
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleVacation("RESTORE")}
-                disabled={vacationAction !== null}
-                className="border-gray-300"
-              >
-                {vacationAction === "RESTORE" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                Retirer les vacances
-              </Button>
-            </div>
-            {vacationFeedback && (
-              <p
-                role="status"
-                className={`mt-4 text-sm font-semibold ${vacationFeedback.type === "success" ? "text-green-700" : "text-red-700"}`}
-              >
-                {vacationFeedback.message}
-              </p>
-            )}
-          </section>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-orange-200"
+        <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.2fr]">
+          <label className="text-sm font-semibold text-gray-800">
+            Du
+            <input
+              type="date"
+              value={vacationStart}
+              min={formatDateInput(new Date())}
+              onChange={(event) => {
+                setVacationStart(event.target.value);
+                if (!vacationEnd || vacationEnd < event.target.value) {
+                  setVacationEnd(event.target.value);
+                }
+              }}
+              className="mt-1 block h-11 w-full rounded-lg border border-gray-300 bg-white px-3 font-normal text-gray-900 outline-none focus:border-gray-950"
+            />
+          </label>
+          <label className="text-sm font-semibold text-gray-800">
+            Au
+            <input
+              type="date"
+              value={vacationEnd}
+              min={vacationStart || formatDateInput(new Date())}
+              onChange={(event) => setVacationEnd(event.target.value)}
+              className="mt-1 block h-11 w-full rounded-lg border border-gray-300 bg-white px-3 font-normal text-gray-900 outline-none focus:border-gray-950"
+            />
+          </label>
+          <label className="text-sm font-semibold text-gray-800">
+            Libellé
+            <input
+              type="text"
+              value={vacationLabel}
+              maxLength={120}
+              onChange={(event) => setVacationLabel(event.target.value)}
+              placeholder="Vacances, formation, indisponibilité..."
+              className="mt-1 block h-11 w-full rounded-lg border border-gray-300 bg-white px-3 font-normal text-gray-900 outline-none focus:border-gray-950"
+            />
+          </label>
+        </div>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <Button type="button" onClick={() => handleVacation("BLOCK")} disabled={vacationAction !== null} className="bg-red-700 text-white hover:bg-red-800">
+            {vacationAction === "BLOCK" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CalendarOff className="h-4 w-4" />}
+            Bloquer la période
+          </Button>
+          <Button type="button" variant="outline" onClick={() => handleVacation("RESTORE")} disabled={vacationAction !== null}>
+            {vacationAction === "RESTORE" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+            Rouvrir la période
+          </Button>
+        </div>
+        {vacationFeedback && (
+          <p
+            role="status"
+            className={`mt-4 rounded-lg border px-3 py-2 text-sm font-semibold ${
+              vacationFeedback.type === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-red-200 bg-red-50 text-red-800"
+            }`}
           >
-            {/* Sélecteur de type de service */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
-              <label className="block text-sm font-bold text-gray-900 mb-3">
-                📋 Type de service à gérer
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedServiceType("BOARDING")}
-                  className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
-                    selectedServiceType === "BOARDING"
-                      ? "border-purple-500 bg-gradient-to-br from-purple-100 to-purple-200 text-purple-900 shadow-md"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+            {vacationFeedback.message}
+          </p>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="mb-5">
+          <p className="text-sm font-bold text-gray-950">Service à gérer</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            {serviceOptions.map((service) => {
+              const active = selectedServiceType === service.value;
+              return (
+                <button
+                  key={service.value}
+                  type="button"
+                  onClick={() => setSelectedServiceType(service.value)}
+                  className={`min-h-20 rounded-lg border p-3 text-left transition ${
+                    active
+                      ? "border-gray-950 bg-gray-950 text-white"
+                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
                   }`}
                 >
-                  <div className="text-2xl mb-1">🏠</div>
-                  <div>Hébergement</div>
-                </motion.button>
+                  <span className="text-xl" aria-hidden="true">{service.icon}</span>
+                  <span className="mt-1 block text-sm font-bold">{service.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedServiceType("HOUSE_SITTING")}
-                  className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
-                    selectedServiceType === "HOUSE_SITTING"
-                      ? "border-rose-500 bg-gradient-to-br from-rose-100 to-rose-200 text-rose-900 shadow-md"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="text-2xl mb-1">🛏️</div>
-                  <div>Garde au domicile</div>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedServiceType("DAY_CARE")}
-                  className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
-                    selectedServiceType === "DAY_CARE"
-                      ? "border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-900 shadow-md"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="text-2xl mb-1">☀️</div>
-                  <div>Garde de jour</div>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedServiceType("DROP_IN")}
-                  className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
-                    selectedServiceType === "DROP_IN"
-                      ? "border-blue-500 bg-gradient-to-br from-blue-100 to-blue-200 text-blue-900 shadow-md"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="text-2xl mb-1">🚪</div>
-                  <div>Visite</div>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedServiceType("DOG_WALKING")}
-                  className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
-                    selectedServiceType === "DOG_WALKING"
-                      ? "border-green-500 bg-gradient-to-br from-green-100 to-green-200 text-green-900 shadow-md"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="text-2xl mb-1">🐾</div>
-                  <div>Promenade</div>
-                </motion.button>
-              </div>
-            </div>
-
-            {/* Contrôles du calendrier */}
-            <div className="flex items-center justify-between mb-6">
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  onClick={handlePrevMonth}
-                  variant="outline"
-                  className="flex items-center gap-2 border-2 border-orange-200 hover:bg-orange-50 hover:border-orange-400"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Précédent
-                </Button>
-              </motion.div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent">
+        <div className="mb-5 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <Button type="button" onClick={handlePrevMonth} variant="outline">
+            <ChevronLeft className="h-4 w-4" />
+            Précédent
+          </Button>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-950">
                 {monthNames[month]} {year}
-              </h2>
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  onClick={handleNextMonth}
-                  variant="outline"
-                  className="flex items-center gap-2 border-2 border-orange-200 hover:bg-orange-50 hover:border-orange-400"
-                >
-                  Suivant
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Button>
-              </motion.div>
-            </div>
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">{currentService.label}</p>
+          </div>
+          <Button type="button" onClick={handleNextMonth} variant="outline">
+            Suivant
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
 
-            {/* Légende */}
-            <div className="flex items-center gap-6 mb-6 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl border border-orange-200">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-gradient-to-br from-green-400 to-green-600 rounded-lg shadow-sm"></div>
-                <span className="text-sm font-semibold text-gray-700">Disponible (par défaut)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-gradient-to-br from-red-400 to-red-600 rounded-lg shadow-sm"></div>
-                <span className="text-sm font-semibold text-gray-700">Indisponible</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-gray-200 rounded-lg shadow-sm"></div>
-                <span className="text-sm font-semibold text-gray-700">Passé</span>
-              </div>
-            </div>
+        <div className="mb-5 flex flex-wrap items-center gap-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-sm bg-emerald-500" />
+            <span className="text-xs font-semibold text-gray-700">Disponible par défaut</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-sm bg-blue-500" />
+            <span className="text-xs font-semibold text-gray-700">
+              {isHourlyService ? "Passage accepté" : "Réservation acceptée"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-sm bg-red-500" />
+            <span className="text-xs font-semibold text-gray-700">Indisponible manuel</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-sm bg-gray-300" />
+            <span className="text-xs font-semibold text-gray-700">Passé</span>
+          </div>
+        </div>
 
             {/* Grille du calendrier */}
             <div className="grid grid-cols-7 gap-2">
@@ -525,64 +488,68 @@ export default function AdminCalendarPage() {
                 const date = new Date(Date.UTC(year, month, day, 12, 0, 0));
                 const dateKey = date.toISOString().split("T")[0];
                 const availability = availabilities[dateKey];
+                const bookedDate = bookedDates[dateKey];
+                const isBooked = Boolean(bookedDate?.count);
                 // PAR DÉFAUT: disponible (vert) si pas défini dans la BDD
-                const isAvailable = availability ? availability.available : true;
+                const isManuallyUnavailable = availability ? !availability.available || availability.maxSlots <= 0 : false;
+                const isAvailable = !isManuallyUnavailable && (!isBooked || isHourlyService);
                 const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+                const bookingPreview = bookedDate?.bookings?.[0];
+                const bookingTitle = bookedDate?.bookings?.length
+                  ? bookedDate.bookings
+                      .map((booking) => `${booking.clientName} · ${booking.petNames}${booking.timeLabel ? ` · ${booking.timeLabel}` : ""}`)
+                      .join("\n")
+                  : isBooked
+                    ? `${bookedDate?.count} réservation(s) acceptée(s)`
+                    : undefined;
 
                 return (
-                  <motion.button
+                  <button
                     key={day}
-                    whileHover={{ scale: isPast ? 1 : 1.1 }}
-                    whileTap={{ scale: isPast ? 1 : 0.95 }}
-                    onClick={() => !isPast && handleDayClick(day)}
-                    disabled={isPast}
-                    className={`aspect-square rounded-xl border-2 font-bold text-base transition-all shadow-sm ${
+                    onClick={() => !isPast && (!isBooked || isHourlyService) && handleDayClick(day)}
+                    disabled={isPast || (isBooked && !isHourlyService)}
+                    title={bookingTitle}
+                    className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border p-1 text-center text-sm font-bold transition ${
                       isPast
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200"
+                        ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
+                        : isBooked && !isHourlyService
+                        ? "cursor-not-allowed border-blue-300 bg-blue-50 text-blue-900 ring-1 ring-blue-100"
+                        : isBooked
+                        ? "border-blue-300 bg-blue-50 text-blue-900 ring-1 ring-blue-100 hover:border-blue-500 hover:bg-blue-100"
                         : isAvailable
-                        ? "bg-gradient-to-br from-green-100 to-green-200 border-green-500 text-green-700 hover:shadow-lg hover:from-green-200 hover:to-green-300"
-                        : "bg-gradient-to-br from-red-100 to-red-200 border-red-500 text-red-700 hover:shadow-lg hover:from-red-200 hover:to-red-300"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-500 hover:bg-emerald-100"
+                        : "border-red-200 bg-red-50 text-red-800 hover:border-red-500 hover:bg-red-100"
                     }`}
                   >
-                    {day}
-                  </motion.button>
+                    <span>{day}</span>
+                    {isBooked && (
+                      <>
+                        <span className="rounded-full bg-blue-600 px-1.5 py-0.5 text-[9px] font-extrabold uppercase leading-none text-white">
+                          {isHourlyService ? "Passage" : "Réservé"}
+                        </span>
+                        {bookingPreview && (
+                          <span className="hidden max-w-full truncate text-[10px] font-semibold leading-none text-blue-800 sm:block">
+                            {bookingPreview.clientName}
+                          </span>
+                        )}
+                      </>
+                    )}
+                    {!isBooked && isManuallyUnavailable && (
+                      <span className="hidden text-[10px] font-semibold leading-none text-red-700 sm:block">
+                        Bloqué
+                      </span>
+                    )}
+                  </button>
                 );
               })}
             </div>
 
-            {/* Instructions */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="mt-6 p-6 bg-gradient-to-br from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-2xl"
-            >
-              <p className="text-sm text-orange-800 font-bold mb-3 flex items-center gap-2">
-                <span className="text-2xl">💡</span>
-                Instructions
-              </p>
-              <ul className="text-sm text-gray-700 space-y-2">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 font-bold">✓</span>
-                  <span><span className="font-semibold text-green-700">Par défaut, toutes les dates sont disponibles</span> (en vert)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-600 font-bold">✗</span>
-                  <span>Cliquez sur un jour disponible pour le marquer comme <span className="font-semibold text-red-700">indisponible</span> (en rouge)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 font-bold">↩️</span>
-                  <span>Cliquez sur un jour indisponible pour le remettre <span className="font-semibold text-green-700">disponible</span></span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-600 font-bold">💾</span>
-                  <span>Les modifications sont sauvegardées automatiquement</span>
-                </li>
-              </ul>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      </div>
+        <div className="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+          {isHourlyService
+            ? "Les dates bleues contiennent déjà un passage accepté, mais seuls les créneaux horaires concernés sont occupés. Vous pouvez encore bloquer toute la journée manuellement si besoin."
+            : "Les dates bleues viennent des réservations acceptées et bloquent la journée complète. Annulez la réservation pour libérer la date. Les blocages rouges restent des indisponibilités manuelles."}
+        </div>
+      </section>
     </div>
   );
 }

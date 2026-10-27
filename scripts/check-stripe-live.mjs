@@ -28,12 +28,17 @@ if (bootstrapErrors.length > 0) {
 
 const requiredEvents = [
   "checkout.session.completed",
+  "checkout.session.expired",
+  "customer.subscription.created",
   "customer.subscription.deleted",
   "customer.subscription.updated",
   "invoice.payment_failed",
   "invoice.payment_succeeded",
   "payment_intent.payment_failed",
   "payment_intent.succeeded",
+  "refund.created",
+  "refund.failed",
+  "refund.updated",
 ];
 
 try {
@@ -56,6 +61,12 @@ try {
     );
     if (!invoiceHistoryEnabled) {
       errors.push("le portail client Stripe Live doit autoriser la consultation des factures");
+    }
+    const paymentMethodUpdateEnabled = portalConfigurations.data.some(
+      (configuration) => configuration.features?.payment_method_update?.enabled
+    );
+    if (!paymentMethodUpdateEnabled) {
+      errors.push("le portail client Stripe Live doit autoriser la mise à jour du moyen de paiement");
     }
   }
 

@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
-import { sendBookingRequestEmail, sendAdminNotification, sendPaymentFailedEmail } from "@/lib/email";
-import { SERVICE_TYPES, type AppServiceType } from "@/lib/services";
+import {
+  sendBookingConfirmationEmail,
+  sendBookingRefundCompletedEmail,
+  sendBookingRefundFailedAdminEmail,
+  sendBookingTeamCancellationEmail,
+  sendBookingRequestEmail,
+  sendNewBookingAdminEmail,
+  sendPaymentFailedEmail,
+  sendSubscriptionPaymentFailedAdminEmail,
+  sendSubscriptionRefundCompletedEmail,
+} from "@/lib/email";
+import { ensureBookingInvoice } from "@/lib/booking-invoices";
 import Stripe from "stripe";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { awardBookingLoyalty } from "@/lib/loyalty-ledger";
+import { getBookingEmailDetails } from "@/lib/booking-email-details";
+import {
+  WELCOME_OFFER_LOCK_ID,
+  isWelcomeOfferCode,
+} from "@/lib/welcome-offer";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
-function getMetadataServiceType(serviceType: string | undefined): AppServiceType {
-  return SERVICE_TYPES.includes(serviceType as AppServiceType)
-    ? (serviceType as AppServiceType)
-    : "DOG_WALKING";
-}
 
 export async function POST(request: NextRequest) {
   let claimedEvent: { id: string; attemptToken: string } | null = null;
@@ -53,14 +63,25 @@ export async function POST(request: NextRequest) {
         await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
         break;
 
+      case "refund.created":
+      case "refund.updated":
+      case "refund.failed":
+        await handleRefundChanged(event.data.object as Stripe.Refund);
+        break;
+
       case "checkout.session.completed":
         await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
+
+      case "checkout.session.expired":
+        await handleCheckoutSessionExpired(event.data.object as Stripe.Checkout.Session);
         break;
 
       case "customer.subscription.deleted":
         await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
         break;
 
+      case "customer.subscription.created":
       case "customer.subscription.updated":
         await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
         break;
@@ -142,6 +163,48 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         where: { stripeSubscriptionId: subscription.id },
         data: { status: "CANCELED" }
     });
+
+    const localSubscription = await prisma.userSubscription.findUnique({
+      where: { stripeSubscriptionId: subscription.id },
+      select: {
+        user: { select: { email: true, name: true } },
+      },
+    });
+    if (!localSubscription) return;
+
+    const invoices = await stripe.invoices.list({
+      subscription: subscription.id,
+      status: "paid",
+      limit: 10,
+    });
+    const latestPaidInvoice = invoices.data.find((invoice) => invoice.amount_paid > 0);
+    if (!latestPaidInvoice) return;
+
+    const invoicePayments = await stripe.invoicePayments.list({
+      invoice: latestPaidInvoice.id,
+      status: "paid",
+      limit: 10,
+    });
+    const paymentIntentId = invoicePayments.data
+      .map((invoicePayment) => invoicePayment.payment.payment_intent)
+      .map((paymentIntent) => typeof paymentIntent === "string" ? paymentIntent : paymentIntent?.id)
+      .find((value): value is string => Boolean(value));
+    if (!paymentIntentId) return;
+
+    const refunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
+    const refund = refunds.data.find((candidate) =>
+      candidate.status === "succeeded" &&
+      candidate.metadata?.type === "subscription_refund" &&
+      candidate.metadata?.stripeSubscriptionId === subscription.id
+    );
+    if (!refund) return;
+
+    await sendSubscriptionRefundCompletedEmail(
+      localSubscription.user.email,
+      localSubscription.user.name || "Client",
+      { amount: refund.amount / 100, refundId: refund.id },
+      { idempotencyKey: `subscription-refund-completed-${refund.id}` }
+    );
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -163,32 +226,15 @@ function getSubscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
 }
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
-    if (invoice.billing_reason === 'subscription_cycle') {
-        const subscriptionId = getSubscriptionIdFromInvoice(invoice);
-        if (!subscriptionId) return;
+    if (invoice.billing_reason !== "subscription_cycle") return;
 
-        const subscription = await prisma.userSubscription.findFirst({
-            where: { stripeSubscriptionId: subscriptionId }
-        });
+    const subscriptionId = getSubscriptionIdFromInvoice(invoice);
+    if (!subscriptionId) return;
 
-        if (subscription) {
-            const creditsGranted = subscription.billingPeriod === "YEARLY"
-                ? subscription.creditsPerMonth * 12
-                : subscription.creditsPerMonth;
-            await prisma.creditBatch.upsert({
-                where: { stripeSourceId: invoice.id },
-                update: {},
-                create: {
-                    stripeSourceId: invoice.id,
-                    userId: subscription.userId,
-                    amount: creditsGranted,
-                    remaining: creditsGranted,
-                    serviceType: subscription.serviceType,
-                    expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
-                }
-            });
-        }
-    }
+    await prisma.userSubscription.updateMany({
+        where: { stripeSubscriptionId: subscriptionId },
+        data: { status: "ACTIVE" }
+    });
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
@@ -223,11 +269,9 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
     // Notifier l'admin
     try {
-        await sendAdminNotification(
-            `⚠️ Paiement échoué`,
+        await sendSubscriptionPaymentFailedAdminEmail(
             subscription.user.name || 'Client',
-            `Abonnement ${subscriptionId}`,
-            `Statut: PAST_DUE`,
+            subscriptionId,
             subscription.price
         );
     } catch (emailError) {
@@ -244,6 +288,21 @@ function getBookingIds(metadata: Stripe.Metadata | null | undefined): string[] {
 }
 
 async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+  if (paymentIntent.metadata.type === "additional_charge") {
+    const idempotencyKey = paymentIntent.metadata.idempotencyKey;
+    await prisma.additionalCharge.updateMany({
+      where: idempotencyKey
+        ? { OR: [{ stripePaymentId: paymentIntent.id }, { idempotencyKey }] }
+        : { stripePaymentId: paymentIntent.id },
+      data: {
+        stripePaymentId: paymentIntent.id,
+        status: "SUCCEEDED",
+        chargedAt: new Date(),
+      },
+    });
+    return;
+  }
+
   const bookingIds = getBookingIds(paymentIntent.metadata);
 
   if (bookingIds.length === 0) {
@@ -265,6 +324,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     data: {
       status: "SUCCEEDED",
       paidAt: new Date(),
+      capturedAmount: paymentIntent.amount_received / 100,
       paymentMethod: paymentMethodId,
     },
   });
@@ -282,8 +342,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     });
   }
 
-  // Le statut métier est piloté par l'admin. Le webhook confirme uniquement
-  // que le paiement a été capturé, sans écraser CONFIRMED par une valeur obsolète.
+  // Le webhook répare une validation interrompue après la capture Stripe.
   await prisma.booking.updateMany({
     where: { id: { in: bookingIds } },
     data: {
@@ -291,9 +350,49 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     },
   });
 
+  for (const bookingId of bookingIds) {
+    const repaired = await prisma.booking.updateMany({
+      where: { id: bookingId, status: "ACCEPTING" },
+      data: { status: "CONFIRMED" },
+    });
+
+    if (repaired.count === 1) {
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        include: { client: true, pets: true, pet: true },
+      });
+      if (booking) {
+        try {
+          await sendBookingConfirmationEmail(
+            booking.client.email,
+            booking.client.name || "Client",
+            getBookingEmailDetails(booking),
+            { idempotencyKey: `booking-confirmation-${booking.id}` }
+          );
+        } catch (emailError) {
+          console.error(`Email de confirmation non envoyé pour ${booking.id}:`, emailError);
+        }
+      }
+    }
+    await awardBookingLoyalty(bookingId);
+  }
+
+  await ensureBookingInvoice(paymentIntent);
+
 }
 
 async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
+  if (paymentIntent.metadata.type === "additional_charge") {
+    const idempotencyKey = paymentIntent.metadata.idempotencyKey;
+    await prisma.additionalCharge.updateMany({
+      where: idempotencyKey
+        ? { OR: [{ stripePaymentId: paymentIntent.id }, { idempotencyKey }] }
+        : { stripePaymentId: paymentIntent.id },
+      data: { stripePaymentId: paymentIntent.id, status: "FAILED" },
+    });
+    return;
+  }
+
   await prisma.payment.updateMany({
     where: { stripePaymentId: paymentIntent.id },
     data: {
@@ -301,6 +400,176 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
     },
   });
 
+  const bookingIds = getBookingIds(paymentIntent.metadata);
+  if (bookingIds.length > 0) {
+    await prisma.booking.updateMany({
+      where: { id: { in: bookingIds }, status: "ACCEPTING" },
+      data: { status: "PENDING" },
+    });
+  }
+
+}
+
+async function handleRefundChanged(refund: Stripe.Refund) {
+  if (refund.metadata?.type === "subscription_refund") {
+    if (refund.status !== "succeeded") return;
+
+    const stripeSubscriptionId = refund.metadata.stripeSubscriptionId;
+    if (!stripeSubscriptionId) return;
+
+    const [stripeSubscription, localSubscription] = await Promise.all([
+      stripe.subscriptions.retrieve(stripeSubscriptionId),
+      prisma.userSubscription.findUnique({
+        where: { stripeSubscriptionId },
+        select: { user: { select: { email: true, name: true } } },
+      }),
+    ]);
+    if (stripeSubscription.status !== "canceled" || !localSubscription) return;
+
+    await sendSubscriptionRefundCompletedEmail(
+      localSubscription.user.email,
+      localSubscription.user.name || "Client",
+      { amount: refund.amount / 100, refundId: refund.id },
+      { idempotencyKey: `subscription-refund-completed-${refund.id}` }
+    );
+    return;
+  }
+
+  const paymentIntentId = typeof refund.payment_intent === "string"
+    ? refund.payment_intent
+    : refund.payment_intent?.id;
+  if (!paymentIntentId || !refund.status) return;
+
+  const bookingId = refund.metadata?.bookingId;
+  const payments = await prisma.payment.findMany({
+    where: bookingId
+      ? { bookingId, stripePaymentId: paymentIntentId }
+      : { stripePaymentId: paymentIntentId },
+    include: {
+      booking: {
+        select: {
+          id: true,
+          startDate: true,
+          endDate: true,
+          totalPrice: true,
+          serviceType: true,
+          status: true,
+          cancellationOrigin: true,
+          cancellationReason: true,
+          client: { select: { name: true, email: true } },
+          pets: { select: { name: true } },
+          pet: { select: { name: true } },
+        },
+      },
+    },
+  });
+  const refunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
+  const activeRefunds = refunds.data.filter((item) =>
+    item.status === "pending" || item.status === "requires_action" || item.status === "succeeded"
+  );
+  const activeRefundCents = activeRefunds.reduce((total, item) => total + item.amount, 0);
+
+  for (const payment of payments) {
+    const cumulativeRefundCents = Math.min(
+      Math.round(payment.capturedAmount * 100),
+      activeRefundCents
+    );
+    const refundAmount = cumulativeRefundCents / 100;
+
+    if (refund.status === "failed" || refund.status === "canceled") {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: refundAmount >= payment.capturedAmount && payment.capturedAmount > 0
+            ? "REFUNDED"
+            : refundAmount > 0
+              ? "PARTIALLY_REFUNDED"
+              : payment.capturedAmount > 0
+                ? "SUCCEEDED"
+                : "FAILED",
+          refundedAt: activeRefunds.some((item) => item.status === "succeeded")
+            ? payment.refundedAt || new Date()
+            : null,
+          refundAmount,
+          stripeRefundId: refund.id,
+          refundStatus: refund.status === "failed" ? "FAILED" : "CANCELED",
+          refundFailureReason: refund.failure_reason || "Remboursement refusé par Stripe",
+        },
+      });
+      await sendBookingRefundFailedAdminEmail(
+        {
+          bookingId: payment.bookingId,
+          clientName: payment.booking.client.name || "Client",
+          clientEmail: payment.booking.client.email,
+          refundId: refund.id,
+          amount: refund.amount / 100,
+          failureReason: refund.failure_reason || "Remboursement refusé par Stripe",
+        },
+        { idempotencyKey: `refund-failed-${refund.id}` }
+      );
+      continue;
+    }
+
+    const refundStatus = refund.status === "succeeded"
+      ? "SUCCEEDED"
+      : refund.status === "requires_action"
+        ? "REQUIRES_ACTION"
+        : "PENDING";
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: refundAmount >= payment.capturedAmount ? "REFUNDED" : "PARTIALLY_REFUNDED",
+        refundedAt: refund.status === "succeeded" ? new Date() : payment.refundedAt,
+        refundAmount,
+        stripeRefundId: refund.id,
+        refundStatus,
+        refundFailureReason: null,
+      },
+    });
+
+    const refundFullySucceeded =
+      refundStatus === "SUCCEEDED" &&
+      refundAmount >= payment.capturedAmount &&
+      activeRefunds.every((item) => item.status === "succeeded");
+    if (refundFullySucceeded && payment.booking.cancellationOrigin === "TEAM") {
+      if (payment.booking.status === "CANCELLING") {
+        throw new Error(`Annulation ${payment.bookingId} encore en cours pendant la confirmation du remboursement`);
+      }
+      if (payment.booking.status !== "CANCELLED") continue;
+
+      const bookingDetails = getBookingEmailDetails(payment.booking);
+      if (!payment.refundStartedEmailSentAt) {
+        await sendBookingTeamCancellationEmail(
+          payment.booking.client.email,
+          payment.booking.client.name || "Client",
+          payment.booking.cancellationReason || "Annulation par La Patte Dorée",
+          bookingDetails,
+          {
+            idempotencyKey: `booking-team-cancellation-${payment.bookingId}`,
+            paymentAction: "REFUND_PENDING",
+            amountRefunded: refundAmount,
+          }
+        );
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { refundStartedEmailSentAt: new Date() },
+        });
+      }
+
+      if (payment.refundCompletedEmailSentAt) continue;
+      await sendBookingRefundCompletedEmail(
+        payment.booking.client.email,
+        payment.booking.client.name || "Client",
+        bookingDetails,
+        { amount: refundAmount, refundId: refund.id },
+        { idempotencyKey: `booking-refund-completed-${payment.bookingId}` }
+      );
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { refundCompletedEmailSentAt: new Date() },
+      });
+    }
+  }
 }
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
@@ -314,47 +583,20 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           return;
       }
 
-      const serviceType = getMetadataServiceType(metadata.serviceType);
-
-      // Créer ou synchroniser l'abonnement en base. Le webhook peut arriver après une réparation côté dashboard.
+      // Créer ou synchroniser l'abonnement Premium en base. Aucun crédit n'est attribué.
       await prisma.userSubscription.upsert({
           where: { userId: metadata.userId },
           update: {
               stripeSubscriptionId: subscriptionId,
               status: "ACTIVE",
               createdAt: new Date(),
-              serviceType,
-              daysPerWeek: parseInt(metadata.daysPerWeek),
-              creditsPerMonth: parseInt(metadata.creditsPerMonth),
               price: session.amount_total ? session.amount_total / 100 : 0,
-              billingPeriod: metadata.billingCycle === "YEARLY" ? "YEARLY" : "MONTHLY",
           },
           create: {
               userId: metadata.userId,
               stripeSubscriptionId: subscriptionId,
               status: "ACTIVE",
-              serviceType,
-              daysPerWeek: parseInt(metadata.daysPerWeek),
-              creditsPerMonth: parseInt(metadata.creditsPerMonth),
               price: session.amount_total ? session.amount_total / 100 : 0,
-              billingPeriod: metadata.billingCycle === "YEARLY" ? "YEARLY" : "MONTHLY",
-          }
-      });
-
-      // checkout.session.completed est idempotent au niveau de l'événement : ce lot
-      // correspond toujours au premier paiement de ce nouvel abonnement.
-      const monthlyCredits = parseInt(metadata.creditsPerMonth);
-      const creditsGranted = metadata.billingCycle === "YEARLY" ? monthlyCredits * 12 : monthlyCredits;
-      await prisma.creditBatch.upsert({
-          where: { stripeSourceId: session.id },
-          update: {},
-          create: {
-              stripeSourceId: session.id,
-              userId: metadata.userId,
-              amount: creditsGranted,
-              remaining: creditsGranted,
-              serviceType,
-              expiresAt: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
           }
       });
 
@@ -377,10 +619,16 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     throw new Error("PaymentIntent absent de la session Checkout terminée");
   }
 
+  await prisma.checkoutAttempt.updateMany({
+    where: { stripeSessionId: session.id },
+    data: { status: "COMPLETED" },
+  });
+
   await prisma.payment.updateMany({
     where: { bookingId: { in: bookingIds } },
     data: {
       stripePaymentId: paymentIntentId,
+      stripeCheckoutSessionId: session.id,
       stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id,
       status: "PROCESSING",
     },
@@ -388,7 +636,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   // Incrémenter le coupon si utilisé (le code est stocké dans les metadata)
   const promoCode = session.metadata?.promoCode;
-  if (promoCode) {
+  if (promoCode && !isWelcomeOfferCode(promoCode)) {
     await prisma.$transaction(async (tx) => {
       const redeemed = await tx.booking.updateMany({
         where: { id: { in: bookingIds }, couponRedeemedAt: null },
@@ -411,30 +659,100 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       });
 
       if (booking) {
-        const petsName = booking.pets.length > 0 
-            ? booking.pets.map(p => p.name).join(", ") 
-            : (booking.pet?.name || "Animal");
+        const bookingDetails = getBookingEmailDetails(booking);
 
         try {
           await sendBookingRequestEmail(
             booking.client.email,
             booking.client.name || "Client",
-            petsName
-          );
-
-          await sendAdminNotification(
-            petsName,
-            booking.client.name || "Client",
-            new Date(booking.startDate).toLocaleDateString("fr-FR"),
-            new Date(booking.endDate).toLocaleDateString("fr-FR"),
-            booking.totalPrice
+            bookingDetails.petName,
+            bookingDetails,
+            { idempotencyKey: `booking-request-${booking.id}` }
           );
         } catch (emailError) {
-          console.error(`Notifications non envoyées pour la réservation ${id}:`, emailError);
+          console.error(`Email client non envoyé pour la réservation ${id}:`, emailError);
+        }
+
+        try {
+          await sendNewBookingAdminEmail(
+            {
+              bookingId: booking.id,
+              petName: bookingDetails.petName,
+              userName: booking.client.name || "Client",
+              userEmail: booking.client.email,
+              startDate: bookingDetails.startDate,
+              endDate: bookingDetails.endDate,
+              totalPrice: booking.totalPrice,
+              serviceLabel: bookingDetails.serviceLabel,
+            },
+            { idempotencyKey: `new-booking-admin-${booking.id}` }
+          );
+        } catch (emailError) {
+          console.error(`Notification admin non envoyée pour la réservation ${id}:`, emailError);
         }
       } else {
         console.error(`❌ Réservation ${id} introuvable en base !`);
       }
   }
 
+}
+
+async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
+  const bookingIds = getBookingIds(session.metadata);
+  if (bookingIds.length === 0) return;
+
+  await prisma.checkoutAttempt.updateMany({
+    where: { stripeSessionId: session.id },
+    data: { status: "EXPIRED" },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    if (isWelcomeOfferCode(session.metadata?.promoCode)) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${WELCOME_OFFER_LOCK_ID})`;
+    }
+
+    // Une ancienne session expirée ne doit jamais supprimer une tentative plus
+    // récente : on ne nettoie que le Payment rattaché à cette session précise.
+    const abandonedBookings = await tx.booking.findMany({
+      where: {
+        id: { in: bookingIds },
+        status: "PENDING",
+        depositPaid: false,
+        OR: [
+          { payment: { is: null } },
+          {
+            payment: {
+              is: {
+                stripeCheckoutSessionId: session.id,
+                stripePaymentId: null,
+                status: { not: "SUCCEEDED" },
+              },
+            },
+          },
+        ],
+      },
+      select: { id: true },
+    });
+
+    const abandonedBookingIds = abandonedBookings.map((booking) => booking.id);
+    if (abandonedBookingIds.length === 0) return;
+
+    await tx.payment.deleteMany({
+      where: {
+        bookingId: { in: abandonedBookingIds },
+        stripeCheckoutSessionId: session.id,
+        stripePaymentId: null,
+        status: { not: "SUCCEEDED" },
+      },
+    });
+
+    await tx.booking.deleteMany({
+      where: {
+        id: { in: abandonedBookingIds },
+        status: "PENDING",
+        depositPaid: false,
+        payment: { is: null },
+      },
+    });
+  });
 }

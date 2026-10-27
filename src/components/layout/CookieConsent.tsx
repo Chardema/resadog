@@ -5,19 +5,51 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Cookie } from "lucide-react";
+import {
+  GOOGLE_CONSENT_EVENT,
+  GOOGLE_CONSENT_STORAGE_KEY,
+  OPEN_COOKIE_SETTINGS_EVENT,
+  type GoogleConsentChoice,
+} from "@/lib/google-consent";
 
-export function CookieConsent() {
+declare global {
+  interface Window {
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
+type CookieConsentProps = {
+  promptOnFirstVisit: boolean;
+};
+
+export function CookieConsent({ promptOnFirstVisit }: CookieConsentProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setIsVisible(!localStorage.getItem("cookie-consent"));
+      setIsVisible(
+        promptOnFirstVisit && !localStorage.getItem(GOOGLE_CONSENT_STORAGE_KEY)
+      );
     }, 0);
-    return () => window.clearTimeout(timer);
-  }, []);
+    const openSettings = () => setIsVisible(true);
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, openSettings);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, openSettings);
+    };
+  }, [promptOnFirstVisit]);
 
-  const accept = () => {
-    localStorage.setItem("cookie-consent", "true");
+  const saveChoice = (choice: GoogleConsentChoice) => {
+    localStorage.setItem(GOOGLE_CONSENT_STORAGE_KEY, choice);
+    const granted = choice === "accepted" ? "granted" : "denied";
+    window.gtag?.("consent", "update", {
+      analytics_storage: granted,
+      ad_storage: granted,
+      ad_user_data: granted,
+      ad_personalization: granted,
+    });
+    window.dispatchEvent(new CustomEvent(GOOGLE_CONSENT_EVENT, { detail: choice }));
     setIsVisible(false);
   };
 
@@ -34,18 +66,22 @@ export function CookieConsent() {
             <div className="flex items-start gap-3">
               <Cookie className="mt-0.5 h-5 w-5 shrink-0 text-orange-700" aria-hidden="true" />
               <div>
-                <h3 className="font-bold text-gray-900">Cookies essentiels</h3>
+                <h3 className="font-bold text-gray-900">Vos préférences de cookies</h3>
                 <p className="mt-1 text-sm leading-5 text-gray-600">
-                  Nécessaires pour la connexion et les paiements Stripe. Aucun cookie publicitaire.
+                  Les cookies essentiels assurent la connexion et les paiements. Avec votre accord,
+                  Google Analytics nous aide à mesurer les visites et l’efficacité de nos annonces.
                 </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Button onClick={accept} className="h-11 bg-gray-950 text-white hover:bg-gray-800">
-                Accepter
+              <Button onClick={() => saveChoice("accepted")} className="h-11 bg-gray-950 text-white hover:bg-gray-800">
+                Tout accepter
               </Button>
-              <Link href="/legal/cookies">
-                <Button variant="outline" className="h-11 w-full border-gray-300">En savoir plus</Button>
+              <Button onClick={() => saveChoice("rejected")} variant="outline" className="h-11 border-gray-300">
+                Refuser
+              </Button>
+              <Link href="/legal/cookies" className="col-span-2 text-center text-sm font-medium text-orange-700 underline-offset-4 hover:underline">
+                En savoir plus et gérer mes préférences
               </Link>
             </div>
           </div>

@@ -1,131 +1,90 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { UploadButton } from "@uploadthing/react";
-import type { OurFileRouter } from "@/app/api/uploadthing/core";
+import { getPetProfileCompletion, requiresPetBirthDateProof } from "@/lib/pets";
+import {
+  emptyPetFormData,
+  PetProfileForm,
+  toPetPayload,
+  type PetFormData,
+} from "@/components/pets/PetProfileForm";
 
 export default function EditPetPage() {
   const router = useRouter();
   const params = useParams();
+  const { data: session } = useSession();
   const petId = params.id as string;
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-  
-  // States
-  const [ageUnit, setAgeUnit] = useState<"YEARS" | "MONTHS">("YEARS");
-  const [formData, setFormData] = useState({
-    name: "",
-    species: "DOG" as "DOG" | "CAT",
-    breed: "",
-    age: "", // Input value as string
-    weight: "",
-    gender: "UNKNOWN" as "MALE" | "FEMALE" | "UNKNOWN",
-    spayedNeutered: false,
-    imageUrl: "",
-    medicalInfo: "",
-    behaviorNotes: "",
-    feedingSchedule: "",
-    medications: "",
-    vetInfo: "",
-    emergencyContact: "",
-  });
+  const [birthDateVerified, setBirthDateVerified] = useState(false);
+  const [formData, setFormData] = useState<PetFormData>(emptyPetFormData);
+  const birthDateProofRequired = requiresPetBirthDateProof(session?.user?.role);
 
   useEffect(() => {
-    fetchPet();
+    const fetchPet = async () => {
+      try {
+        const response = await fetch(`/api/pets/${petId}`);
+        if (!response.ok) {
+          setError("Impossible de charger les données");
+          return;
+        }
+
+        const data = await response.json();
+        const pet = data.pet;
+
+        setBirthDateVerified(Boolean(pet.birthDateVerifiedAt));
+        setFormData({
+          ...emptyPetFormData,
+          name: pet.name || "",
+          species: pet.species || "DOG",
+          breed: pet.breed || "",
+          birthDate: pet.birthDate ? pet.birthDate.split("T")[0] : "",
+          birthDateProofUrl: pet.birthDateProofUrl || "",
+          weight: pet.weight?.toString() || "",
+          gender: pet.gender || "UNKNOWN",
+          spayedNeutered: pet.spayedNeutered ?? null,
+          imageUrl: pet.imageUrl || "",
+          medicalInfo: pet.medicalInfo || "",
+          behaviorNotes: pet.behaviorNotes || "",
+          feedingSchedule: pet.feedingSchedule || "",
+          medications: pet.medications || "",
+          vetInfo: pet.vetInfo || "",
+          emergencyContact: pet.emergencyContact || "",
+        });
+      } catch {
+        setError("Erreur chargement");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchPet();
   }, [petId]);
 
-  const fetchPet = async () => {
-    try {
-      const response = await fetch(`/api/pets/${petId}`);
-      if (!response.ok) {
-        setError("Impossible de charger les données");
-        return;
-      }
-      const data = await response.json();
-      const pet = data.pet;
-
-      // Logique inverse pour l'affichage de l'âge
-      let displayAge = "";
-      let unit: "YEARS" | "MONTHS" = "YEARS";
-
-      if (pet.age !== null && pet.age !== undefined) {
-        if (pet.age < 1 && pet.age > 0) {
-           // C'est probablement des mois stockés en float (ex: 0.5 = 6 mois)
-           displayAge = Math.round(pet.age * 12).toString();
-           unit = "MONTHS";
-        } else {
-           displayAge = pet.age.toString();
-           unit = "YEARS";
-        }
-      }
-
-      setAgeUnit(unit);
-      setFormData({
-        name: pet.name || "",
-        species: pet.species || "DOG",
-        breed: pet.breed || "",
-        age: displayAge,
-        weight: pet.weight?.toString() || "",
-        gender: pet.gender || "UNKNOWN",
-        spayedNeutered: pet.spayedNeutered || false,
-        imageUrl: pet.imageUrl || "",
-        medicalInfo: pet.medicalInfo || "",
-        behaviorNotes: pet.behaviorNotes || "",
-        feedingSchedule: pet.feedingSchedule || "",
-        medications: pet.medications || "",
-        vetInfo: pet.vetInfo || "",
-        emergencyContact: pet.emergencyContact || "",
-      });
-    } catch (err) {
-      setError("Erreur chargement");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     setError("");
+    const payload = toPetPayload(formData);
+    const completion = getPetProfileCompletion(payload, { requireBirthDateProof: birthDateProofRequired });
+    if (!completion.isComplete) {
+      setError(`Profil incomplet : ${completion.missingFields.map((field) => field.label).join(", ")}.`);
+      return;
+    }
     setIsSaving(true);
 
     try {
-      // Conversion de l'âge sécurisée
-      let finalAge: number | undefined = undefined;
-      const parsedAge = parseFloat(formData.age);
-      
-      if (!isNaN(parsedAge)) {
-        if (ageUnit === "MONTHS") {
-          finalAge = parseFloat((parsedAge / 12).toFixed(2));
-        } else {
-          finalAge = parsedAge;
-        }
-      }
-
-      // Conversion du poids
-      let finalWeight: number | undefined = undefined;
-      const parsedWeight = parseFloat(formData.weight);
-      if (!isNaN(parsedWeight)) {
-        finalWeight = parsedWeight;
-      }
-
-      const petData = {
-        ...formData,
-        age: finalAge,
-        weight: finalWeight,
-      };
-
       const response = await fetch(`/api/pets/${petId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(petData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -136,264 +95,76 @@ export default function EditPetPage() {
 
       router.push("/pets");
       router.refresh();
-    } catch (err) {
+    } catch {
       setError("Erreur sauvegarde");
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center text-6xl animate-bounce">🐾</div>;
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#FDFbf7] text-orange-600">
+        <Loader2 className="h-10 w-10 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50 pb-20">
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-orange-100 sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-2 group">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center text-white font-bold text-xl shadow-lg transform group-hover:rotate-12 transition-transform">
-                🐾
-              </div>
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-yellow-600">La Patte Dorée</span>
-            </Link>
-            <Link href="/pets" className="text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors">
-              ← Annuler
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#FDFbf7] pb-24">
 
-      {/* Contenu */}
-      <div className="container mx-auto px-6 py-12 max-w-3xl">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-3">Modifier {formData.name || "l'animal"} ✏️</h1>
-          <p className="text-gray-500 text-lg">Mettez à jour les informations de votre compagnon.</p>
-        </motion.div>
+      <main className="container mx-auto max-w-5xl px-4 pt-28 sm:px-6 md:pt-32">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <Link href="/pets" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-orange-700">
+              <ArrowLeft className="h-4 w-4" />
+              Retour aux animaux
+            </Link>
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-3xl font-extrabold text-gray-950 md:text-5xl"
+            >
+              Modifier {formData.name || "l'animal"}
+            </motion.h1>
+            <p className="mt-2 max-w-2xl text-base text-gray-600 md:text-lg">
+              Complétez tous les champs marqués d’un * pour pouvoir effectuer une réservation.
+            </p>
+          </div>
+
+          <Link
+            href={`/pets/${petId}/health`}
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-800 shadow-sm hover:border-orange-200 hover:text-orange-700"
+          >
+            Carnet santé
+          </Link>
+        </div>
 
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-lg mb-8 shadow-sm">
-            <p className="font-bold">Oups !</p>
-            <p>{error}</p>
+          <div role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          
-          {/* 1. Espèce */}
-          <section>
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <span className="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-              C'est un...
-            </h2>
-            <div className="grid grid-cols-2 gap-6">
-              <div 
-                onClick={() => setFormData({...formData, species: "DOG"})}
-                className={`cursor-pointer rounded-2xl p-6 border-2 transition-all flex flex-col items-center gap-3 ${formData.species === "DOG" ? "border-orange-500 bg-orange-50 shadow-lg scale-105" : "border-gray-200 hover:border-orange-200 bg-white"}`}
-              >
-                <span className="text-5xl">🐾</span>
-                <span className={`font-bold text-lg ${formData.species === "DOG" ? "text-orange-700" : "text-gray-600"}`}>Chien</span>
-              </div>
-              <div 
-                onClick={() => setFormData({...formData, species: "CAT"})}
-                className={`cursor-pointer rounded-2xl p-6 border-2 transition-all flex flex-col items-center gap-3 ${formData.species === "CAT" ? "border-orange-500 bg-orange-50 shadow-lg scale-105" : "border-gray-200 hover:border-orange-200 bg-white"}`}
-              >
-                <span className="text-5xl">🐈</span>
-                <span className={`font-bold text-lg ${formData.species === "CAT" ? "text-orange-700" : "text-gray-600"}`}>Chat</span>
-              </div>
-            </div>
-          </section>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <PetProfileForm
+            formData={formData}
+            setFormData={setFormData}
+            uploadButtonLabel="Modifier la photo"
+            birthDateVerified={birthDateVerified}
+            birthDateProofRequired={birthDateProofRequired}
+          />
 
-          {/* 2. Photo & Identité */}
-          <section className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <span className="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
-              Identité
-            </h2>
-            
-            <div className="flex flex-col md:flex-row gap-8 items-start">
-              {/* Photo Upload */}
-              <div className="flex-shrink-0 flex flex-col items-center gap-3">
-                <div className="relative w-32 h-32">
-                  {formData.imageUrl ? (
-                    <>
-                      <img src={formData.imageUrl} alt="Aperçu" className="w-full h-full rounded-full object-cover border-4 border-white shadow-lg" />
-                      <button type="button" onClick={() => setFormData({...formData, imageUrl: ""})} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-600 shadow-md">✕</button>
-                    </>
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300 text-4xl text-gray-300">
-                      📷
-                    </div>
-                  )}
-                </div>
-                <UploadButton<OurFileRouter, "petImage">
-                  endpoint="petImage"
-                  onClientUploadComplete={(res) => res?.[0] && setFormData({...formData, imageUrl: res[0].url})}
-                  onUploadError={() => alert("Erreur upload")}
-                  appearance={{
-                    button: "bg-orange-100 text-orange-700 hover:bg-orange-200 text-xs px-3 py-2 h-auto rounded-full font-bold",
-                    allowedContent: "hidden"
-                  }}
-                  content={{ button: "Modifier photo" }}
-                />
-              </div>
-
-              {/* Champs */}
-              <div className="flex-grow grid md:grid-cols-2 gap-5 w-full">
-                <div className="col-span-2">
-                  <Label className="text-gray-600">Son petit nom <span className="text-red-400">*</span></Label>
-                  <Input 
-                    placeholder="Ex: Rex, Luna..." 
-                    className="bg-gray-50 border-gray-200 h-12 rounded-xl focus:ring-orange-500 focus:border-orange-500" 
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  />
-                </div>
-                
-                <div>
-                  <Label className="text-gray-600">Race</Label>
-                  <Input 
-                    placeholder={formData.species === "DOG" ? "Golden Retriever" : "Siamois"} 
-                    className="bg-gray-50 border-gray-200 h-12 rounded-xl"
-                    value={formData.breed}
-                    onChange={(e) => setFormData({...formData, breed: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-gray-600">Genre</Label>
-                  <select 
-                    className="w-full bg-gray-50 border border-gray-200 h-12 rounded-xl px-3 outline-none focus:ring-2 focus:ring-orange-500"
-                    value={formData.gender}
-                    onChange={(e) => setFormData({...formData, gender: e.target.value as any})}
-                  >
-                    <option value="UNKNOWN">Je ne sais pas</option>
-                    <option value="MALE">Mâle ♂️</option>
-                    <option value="FEMALE">Femelle ♀️</option>
-                  </select>
-                </div>
-
-                <div className="col-span-2 md:col-span-1">
-                  <Label className="text-gray-600">Âge</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      type="number" 
-                      placeholder="Ex: 2" 
-                      step="0.1"
-                      className="flex-1 bg-gray-50 border-gray-200 h-12 rounded-xl focus:ring-orange-500"
-                      value={formData.age}
-                      onChange={(e) => setFormData({...formData, age: e.target.value})}
-                    />
-                    <div className="flex bg-gray-100 rounded-xl p-1 h-12">
-                      <button 
-                        type="button"
-                        onClick={() => setAgeUnit("YEARS")}
-                        className={`px-3 rounded-lg text-sm font-medium transition-all ${ageUnit === "YEARS" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-                      >
-                        Ans
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setAgeUnit("MONTHS")}
-                        className={`px-3 rounded-lg text-sm font-medium transition-all ${ageUnit === "MONTHS" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-                      >
-                        Mois
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-gray-600">Poids (kg)</Label>
-                  <Input 
-                    type="number" 
-                    placeholder="Ex: 12.5" 
-                    step="0.1"
-                    className="bg-gray-50 border-gray-200 h-12 rounded-xl"
-                    value={formData.weight}
-                    onChange={(e) => setFormData({...formData, weight: e.target.value})}
-                  />
-                </div>
-                
-                <div className="col-span-2 pt-2">
-                  <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input 
-                      type="checkbox" 
-                      className="w-5 h-5 rounded text-orange-600 focus:ring-orange-500"
-                      checked={formData.spayedNeutered}
-                      onChange={(e) => setFormData({...formData, spayedNeutered: e.target.checked})}
-                    />
-                    <span className="text-gray-700 font-medium">Stérilisé / Castré</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* 3. Détails & Santé */}
-          <section className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <span className="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
-              Santé & Habitudes
-            </h2>
-            
-            <div className="space-y-6">
-              <div>
-                <Label className="text-gray-600">Informations médicales</Label>
-                <textarea 
-                  className="w-full p-4 bg-gray-50 border-gray-200 rounded-2xl min-h-[100px] mt-2 focus:ring-orange-500 outline-none"
-                  placeholder="Allergies, maladies chroniques, vaccins..."
-                  value={formData.medicalInfo}
-                  onChange={(e) => setFormData({...formData, medicalInfo: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <Label className="text-gray-600">Comportement</Label>
-                <textarea 
-                  className="w-full p-4 bg-gray-50 border-gray-200 rounded-2xl min-h-[100px] mt-2 focus:ring-orange-500 outline-none"
-                  placeholder="S'entend-il avec les autres animaux ? Avec les enfants ? Peureux ?"
-                  value={formData.behaviorNotes}
-                  onChange={(e) => setFormData({...formData, behaviorNotes: e.target.value})}
-                />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <Label className="text-gray-600">Vétérinaire</Label>
-                  <textarea 
-                    className="w-full p-4 bg-gray-50 border-gray-200 rounded-2xl mt-2 focus:ring-orange-500 outline-none"
-                    rows={3}
-                    placeholder="Nom et téléphone du vétérinaire"
-                    value={formData.vetInfo}
-                    onChange={(e) => setFormData({...formData, vetInfo: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-600">Contact d'urgence</Label>
-                  <textarea 
-                    className="w-full p-4 bg-gray-50 border-gray-200 rounded-2xl mt-2 focus:ring-orange-500 outline-none"
-                    rows={3}
-                    placeholder="Personne à contacter en cas d'urgence"
-                    value={formData.emergencyContact}
-                    onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <div className="pt-4 flex gap-4">
-            <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1 h-14 rounded-xl text-lg border-gray-300">
+          <div className="sticky bottom-4 z-10 grid gap-3 rounded-lg border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:grid-cols-2">
+            <Button type="button" variant="outline" onClick={() => router.push("/pets")} className="h-12 rounded-md border-gray-300">
               Annuler
             </Button>
-            <Button type="submit" disabled={isSaving} className="flex-1 h-14 rounded-xl text-lg bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700 text-white shadow-lg hover:shadow-xl transition-all">
-              {isSaving ? "Sauvegarde..." : "Enregistrer les modifications ✨"}
+            <Button type="submit" disabled={isSaving} className="h-12 rounded-md bg-gray-950 text-white hover:bg-orange-600">
+              {isSaving ? "Sauvegarde..." : "Enregistrer"}
             </Button>
           </div>
-
         </form>
-      </div>
+      </main>
     </div>
   );
 }

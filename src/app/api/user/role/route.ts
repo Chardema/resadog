@@ -8,10 +8,10 @@ import { NextResponse } from "next/server";
  *
  * npm run create-admin
  *
- * Voir le fichier ADMIN_SETUP.md pour plus d'informations.
+ * La procédure complète est documentée dans le README.
  */
 
-export async function PUT(request: Request) {
+export async function PUT() {
   return NextResponse.json(
     {
       error: "Cette fonctionnalité a été désactivée pour des raisons de sécurité. Le compte administrateur doit être créé via le script de setup."

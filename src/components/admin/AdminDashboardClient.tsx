@@ -19,6 +19,9 @@ import { getServiceLabel } from "@/lib/services";
 interface Stats {
   totalBookings: number;
   pendingBookings: number;
+  confirmedBookings: number;
+  inProgressBookings: number;
+  completedBookings: number;
   totalClients: number;
   totalRevenue: number;
 }
@@ -57,6 +60,8 @@ const formatDate = (value: Date | string) =>
 
 const statusMeta: Record<string, { label: string; className: string }> = {
   PENDING: { label: "À traiter", className: "bg-amber-50 text-amber-800 ring-amber-200" },
+  ACCEPTING: { label: "Validation en cours", className: "bg-amber-50 text-amber-800 ring-amber-200" },
+  CANCELLING: { label: "Annulation en cours", className: "bg-orange-50 text-orange-800 ring-orange-200" },
   CONFIRMED: { label: "Confirmée", className: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
   IN_PROGRESS: { label: "En cours", className: "bg-blue-50 text-blue-800 ring-blue-200" },
   COMPLETED: { label: "Terminée", className: "bg-gray-100 text-gray-700 ring-gray-200" },
@@ -119,7 +124,7 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
     },
     {
       title: "Suivre les clients",
-      description: "Abonnements, crédits et profils.",
+      description: "Premium, fidélité et profils.",
       href: "/admin/clients",
       icon: UsersRound,
     },
@@ -128,6 +133,33 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
       description: "Créer et contrôler les remises.",
       href: "/admin/coupons",
       icon: TicketPercent,
+    },
+  ];
+
+  const statusCards = [
+    {
+      label: "En attente",
+      value: stats.pendingBookings,
+      href: "/admin/bookings?filter=pending",
+      className: "border-amber-200 bg-amber-50 text-amber-950",
+    },
+    {
+      label: "Confirmées à venir",
+      value: stats.confirmedBookings,
+      href: "/admin/bookings?filter=confirmed",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-950",
+    },
+    {
+      label: "En cours",
+      value: stats.inProgressBookings,
+      href: "/admin/bookings",
+      className: "border-blue-200 bg-blue-50 text-blue-950",
+    },
+    {
+      label: "Terminées",
+      value: stats.completedBookings,
+      href: "/admin/bookings?filter=completed",
+      className: "border-gray-200 bg-gray-50 text-gray-950",
     },
   ];
 
@@ -211,6 +243,19 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
             </Link>
           );
         })}
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {statusCards.map((card) => (
+          <Link
+            key={card.label}
+            href={card.href}
+            className={`rounded-lg border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${card.className}`}
+          >
+            <p className="text-sm font-bold">{card.label}</p>
+            <p className="mt-2 text-3xl font-extrabold">{card.value}</p>
+          </Link>
+        ))}
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">

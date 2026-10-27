@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { getLoyaltyAccount, isLoyaltyValidatedStatus } from "@/lib/loyalty-ledger";
 
 // Lister tous les clients
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
 
@@ -22,19 +23,32 @@ export async function GET(request: NextRequest) {
       include: {
         autoApplyCoupon: true,
         subscription: true,
-        creditBatches: {
-            select: { remaining: true },
-            where: { remaining: { gt: 0 } }
+        pets: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            birthDate: true,
+            birthDateProofUrl: true,
+            birthDateVerifiedAt: true,
+          },
+          orderBy: { createdAt: "asc" },
         },
         bookings: {
           select: {
             id: true,
             status: true,
             totalPrice: true,
+            startDate: true,
             createdAt: true,
+            payment: {
+              select: {
+                amount: true,
+                status: true,
+              },
+            },
           },
           orderBy: { createdAt: "desc" },
-          take: 5,
         },
         _count: {
           select: {
@@ -45,19 +59,33 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculer des stats pour chaque client
-    const clientsWithStats = clients.map((client) => {
+    const clientsWithStats = await Promise.all(clients.map(async (client) => {
       const completedBookings = client.bookings.filter(b => b.status === "COMPLETED");
-      const totalSpent = completedBookings.reduce((sum, b) => sum + b.totalPrice, 0);
+      const validatedBookings = client.bookings.filter((booking) => isLoyaltyValidatedStatus(booking.status));
+      const loyaltyAccount = await getLoyaltyAccount(client.id);
+      const lastBooking = client.bookings[0] || null;
 
       return {
         ...client,
         stats: {
           totalBookings: client._count.bookings,
           completedBookings: completedBookings.length,
-          totalSpent,
+          validatedBookings: validatedBookings.length,
+          totalSpent: loyaltyAccount.totalQualifiedAmount,
+          loyaltyPaws: loyaltyAccount.paws,
+          loyalty: loyaltyAccount.status,
+          lastBooking: lastBooking
+            ? {
+                id: lastBooking.id,
+                status: lastBooking.status,
+                paymentStatus: lastBooking.payment?.status || null,
+                totalPrice: lastBooking.totalPrice,
+                startDate: lastBooking.startDate,
+              }
+            : null,
         },
       };
-    });
+    }));
 
     return NextResponse.json({ clients: clientsWithStats });
   } catch (error) {

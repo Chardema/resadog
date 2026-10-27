@@ -2,6 +2,24 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { BetaBanner } from "@/components/layout/BetaBanner";
+import { CookieConsent } from "@/components/layout/CookieConsent";
+import { AppNav } from "@/components/layout/AppNav";
+import { Footer } from "@/components/layout/Footer";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { coreKeywords, getLocalBusinessJsonLd, getSiteUrl, SITE_NAME } from "@/lib/seo";
+import { cookies, headers } from "next/headers";
+import Script from "next/script";
+import { isLocale } from "@/lib/i18n";
+import { isGoogleConsentRequiredRegion } from "@/lib/google-consent";
+import {
+  GOOGLE_ANALYTICS_ID,
+  GOOGLE_CONSENT_BOOTSTRAP,
+  GOOGLE_TAG_CONFIGURATION,
+} from "@/lib/google-analytics";
+import { TwoFactorGuard } from "@/components/auth/TwoFactorGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,34 +32,99 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "La Patte Dorée - Garde d'animaux professionnelle",
-  description: "Réservez une garde d'animaux en ligne avec suivi en temps réel et journal d'activités",
+  metadataBase: new URL(getSiteUrl()),
+  applicationName: SITE_NAME,
+  title: {
+    default: "La Patte Dorée | Pet-sitter près de Disneyland Paris",
+    template: "%s | La Patte Dorée",
+  },
+  description:
+    "La Patte Dorée garde vos chiens et chats près de Disneyland Paris, Val d'Europe et en Seine-et-Marne 77 : hébergement familial, visites, promenades et garderie.",
+  keywords: coreKeywords,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "La Patte Dorée | Pet-sitter près de Disneyland Paris",
+    description:
+      "Un accueil familial et attentionné pour vos compagnons près de Disneyland Paris : hébergement sans box, visites à domicile et promenades.",
+    url: "/",
+    siteName: SITE_NAME,
+    locale: "fr_FR",
+    type: "website",
+    images: [
+      {
+        url: "/logo-mark.png",
+        width: 512,
+        height: 512,
+        alt: "Emblème La Patte Dorée",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "La Patte Dorée | Pet-sitter près de Disneyland Paris",
+    description:
+      "Hébergement familial, visites et promenades près de Disneyland Paris, avec réservation en ligne.",
+    images: ["/logo-mark.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
 };
 
-import { Footer } from "@/components/layout/Footer";
-import { CookieConsent } from "@/components/layout/CookieConsent";
-import { BetaBanner } from "@/components/layout/BetaBanner";
-
-// ... (imports existants)
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieLocale = (await cookies()).get("site-locale")?.value;
+  const initialLocale = isLocale(cookieLocale) ? cookieLocale : "fr";
+  const countryCode = (await headers()).get("x-vercel-ip-country");
+  const promptForGoogleConsent = isGoogleConsentRequiredRegion(countryCode);
+
   return (
-    <html lang="fr">
+    <html lang={initialLocale} className={`${geistSans.variable} ${geistMono.variable}`}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
+        className="antialiased flex flex-col min-h-screen"
       >
-        <SessionProvider>
-          <div className="flex-1">
-            {children}
-          </div>
-          <BetaBanner />
-          <CookieConsent />
-          <Footer />
-        </SessionProvider>
+        <JsonLd data={getLocalBusinessJsonLd()} />
+        <LanguageProvider initialLocale={initialLocale}>
+          <SessionProvider>
+            <TwoFactorGuard />
+            <AppNav />
+            <div className="flex-1">
+              {children}
+            </div>
+            <BetaBanner />
+            <CookieConsent promptOnFirstVisit={promptForGoogleConsent} />
+            <Footer />
+            <LanguageSwitcher />
+          </SessionProvider>
+        </LanguageProvider>
+        <Script
+          id="google-consent-default"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: GOOGLE_CONSENT_BOOTSTRAP }}
+        />
+        <Script
+          id="google-tag-manager"
+          strategy="beforeInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
+        />
+        <Script
+          id="google-tag-config"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: GOOGLE_TAG_CONFIGURATION }}
+        />
       </body>
     </html>
   );

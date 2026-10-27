@@ -11,15 +11,50 @@ export default async function AdminDashboardPage() {
     redirect("/dashboard");
   }
 
+  const now = new Date();
+
   // Récupérer les statistiques
-  const [totalBookings, pendingBookings, totalClients, totalRevenue] = await Promise.all([
+  const [
+    totalBookings,
+    pendingBookings,
+    confirmedBookings,
+    inProgressBookings,
+    completedBookings,
+    totalClients,
+    totalRevenue,
+  ] = await Promise.all([
     prisma.booking.count(),
-    prisma.booking.count({ where: { status: "PENDING" } }),
-    prisma.user.count({ where: { role: "CLIENT" } }),
-    prisma.payment.aggregate({
-      _sum: { amount: true },
-      where: { status: "SUCCEEDED" },
+    prisma.booking.count({ where: { status: { in: ["PENDING", "ACCEPTING", "CANCELLING"] } } }),
+    prisma.booking.count({ where: { status: "CONFIRMED", startDate: { gt: now } } }),
+    prisma.booking.count({
+      where: {
+        OR: [
+          { status: "IN_PROGRESS" },
+          {
+            status: "CONFIRMED",
+            startDate: { lte: now },
+            endDate: { gte: now },
+          },
+        ],
+      },
     }),
+    prisma.booking.count({ where: { status: "COMPLETED" } }),
+    prisma.user.count({ where: { role: "CLIENT" } }),
+    prisma.$queryRaw<{ revenue: number }[]>`
+      SELECT COALESCE(SUM("netAmount"), 0)::double precision AS "revenue"
+      FROM (
+        SELECT CASE
+          WHEN "status" = 'SUCCEEDED' THEN "capturedAmount"
+          WHEN "status" = 'PARTIALLY_REFUNDED' THEN GREATEST(0, "capturedAmount" - COALESCE("refundAmount", 0))
+          ELSE 0
+        END AS "netAmount"
+        FROM "Payment"
+        UNION ALL
+        SELECT CASE WHEN "status" = 'SUCCEEDED' THEN "amount" ELSE 0 END
+        FROM "AdditionalCharge"
+      ) AS "dashboardRevenue"
+    `,
+
   ]);
 
   // Récupérer les prochaines réservations
@@ -47,14 +82,18 @@ export default async function AdminDashboardPage() {
   const stats = {
     totalBookings,
     pendingBookings,
+    confirmedBookings,
+    inProgressBookings,
+    completedBookings,
     totalClients,
-    totalRevenue: totalRevenue._sum.amount || 0,
+    totalRevenue: totalRevenue[0]?.revenue || 0,
   };
 
   return (
     <AdminDashboardClient
       stats={stats}
       upcomingBookings={upcomingBookings}
+
     />
   );
 }

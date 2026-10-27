@@ -1,99 +1,75 @@
-import type { AppServiceType } from "@/lib/services";
-
-export type SubscriptionServiceType = AppServiceType;
-export type SubscriptionBillingCycle = "MONTHLY" | "YEARLY";
-
-type ServiceConfig = {
-  label: string;
-  creditLabel: string;
-  unitPrice: number;
-  minimumCreditPrice: number;
+export const PREMIUM_SUBSCRIPTION = {
+  planVersion: "2026-09-08",
+  name: "Premium La Patte Dorée",
+  monthlyPrice: 9.99,
+  monthlyPriceCents: 999,
+  billingCycle: "MONTHLY" as const,
+  minimumCommitmentMonths: 3,
+  minimumCommitmentTotal: 29.97,
+  minimumCommitmentTotalCents: 2997,
+  commitmentLabel: "Engagement initial : 3 mois (29,97 € au total)",
+  renewalLabel: "Facturation mensuelle de 9,99 €, puis renouvellement mensuel sans engagement après les 3 premiers mois",
+  discountRate: 0.1,
+  maximumDiscountPerBooking: 20,
+  pointsMultiplier: 2,
+  rescheduleNoticeHours: 24,
+  benefits: [
+    "-10 % jusqu'à 20 € par réservation, sans cumul avec une autre remise",
+    "Pattes doublées : 1 euro dépensé = 2 Pattes",
+    "Priorité sur les créneaux pendant les vacances",
+    "Demande de report prioritaire au moins 24 h avant, sous réserve de disponibilité",
+    "Badge Premium visible dans l'espace client",
+  ],
 };
 
-export const SUBSCRIPTION_SERVICES: Record<SubscriptionServiceType, ServiceConfig> = {
-  BOARDING: {
-    label: "Hébergement",
-    creditLabel: "nuit d'hébergement",
-    unitPrice: 24,
-    minimumCreditPrice: 22,
-  },
-  HOUSE_SITTING: {
-    label: "Garde au domicile",
-    creditLabel: "jour au domicile",
-    unitPrice: 30,
-    minimumCreditPrice: 27,
-  },
-  DAY_CARE: {
-    label: "Garderie",
-    creditLabel: "jour de garderie",
-    unitPrice: 25,
-    minimumCreditPrice: 20,
-  },
-  DROP_IN: {
-    label: "Visite à domicile",
-    creditLabel: "visite",
-    unitPrice: 15,
-    minimumCreditPrice: 12,
-  },
-  DOG_WALKING: {
-    label: "Promenade",
-    creditLabel: "promenade",
-    unitPrice: 12,
-    minimumCreditPrice: 10,
-  },
-};
+export const LEGACY_PREMIUM_COMMITMENT_MONTHS = 1;
+export const STANDARD_FREE_CANCELLATION_HOURS = 48;
 
-const WEEKS_PER_MONTH = 4;
-const ANNUAL_DISCOUNT = 0.2;
-
-export function getSubscriptionVolumeDiscount(daysPerWeek: number) {
-  if (daysPerWeek >= 5) return 0.2;
-  if (daysPerWeek >= 3) return 0.15;
-  return 0.1;
+export function getPremiumCommitmentMonths(metadata?: Record<string, string> | null) {
+  const recordedMonths = Number(metadata?.minimumCommitmentMonths);
+  return Number.isInteger(recordedMonths) && recordedMonths >= 1 && recordedMonths <= 12
+    ? recordedMonths
+    : LEGACY_PREMIUM_COMMITMENT_MONTHS;
 }
 
-export function calculateSubscriptionPlan(input: {
-  serviceType: SubscriptionServiceType;
-  daysPerWeek: number;
-  petCount: number;
-  billingCycle: SubscriptionBillingCycle;
-}) {
-  const service = SUBSCRIPTION_SERVICES[input.serviceType];
-  const creditsPerMonth = input.daysPerWeek * WEEKS_PER_MONTH * input.petCount;
-  const publicMonthlyPrice = service.unitPrice * creditsPerMonth;
-  const volumeDiscount = getSubscriptionVolumeDiscount(input.daysPerWeek);
-  const billingDiscount = input.billingCycle === "YEARLY" ? ANNUAL_DISCOUNT : 0;
-  const requestedMonthlyPrice =
-    publicMonthlyPrice * (1 - volumeDiscount) * (1 - billingDiscount);
-  const minimumMonthlyPrice = service.minimumCreditPrice * creditsPerMonth;
-  const finalMonthlyPrice = Math.max(requestedMonthlyPrice, minimumMonthlyPrice);
-  const guardApplied = finalMonthlyPrice > requestedMonthlyPrice;
+export function addCalendarMonthsClamped(date: Date, months: number) {
+  const targetMonthFirstDay = new Date(Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth() + months,
+    1,
+    date.getUTCHours(),
+    date.getUTCMinutes(),
+    date.getUTCSeconds(),
+    date.getUTCMilliseconds()
+  ));
+  const lastDayOfTargetMonth = new Date(Date.UTC(
+    targetMonthFirstDay.getUTCFullYear(),
+    targetMonthFirstDay.getUTCMonth() + 1,
+    0
+  )).getUTCDate();
+  targetMonthFirstDay.setUTCDate(Math.min(date.getUTCDate(), lastDayOfTargetMonth));
+  return targetMonthFirstDay;
+}
 
-  const finalMonthlyCents = Math.round(finalMonthlyPrice * 100);
-  const amountDueNowCents =
-    input.billingCycle === "YEARLY" ? finalMonthlyCents * 12 : finalMonthlyCents;
-  const amountDueNow = amountDueNowCents / 100;
-  const monthlyPrice = finalMonthlyCents / 100;
-  const effectiveCreditPrice = creditsPerMonth > 0 ? monthlyPrice / creditsPerMonth : 0;
-  const effectiveDiscount =
-    publicMonthlyPrice > 0 ? 1 - monthlyPrice / publicMonthlyPrice : 0;
+export function getPremiumCommitmentEnd(startDate: Date, minimumCommitmentMonths: number) {
+  return addCalendarMonthsClamped(startDate, minimumCommitmentMonths);
+}
 
+export function calculatePremiumSubscriptionPlan() {
   return {
-    ...input,
-    service,
-    creditsPerMonth,
-    publicMonthlyPrice,
-    volumeDiscount,
-    billingDiscount,
-    requestedMonthlyPrice,
-    minimumMonthlyPrice,
-    guardApplied,
-    monthlyPrice,
-    finalMonthlyCents,
-    amountDueNow,
-    amountDueNowCents,
-    effectiveCreditPrice,
-    effectiveDiscount,
-    totalSavingsYearly: (publicMonthlyPrice - monthlyPrice) * 12,
+    name: PREMIUM_SUBSCRIPTION.name,
+    billingCycle: PREMIUM_SUBSCRIPTION.billingCycle,
+    monthlyPrice: PREMIUM_SUBSCRIPTION.monthlyPrice,
+    amountDueNow: PREMIUM_SUBSCRIPTION.monthlyPrice,
+    amountDueNowCents: PREMIUM_SUBSCRIPTION.monthlyPriceCents,
+    minimumCommitmentMonths: PREMIUM_SUBSCRIPTION.minimumCommitmentMonths,
+    minimumCommitmentTotal: PREMIUM_SUBSCRIPTION.minimumCommitmentTotal,
+    minimumCommitmentTotalCents: PREMIUM_SUBSCRIPTION.minimumCommitmentTotalCents,
+    commitmentLabel: PREMIUM_SUBSCRIPTION.commitmentLabel,
+    renewalLabel: PREMIUM_SUBSCRIPTION.renewalLabel,
+    discountRate: PREMIUM_SUBSCRIPTION.discountRate,
+    maximumDiscountPerBooking: PREMIUM_SUBSCRIPTION.maximumDiscountPerBooking,
+    pointsMultiplier: PREMIUM_SUBSCRIPTION.pointsMultiplier,
+    benefits: PREMIUM_SUBSCRIPTION.benefits,
   };
 }

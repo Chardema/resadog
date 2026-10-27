@@ -1,3 +1,4 @@
+import { isDirectPayment } from "@/lib/direct-booking";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
@@ -10,10 +11,12 @@ const chargeSchema = z.object({
   amount: z.number().positive(),
   reason: z.string().min(3),
   description: z.string().optional(),
+  idempotencyKey: z.string().uuid(),
 });
 
 // Créer un supplément et débiter automatiquement
 export async function POST(request: NextRequest) {
+  let claimedIdempotencyKey: string | null = null;
   try {
     const session = await auth();
 
@@ -26,12 +29,14 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validatedData = chargeSchema.parse(body);
+    claimedIdempotencyKey = validatedData.idempotencyKey;
 
     // Charger la réservation avec le client
     const booking = await prisma.booking.findUnique({
       where: { id: validatedData.bookingId },
       include: {
         client: true,
+        payment: true,
         pets: true,
         pet: true,
       },
@@ -42,6 +47,10 @@ export async function POST(request: NextRequest) {
         { error: "Réservation introuvable" },
         { status: 404 }
       );
+    }
+
+    if (isDirectPayment(booking.payment?.paymentMethod)) {
+      return NextResponse.json({ error: "Les suppléments d’une réservation directe doivent être convenus et réglés directement avec le client." }, { status: 409 });
     }
 
     // Vérifier que le client a un Payment Method enregistré
@@ -61,35 +70,79 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await prisma.additionalCharge.createMany({
+      data: [{
+          bookingId: booking.id,
+          amount: validatedData.amount,
+          reason: validatedData.reason,
+          description: validatedData.description,
+          idempotencyKey: validatedData.idempotencyKey,
+          status: "PENDING",
+      }],
+      skipDuplicates: true,
+    });
+
+    const existingCharge = await prisma.additionalCharge.findUniqueOrThrow({
+      where: { idempotencyKey: validatedData.idempotencyKey },
+    });
+    const sameOperation =
+      existingCharge.bookingId === booking.id &&
+      existingCharge.amount === validatedData.amount &&
+      existingCharge.reason === validatedData.reason;
+    if (!sameOperation) {
+      return NextResponse.json(
+        { error: "Cette clé de débit est déjà utilisée pour une autre opération." },
+        { status: 409 }
+      );
+    }
+    if (existingCharge.status === "SUCCEEDED" || existingCharge.status === "PROCESSING") {
+      return NextResponse.json({
+        success: true,
+        charge: existingCharge,
+        paymentIntentId: existingCharge.stripePaymentId,
+        status: existingCharge.status,
+        reused: true,
+        message: existingCharge.status === "SUCCEEDED"
+          ? `Supplément de ${existingCharge.amount}€ déjà débité avec succès.`
+          : "Le paiement est déjà en cours de traitement.",
+      });
+    }
+    if (existingCharge.status === "FAILED") {
+      return NextResponse.json(
+        { error: "Cette tentative a échoué. Fermez puis rouvrez le formulaire pour créer une nouvelle tentative." },
+        { status: 409 }
+      );
+    }
+
     // Nom des animaux pour la description
     const petsName = booking.pets.length > 0 
       ? booking.pets.map(p => p.name).join(", ") 
       : (booking.pet?.name || "Animal");
 
     // 🚀 Débiter automatiquement la carte enregistrée
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(validatedData.amount * 100), // Convertir en centimes
-      currency: "eur",
-      customer: booking.client.stripeCustomerId,
-      payment_method: booking.client.paymentMethodId,
-      off_session: true, // 🔑 IMPORTANT : Permet de débiter sans que le client soit présent
-      confirm: true, // Confirmer immédiatement le paiement
-      description: `Supplément: ${validatedData.reason} - Réservation ${petsName}`,
-      metadata: {
-        bookingId: booking.id,
-        userId: booking.client.id,
-        type: "additional_charge",
-        reason: validatedData.reason,
+    const paymentIntent = await stripe.paymentIntents.create(
+      {
+        amount: Math.round(validatedData.amount * 100), // Convertir en centimes
+        currency: "eur",
+        customer: booking.client.stripeCustomerId,
+        payment_method: booking.client.paymentMethodId,
+        off_session: true, // 🔑 IMPORTANT : Permet de débiter sans que le client soit présent
+        confirm: true, // Confirmer immédiatement le paiement
+        description: `Supplément: ${validatedData.reason} - Réservation ${petsName}`,
+        metadata: {
+          bookingId: booking.id,
+          userId: booking.client.id,
+          type: "additional_charge",
+          reason: validatedData.reason,
+          idempotencyKey: validatedData.idempotencyKey,
+        },
       },
-    });
+      { idempotencyKey: `additional-charge:${validatedData.idempotencyKey}` }
+    );
 
-    // Créer l'enregistrement dans la BDD
-    const additionalCharge = await prisma.additionalCharge.create({
+    const additionalCharge = await prisma.additionalCharge.update({
+      where: { idempotencyKey: validatedData.idempotencyKey },
       data: {
-        bookingId: booking.id,
-        amount: validatedData.amount,
-        reason: validatedData.reason,
-        description: validatedData.description,
         status: paymentIntent.status === "succeeded" ? "SUCCEEDED" : "PROCESSING",
         stripePaymentId: paymentIntent.id,
         chargedAt: paymentIntent.status === "succeeded" ? new Date() : null,
@@ -110,6 +163,12 @@ export async function POST(request: NextRequest) {
 
     // Gérer les erreurs Stripe spécifiques
     if (error instanceof Stripe.errors.StripeCardError) {
+      if (claimedIdempotencyKey) {
+        await prisma.additionalCharge.updateMany({
+          where: { idempotencyKey: claimedIdempotencyKey },
+          data: { status: "FAILED" },
+        }).catch(() => undefined);
+      }
       return NextResponse.json(
         {
           error: "Échec du paiement",
