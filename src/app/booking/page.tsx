@@ -879,9 +879,24 @@ export default function BookingPage() {
   // Configurations individuelles par animal (si useSameDates = false)
   const [petConfigs, setPetConfigs] = useState<Record<string, DateConfig>>({});
 
-  // Hydrate booking draft from sessionStorage on mount
+  // Hydrate booking draft from sessionStorage and ?service= query param on mount
   useEffect(() => {
     try {
+      const validServiceTypes: AppServiceType[] = [
+        "BOARDING",
+        "HOUSE_SITTING",
+        "DAY_CARE",
+        "DROP_IN",
+        "DOG_WALKING",
+      ];
+      const rawQueryService = new URLSearchParams(window.location.search)
+        .get("service")
+        ?.toUpperCase() as AppServiceType | undefined;
+      const queryServiceType: AppServiceType | null =
+        rawQueryService && validServiceTypes.includes(rawQueryService)
+          ? rawQueryService
+          : null;
+
       const raw = window.sessionStorage.getItem(BOOKING_DRAFT_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
@@ -903,27 +918,28 @@ export default function BookingPage() {
           if (typeof parsed.isSimulationManual === "boolean") {
             setIsSimulationManual(parsed.isSimulationManual);
           }
-          const validServiceTypes: AppServiceType[] = [
-            "BOARDING",
-            "HOUSE_SITTING",
-            "DAY_CARE",
-            "DROP_IN",
-            "DOG_WALKING",
-          ];
-          const restoredServiceType: AppServiceType = validServiceTypes.includes(parsed.serviceType)
+          const storedServiceType: AppServiceType = validServiceTypes.includes(parsed.serviceType)
             ? parsed.serviceType
             : "BOARDING";
-          const defaults = serviceDefaultTimes[restoredServiceType] || {
+          const effectiveServiceType: AppServiceType = queryServiceType ?? storedServiceType;
+          const serviceChangedByQuery = Boolean(queryServiceType && queryServiceType !== storedServiceType);
+          const defaults = serviceDefaultTimes[effectiveServiceType] || {
             startTime: "18:00",
             endTime: "10:00",
           };
           setFormData((prev) => ({
             ...prev,
-            serviceType: restoredServiceType,
+            serviceType: effectiveServiceType,
             startDate: typeof parsed.startDate === "string" ? parsed.startDate : prev.startDate,
             endDate: typeof parsed.endDate === "string" ? parsed.endDate : prev.endDate,
-            startTime: typeof parsed.startTime === "string" && parsed.startTime ? parsed.startTime : defaults.startTime,
-            endTime: typeof parsed.endTime === "string" && parsed.endTime ? parsed.endTime : defaults.endTime,
+            startTime:
+              !serviceChangedByQuery && typeof parsed.startTime === "string" && parsed.startTime
+                ? parsed.startTime
+                : defaults.startTime,
+            endTime:
+              !serviceChangedByQuery && typeof parsed.endTime === "string" && parsed.endTime
+                ? parsed.endTime
+                : defaults.endTime,
             serviceAddress: typeof parsed.serviceAddress === "string" ? parsed.serviceAddress : prev.serviceAddress,
             promoCode: typeof parsed.promoCode === "string" ? parsed.promoCode : prev.promoCode,
             notes: typeof parsed.notes === "string" ? parsed.notes : prev.notes,
@@ -937,10 +953,21 @@ export default function BookingPage() {
               }))
             );
           }
-          if (parsed.step === 1 || parsed.step === 2 || parsed.step === 3) {
+          if (!queryServiceType && (parsed.step === 1 || parsed.step === 2 || parsed.step === 3)) {
             setStep(parsed.step);
           }
         }
+      } else if (queryServiceType) {
+        const defaults = serviceDefaultTimes[queryServiceType] || {
+          startTime: "18:00",
+          endTime: "10:00",
+        };
+        setFormData((prev) => ({
+          ...prev,
+          serviceType: queryServiceType,
+          startTime: defaults.startTime,
+          endTime: defaults.endTime,
+        }));
       }
     } catch {}
     setDraftHydrated(true);

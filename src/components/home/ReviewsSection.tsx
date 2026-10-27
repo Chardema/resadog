@@ -1,31 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, MessageCircle, Star } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { GOOGLE_MAPS_PLACE_URL, GOOGLE_REVIEW_URL } from "@/lib/google-reviews";
+import type { PublicGooglePlaceSummary, SerializedReview } from "@/lib/public-reviews";
 
-interface Review {
-  id: string;
-  source: string;
-  author: string;
-  rating: number;
-  date: string;
-  content: string;
-  authorUri?: string;
-  authorPhotoUri?: string;
-  reviewUri?: string;
-  publishTime?: string;
-  visitDate?: { year: number; month: number };
-  translated?: boolean;
-}
+export type Review = SerializedReview;
+export type GooglePlaceSummary = PublicGooglePlaceSummary;
 
-interface GooglePlaceSummary {
-  rating: number;
-  reviewCount: number;
-  googleMapsUri: string;
-  hasLiveReviews: boolean;
+export interface ReviewsSectionProps {
+  initialReviews?: Review[];
+  initialGooglePlace?: GooglePlaceSummary | null;
+  initialLocale?: string;
 }
 
 const sourceConfig: Record<string, { label: string; color: string; url?: string }> = {
@@ -104,15 +92,34 @@ function ReviewCard({ review }: { review: Review }) {
   );
 }
 
-export function ReviewsSection() {
+export function ReviewsSection({
+  initialReviews,
+  initialGooglePlace = null,
+  initialLocale = "fr",
+}: ReviewsSectionProps = {}) {
   const { locale } = useLanguage();
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [googlePlace, setGooglePlace] = useState<GooglePlaceSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const hasInitialReviews = (initialReviews?.length ?? 0) > 0;
+  const [reviews, setReviews] = useState<Review[]>(initialReviews ?? []);
+  const [googlePlace, setGooglePlace] = useState<GooglePlaceSummary | null>(initialGooglePlace ?? null);
+  const [isLoading, setIsLoading] = useState(!hasInitialReviews);
   const [hasError, setHasError] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const loadedLocaleRef = useRef<string | null>(hasInitialReviews ? initialLocale : null);
 
   useEffect(() => {
+    if (loadedLocaleRef.current === locale) {
+      return;
+    }
+
+    if (locale === initialLocale && hasInitialReviews && initialReviews) {
+      setReviews(initialReviews);
+      setGooglePlace(initialGooglePlace ?? null);
+      setIsLoading(false);
+      setHasError(false);
+      loadedLocaleRef.current = locale;
+      return;
+    }
+
     const controller = new AbortController();
     async function fetchReviews() {
       setIsLoading(true);
@@ -124,6 +131,7 @@ export function ReviewsSection() {
         if (!controller.signal.aborted) {
           setReviews(data.reviews || []);
           setGooglePlace(data.googlePlace || null);
+          loadedLocaleRef.current = locale;
         }
       } catch {
         if (!controller.signal.aborted) {
@@ -137,9 +145,16 @@ export function ReviewsSection() {
     }
     void fetchReviews();
     return () => controller.abort();
-  }, [locale]);
+  }, [locale, initialLocale, hasInitialReviews, initialReviews, initialGooglePlace]);
 
-  const hasGoogleRating = googlePlace && googlePlace.reviewCount > 0 && googlePlace.rating > 0;
+  const hasGoogleRating = Boolean(googlePlace && googlePlace.reviewCount > 0 && googlePlace.rating > 0);
+  const hasReviews = reviews.length > 0;
+  const averageRating = hasGoogleRating
+    ? googlePlace!.rating
+    : hasReviews
+      ? reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length
+      : 5.0;
+  const verifiedReviewCount = hasGoogleRating ? googlePlace!.reviewCount : reviews.length;
 
   return (
     <section id="avis" aria-labelledby="reviews-title" className="scroll-mt-28 border-y border-orange-100 bg-orange-50/40 py-16 md:py-20">
@@ -152,10 +167,16 @@ export function ReviewsSection() {
           </div>
           <div className="rounded-2xl border border-gray-200 bg-white p-5 lg:max-w-sm">
             <p data-no-translate className="text-sm font-semibold text-gray-700">Google Maps</p>
-            {hasGoogleRating ? (
+            {hasGoogleRating || hasReviews ? (
               <>
-                <div className="mt-2 flex items-center gap-3"><span data-no-translate className="text-3xl font-extrabold text-gray-900">{new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(googlePlace.rating)}<span className="text-base font-normal text-gray-500"> / 5</span></span><StarRating rating={googlePlace.rating} /></div>
-                <p className="mt-2 text-sm text-gray-600"><span data-no-translate>{googlePlace.reviewCount}</span> avis sur Google Maps</p>
+                <div className="mt-2 flex items-center gap-3"><span data-no-translate className="text-3xl font-extrabold text-gray-900">{new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(averageRating)}<span className="text-base font-normal text-gray-500"> / 5</span></span><StarRating rating={averageRating} /></div>
+                <p className="mt-2 text-sm text-gray-600">
+                  {hasGoogleRating ? (
+                    <><span data-no-translate>{verifiedReviewCount}</span> avis sur Google Maps</>
+                  ) : (
+                    <><span data-no-translate>{verifiedReviewCount}</span> avis vérifiés</>
+                  )}
+                </p>
               </>
             ) : <p className="mt-2 text-sm leading-6 text-gray-600">Consultez notre fiche et les avis directement sur Google Maps.</p>}
             <a href={googlePlace?.googleMapsUri || GOOGLE_MAPS_PLACE_URL} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-orange-800 hover:underline">Voir les avis Google<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></a>

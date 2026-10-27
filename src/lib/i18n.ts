@@ -1554,6 +1554,230 @@ const catalogue: Record<string, Translation> = {
     en: "You can simulate your rate and check availability right now. To confirm payment at step 3, your pet will need a complete and verified profile.",
     es: "Puedes simular tu tarifa y comprobar la disponibilidad ahora mismo. Para confirmar el pago en el paso 3, tu mascota deberá tener un perfil completo y validado.",
   },
+  "-10 % Bienvenue": {
+    en: "10% Welcome offer",
+    es: "-10 % Bienvenida",
+  },
+  "-10 % dès 14 périodes": {
+    en: "10% off from 14 periods",
+    es: "-10 % desde 14 períodos",
+  },
+  "🇬🇧 Dog Boarding Disneyland Paris": {
+    en: "🇬🇧 Dog Boarding Disneyland Paris",
+    es: "🇬🇧 Dog Boarding Disneyland Paris",
+  },
+  "🐈 Chat": {
+    en: "🐈 Cat",
+    es: "🐈 Gato",
+  },
+  "🐕 Chien": {
+    en: "🐕 Dog",
+    es: "🐕 Perro",
+  },
+  "1 € = 1 Patte": {
+    en: "€1 = 1 Paw point",
+    es: "1 € = 1 punto Patita",
+  },
+  "Accueil dès 6h30 à 10 minutes des parcs Disney : jeux au jardin, repos au calme et compagnie continue jusqu’à 10 h de garde en journée.": {
+    en: "Drop-off from 6:30 a.m. just 10 minutes from the Disney parks: garden play, quiet rest, and continuous company for up to 10 hours of daytime care.",
+    es: "Recepción desde las 6:30 a 10 minutos de los parques Disney: juegos en el jardín, descanso tranquilo y compañía continua hasta 10 h de guardería diurna.",
+  },
+  "Autour de chez vous · 30 min à 2 h": {
+    en: "Around your home · 30 min to 2 hrs",
+    es: "Alrededor de tu casa · 30 min a 2 h",
+  },
+  "avis vérifiés": {
+    en: "verified reviews",
+    es: "reseñas verificadas",
+  },
+  "Balade attentive au rythme de votre chien autour de votre domicile, avec compte-rendu et photo au retour.": {
+    en: "Attentive walk at your dog's pace around your home, with a report and photo upon return.",
+    es: "Paseo atento al ritmo de tu perro alrededor de tu domicilio, con informe y foto al regresar.",
+  },
+  "Chaque séjour récompense votre fidélité": {
+    en: "Every stay rewards your loyalty",
+    es: "Cada estancia recompensa tu fidelidad",
+  },
+  "Chez nous · Journée jusqu’à 10 h": {
+    en: "At our home · Day care up to 10 hrs",
+    es: "En nuestra casa · Día de hasta 10 h",
+  },
+  "Chez nous · Nuit incluse": {
+    en: "At our home · Night included",
+    es: "En nuestra casa · Noche incluida",
+  },
+  "Chez vous · 30 min à 2 h": {
+    en: "At your home · 30 min to 2 hrs",
+    es: "En tu casa · 30 min a 2 h",
+  },
+  "Chez vous · Présence prolongée": {
+    en: "At your home · Extended presence",
+    es: "En tu casa · Presencia prolongada",
+  },
+  "Chien 16 € · Chat 15 €": {
+    en: "Dog €16 · Cat €15",
+    es: "Perro 16 € · Gato 15 €",
+  },
+  "Choisir mes horaires →": {
+    en: "Choose my schedule →",
+    es: "Elegir mis horarios →",
+  },
+  "Code BIENVENUE10 sur votre 1re réservation": {
+    en: "Code BIENVENUE10 on your 1st booking",
+    es: "Código BIENVENUE10 en tu 1.ª reserva",
+  },
+  "Communes desservies autour de Bussy-Saint-Georges & Val d’Europe": {
+    en: "Towns served around Bussy-Saint-Georges & Val d'Europe",
+    es: "Municipios atendidos alrededor de Bussy-Saint-Georges y Val d'Europe",
+  },
+  "Composer mes visites →": {
+    en: "Plan my visits →",
+    es: "Configurar mis visitas →",
+  },
+  "Compteur 24 h dès l’heure de dépôt": {
+    en: "24-hour clock starts at drop-off time",
+    es: "Contador de 24 h desde la hora de entrega",
+  },
+  "Consultez les informations pratiques, accès et tarifs selon le mode de garde recherché :": {
+    en: "Check practical information, directions, and rates for the care option you need:",
+    es: "Consulta la información práctica, accesos y tarifas según la modalidad de cuidado que buscas:",
+  },
+  "Découvrir le programme Pattes": {
+    en: "Discover the Paw loyalty program",
+    es: "Descubrir el programa Patitas",
+  },
+  "Dépose dès 6h30 · Retour jusqu’à 20h30": {
+    en: "Drop-off from 6:30 a.m. · Pick-up until 8:30 p.m.",
+    es: "Entrega desde las 6:30 · Recogida hasta las 20:30",
+  },
+  "Dès 15 € / 30 min": {
+    en: "From €15 / 30 min",
+    es: "Desde 15 € / 30 min",
+  },
+  "Dès 40 € / jour": {
+    en: "From €40 / day",
+    es: "Desde 40 € / día",
+  },
+  "Détail des tarifs & remises": {
+    en: "Full rates & discounts",
+    es: "Detalle de tarifas y descuentos",
+  },
+  "Ferrières-en-Brie": {
+    en: "Ferrières-en-Brie",
+    es: "Ferrières-en-Brie",
+  },
+  "Fidélité & Avantages Premium": {
+    en: "Loyalty & Premium Benefits",
+    es: "Fidelidad y Ventajas Premium",
+  },
+  "Gagnez gratuitement 1 Patte par euro dépensé dès votre première garde (jusqu’à 24 € de remise fidélité). Besoin de gardes régulières ? L’abonnement Premium offre -10 % jusqu’à 20 € par réservation, les Pattes doublées et la priorité vacances.": {
+    en: "Earn 1 free Paw point for every euro spent from your very first stay (up to €24 in loyalty discounts). Need regular care? The Premium membership gives 10% off up to €20 per booking, double Paw points, and holiday priority.",
+    es: "Gana gratis 1 punto Patita por cada euro gastado desde tu primera estancia (hasta 24 € de descuento por fidelidad). ¿Necesitas cuidados regulares? La suscripción Premium ofrece un -10 % hasta 20 € por reserva, puntos Patita dobles y prioridad en vacaciones.",
+  },
+  "Garde chat Seine-et-Marne (77)": {
+    en: "Cat boarding Seine-et-Marne (77)",
+    es: "Guardería de gatos Seine-et-Marne (77)",
+  },
+  "Garde chien Seine-et-Marne (77)": {
+    en: "Dog boarding Seine-et-Marne (77)",
+    es: "Guardería de perros Seine-et-Marne (77)",
+  },
+  "Hébergement familial (24 h)": {
+    en: "Family boarding (24 hrs)",
+    es: "Alojamiento familiar (24 h)",
+  },
+  "Hébergement familial chez nous ou visites et promenades à domicile dans tout le secteur de Marne-la-Vallée :": {
+    en: "Family boarding at our home or home visits and walks across the Marne-la-Vallée area:",
+    es: "Alojamiento familiar en nuestra casa o visitas y paseos a domicilio en todo el sector de Marne-la-Vallée:",
+  },
+  "Idéal journée Disneyland Paris": {
+    en: "Ideal for a Disneyland Paris day trip",
+    es: "Ideal para un día en Disneyland Paris",
+  },
+  "Jusqu’à 20 € de remise par réservation": {
+    en: "Up to €20 off per booking",
+    es: "Hasta 20 € de descuento por reserva",
+  },
+  "Jusqu’à 24 € de remise fidélité cumulable": {
+    en: "Up to €24 in stackable loyalty rewards",
+    es: "Hasta 24 € de descuento de fidelidad acumulable",
+  },
+  "Nos gardes par besoin en Seine-et-Marne (77)": {
+    en: "Our pet care options in Seine-et-Marne (77)",
+    es: "Nuestros cuidados según tu necesidad en Seine-et-Marne (77)",
+  },
+  "Nos prestations & tarifs": {
+    en: "Our services & rates",
+    es: "Nuestros servicios y tarifas",
+  },
+  "Nous veillons sur vos animaux directement chez vous pour préserver toutes leurs habitudes (paliers jusqu’à 6 h, 10 h ou +10 h).": {
+    en: "We care for your pets right in your own home to preserve all their routines (tiers up to 6 hrs, 10 hrs, or 10+ hrs).",
+    es: "Cuidamos de tus mascotas directamente en tu casa para conservar todas sus rutinas (tramos de hasta 6 h, 10 h o +10 h).",
+  },
+  "Pattes doublées & accès prioritaire aux périodes fortes": {
+    en: "Double Paw points & priority access during peak periods",
+    es: "Puntos Patita dobles y acceso prioritario en temporada alta",
+  },
+  "Pension familiale chien 77": {
+    en: "Family dog boarding 77",
+    es: "Pensión familiar para perros 77",
+  },
+  "Pet-sitting Seine-et-Marne": {
+    en: "Pet sitting Seine-et-Marne",
+    es: "Pet-sitting Seine-et-Marne",
+  },
+  "Planifier une balade →": {
+    en: "Schedule a walk →",
+    es: "Programar un paseo →",
+  },
+  "Premium -10 %": {
+    en: "Premium 10% off",
+    es: "Premium -10%",
+  },
+  "Promenades chien": {
+    en: "Dog walking",
+    es: "Paseos para perros",
+  },
+  "Repas, eau fraîche, litière, câlins et nouvelles en photo à chaque passage (2 chats inclus au tarif de base).": {
+    en: "Meals, fresh water, litter box, cuddles, and photo updates at every visit (2 cats included in the base rate).",
+    es: "Comida, agua fresca, arenero, mimos y fotos en cada visita (2 gatos incluidos en la tarifa base).",
+  },
+  "Réserver une journée →": {
+    en: "Book day care →",
+    es: "Reservar un día →",
+  },
+  "service": {
+    en: "service",
+    es: "servicio",
+  },
+  "Simuler mon prix": {
+    en: "Simulate my price",
+    es: "Simular mi precio",
+  },
+  "Simuler un séjour →": {
+    en: "Simulate a stay →",
+    es: "Simular una estancia →",
+  },
+  "Tarif calculé à la durée réelle : le compteur démarre à l’heure de dépôt (aucune double facturation au passage de minuit). Supplément chiot/chaton (< 1 an) : +5 €.": {
+    en: "Rate calculated on actual duration: the clock starts at drop-off time (no double billing at midnight). Puppy/kitten supplement (< 1 year): +€5.",
+    es: "Tarifa calculada según la duración real: el contador empieza a la hora de entrega (sin doble facturación a medianoche). Suplemento cachorro/gatito (< 1 año): +5 €.",
+  },
+  "Une garde familiale attentive, sans box ni chenil. Choisissez un service pour simuler votre tarif exact selon vos dates et horaires.": {
+    en: "Attentive family pet care with no cages or kennels. Choose a service to simulate your exact rate for your dates and schedule.",
+    es: "Un cuidado familiar atento, sin jaulas ni perreras. Elige un servicio para simular tu tarifa exacta según tus fechas y horarios.",
+  },
+  "Visite chat à domicile 77": {
+    en: "Cat home visits 77",
+    es: "Visita de gatos a domicilio 77",
+  },
+  "Voir les avantages Premium": {
+    en: "See Premium benefits",
+    es: "Ver ventajas Premium",
+  },
+  "Votre compagnon vit à la maison avec nous et profite du jardin clos, des sorties et d’une présence rassurante jour et nuit, avec photos chaque jour.": {
+    en: "Your pet lives in our family house and enjoys our fenced garden, walks, and reassuring company day and night, with daily photos.",
+    es: "Tu compañero vive en casa con nosotros y disfruta del jardín vallado, salidas y una presencia tranquilizadora día y noche, con fotos cada día.",
+  },
 };
 
 
@@ -1599,6 +1823,7 @@ const NON_PARTIAL_SOURCES = new Set([
   "name",
   "none",
   "round",
+  "service",
   "sm",
   "true",
   "wait",
