@@ -5,6 +5,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "__stripe_mid / __stripe_sid",
     "es": "__stripe_mid / __stripe_sid"
   },
+  "-10 % Bienvenue": {
+    "en": "10% Welcome offer",
+    "es": "-10 % Bienvenida"
+  },
+  "-10 % dès 14 périodes": {
+    "en": "10% off from 14 periods",
+    "es": "-10 % desde 14 períodos"
+  },
   "-10 % et Pattes doublées sur vos réservations.": {
     "en": "-10% and double Paw points on your reservations.",
     "es": "-10% y puntos Patita dobles en tus reservas."
@@ -197,6 +205,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "⚠️ Payment failed",
     "es": "⚠️ Pago fallido"
   },
+  "🇬🇧 Dog Boarding Disneyland Paris": {
+    "en": "🇬🇧 Dog Boarding Disneyland Paris",
+    "es": "🇬🇧 Dog Boarding Disneyland Paris"
+  },
   "✅ Disponible": {
     "en": "✅ Available",
     "es": "✅ Disponible"
@@ -216,6 +228,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "🏷️ Identification": {
     "en": "🏷️ Login",
     "es": "🏷️ Iniciar sesión"
+  },
+  "🐈 Chat": {
+    "en": "🐈 Cat",
+    "es": "🐈 Gato"
+  },
+  "🐕 Chien": {
+    "en": "🐕 Dog",
+    "es": "🐕 Perro"
   },
   "🐾 Dates pour": {
     "en": "🐾 Dates for",
@@ -420,6 +440,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "0 euro": {
     "en": "0 euros",
     "es": "0euros"
+  },
+  "1 € = 1 Patte": {
+    "en": "€1 = 1 Paw point",
+    "es": "1 € = 1 punto Patita"
   },
   "1 an": {
     "en": "1 year",
@@ -776,6 +800,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Accueil de votre animal dans un environnement de maison pour les nuits et vacances.": {
     "en": "Welcoming your pet in a home environment for nights and vacations.",
     "es": "Recibir a su mascota en un ambiente hogareño para noches y vacaciones."
+  },
+  "Accueil dès 6h30 à 10 minutes des parcs Disney : jeux au jardin, repos au calme et compagnie continue jusqu’à 10 h de garde en journée.": {
+    "en": "Drop-off from 6:30 a.m. just 10 minutes from the Disney parks: garden play, quiet rest, and continuous company for up to 10 hours of daytime care.",
+    "es": "Recepción desde las 6:30 a 10 minutos de los parques Disney: juegos en el jardín, descanso tranquilo y compañía continua hasta 10 h de guardería diurna."
   },
   "Accueil le matin et retour le soir pour les journées de travail ou de sortie.": {
     "en": "Reception in the morning and return in the evening for work days or outings.",
@@ -1285,6 +1313,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Legal authorities:",
     "es": "Autoridades legales:"
   },
+  "Autour de chez vous · 30 min à 2 h": {
+    "en": "Around your home · 30 min to 2 hrs",
+    "es": "Alrededor de tu casa · 30 min a 2 h"
+  },
   "Autour de Disneyland Paris": {
     "en": "Around Disneyland Paris",
     "es": "Alrededor de Disneyland París"
@@ -1361,6 +1393,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "reviews on Google Maps",
     "es": "opiniones en Google Maps"
   },
+  "avis vérifiés": {
+    "en": "verified reviews",
+    "es": "reseñas verificadas"
+  },
   "Avis vérifiés": {
     "en": "Verified reviews",
     "es": "Opiniones verificadas"
@@ -1372,6 +1408,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Badge Premium visible dans l'espace client": {
     "en": "Premium badge visible in the customer area",
     "es": "Insignia premium visible en el área de clientes"
+  },
+  "Balade attentive au rythme de votre chien autour de votre domicile, avec compte-rendu et photo au retour.": {
+    "en": "Attentive walk at your dog's pace around your home, with a report and photo upon return.",
+    "es": "Paseo atento al ritmo de tu perro alrededor de tu domicilio, con informe y foto al regresar."
   },
   "Balade de quartier pour garder un rythme régulier et dépenser votre chien.": {
     "en": "Neighborhood walk to keep a regular pace and spend your dog.",
@@ -1685,6 +1725,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Each euro spent earns 1 Paw points in the free program.",
     "es": "Cada euro gastado gana 1 punto Patita en el programa gratuito."
   },
+  "Chaque séjour récompense votre fidélité": {
+    "en": "Every stay rewards your loyalty",
+    "es": "Cada estancia recompensa tu fidelidad"
+  },
   "Chargement de votre espace...": {
     "en": "Loading your space...",
     "es": "Cargando tu espacio..."
@@ -1737,9 +1781,25 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "At the pet-sitter's",
     "es": "En casa del cuidador de mascotas"
   },
+  "Chez nous · Journée jusqu’à 10 h": {
+    "en": "At our home · Day care up to 10 hrs",
+    "es": "En nuestra casa · Día de hasta 10 h"
+  },
+  "Chez nous · Nuit incluse": {
+    "en": "At our home · Night included",
+    "es": "En nuestra casa · Noche incluida"
+  },
   "Chez vous": {
     "en": "At your place",
     "es": "en tu casa"
+  },
+  "Chez vous · 30 min à 2 h": {
+    "en": "At your home · 30 min to 2 hrs",
+    "es": "En tu casa · 30 min a 2 h"
+  },
+  "Chez vous · Présence prolongée": {
+    "en": "At your home · Extended presence",
+    "es": "En tu casa · Presencia prolongada"
   },
   "chien": {
     "en": "dog",
@@ -1756,6 +1816,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Chien & chat certifié": {
     "en": "Certified for dogs & cats",
     "es": "Certificado para perros y gatos"
+  },
+  "Chien 16 € · Chat 15 €": {
+    "en": "Dog €16 · Cat €15",
+    "es": "Perro 16 € · Gato 15 €"
   },
   "Chien adulte": {
     "en": "Adult dog",
@@ -1784,6 +1848,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Choisir les dates →": {
     "en": "Choose dates →",
     "es": "Elegir fechas →"
+  },
+  "Choisir mes horaires →": {
+    "en": "Choose my schedule →",
+    "es": "Elegir mis horarios →"
   },
   "Choisir rapidement": {
     "en": "Choose quickly",
@@ -1873,6 +1941,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Current code or recovery code",
     "es": "Código actual o código de recuperación"
   },
+  "Code BIENVENUE10 sur votre 1re réservation": {
+    "en": "Code BIENVENUE10 on your 1st booking",
+    "es": "Código BIENVENUE10 en tu 1.ª reserva"
+  },
   "Code de récupération": {
     "en": "Recovery code",
     "es": "Código de recuperación"
@@ -1933,6 +2005,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Optional comment",
     "es": "Comentario opcional"
   },
+  "Communes desservies autour de Bussy-Saint-Georges & Val d’Europe": {
+    "en": "Towns served around Bussy-Saint-Georges & Val d'Europe",
+    "es": "Municipios atendidos alrededor de Bussy-Saint-Georges y Val d'Europe"
+  },
   "Compétence professionnelle": {
     "en": "Professional competence",
     "es": "Competencia profesional"
@@ -1960,6 +2036,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Comportement": {
     "en": "Behavior",
     "es": "Comportamiento"
+  },
+  "Composer mes visites →": {
+    "en": "Plan my visits →",
+    "es": "Configurar mis visitas →"
   },
   "Compte": {
     "en": "Account",
@@ -2000,6 +2080,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Compte rendu après visite": {
     "en": "Report after visit",
     "es": "Informe después de la visita"
+  },
+  "Compteur 24 h dès l’heure de dépôt": {
+    "en": "24-hour clock starts at drop-off time",
+    "es": "Contador de 24 h desde la hora de entrega"
   },
   "Concept": {
     "en": "Concept",
@@ -2124,6 +2208,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Consulter tous les tarifs": {
     "en": "View all prices",
     "es": "Ver todos los precios"
+  },
+  "Consultez les informations pratiques, accès et tarifs selon le mode de garde recherché :": {
+    "en": "Check practical information, directions, and rates for the care option you need:",
+    "es": "Consulta la información práctica, accesos y tarifas según la modalidad de cuidado que buscas:"
   },
   "Consultez notre fiche et les avis directement sur Google Maps.": {
     "en": "View our listing and reviews directly on Google Maps.",
@@ -2441,6 +2529,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Discover the concept",
     "es": "Descubre el concepto"
   },
+  "Découvrir le programme Pattes": {
+    "en": "Discover the Paw loyalty program",
+    "es": "Descubrir el programa Patitas"
+  },
   "Découvrir les services & tarifs": {
     "en": "Explore services & pricing",
     "es": "Descubrir servicios y tarifas"
@@ -2521,6 +2613,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Actual travel and expenses",
     "es": "Viajes y gastos reales"
   },
+  "Dépose dès 6h30 · Retour jusqu’à 20h30": {
+    "en": "Drop-off from 6:30 a.m. · Pick-up until 8:30 p.m.",
+    "es": "Entrega desde las 6:30 · Recogida hasta las 20:30"
+  },
   "Dépose tard": {
     "en": "Late drop off",
     "es": "Entrega tardía"
@@ -2573,9 +2669,17 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "From",
     "es": "Desde"
   },
+  "Dès 15 € / 30 min": {
+    "en": "From €15 / 30 min",
+    "es": "Desde 15 € / 30 min"
+  },
   "Dès 35 €": {
     "en": "From €35",
     "es": "Desde 35 €"
+  },
+  "Dès 40 € / jour": {
+    "en": "From €40 / day",
+    "es": "Desde 40 € / día"
   },
   "Des balades adaptées à l'énergie de votre chien, avec un rythme fixé selon ses habitudes.": {
     "en": "Walks adapted to the energy of your dog, with a pace set according to his habits.",
@@ -2628,6 +2732,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "destructive": {
     "en": "destructive",
     "es": "destructivo"
+  },
+  "Détail des tarifs & remises": {
+    "en": "Full rates & discounts",
+    "es": "Detalle de tarifas y descuentos"
   },
   "Détail du prix": {
     "en": "Price details",
@@ -3301,6 +3409,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Close message",
     "es": "Cerrar mensaje"
   },
+  "Ferrières-en-Brie": {
+    "en": "Ferrières-en-Brie",
+    "es": "Ferrières-en-Brie"
+  },
   "Février": {
     "en": "FEBRUARY",
     "es": "FEBRERO"
@@ -3308,6 +3420,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Fidélité": {
     "en": "Loyalty",
     "es": "Lealtad"
+  },
+  "Fidélité & Avantages Premium": {
+    "en": "Loyalty & Premium Benefits",
+    "es": "Fidelidad y Ventajas Premium"
   },
   "Fidélité & Premium": {
     "en": "Loyalty & Premium",
@@ -3356,6 +3472,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Formules & Tarifs clairs": {
     "en": "Clear packages & pricing",
     "es": "Fórmulas y tarifas claras"
+  },
+  "Gagnez gratuitement 1 Patte par euro dépensé dès votre première garde (jusqu’à 24 € de remise fidélité). Besoin de gardes régulières ? L’abonnement Premium offre -10 % jusqu’à 20 € par réservation, les Pattes doublées et la priorité vacances.": {
+    "en": "Earn 1 free Paw point for every euro spent from your very first stay (up to €24 in loyalty discounts). Need regular care? The Premium membership gives 10% off up to €20 per booking, double Paw points, and holiday priority.",
+    "es": "Gana gratis 1 punto Patita por cada euro gastado desde tu primera estancia (hasta 24 € de descuento por fidelidad). ¿Necesitas cuidados regulares? La suscripción Premium ofrece un -10 % hasta 20 € por reserva, puntos Patita dobles y prioridad en vacaciones."
   },
   "garde": {
     "en": "guard",
@@ -3441,6 +3561,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "guard cat Seine-et-Marne",
     "es": "guardia gato Sena y Marne"
   },
+  "Garde chat Seine-et-Marne (77)": {
+    "en": "Cat boarding Seine-et-Marne (77)",
+    "es": "Guardería de gatos Seine-et-Marne (77)"
+  },
   "garde chien 77": {
     "en": "guard dog 77",
     "es": "guardia perro 77"
@@ -3512,6 +3636,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "garde chien Seine-et-Marne": {
     "en": "guard dog Seine-et-Marne",
     "es": "guardia perro Sena y Marne"
+  },
+  "Garde chien Seine-et-Marne (77)": {
+    "en": "Dog boarding Seine-et-Marne (77)",
+    "es": "Guardería de perros Seine-et-Marne (77)"
   },
   "garde chien Val d'Europe": {
     "en": "guard dog Val d'Europe",
@@ -3777,6 +3905,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Family Accommodation",
     "es": "Alojamiento Familiar"
   },
+  "Hébergement familial (24 h)": {
+    "en": "Family boarding (24 hrs)",
+    "es": "Alojamiento familiar (24 h)"
+  },
   "Hébergement familial 100 % sans box ni cage, garderie de jour, visites à domicile et promenades en Seine-et-Marne (77). Partez l’esprit tranquille avec des photos et nouvelles chaque jour.": {
     "en": "100% cage-free family boarding, day care, home visits and dog walks in Seine-et-Marne (77). Enjoy complete peace of mind with daily photos and updates.",
     "es": "Alojamiento familiar 100 % sin jaulas, guardería de día, visitas a domicilio y paseos en Seine-et-Marne (77). Viaje con total tranquilidad con fotos y noticias cada día."
@@ -3788,6 +3920,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Hébergement familial 24 h — 45 € / 24 h": {
     "en": "24-hour family boarding — €45 / 24h",
     "es": "Alojamiento familiar 24 h — 45 € / 24 h"
+  },
+  "Hébergement familial chez nous ou visites et promenades à domicile dans tout le secteur de Marne-la-Vallée :": {
+    "en": "Family boarding at our home or home visits and walks across the Marne-la-Vallée area:",
+    "es": "Alojamiento familiar en nuestra casa o visitas y paseos a domicilio en todo el sector de Marne-la-Vallée:"
   },
   "Hébergement familial chien (période de 24 h)": {
     "en": "Family dog boarding (24-hour period)",
@@ -3876,6 +4012,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "ID(s) de réservation requis": {
     "en": "Reservation ID(s) required",
     "es": "Se requieren ID de reserva"
+  },
+  "Idéal journée Disneyland Paris": {
+    "en": "Ideal for a Disneyland Paris day trip",
+    "es": "Ideal para un día en Disneyland Paris"
   },
   "Idéal pour une journée au parc Disneyland ou Walt Disney Studios. Déposez votre chien le matin avant l'ouverture, profitez des attractions l'esprit léger et récupérez-le après sa journée de jeux, de balades et de repos au calme.": {
     "en": "Ideal for a day at Disneyland Park or Walt Disney Studios. Drop your dog off in the morning before park opening, enjoy the rides with peace of mind, and pick them up after a day of play, walks, and quiet rest.",
@@ -4141,9 +4281,17 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Until 2 a.m.",
     "es": "Hasta las 2 a.m."
   },
+  "Jusqu’à 20 € de remise par réservation": {
+    "en": "Up to €20 off per booking",
+    "es": "Hasta 20 € de descuento por reserva"
+  },
   "Jusqu’à 20 € par réservation, sans cumul avec une autre remise.": {
     "en": "Up to €20 per reservation, without cumulation with another discount.",
     "es": "Hasta 20€ por reserva, sin acumulación con otro descuento."
+  },
+  "Jusqu’à 24 € de remise fidélité cumulable": {
+    "en": "Up to €24 in stackable loyalty rewards",
+    "es": "Hasta 24 € de descuento de fidelidad acumulable"
   },
   "Jusqu’à 6 h": {
     "en": "Until 6 a.m.",
@@ -5489,6 +5637,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "none",
     "es": "ninguno"
   },
+  "Nos gardes par besoin en Seine-et-Marne (77)": {
+    "en": "Our pet care options in Seine-et-Marne (77)",
+    "es": "Nuestros cuidados según tu necesidad en Seine-et-Marne (77)"
+  },
+  "Nos prestations & tarifs": {
+    "en": "Our services & rates",
+    "es": "Nuestros servicios y tarifas"
+  },
   "Nos solutions": {
     "en": "Our solutions",
     "es": "Nuestras soluciones"
@@ -5540,6 +5696,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Nous sommes situés à Bussy-Saint-Georges (77600), à environ 10 minutes en voiture de Disneyland Paris, de Val d'Europe et des hôtels partenaires (via l'autoroute A4, sortie 12), et à seulement 2 stations de RER A (8 minutes) de la gare de Marne-la-Vallée Chessy.": {
     "en": "We are located in Bussy-Saint-Georges (77600), about a 10-minute drive from Disneyland Paris, Val d'Europe and partner hotels (via the A4 motorway, Exit 12), and just 2 RER A train stops (8 minutes) from Marne-la-Vallée Chessy station.",
     "es": "Estamos situados en Bussy-Saint-Georges (77600), a unos 10 minutos en coche de Disneyland Paris, Val d'Europe y los hoteles asociados (por la autopista A4, salida 12), y a solo 2 paradas de RER A (8 minutos) de la estación de Marne-la-Vallée Chessy."
+  },
+  "Nous veillons sur vos animaux directement chez vous pour préserver toutes leurs habitudes (paliers jusqu’à 6 h, 10 h ou +10 h).": {
+    "en": "We care for your pets right in your own home to preserve all their routines (tiers up to 6 hrs, 10 hrs, or 10+ hrs).",
+    "es": "Cuidamos de tus mascotas directamente en tu casa para conservar todas sus rutinas (tramos de hasta 6 h, 10 h o +10 h)."
   },
   "Nouveau : Premium et fidélité": {
     "en": "New: Premium and loyalty",
@@ -5929,6 +6089,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Paw points doubled: 1 euro spent = 2 Paw points",
     "es": "puntos Patita duplicado: 1 euro gastado = 2 puntos Patita"
   },
+  "Pattes doublées & accès prioritaire aux périodes fortes": {
+    "en": "Double Paw points & priority access during peak periods",
+    "es": "Puntos Patita dobles y acceso prioritario en temporada alta"
+  },
   "Pattes gagnées": {
     "en": "Paw points earned",
     "es": "puntos Patita ganados"
@@ -6005,6 +6169,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "pension dog Val d’Europe",
     "es": "pensión perro Val d'Europe"
   },
+  "Pension familiale chien 77": {
+    "en": "Family dog boarding 77",
+    "es": "Pensión familiar para perros 77"
+  },
   "pension-chien-77": {
     "en": "pension-dog-77",
     "es": "pensión-perro-77"
@@ -6056,6 +6224,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Pet-sitter diplômée ACACED · Réservation en ligne sécurisée": {
     "en": "ACACED-certified pet sitter · Secure online booking",
     "es": "Cuidadora certificada ACACED · Reserva online segura"
+  },
+  "Pet-sitting Seine-et-Marne": {
+    "en": "Pet sitting Seine-et-Marne",
+    "es": "Pet-sitting Seine-et-Marne"
   },
   "petAgeProof": {
     "en": "petAgeProof",
@@ -6112,6 +6284,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Planifier les journées de garde": {
     "en": "Plan daycare days",
     "es": "Planificar los días de guardería"
+  },
+  "Planifier une balade →": {
+    "en": "Schedule a walk →",
+    "es": "Programar un paseo →"
   },
   "Planning sélectionné": {
     "en": "Selected schedule",
@@ -6264,6 +6440,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Premium": {
     "en": "Premium",
     "es": "Premium"
+  },
+  "Premium -10 %": {
+    "en": "Premium 10% off",
+    "es": "Premium -10%"
   },
   "Premium ✨": {
     "en": "Premium ✨",
@@ -6573,6 +6753,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Walks handled by us: enjoy both Disney parks without having to leave at midday",
     "es": "Paseos realizados por nosotros: disfrute de los dos parques sin tener que salir al mediodía"
   },
+  "Promenades chien": {
+    "en": "Dog walking",
+    "es": "Paseos para perros"
+  },
   "Promenades incluses": {
     "en": "Walks included",
     "es": "Paseos incluidos"
@@ -6877,6 +7061,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Meals, water and litter",
     "es": "Comidas, agua y basura."
   },
+  "Repas, eau fraîche, litière, câlins et nouvelles en photo à chaque passage (2 chats inclus au tarif de base).": {
+    "en": "Meals, fresh water, litter box, cuddles, and photo updates at every visit (2 cats included in the base rate).",
+    "es": "Comida, agua fresca, arenero, mimos y fotos en cada visita (2 gatos incluidos en la tarifa base)."
+  },
   "Report": {
     "en": "Report",
     "es": "Informe"
@@ -6996,6 +7184,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Réserver une garde chien 77": {
     "en": "Book dog care in 77",
     "es": "Reservar cuidado de perros en el 77"
+  },
+  "Réserver une journée →": {
+    "en": "Book day care →",
+    "es": "Reservar un día →"
   },
   "Réserver une pension chien": {
     "en": "Book a pension dog",
@@ -7209,6 +7401,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Depending on the legal basis and the situation, you can request access to your data, their rectification, their erasure, limitation of processing, their portability or object to certain processing. You can withdraw your consent at any time without calling into question the processing prior to this withdrawal.",
     "es": "Según la base jurídica y la situación, podrás solicitar el acceso a tus datos, su rectificación, su supresión, la limitación del tratamiento, su portabilidad u oponerte a determinado tratamiento. Puede retirar su consentimiento en cualquier momento sin que se ponga en duda el tratamiento anterior a esta retirada."
   },
+  "service": {
+    "en": "service",
+    "es": "servicio"
+  },
   "Service": {
     "en": "Service",
     "es": "Servicio"
@@ -7301,9 +7497,17 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Live quote",
     "es": "Simulación en directo"
   },
+  "Simuler mon prix": {
+    "en": "Simulate my price",
+    "es": "Simular mi precio"
+  },
   "Simuler mon tarif": {
     "en": "Estimate my price",
     "es": "Calcular mi tarifa"
+  },
+  "Simuler un séjour →": {
+    "en": "Simulate a stay →",
+    "es": "Simular una estancia →"
   },
   "Simuler un tarif rapide": {
     "en": "Quick price simulator",
@@ -7476,6 +7680,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Tarif calculé à la durée réelle": {
     "en": "Price calculated on actual duration",
     "es": "Tarifa calculada según la duración real"
+  },
+  "Tarif calculé à la durée réelle : le compteur démarre à l’heure de dépôt (aucune double facturation au passage de minuit). Supplément chiot/chaton (< 1 an) : +5 €.": {
+    "en": "Rate calculated on actual duration: the clock starts at drop-off time (no double billing at midnight). Puppy/kitten supplement (< 1 year): +€5.",
+    "es": "Tarifa calculada según la duración real: el contador empieza a la hora de entrega (sin doble facturación a medianoche). Suplemento cachorro/gatito (< 1 año): +5 €."
   },
   "Tarif de départ pour": {
     "en": "Starting price for",
@@ -7901,6 +8109,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "cat care without breaking habits",
     "es": "gato cuidar sin romper hábitos"
   },
+  "Une garde familiale attentive, sans box ni chenil. Choisissez un service pour simuler votre tarif exact selon vos dates et horaires.": {
+    "en": "Attentive family pet care with no cages or kennels. Choose a service to simulate your exact rate for your dates and schedule.",
+    "es": "Un cuidado familiar atento, sin jaulas ni perreras. Elige un servicio para simular tu tarifa exacta según tus fechas y horarios."
+  },
   "Une garde pensée pour les journées à Disney": {
     "en": "A wardrobe designed for days at Disney",
     "es": "Un armario diseñado para los días en Disney"
@@ -8181,6 +8393,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "cat home visit",
     "es": "gato visita a domicilio"
   },
+  "Visite chat à domicile 77": {
+    "en": "Cat home visits 77",
+    "es": "Visita de gatos a domicilio 77"
+  },
   "Visite chat à domicile dans le 77": {
     "en": "cat home visit in 77",
     "es": "gato visita a domicilio en 77"
@@ -8297,6 +8513,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Show more reviews",
     "es": "Ver más opiniones"
   },
+  "Voir les avantages Premium": {
+    "en": "See Premium benefits",
+    "es": "Ver ventajas Premium"
+  },
   "Voir les avis clients →": {
     "en": "See client reviews →",
     "es": "Ver opiniones de clientes →"
@@ -8400,6 +8620,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Votre compagnon est accueilli dans un cadre familial, sans box. Repos, jeux et attention au quotidien, dans le respect de ses habitudes.": {
     "en": "Your pet stays in a family home, without kennels. Rest, play and daily attention, respecting their routine.",
     "es": "Su mascota se aloja en un entorno familiar, sin jaulas. Descanso, juegos y atención diaria, respetando sus costumbres."
+  },
+  "Votre compagnon vit à la maison avec nous et profite du jardin clos, des sorties et d’une présence rassurante jour et nuit, avec photos chaque jour.": {
+    "en": "Your pet lives in our family house and enjoys our fenced garden, walks, and reassuring company day and night, with daily photos.",
+    "es": "Tu compañero vive en casa con nosotros y disfruta del jardín vallado, salidas y una presencia tranquilizadora día y noche, con fotos cada día."
   },
   "Votre compagnon vit avec nous dans la maison, à son rythme, avec sorties et moments de jeu adaptés.": {
     "en": "Your pet lives with us inside our home at their own pace, with tailored outings and playtime.",

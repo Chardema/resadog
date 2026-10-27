@@ -1,9 +1,35 @@
 "use client";
 
-import { ArrowUpRight, Instagram, Mail, Phone } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, Instagram, Mail, MapPin, Phone } from "lucide-react";
 import { GOOGLE_MAPS_PLACE_URL } from "@/lib/google-reviews";
 import { LEGAL_INFORMATION } from "@/lib/legal";
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
+
+const SERVED_TOWNS = [
+  "Bussy-Saint-Georges",
+  "Serris",
+  "Chessy",
+  "Montévrain",
+  "Bailly-Romainvilliers",
+  "Magny-le-Hongre",
+  "Coupvray",
+  "Chanteloup-en-Brie",
+  "Jossigny",
+  "Ferrières-en-Brie",
+  "Lagny-sur-Marne",
+  "Torcy",
+  "Lognes",
+];
+
+const LOCAL_SEO_LINKS = [
+  { href: "/garde-chien-disneyland-paris", label: "Garde chien Disneyland Paris" },
+  { href: "/pension-chien-77", label: "Pension familiale chien 77" },
+  { href: "/garde-chien-77", label: "Garde chien Seine-et-Marne (77)" },
+  { href: "/garde-chat-77", label: "Garde chat Seine-et-Marne (77)" },
+  { href: "/visite-chat-domicile-77", label: "Visite chat à domicile 77" },
+  { href: "/garde-animaux-seine-et-marne", label: "Pet-sitting Seine-et-Marne" },
+];
 
 export function LocationSection() {
   return (
@@ -47,6 +73,58 @@ export function LocationSection() {
             <p className="mt-2 text-sm leading-6 text-gray-600">Les nouvelles de La Patte Dorée, en images.</p>
             <span data-no-translate className="mt-4 break-all text-sm font-bold text-orange-800">{INSTAGRAM_HANDLE}</span>
           </a>
+        </div>
+      </div>
+
+      {/* Maillage local : communes desservies & pages locales SEO */}
+      <div className="mt-6 grid gap-6 rounded-3xl border border-orange-100 bg-white p-6 shadow-sm sm:p-8 lg:grid-cols-12">
+        <div className="lg:col-span-5">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-800">
+            <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>Communes desservies autour de Bussy-Saint-Georges &amp; Val d’Europe</span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-gray-600">
+            Hébergement familial chez nous ou visites et promenades à domicile dans tout le secteur de Marne-la-Vallée :
+          </p>
+          <div data-no-translate className="mt-3 flex flex-wrap gap-1.5">
+            {SERVED_TOWNS.map((town) => (
+              <span
+                key={town}
+                className="rounded-lg border border-orange-100 bg-orange-50/50 px-2.5 py-1 text-xs font-medium text-gray-700"
+              >
+                {town}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-orange-100 pt-5 lg:col-span-7 lg:border-t-0 lg:border-l lg:pl-6 lg:pt-0">
+          <p className="text-xs font-bold uppercase tracking-wider text-orange-800">
+            Nos gardes par besoin en Seine-et-Marne (77)
+          </p>
+          <p className="mt-2 text-sm leading-6 text-gray-600">
+            Consultez les informations pratiques, accès et tarifs selon le mode de garde recherché :
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {LOCAL_SEO_LINKS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-orange-200/80 bg-white px-3 py-1.5 text-xs font-bold text-gray-800 transition-colors hover:border-orange-400 hover:bg-orange-50/60 hover:text-orange-800"
+              >
+                <span>{item.label}</span>
+                <span aria-hidden="true" className="text-orange-600">→</span>
+              </Link>
+            ))}
+            <Link
+              href="/en/dog-boarding-disneyland-paris"
+              data-no-translate
+              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-1.5 text-xs font-bold text-amber-900 transition-colors hover:border-amber-300 hover:bg-amber-100/70"
+            >
+              <span>🇬🇧 Dog Boarding Disneyland Paris</span>
+              <span aria-hidden="true" className="text-amber-700">→</span>
+            </Link>
+          </div>
         </div>
       </div>
     </section>

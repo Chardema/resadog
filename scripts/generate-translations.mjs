@@ -176,7 +176,7 @@ const generatedPath = path.join(projectRoot, "src/lib/i18n.generated.ts");
 let existingCatalogue = {};
 if (fs.existsSync(generatedPath)) {
   const generatedSource = fs.readFileSync(generatedPath, "utf8");
-  const objectMatch = generatedSource.match(/=\s*(\{[\s\S]*\});\s*$/);
+  const objectMatch = generatedSource.match(/=\s*(\{[\s\S]*\})(?:\s*as const)?;\s*$/);
   if (!objectMatch) throw new Error("Le catalogue généré existant ne peut pas être lu.");
   existingCatalogue = JSON.parse(objectMatch[1]);
 }

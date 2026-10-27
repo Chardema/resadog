@@ -70,11 +70,13 @@ export function Footer() {
           <div>
             <h3 className="font-bold text-gray-900 mb-4">Près de chez vous</h3>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link href="/garde-chien-disneyland-paris" className="hover:text-orange-600 transition-colors">Autour de Disneyland Paris</Link></li>
-              <li><Link href="/en/dog-boarding-disneyland-paris" data-no-translate className="hover:text-orange-600 transition-colors">Dog boarding Disneyland Paris (EN)</Link></li>
-              <li><Link href="/garde-chat-77" className="hover:text-orange-600 transition-colors">Pour les chats</Link></li>
-              <li><Link href="/pension-chien-77" className="hover:text-orange-600 transition-colors">Hébergement familial</Link></li>
-              <li><Link href="/garde-animaux-seine-et-marne" className="hover:text-orange-600 transition-colors">Toutes nos zones</Link></li>
+              <li><Link href="/garde-chien-disneyland-paris" className="hover:text-orange-600 transition-colors">Garde chien Disneyland Paris</Link></li>
+              <li><Link href="/pension-chien-77" className="hover:text-orange-600 transition-colors">Pension familiale chien 77</Link></li>
+              <li><Link href="/garde-chien-77" className="hover:text-orange-600 transition-colors">Garde chien Seine-et-Marne (77)</Link></li>
+              <li><Link href="/garde-chat-77" className="hover:text-orange-600 transition-colors">Garde chat Seine-et-Marne (77)</Link></li>
+              <li><Link href="/visite-chat-domicile-77" className="hover:text-orange-600 transition-colors">Visite chat à domicile 77</Link></li>
+              <li><Link href="/garde-animaux-seine-et-marne" className="hover:text-orange-600 transition-colors">Pet-sitting Seine-et-Marne</Link></li>
+              <li><Link href="/en/dog-boarding-disneyland-paris" data-no-translate className="hover:text-orange-600 transition-colors font-semibold text-orange-700">🇬🇧 Dog Boarding Disneyland Paris</Link></li>
             </ul>
           </div>
 
