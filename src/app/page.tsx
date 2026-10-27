@@ -2,21 +2,33 @@
 import { LAST_MINUTE_DESCRIPTION } from "@/lib/pricing";
 
 import Link from "next/link";
-import { motion, useScroll, useTransform } from "framer-motion";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
-import { useRef } from "react";
 import { ReviewsSection } from "@/components/home/ReviewsSection";
 import { LocationSection } from "@/components/home/LocationSection";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { Award, Clock3, HeartPulse, MoonStar, ShieldCheck } from "lucide-react";
+import {
+  Award,
+  CalendarCheck,
+  Camera,
+  CheckCircle2,
+  Clock3,
+  HeartPulse,
+  Home as HomeIcon,
+  MapPin,
+  MoonStar,
+  ShieldCheck,
+  Star,
+} from "lucide-react";
 import { getServiceDisplayPrice, getServiceDisplayPriceForDuration, HOUSE_SITTING_DURATION_TIERS } from "@/lib/pricing";
+
+// Définir le chemin vers "/images/hero-famille.webp" dès que la photo est disponible
+const HERO_PHOTO_SRC: string | null = null; // "/images/hero-famille.webp"
 
 export default function Home() {
   const { data: session } = useSession();
   const { t } = useLanguage();
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const boardingPrice = getServiceDisplayPrice("BOARDING");
   const houseSittingPrice = getServiceDisplayPrice("HOUSE_SITTING");
   const walkingPrice = getServiceDisplayPrice("DOG_WALKING");
@@ -30,120 +42,211 @@ export default function Home() {
 
       {/* Hero Section */}
       <main>
-      <section className="relative z-10 pt-32 pb-20 container mx-auto px-6" ref={ref}>
-        <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
-          <motion.div
-            initial={{ scale: 0.5 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-950 px-4 py-2 text-sm font-bold text-white shadow-sm"
-          >
-            <Award className="h-4 w-4 text-emerald-300" aria-hidden="true" />
-            Garde familiale et suivi personnalisé
-          </motion.div>
-
-          <motion.div
-            initial={{ scale: 0.5 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-100 bg-orange-50 px-4 py-1.5 text-sm font-medium text-orange-700 shadow-sm"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-            </span>
-            Bussy-Saint-Georges · Val d’Europe
-          </motion.div>
-
-          <motion.h1
-            initial={{ y: 20 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="text-3xl sm:text-5xl md:text-7xl font-extrabold text-gray-900 leading-[1.1] mb-6 tracking-tight"
-          >
-            Comme à la maison, <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-700 to-amber-700 relative">
-              même quand vous êtes loin.
-              <svg className="absolute w-full h-3 -bottom-1 left-0 text-orange-200 -z-10" viewBox="0 0 100 10" preserveAspectRatio="none">
-                <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
-              </svg>
-            </span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ y: 20 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-xl text-gray-600 mb-10 max-w-2xl leading-relaxed"
-          >
-            Hébergement familial sans box, visites à domicile et promenades,
-            tout près de Disneyland Paris. Partez l&apos;esprit tranquille, on s&apos;occupe du reste.
-          </motion.p>
-
-          <motion.div
-            initial={{ y: 20 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
-          >
-            <Link
-              href="/booking"
-              className="px-8 py-4 bg-orange-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-orange-500/30 hover:bg-orange-800 hover:shadow-orange-500/50 hover:scale-105 hover:-rotate-1 transition-all flex items-center justify-center gap-2"
-            >
-              <span>🐾</span> Réserver un séjour
-            </Link>
-            <Link
-              href={session?.user ? "/dashboard" : "/auth/signup"}
-              className="px-8 py-4 bg-white text-gray-700 border-2 border-gray-100 rounded-2xl font-bold text-lg hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 hover:scale-105 transition-all flex items-center justify-center"
-            >
-              {session?.user ? "Accéder à mon espace" : "Créer un compte"}
-            </Link>
-          </motion.div>
-        </div>
-
-        {/* 3D Floating Elements (Decorative) */}
-        <motion.div style={{ y }} className="absolute top-40 left-10 md:left-20 hidden lg:block pointer-events-none">
-          <motion.div 
-            animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }} 
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            className="text-8xl filter drop-shadow-2xl opacity-80"
-          >
-            🎾
-          </motion.div>
-        </motion.div>
-        <motion.div style={{ y }} className="absolute top-60 right-10 md:right-20 hidden lg:block pointer-events-none">
-          <motion.div 
-            animate={{ y: [0, 20, 0], rotate: [0, -5, 0] }} 
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="text-8xl filter drop-shadow-2xl opacity-80"
-          >
-            🦴
-          </motion.div>
-        </motion.div>
-        <div className="mt-7 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-semibold text-gray-600 md:hidden">
-          <Link href="#services" className="inline-flex min-h-11 items-center hover:text-orange-700">Services</Link>
-          <Link href="/tarifs" className="inline-flex min-h-11 items-center hover:text-orange-700">Tarifs</Link>
-          <Link href="#avis" className="inline-flex min-h-11 items-center hover:text-orange-700">Avis</Link>
-          <Link href="#nous-trouver" className="inline-flex min-h-11 items-center hover:text-orange-700">Contact</Link>
-        </div>
-      </section>
-
-      <section className="border-y border-emerald-900 bg-emerald-950 text-white">
-        <div className="container mx-auto grid gap-8 px-6 py-10 md:grid-cols-[1.4fr_1fr] md:items-center">
+      <section className="relative z-10 pt-28 md:pt-32 pb-12 md:pb-16 container mx-auto px-6">
+        <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          {/* Colonne gauche */}
           <div>
-            <div className="mb-3 flex items-center gap-3 text-emerald-200">
-              <Award className="h-6 w-6" aria-hidden="true" />
-              <span className="text-sm font-bold uppercase">Prise en charge personnalisée</span>
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-orange-800 shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                </span>
+                <MapPin className="h-4 w-4 shrink-0 text-orange-700" aria-hidden="true" />
+                <span>Bussy-Saint-Georges · Val d’Europe · Disneyland Paris</span>
+              </div>
+
+              <Link
+                href="#avis"
+                className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-3.5 py-1.5 text-xs sm:text-sm font-bold text-gray-800 shadow-sm transition-colors hover:border-amber-300 hover:bg-amber-50/60"
+              >
+                <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+                  ))}
+                </span>
+                <span>
+                  <span data-no-translate>5,0/5</span> · Avis vérifiés
+                </span>
+              </Link>
             </div>
-            <h2 className="text-2xl font-bold md:text-3xl">Des consignes précises pour chaque animal</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-100">
-              Le profil, la santé, les habitudes et les besoins de votre compagnon sont vérifiés avant toute confirmation de garde.
+
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] mb-6 tracking-tight">
+              Garde familiale de chiens &amp; chats près de Disneyland Paris,{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-700 to-amber-700 relative inline-block">
+                comme à la maison.
+                <svg className="absolute w-full h-3 -bottom-1 left-0 text-orange-200 -z-10" viewBox="0 0 100 10" preserveAspectRatio="none">
+                  <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
+                </svg>
+              </span>
+            </h1>
+
+            <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-2xl leading-relaxed">
+              Hébergement familial <strong className="font-semibold text-gray-800">100 % sans box ni cage</strong>, garderie de jour, visites à domicile et promenades en Seine-et-Marne (77). Partez l’esprit tranquille avec des photos et nouvelles chaque jour.
             </p>
+
+            <div className="flex flex-col sm:flex-row gap-3.5 w-full sm:w-auto">
+              <Link
+                href="/booking"
+                className="px-7 py-4 bg-orange-700 text-white rounded-2xl font-bold text-base sm:text-lg shadow-xl shadow-orange-600/25 hover:bg-orange-800 transition-all inline-flex items-center justify-center gap-2"
+              >
+                <CalendarCheck className="h-5 w-5" aria-hidden="true" />
+                Vérifier mes dates &amp; simuler mon tarif
+              </Link>
+              <Link
+                href={session?.user ? "/dashboard" : "#services"}
+                className="px-7 py-4 bg-white text-gray-800 border-2 border-gray-200 rounded-2xl font-bold text-base sm:text-lg hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 transition-all inline-flex items-center justify-center"
+              >
+                {session?.user ? "Accéder à mon espace" : "Découvrir les services & tarifs"}
+              </Link>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs sm:text-sm font-medium text-gray-600">
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" aria-hidden="true" />
+                Tarif calculé à la durée réelle
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" aria-hidden="true" />
+                Consignes santé &amp; habitudes vérifiées avant chaque garde
+              </span>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-gray-600 md:hidden">
+              <Link href="#services" className="inline-flex min-h-11 items-center hover:text-orange-700">Services</Link>
+              <Link href="/tarifs" className="inline-flex min-h-11 items-center hover:text-orange-700">Tarifs</Link>
+              <Link href="#avis" className="inline-flex min-h-11 items-center hover:text-orange-700">Avis</Link>
+              <Link href="#nous-trouver" className="inline-flex min-h-11 items-center hover:text-orange-700">Contact</Link>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-emerald-300" /> Qualification ACACED chien et chat</div>
-            <div className="flex items-center gap-3"><HeartPulse className="h-5 w-5 text-emerald-300" /> Besoins individualisés</div>
-            <div className="flex items-center gap-3"><HeartPulse className="h-5 w-5 text-emerald-300" /> Photos et nouvelles</div>
-            <div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-emerald-300" /> Paiement sécurisé</div>
+
+          {/* Colonne droite */}
+          <div className="rounded-[2rem] border border-orange-200/80 bg-gradient-to-br from-orange-50 via-[#FDFBF7] to-amber-50/70 p-6 sm:p-8 shadow-2xl shadow-orange-950/10">
+            {HERO_PHOTO_SRC && (
+              <div className="mb-5 overflow-hidden rounded-2xl border border-orange-100">
+                <Image
+                  src={HERO_PHOTO_SRC}
+                  alt="Garde familiale de chiens et chats chez La Patte Dorée"
+                  width={640}
+                  height={420}
+                  className="h-56 w-full object-cover"
+                  priority
+                />
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-3 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-700 text-white shadow-md shadow-orange-700/20">
+                  <Award className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-gray-900">Cadre 100 % familial</p>
+                  <p className="text-xs font-medium text-gray-600">Maison &amp; suivi personnalisé</p>
+                </div>
+              </div>
+              <span
+                data-no-translate
+                className="shrink-0 rounded-full border border-orange-200 bg-white px-3.5 py-1.5 text-xs sm:text-sm font-extrabold text-orange-800 shadow-sm"
+              >
+                Dès {dayCarePrice.dogPrice} €
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-white/90 p-4 rounded-2xl border border-orange-100 flex items-start gap-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700">
+                  <HomeIcon className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Zéro box, zéro cage</p>
+                  <p className="mt-0.5 text-xs sm:text-sm leading-relaxed text-gray-600">
+                    Votre compagnon vit avec nous dans la maison, à son rythme, avec sorties et moments de jeu adaptés.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white/90 p-4 rounded-2xl border border-orange-100 flex items-start gap-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700">
+                  <Camera className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Photos &amp; nouvelles quotidiennes</p>
+                  <p className="mt-0.5 text-xs sm:text-sm leading-relaxed text-gray-600">
+                    Vous suivez son séjour chaque jour pendant votre visite à Disneyland Paris ou vos vacances.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white/90 p-4 rounded-2xl border border-orange-100 flex items-start gap-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Titulaire ACACED Chien &amp; Chat</p>
+                  <p className="mt-0.5 text-xs sm:text-sm leading-relaxed text-gray-600">
+                    Certificat officiel de capacité, vérification du carnet de santé et respect strict des consignes.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 bg-emerald-950 px-4 py-3 rounded-2xl text-white flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
+              <span className="inline-flex items-center gap-2 font-semibold text-emerald-100">
+                <HeartPulse className="h-4 w-4 text-emerald-300 shrink-0" aria-hidden="true" />
+                Bussy-Saint-Georges · à 10 min des parcs Disney
+              </span>
+              <Link href="#avis" className="font-bold text-amber-300 hover:text-amber-200 transition-colors">
+                Lire les avis →
+              </Link>
+            </div>
           </div>
+        </div>
+
+        {/* Barre des 4 piliers de réassurance */}
+        <div className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <div className="flex items-center gap-3.5 rounded-2xl border border-orange-100 bg-white p-4 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Qualifié ACACED</p>
+              <p className="text-xs text-gray-500">Chien &amp; chat certifié</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 rounded-2xl border border-orange-100 bg-white p-4 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700">
+              <HomeIcon className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">100 % sans box</p>
+              <p className="text-xs text-gray-500">Cadre familial calme</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 rounded-2xl border border-orange-100 bg-white p-4 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700">
+              <Camera className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Suivi quotidien</p>
+              <p className="text-xs text-gray-500">Photos &amp; nouvelles</p>
+            </div>
+          </div>
+
+          <Link
+            href="#avis"
+            className="flex items-center gap-3.5 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm transition-colors hover:border-amber-300 hover:bg-amber-50/40"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <Star className="h-5 w-5 fill-amber-400 text-amber-400" aria-hidden="true" />
+            </div>
+            <div>
+              <p data-no-translate className="text-sm font-bold text-gray-900">Note 5,0 / 5</p>
+              <p className="text-xs font-semibold text-orange-700">Voir les avis clients →</p>
+            </div>
+          </Link>
         </div>
       </section>
 
