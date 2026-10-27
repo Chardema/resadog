@@ -6,12 +6,24 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/button";
+import { trackBookingConversion } from "@/lib/google-analytics";
 
 function BookingSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
+  const rawValue = searchParams.get("value") || searchParams.get("total");
+  const parsedValue = rawValue ? Number(rawValue) : undefined;
   const [countdown, setCountdown] = useState(10);
+
+  useEffect(() => {
+    if (bookingId) {
+      trackBookingConversion({
+        bookingId,
+        value: parsedValue,
+      });
+    }
+  }, [bookingId, parsedValue]);
 
   useEffect(() => {
     // Lancer les confettis !

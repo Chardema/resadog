@@ -3,7 +3,7 @@ import { LEGAL_INFORMATION } from "@/lib/legal";
 import { INSTAGRAM_URL } from "@/lib/social-links";
 
 export const SITE_NAME = "La Patte Dorée";
-export const SEO_LAST_MODIFIED = "2026-09-04";
+export const SEO_LAST_MODIFIED = "2026-10-27";
 
 export const coreKeywords = [
   "garde chien Disneyland Paris",
@@ -20,6 +20,7 @@ export const coreKeywords = [
 
 const coreServiceAreas = [
   "Disneyland Paris",
+  "Bussy-Saint-Georges",
   "Val d'Europe",
   "Chessy",
   "Serris",
@@ -81,12 +82,16 @@ export function buildMetadata({
   path,
   keywords = [],
   noIndex = false,
+  locale = "fr_FR",
+  alternatesLanguages,
 }: {
   title: string;
   description: string;
   path: string;
   keywords?: string[];
   noIndex?: boolean;
+  locale?: string;
+  alternatesLanguages?: Record<string, string>;
 }): Metadata {
   return {
     metadataBase: new URL(getSiteUrl()),
@@ -95,13 +100,19 @@ export function buildMetadata({
     keywords: [...keywords, ...coreKeywords],
     alternates: {
       canonical: path,
+      ...(alternatesLanguages ? { languages: alternatesLanguages } : {}),
     },
     openGraph: {
       title,
       description,
       url: path,
       siteName: SITE_NAME,
-      locale: "fr_FR",
+      locale,
+      ...(locale.startsWith("en")
+        ? { alternateLocale: ["en_US", "fr_FR"] }
+        : alternatesLanguages
+          ? { alternateLocale: ["en_GB", "en_US"] }
+          : {}),
       type: "website",
       images: [
         {
@@ -141,92 +152,127 @@ export const localSeoPages: LocalSeoPage[] = [
   {
     slug: "garde-chien-disneyland-paris",
     path: "/garde-chien-disneyland-paris",
-    title: "Garde chien près de Disneyland Paris",
-    metaTitle: "Garde chien Disneyland Paris | Petsitter familial 77",
+    title: "Garde de chien près de Disneyland Paris : l'alternative familiale sans box",
+    metaTitle: "Garde Chien Disneyland Paris : Alternative au Chenil (Sans Box)",
     description:
-      "Garde de chien près de Disneyland Paris : hébergement familial, garderie, visites et promenades autour de Val d'Europe, photos et réservation en ligne.",
-    eyebrow: "Garde chien Disneyland Paris",
+      "Alternative familiale au chenil de Disneyland Paris : garde chien sans box à 10 min des parcs (Bussy-St-Georges). Garderie jour 35 €, pension 24h 45 €, photos.",
+    eyebrow: "Garde chien Disneyland Paris · À 10 min des parcs (Bussy-Saint-Georges)",
     lead:
-      "Vous passez la journée aux parcs, partez en week-end à Val d'Europe ou cherchez une solution de garde locale ? La Patte Dorée accueille votre chien dans un cadre familial, sans box, avec une prise en charge adaptée à son rythme.",
+      "Vous visitez Disneyland Paris pour la journée ou séjournez dans un hôtel à Val d'Europe ? Offrez à votre chien de vraies vacances pendant que vous profitez des attractions. Située à Bussy-Saint-Georges (à 2 stations de RER A ou 10 minutes en voiture des parcs), La Patte Dorée accueille votre compagnon dans une vraie maison avec jardin, sans box ni cage, avec promenades incluses et photos envoyées dans la journée.",
     intent:
-      "Une solution locale pour les propriétaires qui cherchent une garde de chien fiable autour de Disneyland Paris, Chessy, Serris, Montévrain et Val d'Europe.",
+      "Que vous veniez pour une journée aux parcs ou pour un séjour de plusieurs nuits dans un hôtel Disney, Val d'Europe ou Villages Nature, notre tarification s'adapte à vos horaires réels (le passage de minuit ne déclenche jamais une seconde journée facturée).",
     keywords: [
       "garde chien Disneyland Paris",
+      "chenil Disneyland Paris",
+      "alternative chenil Disneyland Paris",
+      "Animal Care Center Disneyland Paris",
+      "laisser son chien à Disneyland Paris",
+      "garde chien sans box Disneyland Paris",
+      "garderie chien journée Disneyland Paris",
+      "pension chien Disneyland Paris",
       "petsitter Disneyland Paris",
       "dog sitter Disneyland Paris",
+      "garde chien Bussy-Saint-Georges",
       "garde chien Val d'Europe",
-      "pension chien Disneyland Paris",
     ],
-    areas: ["Disneyland Paris", "Chessy", "Serris", "Montévrain", "Magny-le-Hongre", "Coupvray", "Bailly-Romainvilliers", "Val d'Europe"],
+    areas: [
+      "Disneyland Paris",
+      "Bussy-Saint-Georges",
+      "Marne-la-Vallée Chessy",
+      "Val d'Europe",
+      "Serris",
+      "Montévrain",
+      "Magny-le-Hongre",
+      "Coupvray",
+      "Bailly-Romainvilliers",
+      "Villages Nature Paris",
+    ],
     proofPoints: [
-      "Profil animal vérifié avant confirmation",
-      "Garde familiale sans box",
-      "Photos et nouvelles pendant la garde",
-      "Réservation et paiement en ligne",
+      "Maison & jardin clos — 100 % sans box ni cage",
+      "À 10 min de Disneyland Paris (A4 sortie 12 / RER A Bussy-St-Georges)",
+      "Promenades incluses & photos envoyées pendant votre journée au parc",
+      "Pet-sitter diplômée ACACED · Réservation en ligne sécurisée",
     ],
     services: [
       {
-        title: "Hébergement familial",
-        text: "Votre chien dort dans un environnement de maison, avec présence, sorties et attention quotidienne.",
+        title: "Garderie de jour — 35 € (jusqu'à 10 h)",
+        text: "Idéal pour une journée au parc Disneyland ou Walt Disney Studios. Déposez votre chien le matin avant l'ouverture, profitez des attractions l'esprit léger et récupérez-le après sa journée de jeux, de balades et de repos au calme.",
       },
       {
-        title: "Garderie de jour",
-        text: "Une garde sur la journée pendant vos sorties à Disneyland Paris, votre travail ou vos rendez-vous.",
+        title: "Hébergement familial 24 h — 45 € / 24 h",
+        text: "La formule préférée des visiteurs qui restent pour le spectacle nocturne ou dorment à l'hôtel. Le tarif est calculé par période glissante de 24 h à partir de l'heure de dépôt (ex. : arrivée à 9 h le samedi → départ jusqu'à 9 h le dimanche = 45 €).",
       },
       {
-        title: "Promenades",
-        text: "Des balades adaptées à l'énergie de votre chien, avec un rythme fixé selon ses habitudes.",
+        title: "Séjour multi-jours & week-end Disney",
+        text: "Vous logez dans un hôtel de Marne-la-Vallée qui n'accepte pas les animaux ? Votre chien séjourne avec nous comme à la maison (canapé, jardin, sorties régulières et suivi quotidien).",
       },
       {
-        title: "Visites à domicile",
-        text: "Passages chez vous pour repas, sortie, présence et surveillance lorsque le maintien à domicile est préférable.",
+        title: "Visites & promenades autour de Val d'Europe",
+        text: "Vous résidez ou louez un hébergement acceptant les animaux à Chessy, Serris, Montévrain ou Bussy-Saint-Georges ? Nous passons sortir, nourrir et câliner votre compagnon à domicile (dès 15 € / 30 min).",
       },
     ],
     sections: [
       {
-        title: "Une garde pensée pour les journées à Disney",
+        title: "Pourquoi choisir une garde familiale plutôt que le chenil de Disneyland Paris ?",
         body:
-          "Les journées autour de Disneyland Paris peuvent être longues, bruyantes et fatigantes pour un chien. Une garde dédiée évite le stress, les temps d'attente et les allers-retours compliqués.",
+          "Le chenil officiel du parc (Animal Care Center) dépanne, mais impose des contraintes lourdes : votre chien y est placé en box individuel et le personnel n'est pas autorisé à le promener (vous devez sortir du parc en cours de journée pour venir le balader vous-même). Avec La Patte Dorée, vous n'avez aucun aller-retour à faire en pleine journée : nous nous occupons de tout.",
         bullets: [
-          "Accueil sur réservation selon disponibilités",
-          "Routine respectée : repas, sorties, repos et consignes",
-          "Prise en charge adaptée aux chiots, chiens adultes et chiens seniors",
+          "Zéro cage, zéro box : vie de famille en maison avec accès au jardin et au canapé",
+          "Promenades assurées par nos soins : profitez des deux parcs sans devoir ressortir à midi",
+          "Idéal si vous voulez rester jusqu'au spectacle pyrotechnique du soir (formule 24 h à 45 €)",
+          "Nouvelles et photos envoyées pour rassurer toute la famille dans les files d'attente",
         ],
       },
       {
-        title: "Un secteur clair autour de Val d'Europe",
+        title: "Accès ultra-rapide depuis les parcs, la gare TGV/RER de Chessy et l'autoroute A4",
         body:
-          "La prestation est proposée autour de Disneyland Paris et reste indépendante. Chaque demande est confirmée selon le lieu exact, les dates et le profil de l'animal.",
+          "Notre maison d'accueil est située à Bussy-Saint-Georges (77600), sur votre trajet direct vers Disneyland Paris. Le dépôt et la reprise se font sur rendez-vous rapide pour ne pas retarder votre entrée aux parcs.",
         bullets: [
-          "Secteur Val d'Europe, Chessy, Serris et communes proches",
-          "Solution utile pour visiteurs, habitants et travailleurs du secteur",
-          "Informations de santé et habitudes demandées avant validation",
+          "En voiture : à 10 minutes des parkings Disney et des hôtels via l'A4 (sortie 12 Bussy-Saint-Georges)",
+          "En RER A : station Bussy-Saint-Georges, à seulement 2 arrêts (8 minutes) de Marne-la-Vallée Chessy",
+          "Proche de tous les hôtels de Val d'Europe, Serris, Chessy, Coupvray, Magny-le-Hongre et Bailly-Romainvilliers",
+          "Profil santé, habitudes et ententes vérifiés avant confirmation pour garantir la sécurité de chaque chien",
         ],
       },
     ],
     faqs: [
       {
-        question: "Puis-je faire garder mon chien pendant une journée à Disneyland Paris ?",
+        question: "Quelle est la différence entre La Patte Dorée et le chenil officiel de Disneyland Paris (Animal Care Center) ?",
         answer:
-          "Oui, la garderie de jour peut convenir si les disponibilités sont ouvertes et si le profil de votre chien est compatible avec une garde familiale.",
+          "Au chenil officiel de Disneyland Paris, les chiens sont gardés en box individuel et le personnel ne les promène pas : les propriétaires doivent revenir eux-mêmes pendant la journée pour les sortir. Chez La Patte Dorée, votre chien est accueilli dans une vraie maison familiale avec jardin à Bussy-Saint-Georges (à 10 min du parc), sans cage ni box. Nous assurons ses promenades, ses repas et ses moments de jeu, et nous vous envoyons des photos pendant que vous profitez des parcs sans interruption.",
+      },
+      {
+        question: "Comment choisir entre la garderie de jour (35 €) et l'hébergement 24 h (45 €) pour une journée à Disney ?",
+        answer:
+          "Si vous restez aux parcs jusqu'à 10 heures maximum dans la même journée, la garderie de jour à 35 € suffit. Si vous souhaitez arriver dès l'ouverture (ex. 8h30 / 9h00) et rester jusqu'à la fermeture après le spectacle nocturne (souvent 22h00 ou 23h00, soit plus de 10 heures de présence), ou laisser votre chien dormir au calme pour le récupérer le lendemain matin, la formule hébergement 24 h à 45 € s'applique automatiquement.",
+      },
+      {
+        question: "À quelle distance de Disneyland Paris et des hôtels Disney êtes-vous situés ?",
+        answer:
+          "Nous sommes situés à Bussy-Saint-Georges (77600), à environ 10 minutes en voiture de Disneyland Paris, de Val d'Europe et des hôtels partenaires (via l'autoroute A4, sortie 12), et à seulement 2 stations de RER A (8 minutes) de la gare de Marne-la-Vallée Chessy.",
+      },
+      {
+        question: "Mon chien sera-t-il enfermé en box ou en cage ?",
+        answer:
+          "Jamais. L'accueil est 100 % familial : votre chien vit avec nous dans la maison, profite du salon, du jardin clos et de vraies balades. Pour garantir une ambiance sereine, nous validons au préalable le profil de chaque animal (sociabilité, habitudes, santé). Deux chats habitués aux chiens vivent également à la maison et disposent d'un espace séparé si nécessaire.",
+      },
+      {
+        question: "Puis-je déposer mon chien tôt le matin avant l'ouverture des parcs ?",
+        answer:
+          "Oui, les horaires de dépôt et de reprise sont définis lors de votre réservation en ligne afin de s'adapter aux horaires d'ouverture des parcs Disney et à votre heure d'arrivée.",
+      },
+      {
+        question: "Que dois-je apporter le jour de la garde ?",
+        answer:
+          "Apportez la nourriture habituelle de votre chien (pour éviter tout changement digestif), son collier ou harnais, sa laisse, son carnet de santé à jour et, si vous le souhaitez, son panier ou jouet préféré pour qu'il garde ses repères.",
       },
       {
         question: "La Patte Dorée est-elle affiliée à Disneyland Paris ?",
         answer:
-          "Non. La Patte Dorée est un service indépendant de garde d'animaux situé sur le secteur, sans affiliation avec Disneyland Paris.",
-      },
-      {
-        question: "Mon chien sera-t-il en box ?",
-        answer:
-          "Non. La garde est familiale : le chien vit dans un cadre de maison, avec sorties, repos et présence humaine.",
-      },
-      {
-        question: "Quelles communes sont couvertes autour de Disneyland Paris ?",
-        answer:
-          "Les demandes concernent principalement Val d'Europe, Chessy, Serris, Montévrain, Magny-le-Hongre, Coupvray et Bailly-Romainvilliers, selon les disponibilités.",
+          "Non. La Patte Dorée est un service indépendant de garde d'animaux déclaré et certifié ACACED en Seine-et-Marne (77), sans aucune affiliation commerciale avec Disneyland Paris / Euro Disney.",
       },
     ],
-    ctaLabel: "Réserver une garde chien",
+    ctaLabel: "Vérifier les disponibilités & réserver",
     disneyDisclaimer: true,
   },
   {
@@ -694,10 +740,11 @@ export function getLocalBusinessJsonLd() {
     name: SITE_NAME,
     alternateName: LEGAL_INFORMATION.commercialName,
     url: getSiteUrl(),
+    telephone: "+33771593016",
     image: absoluteUrl("/logo-mark.png"),
     logo: absoluteUrl("/logo-mark.png"),
     description:
-      "Service de garde d'animaux pour chiens et chats près de Disneyland Paris, Val d'Europe et en Seine-et-Marne.",
+      "Service de garde d'animaux pour chiens et chats près de Disneyland Paris, Bussy-Saint-Georges, Val d'Europe et en Seine-et-Marne.",
     priceRange: "€€",
     address: {
       "@type": "PostalAddress",
@@ -705,6 +752,11 @@ export function getLocalBusinessJsonLd() {
       postalCode: "77600",
       addressLocality: "Bussy-Saint-Georges",
       addressCountry: "FR",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: 48.8414,
+      longitude: 2.7095,
     },
     areaServed: coreServiceAreas.map((area) => ({
       "@type": "AdministrativeArea",
@@ -720,6 +772,8 @@ export function getLocalBusinessJsonLd() {
 }
 
 export function getLocalServiceJsonLd(page: LocalSeoPage) {
+  const isDisneyPage = page.slug === "garde-chien-disneyland-paris";
+
   return {
     "@context": "https://schema.org",
     "@type": "Service",
@@ -729,18 +783,61 @@ export function getLocalServiceJsonLd(page: LocalSeoPage) {
     url: absoluteUrl(page.path),
     provider: {
       "@id": `${getSiteUrl()}/#localbusiness`,
+      "@type": "LocalBusiness",
       name: SITE_NAME,
+      telephone: "+33771593016",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: "29 boulevard des 100 Arpents",
+        postalCode: "77600",
+        addressLocality: "Bussy-Saint-Georges",
+        addressCountry: "FR",
+      },
     },
     serviceType: page.eyebrow,
     areaServed: page.areas.map((area) => ({
       "@type": "Place",
       name: area,
     })),
-    offers: {
-      "@type": "Offer",
-      url: absoluteUrl("/booking"),
-      availability: "https://schema.org/InStock",
-    },
+    offers: isDisneyPage
+      ? [
+          {
+            "@type": "Offer",
+            name: "Garderie de jour chien (jusqu'à 10 h)",
+            price: "35.00",
+            priceCurrency: "EUR",
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price: "35.00",
+              priceCurrency: "EUR",
+              unitText: "garde de jour jusqu'à 10 h",
+            },
+            availability: "https://schema.org/InStock",
+            url: absoluteUrl("/booking"),
+          },
+          {
+            "@type": "Offer",
+            name: "Hébergement familial chien (période de 24 h)",
+            price: "45.00",
+            priceCurrency: "EUR",
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price: "45.00",
+              priceCurrency: "EUR",
+              unitText: "période de 24 h",
+            },
+            availability: "https://schema.org/InStock",
+            url: absoluteUrl("/booking"),
+          },
+        ]
+      : {
+          "@type": "AggregateOffer",
+          lowPrice: "15.00",
+          highPrice: "80.00",
+          priceCurrency: "EUR",
+          availability: "https://schema.org/InStock",
+          url: absoluteUrl("/booking"),
+        },
   };
 }
 
