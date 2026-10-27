@@ -106,6 +106,42 @@ describe("i18n translations & word boundary safety", () => {
     }
   });
 
+
+  it("translates all Chantier 2 booking simulation, stepper, mobile sticky bar and homepage CTA strings into EN and ES", () => {
+    const chantier2Strings = [
+      "1. Compagnon & Service",
+      "2. Dates & Disponibilités",
+      "3. Récapitulatif",
+      "Simulation & disponibilités en accès libre",
+      "Simuler un tarif rapide",
+      "Mes compagnons enregistrés",
+      "Chien adulte",
+      "Chiot",
+      "Chat adulte",
+      "Chaton",
+      "1 an et +",
+      "Moins d'1 an (+5 €/période)",
+      "Choisir les dates →",
+      "Voir le récapitulatif →",
+      "Payer & confirmer",
+      "Continuer & réserver →",
+      "Vos dates sont disponibles",
+      "Créez votre compte gratuit en 1 minute pour enregistrer votre compagnon et confirmer ces dates",
+      "Créer mon compte & continuer →",
+      "J'ai déjà un compte",
+      "Prêt à planifier le séjour de votre compagnon ?",
+      "Vérifiez nos disponibilités en temps réel et simulez votre tarif exact selon vos horaires en moins d'une minute, avant même de créer votre compte.",
+      "Vérifier les disponibilités & tarifs",
+    ];
+
+    for (const s of chantier2Strings) {
+      const en = translateFrenchText(s, "en");
+      const es = translateFrenchText(s, "es");
+      expect(en, `Missing EN for: ${s}`).not.toBe(s);
+      expect(es, `Missing ES for: ${s}`).not.toBe(s);
+    }
+  });
+
   it("passes scripts/generate-translations.mjs --check with 100% coverage", () => {
     const output = execFileSync("node", ["scripts/generate-translations.mjs", "--check"], {
       encoding: "utf8",

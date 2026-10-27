@@ -146,7 +146,7 @@ export function AppNav() {
           </div>
         </div>
       </header>
-      {authenticated && isClient && (
+      {authenticated && isClient && !isActive(pathname, "/booking") && (
         <nav aria-label="Raccourcis de votre espace" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-gray-200 bg-white/95 px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-xl md:hidden">
           {clientLinks.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} aria-current={isActive(pathname, href) ? "page" : undefined}

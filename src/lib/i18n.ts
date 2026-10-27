@@ -1344,7 +1344,218 @@ const catalogue: Record<string, Translation> = {
     en: "No. Each visit adapts to your cat's personality. For a shy cat, we prioritise calm, routine and gentle, discreet supervision.",
     es: "No. La visita se adapta al carácter del gato. Para un gato tímido, priorizamos la calma, la rutina y una supervisión discreta.",
   },
+
+  // --- Chantier 2 UI/UX : Booking simulation, explicit stepper, sticky mobile bar & homepage CTA ---
+  "1. Compagnon & Service": {
+    en: "1. Pet & Service",
+    es: "1. Mascota y Servicio",
+  },
+  "1. Service": {
+    en: "1. Service",
+    es: "1. Servicio",
+  },
+  "2. Dates & Disponibilités": {
+    en: "2. Dates & Availability",
+    es: "2. Fechas y Disponibilidad",
+  },
+  "2. Dates": {
+    en: "2. Dates",
+    es: "2. Fechas",
+  },
+  "3. Récap.": {
+    en: "3. Summary",
+    es: "3. Resumen",
+  },
+  "3. Récapitulatif": {
+    en: "3. Summary",
+    es: "3. Resumen",
+  },
+  "Ajouter": {
+    en: "Add",
+    es: "Añadir",
+  },
+  "Retirer": {
+    en: "Remove",
+    es: "Quitar",
+  },
+  "Ajouter mon compagnon →": {
+    en: "Add my pet →",
+    es: "Añadir mi mascota →",
+  },
+  "Ajouter un compagnon": {
+    en: "Add a pet",
+    es: "Añadir una mascota",
+  },
+  "Chat adulte": {
+    en: "Adult cat",
+    es: "Gato adulto",
+  },
+  "Chien adulte": {
+    en: "Adult dog",
+    es: "Perro adulto",
+  },
+  "Chiot": {
+    en: "Puppy",
+    es: "Cachorro",
+  },
+  "Chaton": {
+    en: "Kitten",
+    es: "Gatito",
+  },
+  "1 an et +": {
+    en: "1 year & older",
+    es: "1 año o más",
+  },
+  "Moins d'1 an (+5 €/période)": {
+    en: "Under 1 year (+€5/period)",
+    es: "Menos de 1 año (+5 €/período)",
+  },
+  "Choisir les dates →": {
+    en: "Choose dates →",
+    es: "Elegir fechas →",
+  },
+  "Compléter la fiche de mon compagnon →": {
+    en: "Complete my pet's profile →",
+    es: "Completar la ficha de mi mascota →",
+  },
+  "Continuer & réserver →": {
+    en: "Continue & book →",
+    es: "Continuar y reservar →",
+  },
+  "Créer mon compte & continuer →": {
+    en: "Create my account & continue →",
+    es: "Crear mi cuenta y continuar →",
+  },
+  "Créez votre compte gratuit en 1 minute pour enregistrer votre compagnon et confirmer ces dates": {
+    en: "Create your free account in 1 minute to register your pet and confirm these dates",
+    es: "Crea tu cuenta gratuita en 1 minuto para registrar a tu mascota y confirmar estas fechas",
+  },
+  "Créez votre compte gratuit en 1 minute pour enregistrer votre compagnon et confirmer ces dates.": {
+    en: "Create your free account in 1 minute to register your pet and confirm these dates.",
+    es: "Crea tu cuenta gratuita en 1 minuto para registrar a tu mascota y confirmar estas fechas.",
+  },
+  "Enregistrez ou complétez la fiche de votre compagnon pour confirmer ces dates": {
+    en: "Register or complete your pet's profile to confirm these dates",
+    es: "Registra o completa la ficha de tu mascota para confirmar estas fechas",
+  },
+  "Étapes de réservation": {
+    en: "Booking steps",
+    es: "Pasos de la reserva",
+  },
+  "J'ai déjà un compte": {
+    en: "I already have an account",
+    es: "Ya tengo una cuenta",
+  },
+  "Mes compagnons enregistrés": {
+    en: "My saved pets",
+    es: "Mis mascotas registradas",
+  },
+  "Simuler un tarif rapide": {
+    en: "Quick price simulator",
+    es: "Simular tarifa rápida",
+  },
+  "Payer & confirmer": {
+    en: "Pay & confirm",
+    es: "Pagar y confirmar",
+  },
+  "Prêt à planifier le séjour de votre compagnon ?": {
+    en: "Ready to plan your pet's stay?",
+    es: "¿Listo para planificar la estancia de tu mascota?",
+  },
+  "Profil compagnon en attente — mode simulation actif": {
+    en: "Pet profile pending — simulation mode active",
+    es: "Perfil de mascota pendiente — modo simulación activo",
+  },
+  "promenade de 30 min": {
+    en: "30-min walk",
+    es: "paseo de 30 min",
+  },
+  "visite de 30 min": {
+    en: "30-min visit",
+    es: "visita de 30 min",
+  },
+  "Retour à ma simulation": {
+    en: "Back to my quote",
+    es: "Volver a mi simulación",
+  },
+  "Sélectionnez au moins 1 compagnon pour simuler votre tarif et vérifier les disponibilités.": {
+    en: "Select at least 1 pet to simulate your rate and check availability.",
+    es: "Selecciona al menos 1 mascota para simular tu tarifa y comprobar la disponibilidad.",
+  },
+  "Sélectionnez vos compagnons (jusqu'à 4) pour calculer immédiatement votre tarif exact. Vos choix sont sauvegardés automatiquement.": {
+    en: "Select your pets (up to 4) to immediately calculate your exact rate. Your choices are saved automatically.",
+    es: "Selecciona tus mascotas (hasta 4) para calcular de inmediato tu tarifa exacta. Tus opciones se guardan automáticamente.",
+  },
+  "Sélectionnez votre compagnon enregistré pour confirmer ces dates": {
+    en: "Select your saved pet to confirm these dates",
+    es: "Selecciona tu mascota registrada para confirmar estas fechas",
+  },
+  "Simulation & disponibilités en accès libre": {
+    en: "Open access quote & availability",
+    es: "Simulación y disponibilidad de libre acceso",
+  },
+  "Simulation en direct": {
+    en: "Live quote",
+    es: "Simulación en directo",
+  },
+  "Simulez votre tarif et vérifiez nos disponibilités en direct": {
+    en: "Simulate your rate and check live availability",
+    es: "Simula tu tarifa y comprueba nuestra disponibilidad en directo",
+  },
+  "Utiliser mon compagnon enregistré →": {
+    en: "Use my saved pet →",
+    es: "Usar mi mascota registrada →",
+  },
+  "Vérification…": {
+    en: "Checking…",
+    es: "Comprobando…",
+  },
+  "Disponible": {
+    en: "Available",
+    es: "Disponible",
+  },
+  "Indisponible": {
+    en: "Unavailable",
+    es: "No disponible",
+  },
+  "Vérifier les disponibilités & tarifs": {
+    en: "Check availability & rates",
+    es: "Ver disponibilidad y tarifas",
+  },
+  "Vérifiez nos disponibilités en temps réel et simulez votre tarif exact selon vos horaires en moins d'une minute, avant même de créer votre compte.": {
+    en: "Check our real-time availability and simulate your exact rate for your schedule in under a minute, before even creating an account.",
+    es: "Consulta nuestra disponibilidad en tiempo real y simula tu tarifa exacta según tus horarios en menos de un minuto, incluso antes de crear tu cuenta.",
+  },
+  "Voir le récapitulatif →": {
+    en: "View summary →",
+    es: "Ver el resumen →",
+  },
+  "Vos dates et votre tarif estimé restent sauvegardés. Dès que la fiche de votre compagnon est complète et validée, vous pourrez finaliser la réservation.": {
+    en: "Your dates and estimated rate remain saved. As soon as your pet's profile is complete and verified, you can finalise your booking.",
+    es: "Tus fechas y tu tarifa estimada quedan guardadas. En cuanto la ficha de tu mascota esté completa y validada, podrás finalizar la reserva.",
+  },
+  "Vos dates sont disponibles": {
+    en: "Your dates are available",
+    es: "Tus fechas están disponibles",
+  },
+  "Votre sélection": {
+    en: "Your selection",
+    es: "Tu selección",
+  },
+  "Votre simulation (dates, horaires, service et tarif estimé) est sauvegardée automatiquement : vous la retrouverez immédiatement après votre connexion.": {
+    en: "Your quote (dates, times, service and estimated rate) is saved automatically: you will find it right after signing in.",
+    es: "Tu simulación (fechas, horarios, servicio y tarifa estimada) se guarda automáticamente: la recuperarás enseguida tras iniciar sesión.",
+  },
+  "Vous êtes actuellement en mode simulation rapide. Basculez sur votre compagnon validé pour accéder au paiement sécurisé.": {
+    en: "You are currently in quick quote mode. Switch to your verified pet to proceed to secure payment.",
+    es: "Actualmente estás en modo de simulación rápida. Cambia a tu mascota validada para acceder al pago seguro.",
+  },
+  "Vous pouvez simuler votre tarif et vérifier nos disponibilités dès maintenant. Pour confirmer le paiement à l'étape 3, votre compagnon devra avoir un profil complet et validé.": {
+    en: "You can simulate your rate and check availability right now. To confirm payment at step 3, your pet will need a complete and verified profile.",
+    es: "Puedes simular tu tarifa y comprobar la disponibilidad ahora mismo. Para confirmar el pago en el paso 3, tu mascota deberá tener un perfil completo y validado.",
+  },
 };
+
 
 const completeCatalogue: Record<string, Translation> = {
   ...generatedCatalogue,

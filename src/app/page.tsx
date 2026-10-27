@@ -9,6 +9,7 @@ import { ReviewsSection } from "@/components/home/ReviewsSection";
 import { LocationSection } from "@/components/home/LocationSection";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
+  ArrowRight,
   Award,
   CalendarCheck,
   Camera,
@@ -510,18 +511,25 @@ export default function Home() {
           </div>
           
           <div className="relative z-10 max-w-2xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
-              Rejoignez la famille.
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
+              Prêt à planifier le séjour de votre compagnon ?
             </h2>
-            <p className="text-gray-400 text-xl mb-10">
-              Créez votre compte gratuitement, renseignez les besoins de votre compagnon et envoyez votre demande. Chaque garde est confirmée après vérification des disponibilités.
+            <p className="text-gray-300 text-lg sm:text-xl mb-10 leading-relaxed">
+              Vérifiez nos disponibilités en temps réel et simulez votre tarif exact selon vos horaires en moins d&apos;une minute, avant même de créer votre compte.
             </p>
-            <div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href={session?.user ? "/dashboard" : "/auth/signup"}
-                className="inline-block bg-orange-700 text-white px-8 py-5 rounded-full font-bold text-lg shadow-lg hover:bg-orange-800 transition-all"
+                href="/booking"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-orange-700 text-white px-8 py-4 rounded-full font-bold text-base sm:text-lg shadow-lg hover:bg-orange-800 transition-all"
               >
-                {session?.user ? "Accéder à mon espace" : "Créer mon compte"}
+                Vérifier les disponibilités &amp; tarifs
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+              <Link
+                href={session?.user ? "/dashboard" : "/tarifs"}
+                className="w-full sm:w-auto inline-flex items-center justify-center bg-white/10 text-white border border-white/20 px-7 py-4 rounded-full font-bold text-base sm:text-lg hover:bg-white/20 transition-all"
+              >
+                {session?.user ? "Accéder à mon espace" : "Voir la grille tarifaire"}
               </Link>
             </div>
           </div>
