@@ -2377,7 +2377,7 @@ export default function BookingPage() {
                          </div>
                              <div className="flex flex-col items-start sm:items-end gap-1.5">
                                  <p className="max-w-xs sm:max-w-56 text-left sm:text-right text-[11px] leading-4 text-orange-200">
-                                   5 premiers nouveaux clients : <strong>BIENVENUE10</strong> (-10 %). Les remises ne se cumulent pas : la plus avantageuse est retenue.
+                                   Les remises ne se cumulent pas : la plus avantageuse est retenue.
                                  </p>
                                  <div className="flex gap-2">
                                      <Input

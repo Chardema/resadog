@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { translateFrenchText } from "@/lib/i18n";
@@ -188,8 +190,10 @@ describe("i18n translations & word boundary safety", () => {
       "Gagnez gratuitement 1 Patte par euro dépensé dès votre première garde (jusqu’à 24 € de remise fidélité). Besoin de gardes régulières ? L’abonnement Premium offre -10 % jusqu’à 20 € par réservation, les Pattes doublées et la priorité vacances.",
       "Découvrir le programme Pattes",
       "Voir les avantages Premium",
-      "-10 % Bienvenue",
-      "Code BIENVENUE10 sur votre 1re réservation",
+      "Crédité automatiquement dès votre 1re garde",
+      "Paliers fidélité",
+      "Les remises ne se cumulent pas : la plus avantageuse est retenue.",
+      "Les remises ne sont pas cumulables. Le système compare votre avantage fidélité ou Premium et les remises automatiques, puis conserve l’avantage le plus favorable.",
       "1 € = 1 Patte",
       "Jusqu’à 24 € de remise fidélité cumulable",
       "Premium -10 %",
@@ -224,6 +228,28 @@ describe("i18n translations & word boundary safety", () => {
       const es = translateFrenchText(s, "es");
       expect(en, `Missing EN for: ${s}`).not.toBe(s);
       expect(es, `Missing ES for: ${s}`).not.toBe(s);
+    }
+  });
+
+  it("removes inactive BIENVENUE10 welcome promo code from public pages, emails, and API routes", () => {
+    const root = process.cwd();
+    expect(fs.existsSync(path.join(root, "src/lib/welcome-offer.ts"))).toBe(false);
+
+    const filesToCheck = [
+      "src/components/home/HomePageClient.tsx",
+      "src/app/booking/page.tsx",
+      "src/app/tarifs/page.tsx",
+      "src/lib/email.ts",
+      "src/app/api/coupons/validate/route.ts",
+      "src/app/api/bookings/route.ts",
+      "src/app/api/stripe/checkout/route.ts",
+      "src/app/api/stripe/webhook/route.ts",
+    ];
+
+    for (const relPath of filesToCheck) {
+      const content = fs.readFileSync(path.join(root, relPath), "utf8");
+      expect(content, `${relPath} should not contain BIENVENUE10`).not.toContain("BIENVENUE10");
+      expect(content, `${relPath} should not import welcome-offer`).not.toContain("welcome-offer");
     }
   });
 });
