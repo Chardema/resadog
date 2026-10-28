@@ -229,4 +229,12 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(dependabotSource).toContain("version-update:semver-major");
     expect(dependabotSource).not.toContain("npm-major");
   });
+  it("configures Google Search Console verification meta tag in layout.tsx and static HTML file in public/", () => {
+    const layoutSource = readSource("src/app/layout.tsx");
+    expect(layoutSource).toContain("verification:");
+    expect(layoutSource).toContain(`google: "sDOJLIyeftnYcYjz2Sh_Oa_-NajprtUwAmtlWfiI8Gk"`);
+
+    const gscHtml = readSource("public/google742954b21c94a53b.html");
+    expect(gscHtml.trim()).toBe("google-site-verification: google742954b21c94a53b.html");
+  });
 });
