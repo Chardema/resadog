@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import {
   ArrowRight,
   Award,
@@ -17,6 +18,36 @@ import { absoluteUrl, buildMetadata, getSiteUrl, SITE_NAME } from "@/lib/seo";
 
 const EN_PATH = "/en/dog-boarding-disneyland-paris";
 const FR_PATH = "/garde-chien-disneyland-paris";
+
+const EN_HERO_PHOTO = {
+  src: "/images/hero-famille.webp",
+  width: 1200,
+  height: 900,
+  badge: "Real family home · Zero cages",
+  caption: "Peaceful rest in a real family living room — 10 mins from Disneyland Paris",
+  alt: "Cavalier King Charles Spaniel sleeping peacefully in an armchair at La Patte Dorée near Disneyland Paris",
+} as const;
+
+const EN_GALLERY_PHOTOS = [
+  {
+    src: "/images/galerie/jardin-golden.webp",
+    badge: "Enclosed garden",
+    caption: "Golden Retriever enjoying our sunny enclosed garden",
+    alt: "Golden Retriever walking in the sunny enclosed garden at La Patte Dorée near Disneyland Paris",
+  },
+  {
+    src: "/images/galerie/balade-golden-creme.webp",
+    badge: "Daily walks",
+    caption: "Real outdoor nature walks included in your dog's stay",
+    alt: "Daily outdoor nature walk with a dog boarded at La Patte Dorée near Disneyland Paris",
+  },
+  {
+    src: "/images/galerie/interieur-chien-noir.webp",
+    badge: "Cage-free home",
+    caption: "Calm indoor rest at home — never in a kennel box or cage",
+    alt: "Dog resting calmly indoors in a cage-free family home at La Patte Dorée",
+  },
+] as const;
 
 const enKeywords = [
   "dog boarding Disneyland Paris",
@@ -197,11 +228,13 @@ function getEnglishJsonLd() {
       description:
         "Cage-free family dog daycare (€35 up to 10h) and 24-hour dog boarding (€45) in Bussy-Saint-Georges, 10 minutes from Disneyland Paris. Walks and photo updates included.",
       url: enUrl,
+      image: absoluteUrl("/og-image.jpg"),
       inLanguage: "en",
       provider: {
         "@id": `${siteUrl}/#localbusiness`,
         "@type": "LocalBusiness",
         name: SITE_NAME,
+        image: absoluteUrl("/og-image.jpg"),
         telephone: "+33771593016",
         address: {
           "@type": "PostalAddress",
@@ -339,6 +372,28 @@ export default function EnglishDisneyDogBoardingPage() {
               <p className="mt-4 max-w-2xl text-xs leading-5 text-gray-500">
                 Independent, state-certified (ACACED) pet care service. Not affiliated with Disneyland Paris.
               </p>
+
+              <figure className="mt-8 overflow-hidden rounded-2xl border border-orange-100 bg-[#FDFbf7] shadow-sm">
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-orange-50/50">
+                  <Image
+                    src={EN_HERO_PHOTO.src}
+                    alt={EN_HERO_PHOTO.alt}
+                    width={EN_HERO_PHOTO.width}
+                    height={EN_HERO_PHOTO.height}
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 55vw"
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full border border-orange-100 bg-white/95 px-3 py-1 text-xs font-bold text-orange-900 shadow-sm backdrop-blur-sm">
+                    <Camera className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
+                    <span>{EN_HERO_PHOTO.badge}</span>
+                  </span>
+                </div>
+                <figcaption className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs font-medium text-gray-700">
+                  <span>{EN_HERO_PHOTO.caption}</span>
+                  <span className="shrink-0 font-bold text-orange-800">Bussy-Saint-Georges (77600)</span>
+                </figcaption>
+              </figure>
             </div>
 
             <aside className="rounded-lg border border-gray-200 bg-[#FDFbf7] p-5">
@@ -391,6 +446,47 @@ export default function EnglishDisneyDogBoardingPage() {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        <section className="container mx-auto px-6 pb-12">
+          <div className="mb-6 max-w-2xl">
+            <p className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-800">
+              <Camera className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
+              <span>Real Photos · 100% Cage-Free Family Home</span>
+            </p>
+            <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">
+              See Where Your Dog Stays While You Visit Disneyland Paris
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600 sm:text-base">
+              Authentic photos of our guests in Bussy-Saint-Georges: enclosed sunny garden, real outdoor walks, and peaceful indoor rest without cages.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {EN_GALLERY_PHOTOS.map((photo) => (
+              <figure
+                key={photo.src}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-orange-50/50">
+                  <Image
+                    src={photo.src}
+                    alt={photo.alt}
+                    width={800}
+                    height={600}
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  />
+                  <span className="absolute top-2.5 left-2.5 rounded-full border border-orange-100 bg-white/95 px-2.5 py-1 text-[11px] font-bold text-orange-900 shadow-sm backdrop-blur-sm">
+                    {photo.badge}
+                  </span>
+                </div>
+                <figcaption className="p-3.5 text-xs sm:text-sm font-medium leading-snug text-gray-700">
+                  {photo.caption}
+                </figcaption>
+              </figure>
+            ))}
           </div>
         </section>
 

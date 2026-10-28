@@ -1834,6 +1834,82 @@ const catalogue: Record<string, Translation> = {
     en: "Rates & Terms",
     es: "Tarifas y Condiciones",
   },
+  "Accueil familial chiens et chats à Bussy-Saint-Georges (77)": {
+    en: "Family home boarding for dogs and cats in Bussy-Saint-Georges (77)",
+    es: "Alojamiento familiar para perros y gatos en Bussy-Saint-Georges (77)",
+  },
+  "Bussy-Saint-Georges (77)": {
+    en: "Bussy-Saint-Georges (77)",
+    es: "Bussy-Saint-Georges (77)",
+  },
+  "Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée à 10 min de Disneyland Paris": {
+    en: "Cavalier King Charles Spaniel sleeping peacefully in an armchair at La Patte Dorée, 10 min from Disneyland Paris",
+    es: "Cavalier King Charles durmiendo plácidamente en un sillón en La Patte Dorée, a 10 min de Disneyland Paris",
+  },
+  "Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée en Seine-et-Marne (77)": {
+    en: "Cavalier King Charles Spaniel sleeping peacefully in an armchair at La Patte Dorée in Seine-et-Marne (77)",
+    es: "Cavalier King Charles durmiendo plácidamente en un sillón en La Patte Dorée en Seine-et-Marne (77)",
+  },
+  "Chat profitant du soleil dans l'herbe pendant sa garde en Seine-et-Marne": {
+    en: "Cat enjoying the sun in the grass during its stay in Seine-et-Marne",
+    es: "Gato disfrutando del sol en la hierba durante su estancia en Seine-et-Marne",
+  },
+  "Chat profitant du soleil dans l'herbe pendant une garde chat en Seine-et-Marne (77)": {
+    en: "Cat enjoying the sun in the grass during cat boarding in Seine-et-Marne (77)",
+    es: "Gato disfrutando del sol en la hierba durante una estancia felina en Seine-et-Marne (77)",
+  },
+  "Chat tigré détendu sur le canapé familial chez La Patte Dorée en Seine-et-Marne (77)": {
+    en: "Tabby cat relaxed on the family sofa at La Patte Dorée in Seine-et-Marne (77)",
+    es: "Gato atigrado relajado en el sofá familiar en La Patte Dorée en Seine-et-Marne (77)",
+  },
+  "Garde chat · 100 % sereine": {
+    en: "Cat care · 100% peaceful",
+    es: "Cuidado de gatos · 100 % sereno",
+  },
+  "Hébergement familial sans box ni chenil en Seine-et-Marne (77)": {
+    en: "Cage-free and kennel-free family boarding in Seine-et-Marne (77)",
+    es: "Alojamiento familiar sin jaulas ni perreras en Seine-et-Marne (77)",
+  },
+  "Le cadre réel chez La Patte Dorée en Seine-et-Marne": {
+    en: "The real home environment at La Patte Dorée in Seine-et-Marne",
+    es: "El entorno real en La Patte Dorée en Seine-et-Marne",
+  },
+  "Le cadre réel pendant votre journée à Disneyland Paris": {
+    en: "The real home environment during your day at Disneyland Paris",
+    es: "El entorno real durante tu día en Disneyland Paris",
+  },
+  "Maison familiale · Zéro box": {
+    en: "Family home · Zero cages",
+    es: "Casa familiar · Cero jaulas",
+  },
+  "Repos au calme en maison familiale à 10 min de Disneyland Paris": {
+    en: "Peaceful rest in a family home 10 min from Disneyland Paris",
+    es: "Descanso tranquilo en una casa familiar a 10 min de Disneyland Paris",
+  },
+  "Un aperçu réel de nos gardes et visites chats dans le 77": {
+    en: "A real glimpse of our cat boarding and drop-in visits in the 77 area",
+    es: "Un vistazo real a nuestras estancias y visitas para gatos en el 77",
+  },
+  "Un cadre de maison réel pour votre chien dans le 77": {
+    en: "A real family home setting for your dog in the 77 area",
+    es: "Un verdadero entorno de hogar para tu perro en el 77",
+  },
+  "Vraies photos de nos pensionnaires à Bussy-Saint-Georges : jardin clos, vraies promenades incluses et repos au salon sans cage.": {
+    en: "Real photos of our guests in Bussy-Saint-Georges: enclosed garden, real walks included, and cage-free rest in the living room.",
+    es: "Fotos reales de nuestros huéspedes en Bussy-Saint-Georges: jardín vallado, paseos reales incluidos y descanso en el salón sin jaulas.",
+  },
+  "Vraies photos de nos pensionnaires chiens et chats à Bussy-Saint-Georges : salon familial, jardin clos et repos au calme.": {
+    en: "Real photos of our dog and cat guests in Bussy-Saint-Georges: family living room, enclosed garden, and peaceful rest.",
+    es: "Fotos reales de nuestros huéspedes perros y gatos en Bussy-Saint-Georges: salón familiar, jardín vallado y descanso tranquilo.",
+  },
+  "Vraies photos prises lors de nos gardes : respect des habitudes, calme, câlins et nouvelles envoyées à chaque passage.": {
+    en: "Real photos taken during our stays: routines respected, calm environment, cuddles, and updates sent at every visit.",
+    es: "Fotos reales tomadas durante nuestras guardias: respeto de las rutinas, calma, mimos y noticias enviadas en cada visita.",
+  },
+  "Tarif public :": {
+    en: "Public rate:",
+    es: "Tarifa pública:",
+  },
 };
 
 

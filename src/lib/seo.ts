@@ -784,7 +784,6 @@ export function getLocalBusinessJsonLd() {
       "@type": "AdministrativeArea",
       name: area,
     })),
-    knowsAbout: coreKeywords,
     sameAs: [
       INSTAGRAM_URL,
       "https://www.allovoisins.com/p/meganemelique-1#avis",
@@ -803,10 +802,12 @@ export function getLocalServiceJsonLd(page: LocalSeoPage) {
     name: page.title,
     description: page.description,
     url: absoluteUrl(page.path),
+    image: absoluteUrl("/og-image.jpg"),
     provider: {
       "@id": `${getSiteUrl()}/#localbusiness`,
       "@type": "LocalBusiness",
       name: SITE_NAME,
+      image: absoluteUrl("/og-image.jpg"),
       telephone: "+33771593016",
       address: {
         "@type": "PostalAddress",

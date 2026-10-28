@@ -4,14 +4,19 @@ import { describe, expect, it } from "vitest";
 import { OPEN_BUG_REPORT_EVENT } from "@/components/layout/BetaBanner";
 import { GOOGLE_MAPS_PLACE_URL } from "@/lib/google-reviews";
 import { LEGAL_INFORMATION } from "@/lib/legal";
-import { absoluteUrl, getLocalBusinessJsonLd } from "@/lib/seo";
+import {
+  absoluteUrl,
+  getLocalBusinessJsonLd,
+  getLocalServiceJsonLd,
+  localSeoPages,
+} from "@/lib/seo";
 
 const rootDir = process.cwd();
 const readSource = (relPath: string) =>
   fs.readFileSync(path.join(rootDir, relPath), "utf8");
 
 describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, NAP/JSON-LD, WCAG AA & real GBP photos", () => {
-  it("enriches getLocalBusinessJsonLd with email, hasMap, og-image.jpg, addressRegion and openingHoursSpecification", () => {
+  it("enriches getLocalBusinessJsonLd with email, hasMap, og-image.jpg, addressRegion, openingHoursSpecification and removes knowsAbout", () => {
     const jsonLd = getLocalBusinessJsonLd();
 
     expect(jsonLd.email).toBe(LEGAL_INFORMATION.contactEmail);
@@ -19,6 +24,7 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(jsonLd.image).toBe(absoluteUrl("/og-image.jpg"));
     expect(jsonLd.logo).toBe(absoluteUrl("/logo-mark.png"));
     expect(jsonLd.address.addressRegion).toBe("Île-de-France");
+    expect("knowsAbout" in jsonLd).toBe(false);
     expect(jsonLd.openingHoursSpecification).toEqual([
       {
         "@type": "OpeningHoursSpecification",
@@ -35,6 +41,15 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
         closes: "21:00",
       },
     ]);
+  });
+
+  it("includes og-image.jpg on Service and provider in getLocalServiceJsonLd for all 6 French local SEO pages", () => {
+    expect(localSeoPages).toHaveLength(6);
+    for (const page of localSeoPages) {
+      const serviceJsonLd = getLocalServiceJsonLd(page);
+      expect(serviceJsonLd.image).toBe(absoluteUrl("/og-image.jpg"));
+      expect(serviceJsonLd.provider.image).toBe(absoluteUrl("/og-image.jpg"));
+    }
   });
 
   it("hides floating LanguageSwitcher on mobile (< 768px) and supports inline mode", () => {
@@ -106,7 +121,7 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(cssSource).toContain("transition-duration: 0.01ms !important;");
   });
 
-  it("integrates real GBP hero photo, og-image.jpg and 6-photo PhotoGallerySection on home page", () => {
+  it("integrates real GBP hero photo, og-image.jpg and 6-photo PhotoGallerySection on home page and local/Disney SEO pages", () => {
     const homeSource = readSource("src/components/home/HomePageClient.tsx");
     expect(homeSource).toContain(`const HERO_PHOTO_SRC = "/images/hero-famille.webp";`);
     expect(homeSource).toContain(
@@ -118,6 +133,27 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(gallerySource).toContain("Nos pensionnaires comme à la maison");
     expect(gallerySource).toContain("grid-cols-2 md:grid-cols-3 gap-4");
     expect(gallerySource).toContain("@lapatte_doree");
+
+    const localSeoSource = readSource("src/app/(local-seo)/[slug]/page.tsx");
+    expect(localSeoSource).toContain("/images/hero-famille.webp");
+    expect(localSeoSource).toContain("/images/galerie/chat-tigre-canape.webp");
+    expect(localSeoSource).toContain("/images/galerie/chat-soleil-jardin.webp");
+    expect(localSeoSource).toContain("/images/galerie/salon-chien-chat.webp");
+    expect(localSeoSource).toContain("/images/galerie/jardin-golden.webp");
+    expect(localSeoSource).toContain("/images/galerie/balade-golden-creme.webp");
+    expect(localSeoSource).toContain("/images/galerie/interieur-chien-noir.webp");
+    expect(localSeoSource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
+
+    const englishDisneySource = readSource("src/app/en/dog-boarding-disneyland-paris/page.tsx");
+    expect(englishDisneySource).toContain("/images/hero-famille.webp");
+    expect(englishDisneySource).toContain(
+      "Cavalier King Charles Spaniel sleeping peacefully in an armchair at La Patte Dorée near Disneyland Paris"
+    );
+    expect(englishDisneySource).toContain("/images/galerie/jardin-golden.webp");
+    expect(englishDisneySource).toContain("/images/galerie/balade-golden-creme.webp");
+    expect(englishDisneySource).toContain("/images/galerie/interieur-chien-noir.webp");
+    expect(englishDisneySource).toContain('absoluteUrl("/og-image.jpg")');
+    expect(englishDisneySource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
 
     const expectedAssets = [
       "public/og-image.jpg",

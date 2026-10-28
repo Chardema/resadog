@@ -6,24 +6,17 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Pour Prisma 7, nous utilisons l'adapter PostgreSQL pour Node.js
-const connectionString = process.env.DATABASE_URL;
+// Pour Prisma 7, un driver adapter est requis à l'instanciation de PrismaClient
+const connectionString =
+  process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/resadog_placeholder';
 
-let prismaInstance: PrismaClient;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
 
-if (connectionString) {
-  const pool = new Pool({ connectionString });
-  const adapter = new PrismaPg(pool);
-  prismaInstance = new PrismaClient({
-    adapter,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  });
-} else {
-  // Fallback sans adapter si pas de DATABASE_URL (pour le build)
-  prismaInstance = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  });
-}
+const prismaInstance = new PrismaClient({
+  adapter,
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+});
 
 export const prisma = globalForPrisma.prisma ?? prismaInstance;
 
