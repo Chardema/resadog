@@ -11,13 +11,6 @@ import {
   claimCheckoutAttempt,
   failCheckoutAttempt,
 } from "@/lib/checkout-attempts";
-import {
-  WELCOME_OFFER_CHECKOUT_MINUTES,
-  WELCOME_OFFER_LOCK_ID,
-  WELCOME_OFFER_MAX_CLIENTS,
-  WELCOME_OFFER_NOTE,
-  isWelcomeOfferCode,
-} from "@/lib/welcome-offer";
 import { getPetProfileCompletion, isPetBirthDateVerified } from "@/lib/pets";
 import {
   BOOKING_INVOICE_VERSION,
@@ -26,100 +19,9 @@ import {
 } from "@/lib/legal";
 import { getServiceLabel } from "@/lib/services";
 
-class WelcomeOfferError extends Error {}
-
 const BOOKING_CHECKOUT_MINUTES = 31;
 
-async function claimWelcomeOffer(userId: string, bookingIds: string[]) {
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${WELCOME_OFFER_LOCK_ID})`;
-
-    // Une session Checkout expire après 31 minutes. Ce filet de sécurité libère
-    // également une place si le webhook Stripe d'expiration a été retardé.
-    const staleBefore = new Date(Date.now() - (WELCOME_OFFER_CHECKOUT_MINUTES + 5) * 60 * 1000);
-    await tx.booking.updateMany({
-      where: {
-        status: "PENDING",
-        depositPaid: false,
-        couponRedeemedAt: { lt: staleBefore },
-        notes: { contains: WELCOME_OFFER_NOTE },
-        OR: [
-          { payment: { is: null } },
-          { payment: { is: { status: { not: "SUCCEEDED" } } } },
-        ],
-      },
-      data: { couponRedeemedAt: null },
-    });
-
-    const [hasPreviousBooking, otherClaim, currentBookings, claimedPlaces] = await Promise.all([
-      tx.booking.findFirst({
-        where: {
-          clientId: userId,
-          id: { notIn: bookingIds },
-          OR: [
-            { depositPaid: true },
-            { payment: { is: { status: "SUCCEEDED" } } },
-            { status: { in: ["CONFIRMED", "IN_PROGRESS", "COMPLETED"] } },
-          ],
-        },
-        select: { id: true },
-      }),
-      tx.booking.findFirst({
-        where: {
-          clientId: userId,
-          id: { notIn: bookingIds },
-          couponRedeemedAt: { not: null },
-          notes: { contains: WELCOME_OFFER_NOTE },
-        },
-        select: { id: true },
-      }),
-      tx.booking.findMany({
-        where: {
-          id: { in: bookingIds },
-          clientId: userId,
-          notes: { contains: WELCOME_OFFER_NOTE },
-        },
-        select: { id: true, couponRedeemedAt: true },
-      }),
-      tx.booking.count({
-        where: {
-          couponRedeemedAt: { not: null },
-          notes: { contains: WELCOME_OFFER_NOTE },
-        },
-      }),
-    ]);
-
-    if (hasPreviousBooking) {
-      throw new WelcomeOfferError("Cette offre est réservée aux nouveaux clients, pour leur première réservation.");
-    }
-    if (otherClaim) {
-      throw new WelcomeOfferError("Votre offre de bienvenue est déjà associée à une autre réservation.");
-    }
-    if (currentBookings.length !== bookingIds.length) {
-      throw new WelcomeOfferError("L'offre de bienvenue n'est pas associée à cette réservation.");
-    }
-
-    const unclaimedIds = currentBookings
-      .filter((booking) => !booking.couponRedeemedAt)
-      .map((booking) => booking.id);
-
-    if (claimedPlaces + unclaimedIds.length > WELCOME_OFFER_MAX_CLIENTS) {
-      throw new WelcomeOfferError("Les 5 offres de bienvenue ont déjà été attribuées.");
-    }
-
-    if (unclaimedIds.length > 0) {
-      await tx.booking.updateMany({
-        where: { id: { in: unclaimedIds }, couponRedeemedAt: null },
-        data: { couponRedeemedAt: new Date() },
-      });
-    }
-
-    return unclaimedIds;
-  });
-}
-
 export async function POST(request: NextRequest) {
-  let newlyClaimedWelcomeBookingIds: string[] = [];
   let checkoutSession: Stripe.Checkout.Session | null = null;
   let checkoutAttemptClaim: CheckoutAttemptClaim | null = null;
 
@@ -254,10 +156,6 @@ export async function POST(request: NextRequest) {
     }
     checkoutAttemptClaim = checkoutAttempt.claim;
 
-    if (isWelcomeOfferCode(promoCode)) {
-      newlyClaimedWelcomeBookingIds = await claimWelcomeOffer(session.user.id, bookingIds);
-    }
-
     const client = bookings[0].client;
 
     // Créer ou récupérer le Stripe Customer
@@ -354,11 +252,7 @@ export async function POST(request: NextRequest) {
         cancel_url: `${returnBaseUrl}/booking?cancelled=true`,
         // Toutes les demandes expirent rapidement : tant que Checkout n'est pas
         // terminé, elles ne doivent pas rester comme réservations actionnables.
-        expires_at: Math.floor(Date.now() / 1000) + (
-          isWelcomeOfferCode(promoCode)
-            ? WELCOME_OFFER_CHECKOUT_MINUTES
-            : BOOKING_CHECKOUT_MINUTES
-        ) * 60,
+        expires_at: Math.floor(Date.now() / 1000) + BOOKING_CHECKOUT_MINUTES * 60,
         metadata: {
           bookingIds: bookingIdsStr,
           userId: client.id,
@@ -375,14 +269,6 @@ export async function POST(request: NextRequest) {
     );
 
     await prisma.$transaction(async (tx) => {
-      if (isWelcomeOfferCode(promoCode)) {
-        // La date de création de la session identifie la tentative la plus récente.
-        await tx.booking.updateMany({
-          where: { id: { in: bookingIds }, clientId: session.user.id },
-          data: { couponRedeemedAt: new Date(checkoutSession!.created * 1000) },
-        });
-      }
-
       for (const booking of bookings) {
         await tx.payment.upsert({
           where: { bookingId: booking.id },
@@ -438,16 +324,6 @@ export async function POST(request: NextRequest) {
         console.error("Session Checkout non expirée après erreur:", expireError);
       });
     }
-    if (newlyClaimedWelcomeBookingIds.length > 0) {
-      await prisma.booking.updateMany({
-        where: {
-          id: { in: newlyClaimedWelcomeBookingIds },
-          status: "PENDING",
-          depositPaid: false,
-        },
-        data: { couponRedeemedAt: null },
-      }).catch((releaseError) => console.error("Place de bienvenue non libérée:", releaseError));
-    }
     if (checkoutAttemptClaim) {
       await failCheckoutAttempt(checkoutAttemptClaim, error).catch((attemptError) => {
         console.error("Tentative Checkout non marquée en échec:", attemptError);
@@ -456,9 +332,6 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof CheckoutAttemptBusyError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
-    }
-    if (error instanceof WelcomeOfferError) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error("Erreur lors de la création de la session Stripe:", error);
     return NextResponse.json(

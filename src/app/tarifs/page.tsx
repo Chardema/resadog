@@ -29,11 +29,6 @@ import {
 } from "@/lib/pricing";
 import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
 import { buildMetadata } from "@/lib/seo";
-import {
-  WELCOME_OFFER_CODE,
-  WELCOME_OFFER_DISCOUNT_PERCENT,
-  WELCOME_OFFER_MAX_CLIENTS,
-} from "@/lib/welcome-offer";
 
 export const metadata: Metadata = buildMetadata({
   title: "Tarifs de garde d’animaux",
@@ -319,9 +314,8 @@ export default function PricingPage() {
             <Percent className="h-7 w-7 text-orange-100" aria-hidden="true" />
             <h2 className="mt-4 text-2xl font-bold">Offres et Premium</h2>
             <ul className="mt-5 space-y-3 text-sm leading-6 text-orange-50">
-              <li><strong>{WELCOME_OFFER_CODE}</strong> : -{WELCOME_OFFER_DISCOUNT_PERCENT} % sur la première réservation, pour les {WELCOME_OFFER_MAX_CLIENTS} premiers nouveaux clients, sous réserve des places encore disponibles.</li>
               <li><strong>Premium</strong> : <Price amount={PREMIUM_SUBSCRIPTION.monthlyPrice} /> par mois, engagement initial de trois mois ({PREMIUM_SUBSCRIPTION.minimumCommitmentTotal.toFixed(2).replace(".", ",")} € au total), puis renouvellement mensuel sans engagement ; -10 % jusqu’à {PREMIUM_SUBSCRIPTION.maximumDiscountPerBooking} € par réservation.</li>
-              <li>Les remises ne sont pas cumulables. Le système compare l’offre de bienvenue, Premium et les remises automatiques, puis conserve l’avantage le plus favorable sans consommer un code écarté.</li>
+              <li>Les remises ne sont pas cumulables. Le système compare votre avantage fidélité ou Premium et les remises automatiques, puis conserve l’avantage le plus favorable.</li>
             </ul>
             <Link href="/subscriptions" className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-bold text-orange-700 transition-colors hover:bg-orange-50">
               Découvrir Premium

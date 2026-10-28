@@ -18,10 +18,6 @@ import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { awardBookingLoyalty } from "@/lib/loyalty-ledger";
 import { getBookingEmailDetails } from "@/lib/booking-email-details";
-import {
-  WELCOME_OFFER_LOCK_ID,
-  isWelcomeOfferCode,
-} from "@/lib/welcome-offer";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -636,7 +632,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   // Incrémenter le coupon si utilisé (le code est stocké dans les metadata)
   const promoCode = session.metadata?.promoCode;
-  if (promoCode && !isWelcomeOfferCode(promoCode)) {
+  if (promoCode) {
     await prisma.$transaction(async (tx) => {
       const redeemed = await tx.booking.updateMany({
         where: { id: { in: bookingIds }, couponRedeemedAt: null },
@@ -707,10 +703,6 @@ async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
   });
 
   await prisma.$transaction(async (tx) => {
-    if (isWelcomeOfferCode(session.metadata?.promoCode)) {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${WELCOME_OFFER_LOCK_ID})`;
-    }
-
     // Une ancienne session expirée ne doit jamais supprimer une tentative plus
     // récente : on ne nettoie que le Payment rattaché à cette session précise.
     const abandonedBookings = await tx.booking.findMany({

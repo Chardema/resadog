@@ -2005,10 +2005,6 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Current code or recovery code",
     "es": "Código actual o código de recuperación"
   },
-  "Code BIENVENUE10 sur votre 1re réservation": {
-    "en": "Code BIENVENUE10 on your 1st booking",
-    "es": "Código BIENVENUE10 en tu 1.ª reserva"
-  },
   "Code de récupération": {
     "en": "Recovery code",
     "es": "Código de recuperación"
@@ -8956,5 +8952,21 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Zéro cage, zéro box : vie de famille en maison avec accès au jardin et au canapé": {
     "en": "Zero cages, zero kennels: family life in a real house with access to the garden and sofa",
     "es": "Cero jaulas, cero perreras: vida familiar en casa con acceso al jardín y al sofá"
+  },
+  "Crédité automatiquement dès votre 1re garde": {
+    "en": "Credited automatically from your 1st stay",
+    "es": "Acreditado automáticamente desde tu 1.ª estancia"
+  },
+  "Paliers fidélité": {
+    "en": "Loyalty tiers",
+    "es": "Niveles de fidelidad"
+  },
+  "Les remises ne se cumulent pas : la plus avantageuse est retenue.": {
+    "en": "Discounts cannot be combined: the most advantageous one is applied.",
+    "es": "Los descuentos no son acumulables: se aplica el más ventajoso."
+  },
+  "Les remises ne sont pas cumulables. Le système compare votre avantage fidélité ou Premium et les remises automatiques, puis conserve l’avantage le plus favorable.": {
+    "en": "Discounts cannot be combined. The system compares your loyalty or Premium benefit and automatic discounts, then keeps the most advantageous option.",
+    "es": "Los descuentos no son acumulables. El sistema compara tu ventaja de fidelidad o Premium y los descuentos automáticos, y conserva la opción más favorable."
   }
 } as const;

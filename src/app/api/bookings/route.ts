@@ -16,13 +16,6 @@ import {
   parseUTCDate,
   toDateKey,
 } from "@/lib/booking-availability";
-import {
-  WELCOME_OFFER_CODE,
-  WELCOME_OFFER_DISCOUNT_PERCENT,
-  WELCOME_OFFER_MAX_CLIENTS,
-  WELCOME_OFFER_NOTE,
-  isWelcomeOfferCode,
-} from "@/lib/welcome-offer";
 import { getPetProfileCompletion, isPetBirthDateVerified } from "@/lib/pets";
 
 class BookingInputError extends Error {}
@@ -307,74 +300,30 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (isWelcomeOfferCode(promoCode)) {
-        const [hasPreviousBooking, existingClaim, claimedPlaces] = await Promise.all([
-          prisma.booking.findFirst({
-            where: {
-              clientId: session.user.id,
-              OR: [
-                { depositPaid: true },
-                { payment: { is: { status: "SUCCEEDED" } } },
-                { status: { in: ["CONFIRMED", "IN_PROGRESS", "COMPLETED"] } },
-              ],
-            },
-            select: { id: true },
-          }),
-          prisma.booking.findFirst({
-            where: {
-              clientId: session.user.id,
-              couponRedeemedAt: { not: null },
-              notes: { contains: WELCOME_OFFER_NOTE },
-            },
-            select: { id: true },
-          }),
-          prisma.booking.count({
-            where: {
-              couponRedeemedAt: { not: null },
-              notes: { contains: WELCOME_OFFER_NOTE },
-            },
-          }),
-        ]);
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: promoCode.toUpperCase() },
+      });
+      const now = new Date();
 
-        if (hasPreviousBooking) throw new BookingInputError("Cette offre est réservée aux nouveaux clients, pour leur première réservation.");
-        if (!existingClaim && claimedPlaces >= WELCOME_OFFER_MAX_CLIENTS) throw new BookingInputError("Les 5 offres de bienvenue ont déjà été attribuées.");
+      if (!coupon || !coupon.isActive) throw new BookingInputError("Code promo invalide ou inactif");
+      if (coupon.validFrom && now < coupon.validFrom) throw new BookingInputError("Ce code promo n'est pas encore valide");
+      if (coupon.validUntil && now > coupon.validUntil) throw new BookingInputError("Ce code promo a expiré");
+      if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) throw new BookingInputError("Ce code promo a atteint sa limite d'utilisation");
+      if (coupon.minAmount && priceBeforeDiscounts < coupon.minAmount) throw new BookingInputError(`Montant minimum de ${coupon.minAmount}€ requis`);
+      const userEmail = session.user.email?.toLowerCase() || "";
+      if (coupon.restrictedTo.length > 0 && !coupon.restrictedTo.map((email) => email.toLowerCase()).includes(userEmail)) throw new BookingInputError("Ce code promo n'est pas valide pour votre compte");
+      if (coupon.applicableServices.length > 0 && !coupon.applicableServices.includes(serviceType)) throw new BookingInputError("Ce code promo n'est pas valide pour ce service");
 
-        couponCandidate = {
-          code: WELCOME_OFFER_CODE,
-          discountType: "PERCENTAGE",
-          finalAmount: calculateCouponDiscount({
-            totalAmount: priceBeforeDiscounts,
-            discountType: "PERCENTAGE",
-            discountValue: WELCOME_OFFER_DISCOUNT_PERCENT,
-            quantity: priceResult.quantity,
-          }).finalAmount,
-        };
-      } else {
-        const coupon = await prisma.coupon.findUnique({
-          where: { code: promoCode.toUpperCase() },
-        });
-        const now = new Date();
-
-        if (!coupon || !coupon.isActive) throw new BookingInputError("Code promo invalide ou inactif");
-        if (coupon.validFrom && now < coupon.validFrom) throw new BookingInputError("Ce code promo n'est pas encore valide");
-        if (coupon.validUntil && now > coupon.validUntil) throw new BookingInputError("Ce code promo a expiré");
-        if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) throw new BookingInputError("Ce code promo a atteint sa limite d'utilisation");
-        if (coupon.minAmount && priceBeforeDiscounts < coupon.minAmount) throw new BookingInputError(`Montant minimum de ${coupon.minAmount}€ requis`);
-        const userEmail = session.user.email?.toLowerCase() || "";
-        if (coupon.restrictedTo.length > 0 && !coupon.restrictedTo.map((email) => email.toLowerCase()).includes(userEmail)) throw new BookingInputError("Ce code promo n'est pas valide pour votre compte");
-        if (coupon.applicableServices.length > 0 && !coupon.applicableServices.includes(serviceType)) throw new BookingInputError("Ce code promo n'est pas valide pour ce service");
-
-        couponCandidate = {
-          code: coupon.code,
+      couponCandidate = {
+        code: coupon.code,
+        discountType: coupon.discountType,
+        finalAmount: calculateCouponDiscount({
+          totalAmount: priceBeforeDiscounts,
           discountType: coupon.discountType,
-          finalAmount: calculateCouponDiscount({
-            totalAmount: priceBeforeDiscounts,
-            discountType: coupon.discountType,
-            discountValue: coupon.discountValue,
-            quantity: priceResult.quantity,
-          }).finalAmount,
-        };
-      }
+          discountValue: coupon.discountValue,
+          quantity: priceResult.quantity,
+        }).finalAmount,
+      };
     }
 
     const activePremium = await prisma.userSubscription.findUnique({

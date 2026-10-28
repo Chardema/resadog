@@ -4,11 +4,6 @@ import { prisma } from "@/lib/db/prisma";
 import { GOOGLE_REVIEW_URL } from "@/lib/google-reviews";
 import { getServiceDisplayPrice } from "@/lib/pricing";
 import { LEGAL_INFORMATION } from "@/lib/legal";
-import {
-  WELCOME_OFFER_CODE,
-  WELCOME_OFFER_DISCOUNT_PERCENT,
-  WELCOME_OFFER_MAX_CLIENTS,
-} from "@/lib/welcome-offer";
 
 let resend: Resend | null | undefined;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'christo59@pm.me';
@@ -1323,7 +1318,7 @@ export const sendWelcomeEmail = async (
             "Comment réserver : 1) ajoutez votre animal et complétez son profil ; 2) choisissez le service et les dates ; 3) vérifiez le tarif puis enregistrez votre carte ; 4) nous validons la demande sous 48 h. Votre carte n'est débitée qu'après acceptation.",
             "À préparer : identification par puce ou tatouage, vaccins à jour, informations de santé et de comportement, habitudes de repas et contact d'urgence.",
             "À savoir pour la garderie et l'hébergement : deux chats vivent à la maison. Si la cohabitation avec votre animal n'est pas sereine, ils restent dans un espace séparé.",
-            `Fidélité : chaque euro dépensé rapporte 1 Patte. L'offre ${WELCOME_OFFER_CODE} donne ${WELCOME_OFFER_DISCOUNT_PERCENT} % de réduction sur la première réservation aux ${WELCOME_OFFER_MAX_CLIENTS} premiers nouveaux clients, sous réserve de disponibilité.`,
+            "Fidélité : chaque euro dépensé rapporte 1 Patte.",
             "Tarifs de base (le total exact est toujours affiché avant la demande) :",
           ],
           rows: ratesFr,
@@ -1338,7 +1333,7 @@ export const sendWelcomeEmail = async (
             "How to book: 1) add your pet and complete their profile; 2) choose the service and dates; 3) review the price and register your card; 4) we confirm your request within 48 hours. Your card is charged only after acceptance.",
             "Please prepare: microchip or tattoo identification, up-to-date vaccinations, health and behaviour information, feeding routine and an emergency contact.",
             "For day care and boarding: two cats live in the house. If they are not comfortable sharing the space with your pet, they are kept in a separate area.",
-            `Loyalty: every euro spent earns 1 Paw point. The ${WELCOME_OFFER_CODE} offer gives ${WELCOME_OFFER_DISCOUNT_PERCENT}% off the first booking to the first ${WELCOME_OFFER_MAX_CLIENTS} new clients, subject to availability.`,
+            "Loyalty: every euro spent earns 1 Paw point.",
             "Base rates (the exact total is always shown before you submit your request):",
           ],
           rows: ratesEn,
@@ -1378,7 +1373,7 @@ export const sendWelcomeEmail = async (
           </div>
           <div style="margin:20px 0 0; padding:16px 18px; border-radius:10px; background:#ecfdf3; border:1px solid #a7f3d0;">
             <p style="margin:0; color:#166534; font-size:15px; line-height:1.7;">
-              <strong>Votre fidélité est récompensée :</strong> 1 € dépensé = 1 Patte. Offre en cours : -${WELCOME_OFFER_DISCOUNT_PERCENT} % sur la première réservation avec <strong>${WELCOME_OFFER_CODE}</strong>, réservée aux ${WELCOME_OFFER_MAX_CLIENTS} premiers nouveaux clients.
+              <strong>Votre fidélité est récompensée :</strong> 1 € dépensé = 1 Patte.
             </p>
           </div>
           ${actionButton("Ajouter mon animal", `${APP_URL}/pets/new`, "#c66a2d")}
@@ -1410,7 +1405,7 @@ export const sendWelcomeEmail = async (
           </div>
           <div style="margin:20px 0 0; padding:16px 18px; border-radius:10px; background:#ecfdf3; border:1px solid #a7f3d0;">
             <p style="margin:0; color:#166534; font-size:15px; line-height:1.7;">
-              <strong>Your loyalty is rewarded:</strong> €1 spent = 1 Paw point. Current offer: ${WELCOME_OFFER_DISCOUNT_PERCENT}% off your first booking with <strong>${WELCOME_OFFER_CODE}</strong>, for the first ${WELCOME_OFFER_MAX_CLIENTS} new clients.
+              <strong>Your loyalty is rewarded:</strong> €1 spent = 1 Paw point.
             </p>
           </div>
           ${actionButton("Add my pet", `${APP_URL}/pets/new`, "#c66a2d")}
@@ -1584,7 +1579,7 @@ export const sendEmailVerificationEmail = async (
             "Comment ça marche : complétez le profil de votre animal, choisissez un service et vos dates, vérifiez le prix puis envoyez votre demande. Nous répondons sous 48 h et votre carte n'est débitée qu'après acceptation.",
             "Votre animal doit être identifié, à jour de ses vaccins et son profil doit préciser ses besoins de santé, de comportement et d'alimentation.",
             "À savoir pour la garderie et l'hébergement : deux chats vivent à la maison. Si la cohabitation avec votre animal n'est pas sereine, ils restent dans un espace séparé.",
-            `Fidélité : chaque euro dépensé rapporte 1 Patte. L'offre ${WELCOME_OFFER_CODE} donne ${WELCOME_OFFER_DISCOUNT_PERCENT} % de réduction sur la première réservation aux ${WELCOME_OFFER_MAX_CLIENTS} premiers nouveaux clients, sous réserve de disponibilité.`,
+            "Fidélité : chaque euro dépensé rapporte 1 Patte.",
             "Tarifs de base (le total exact est toujours affiché avant la demande) :",
             "Ce lien est personnel, utilisable une seule fois et expire dans 24 heures. Si vous n'êtes pas à l'origine de cette inscription, ignorez cet email.",
           ],
@@ -1600,7 +1595,7 @@ export const sendEmailVerificationEmail = async (
             "How it works: complete your pet's profile, choose a service and dates, review the price and submit your request. We reply within 48 hours, and your card is charged only after acceptance.",
             "Your pet must be identified, have up-to-date vaccinations, and their profile must include health, behaviour and feeding information.",
             "For day care and boarding: two cats live in the house. If they are not comfortable sharing the space with your pet, they are kept in a separate area.",
-            `Loyalty: every euro spent earns 1 Paw point. The ${WELCOME_OFFER_CODE} offer gives ${WELCOME_OFFER_DISCOUNT_PERCENT}% off the first booking to the first ${WELCOME_OFFER_MAX_CLIENTS} new clients, subject to availability.`,
+            "Loyalty: every euro spent earns 1 Paw point.",
             "Base rates (the exact total is always shown before you submit your request):",
             "This personal, single-use link expires in 24 hours. If you did not create this account, you can ignore this email.",
           ],
@@ -1643,7 +1638,7 @@ export const sendEmailVerificationEmail = async (
         <p style="margin:0; color:#667085; font-size:13px; line-height:1.7;">Le total exact, avec les éventuels suppléments, est toujours affiché avant l'envoi de votre demande.</p>
         <div style="margin:20px 0 0; padding:16px 18px; border-radius:10px; background:#ecfdf3; border:1px solid #a7f3d0;">
           <p style="margin:0; color:#166534; font-size:15px; line-height:1.7;">
-            <strong>Fidélité :</strong> 1 € dépensé = 1 Patte. Offre en cours : -${WELCOME_OFFER_DISCOUNT_PERCENT} % sur la première réservation avec <strong>${WELCOME_OFFER_CODE}</strong>, réservée aux ${WELCOME_OFFER_MAX_CLIENTS} premiers nouveaux clients.
+            <strong>Fidélité :</strong> 1 € dépensé = 1 Patte.
           </p>
         </div>
         <p style="margin:20px 0 0; color:#667085; font-size:14px; line-height:1.7;">
@@ -1679,7 +1674,7 @@ export const sendEmailVerificationEmail = async (
         <p style="margin:0; color:#667085; font-size:13px; line-height:1.7;">The exact total, including any applicable extras, is always shown before you submit your request.</p>
         <div style="margin:20px 0 0; padding:16px 18px; border-radius:10px; background:#ecfdf3; border:1px solid #a7f3d0;">
           <p style="margin:0; color:#166534; font-size:15px; line-height:1.7;">
-            <strong>Loyalty:</strong> €1 spent = 1 Paw point. Current offer: ${WELCOME_OFFER_DISCOUNT_PERCENT}% off your first booking with <strong>${WELCOME_OFFER_CODE}</strong>, for the first ${WELCOME_OFFER_MAX_CLIENTS} new clients.
+            <strong>Loyalty:</strong> €1 spent = 1 Paw point.
           </p>
         </div>
         <p style="margin:20px 0 0; color:#667085; font-size:14px; line-height:1.7;">

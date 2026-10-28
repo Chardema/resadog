@@ -535,13 +535,13 @@ export function HomePageClient({
 
               <div className="lg:col-span-5 grid grid-cols-2 gap-3">
                 <div className="rounded-2xl bg-white p-4 border border-orange-100 shadow-sm">
-                  <Gift className="h-5 w-5 text-emerald-600 mb-1.5" aria-hidden="true" />
-                  <p className="text-sm font-extrabold text-gray-900">-10 % Bienvenue</p>
-                  <p className="text-xs text-gray-600 mt-0.5">Code BIENVENUE10 sur votre 1re réservation</p>
-                </div>
-                <div className="rounded-2xl bg-white p-4 border border-orange-100 shadow-sm">
                   <PawPrint className="h-5 w-5 text-orange-600 mb-1.5" aria-hidden="true" />
                   <p className="text-sm font-extrabold text-gray-900">1 € = 1 Patte</p>
+                  <p className="text-xs text-gray-600 mt-0.5">Crédité automatiquement dès votre 1re garde</p>
+                </div>
+                <div className="rounded-2xl bg-white p-4 border border-orange-100 shadow-sm">
+                  <Gift className="h-5 w-5 text-emerald-600 mb-1.5" aria-hidden="true" />
+                  <p className="text-sm font-extrabold text-gray-900">Paliers fidélité</p>
                   <p className="text-xs text-gray-600 mt-0.5">Jusqu’à 24 € de remise fidélité cumulable</p>
                 </div>
                 <div className="rounded-2xl bg-white p-4 border border-orange-100 shadow-sm">

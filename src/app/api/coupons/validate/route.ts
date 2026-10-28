@@ -3,14 +3,6 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { distributedRateLimit } from "@/lib/rate-limit";
 import { calculateCouponDiscount } from "@/lib/coupon-pricing";
-import {
-  WELCOME_OFFER_CODE,
-  WELCOME_OFFER_DESCRIPTION,
-  WELCOME_OFFER_DISCOUNT_PERCENT,
-  WELCOME_OFFER_MAX_CLIENTS,
-  WELCOME_OFFER_NOTE,
-  isWelcomeOfferCode,
-} from "@/lib/welcome-offer";
 
 function getCouponSuccessMessage(input: {
   discountType: "PERCENTAGE" | "FIXED_AMOUNT" | "CUSTOM_TOTAL";
@@ -60,72 +52,6 @@ export async function POST(request: NextRequest) {
         { error: "Code et montant requis" },
         { status: 400 }
       );
-    }
-
-    if (isWelcomeOfferCode(code)) {
-      const [hasPreviousBooking, existingClaim, claimedPlaces] = await Promise.all([
-        prisma.booking.findFirst({
-          where: {
-            clientId: session.user.id,
-            OR: [
-              { depositPaid: true },
-              { payment: { is: { status: "SUCCEEDED" } } },
-              { status: { in: ["CONFIRMED", "IN_PROGRESS", "COMPLETED"] } },
-            ],
-          },
-          select: { id: true },
-        }),
-        prisma.booking.findFirst({
-          where: {
-            clientId: session.user.id,
-            couponRedeemedAt: { not: null },
-            notes: { contains: WELCOME_OFFER_NOTE },
-          },
-          select: { id: true },
-        }),
-        prisma.booking.count({
-          where: {
-            couponRedeemedAt: { not: null },
-            notes: { contains: WELCOME_OFFER_NOTE },
-          },
-        }),
-      ]);
-
-      if (hasPreviousBooking) {
-        return NextResponse.json(
-          { error: "Cette offre est réservée aux nouveaux clients, pour leur première réservation." },
-          { status: 400 }
-        );
-      }
-
-      if (!existingClaim && claimedPlaces >= WELCOME_OFFER_MAX_CLIENTS) {
-        return NextResponse.json(
-          { error: "Les 5 offres de bienvenue ont déjà été attribuées." },
-          { status: 400 }
-        );
-      }
-
-      const { discountAmount, finalAmount, capped } = calculateCouponDiscount({
-        totalAmount,
-        discountType: "PERCENTAGE",
-        discountValue: WELCOME_OFFER_DISCOUNT_PERCENT,
-        quantity: duration,
-      });
-
-      return NextResponse.json({
-        success: true,
-        coupon: {
-          code: WELCOME_OFFER_CODE,
-          description: WELCOME_OFFER_DESCRIPTION,
-          discountType: "PERCENTAGE",
-          discountValue: WELCOME_OFFER_DISCOUNT_PERCENT,
-        },
-        originalAmount: totalAmount,
-        discountAmount,
-        finalAmount,
-        capped,
-        message: "Offre de bienvenue : 10 % de réduction appliquée",
-      });
     }
 
     // Chercher le coupon
