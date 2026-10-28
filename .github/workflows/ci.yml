@@ -55,17 +55,31 @@ jobs:
       - name: Security audit (production dependencies)
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Translation coverage
+        run: npm run check:translations
+
       - name: Lint
         run: npm run lint
 
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: npm run check:types
 
-      - name: Build
-        run: npm run build
+      - name: Business invariants (pricing, pets, payments, finance, attendance, direct bookings, 2FA, quote email)
+        run: |
+          npm run check:pricing
+          npm run check:pets
+          npm run check:payments
+          npm run check:finance
+          npm run check:attendance
+          npm run check:direct-bookings
+          npm run check:two-factor
+          npm run check:quote-email
 
       - name: Tests
         run: npm test
+
+      - name: Build
+        run: npm run build
 
   migrations:
     name: Prisma schema and migrations

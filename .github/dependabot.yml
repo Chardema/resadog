@@ -13,9 +13,10 @@ updates:
         update-types:
           - minor
           - patch
-      npm-major:
+    ignore:
+      - dependency-name: "*"
         update-types:
-          - major
+          - "version-update:semver-major"
 
   - package-ecosystem: github-actions
     directory: /

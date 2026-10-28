@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -8,6 +9,7 @@ import {
   ArrowRight,
   BadgeCheck,
   CalendarClock,
+  Camera,
   Check,
   LoaderCircle,
   PawPrint,
@@ -17,6 +19,27 @@ import {
 import { Button } from "@/components/ui/button";
 import { calculatePremiumSubscriptionPlan } from "@/lib/subscription-pricing";
 import { LEGAL_DOCUMENT_VERSION, LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+
+const SUBSCRIPTION_PHOTOS = [
+  {
+    src: "/images/galerie/jardin-golden.webp",
+    badge: "Habitués du club",
+    caption: "Promenades et détente régulières au jardin clos",
+    alt: "Golden Retriever en promenade dans le jardin ensoleillé chez La Patte Dorée",
+  },
+  {
+    src: "/images/galerie/salon-chien-chat.webp",
+    badge: "Comme à la maison",
+    caption: "Repères familiers au salon pour vos chiens et chats",
+    alt: "Chien et chat cohabitant paisiblement au salon chez La Patte Dorée",
+  },
+  {
+    src: "/images/galerie/chat-soleil-jardin.webp",
+    badge: "Priorité vacances",
+    caption: "Séjours sereins toute l’année avec Pattes doublées",
+    alt: "Chat profitant du soleil dans l’herbe pendant sa garde",
+  },
+] as const;
 
 const formatMoney = (amount: number) =>
   amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -102,6 +125,38 @@ export default function SubscriptionPage() {
             Premium ajoute des avantages concrets à chaque réservation. Le programme de fidélité gratuit reste ouvert à tous.
           </p>
         </header>
+
+        <section className="mb-8" aria-label="Photos des pensionnaires">
+          <div className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-800">
+            <Camera className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
+            <span>Le confort des habitués · Maison familiale à Bussy-Saint-Georges</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {SUBSCRIPTION_PHOTOS.map((photo) => (
+              <figure
+                key={photo.src}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-orange-50/50">
+                  <Image
+                    src={photo.src}
+                    alt={photo.alt}
+                    width={800}
+                    height={600}
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  />
+                  <span className="absolute top-2.5 left-2.5 rounded-full border border-orange-100 bg-white/95 px-2.5 py-1 text-[11px] font-bold text-orange-900 shadow-sm backdrop-blur-sm">
+                    {photo.badge}
+                  </span>
+                </div>
+                <figcaption className="p-3 text-xs font-medium leading-snug text-gray-700">
+                  {photo.caption}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
 
         {isPremium && (
           <div className="mb-5 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
