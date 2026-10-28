@@ -93,12 +93,12 @@ export default function ConceptPage() {
           <div className="relative z-10">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Gratuit ou Premium ?</h2>
-              <p className="text-gray-400">Le programme fidélité reste inclus pour tous les clients.</p>
+              <p className="text-gray-300">Le programme fidélité reste inclus pour tous les clients.</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
-                <h3 className="text-xl font-bold text-gray-400 mb-6">Fidélité gratuite</h3>
+                <h3 className="text-xl font-bold text-gray-300 mb-6">Fidélité gratuite</h3>
                 <div className="space-y-4 mb-8 text-gray-300">
                   <div className="flex justify-between gap-4"><span>Pattes gagnées</span><span className="font-bold">1 euro = 1 Patte</span></div>
                   <div className="flex justify-between gap-4"><span>Niveaux</span><span>Bronze à Diamant</span></div>

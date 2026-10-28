@@ -259,7 +259,7 @@ describe("Admin API routes & security guards", () => {
 
     expect(meta.openGraph?.images).toEqual([
       {
-        url: "/opengraph-image",
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "La Patte Dorée — Garde familiale de chiens et chats près de Disneyland Paris",
@@ -267,7 +267,7 @@ describe("Admin API routes & security guards", () => {
     ]);
     expect(meta.twitter).toMatchObject({
       card: "summary_large_image",
-      images: ["/opengraph-image"],
+      images: ["/og-image.jpg"],
     });
 
     const redirects = await nextConfig.redirects?.();

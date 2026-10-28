@@ -1778,6 +1778,50 @@ const catalogue: Record<string, Translation> = {
     en: "Your pet lives in our family house and enjoys our fenced garden, walks, and reassuring company day and night, with daily photos.",
     es: "Tu compañero vive en casa con nosotros y disfruta del jardín vallado, salidas y una presencia tranquilizadora día y noche, con fotos cada día.",
   },
+  "77600 Bussy-Saint-Georges · Val d’Europe": {
+    en: "77600 Bussy-Saint-Georges · Val d’Europe",
+    es: "77600 Bussy-Saint-Georges · Val d’Europe",
+  },
+  "77600 Bussy-Saint-Georges (à 10 min de Disneyland Paris & Val d’Europe) · Accueil 7j/7 sur réservation": {
+    en: "77600 Bussy-Saint-Georges (10 min from Disneyland Paris & Val d’Europe) · Open 7 days a week by booking",
+    es: "77600 Bussy-Saint-Georges (a 10 min de Disneyland Paris y Val d’Europe) · Abierto 7 días/7 con reserva",
+  },
+  "Certifié ACACED Chien & Chat n°": {
+    en: "ACACED Dogs & Cats Certified No.",
+    es: "Certificado ACACED Perros y Gatos n.º",
+  },
+  "Certifié ACACED Chien & Chat n° 2025/ef33-4a9c": {
+    en: "ACACED Dogs & Cats Certified No. 2025/ef33-4a9c",
+    es: "Certificado ACACED Perros y Gatos n.º 2025/ef33-4a9c",
+  },
+  "Connexion client": {
+    en: "Client login",
+    es: "Acceso clientes",
+  },
+  "Île-de-France": {
+    en: "Île-de-France",
+    es: "Isla de Francia",
+  },
+  "Langue": {
+    en: "Language",
+    es: "Idioma",
+  },
+  "Légal & Aide": {
+    en: "Legal & Help",
+    es: "Legal y Ayuda",
+  },
+  "Programme Fidélité": {
+    en: "Loyalty Program",
+    es: "Programa de Fidelidad",
+  },
+  "Simuler & Réserver": {
+    en: "Simulate & Book",
+    es: "Simular y Reservar",
+  },
+  "Tarifs & Conditions": {
+    en: "Rates & Terms",
+    es: "Tarifas y Condiciones",
+  },
 };
 
 

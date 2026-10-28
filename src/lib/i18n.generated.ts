@@ -137,6 +137,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "), to the address",
     "es": "), a la dirección"
   },
+  "@lapatte_doree": {
+    "en": "@lapatte_doree",
+    "es": "@lapatte_doree"
+  },
   "&ldquo;": {
     "en": "“",
     "es": "“"
@@ -712,6 +716,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "7. Vos droits": {
     "en": "7. Your rights",
     "es": "7. Tus derechos"
+  },
+  "77600 Bussy-Saint-Georges · Val d’Europe": {
+    "en": "77600 Bussy-Saint-Georges · Val d’Europe",
+    "es": "77600 Bussy-Saint-Georges · Val d’Europe"
+  },
+  "77600 Bussy-Saint-Georges (à 10 min de Disneyland Paris & Val d’Europe) · Accueil 7j/7 sur réservation": {
+    "en": "77600 Bussy-Saint-Georges (10 min from Disneyland Paris & Val d’Europe) · Open 7 days a week by booking",
+    "es": "77600 Bussy-Saint-Georges (a 10 min de Disneyland Paris y Val d’Europe) · Abierto 7 días/7 con reserva"
   },
   "8. Cookies et mesure d’audience": {
     "en": "8. Cookies and audience measurement",
@@ -1425,6 +1437,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Neighborhood walk to keep a regular pace and spend your dog.",
     "es": "Paseo por el barrio para mantener un ritmo regular y pasar tu perro."
   },
+  "Balade quotidienne en pleine nature": {
+    "en": "Daily walk in the great outdoors",
+    "es": "Paseo diario en plena naturaleza"
+  },
+  "Balade quotidienne en pleine nature avec un chien gardé par La Patte Dorée": {
+    "en": "Daily walk in nature with a dog boarded at La Patte Dorée",
+    "es": "Paseo diario en la naturaleza con un perro cuidado por La Patte Dorée"
+  },
   "Balades pour les chiens, avec durée adaptée selon le besoin.": {
     "en": "Walks for dogs, with duration adapted according to need.",
     "es": "Paseos para perros, con duración adaptada según necesidad."
@@ -1537,6 +1557,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Categories",
     "es": "Categorías"
   },
+  "Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée à Bussy-Saint-Georges": {
+    "en": "Cavalier King Charles sleeping peacefully in an armchair at La Patte Dorée in Bussy-Saint-Georges",
+    "es": "Cavalier King Charles durmiendo pacíficamente en un sillón en La Patte Dorée en Bussy-Saint-Georges"
+  },
   "Ce code promo a atteint sa limite d'utilisation": {
     "en": "This promo code has reached its usage limit",
     "es": "Este código promocional ha alcanzado su límite de uso."
@@ -1636,6 +1660,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Certificat officiel de capacité, vérification du carnet de santé et respect strict des consignes.": {
     "en": "Official French pet care certification, health record check and strict adherence to your instructions.",
     "es": "Certificado oficial de capacidad, verificación de la cartilla sanitaria y estricto respeto de sus indicaciones."
+  },
+  "Certifié ACACED Chien & Chat n°": {
+    "en": "ACACED Dogs & Cats Certified No.",
+    "es": "Certificado ACACED Perros y Gatos n.º"
+  },
+  "Certifié ACACED Chien & Chat n° 2025/ef33-4a9c": {
+    "en": "ACACED Dogs & Cats Certified No. 2025/ef33-4a9c",
+    "es": "Certificado ACACED Perros y Gatos n.º 2025/ef33-4a9c"
   },
   "Ces contenus sont soumis à la": {
     "en": "This content is subject to the",
@@ -1769,6 +1801,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Cat included in the visit",
     "es": "Gato incluido en la visita"
   },
+  "Chat profitant du soleil dans l'herbe": {
+    "en": "Cat enjoying the sunshine in the grass",
+    "es": "Gato disfrutando del sol en la hierba"
+  },
+  "Chat profitant du soleil dans l'herbe pendant sa garde": {
+    "en": "Cat enjoying the sunshine in the grass during its stay",
+    "es": "Gato disfrutando del sol en la hierba durante su estancia"
+  },
   "Chat supplémentaire par visite": {
     "en": "Additional cat per visit",
     "es": "Gato adicional por visita"
@@ -1776,6 +1816,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Chat sur demande": {
     "en": "cat on request",
     "es": "gato bajo petición"
+  },
+  "Chat tigré détendu sur le canapé": {
+    "en": "Tabby cat relaxing on the sofa",
+    "es": "Gato atigrado relajado en el sofá"
+  },
+  "Chat tigré détendu sur le canapé familial chez La Patte Dorée": {
+    "en": "Tabby cat relaxing on the family sofa at La Patte Dorée",
+    "es": "Gato atigrado relajado en el sofá familiar en La Patte Dorée"
   },
   "Chaton": {
     "en": "Kitten",
@@ -1836,6 +1884,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Chien et chat": {
     "en": "dog and cat",
     "es": "perro y gato"
+  },
+  "Chien et chat cohabitant paisiblement au salon": {
+    "en": "Dog and cat living peacefully together in the living room",
+    "es": "Perro y gato conviviendo pacíficamente en el salón"
+  },
+  "Chien et chat cohabitant paisiblement au salon chez La Patte Dorée": {
+    "en": "Dog and cat living peacefully together in the living room at La Patte Dorée",
+    "es": "Perro y gato conviviendo pacíficamente en el salón en La Patte Dorée"
   },
   "Chiot": {
     "en": "Puppy",
@@ -1976,6 +2032,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Combien de temps dure une visite chat à domicile ?": {
     "en": "How long does a cat home visit take?",
     "es": "¿Cuánto tiempo dura una visita a domicilio gato?"
+  },
+  "Comme à la maison": {
+    "en": "Just like home",
+    "es": "Como en casa"
   },
   "Comme à la maison,": {
     "en": "Like at home,",
@@ -2161,6 +2221,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "In accordance with the GDPR, you have the right to access, rectify and delete your data. You can exercise this right by contacting us directly or via your customer area.",
     "es": "De acuerdo con el RGPD, tienes derecho a acceder, rectificar y suprimir tus datos. Puedes ejercer este derecho poniéndote en contacto con nosotros directamente o a través de tu área de clientes."
   },
+  "Confort familial": {
+    "en": "Family comfort",
+    "es": "Confort familiar"
+  },
   "Connectez-vous pour gérer vos gardes.": {
     "en": "Log in to manage your guards.",
     "es": "Inicia sesión para administrar tus guardias."
@@ -2168,6 +2232,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Connexion": {
     "en": "Connection",
     "es": "Conexión"
+  },
+  "Connexion client": {
+    "en": "Client login",
+    "es": "Acceso clientes"
   },
   "Connexion impossible.": {
     "en": "Unable to connect.",
@@ -3553,6 +3621,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "On-call at the client's home, per day:",
     "es": "Guardia en domicilio del cliente, por día:"
   },
+  "Garde chat": {
+    "en": "Cat boarding",
+    "es": "Guardería felina"
+  },
   "garde chat 77": {
     "en": "guard cat 77",
     "es": "guardia gato 77"
@@ -3849,6 +3921,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "ghost",
     "es": "fantasma"
   },
+  "Golden Retriever en promenade dans le jardin ensoleillé": {
+    "en": "Golden Retriever strolling in the sunny garden",
+    "es": "Golden Retriever paseando por el jardín soleado"
+  },
+  "Golden Retriever en promenade dans le jardin ensoleillé chez La Patte Dorée": {
+    "en": "Golden Retriever strolling in the sunny garden at La Patte Dorée",
+    "es": "Golden Retriever paseando por el jardín soleado en La Patte Dorée"
+  },
   "Google Maps": {
     "en": "Google Maps",
     "es": "Google Maps"
@@ -4065,6 +4145,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "identity, species, breed, date of birth, weight, behavior, diet, treatments, veterinary information, emergency contact, photos and supporting documents sent.",
     "es": "identidad, especie, raza, fecha de nacimiento, peso, comportamiento, dieta, tratamientos, información veterinaria, contacto de emergencia, fotografías y documentos justificativos enviados."
   },
+  "Île-de-France": {
+    "en": "Île-de-France",
+    "es": "Isla de Francia"
+  },
   "Ils nous font confiance ❤️": {
     "en": "They trust us ❤️",
     "es": "Ellos confían en nosotros ❤️"
@@ -4228,6 +4312,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Jamais. L'accueil est 100 % familial : votre chien vit avec nous dans la maison, profite du salon, du jardin clos et de vraies balades. Pour garantir une ambiance sereine, nous validons au préalable le profil de chaque animal (sociabilité, habitudes, santé). Deux chats habitués aux chiens vivent également à la maison et disposent d'un espace séparé si nécessaire.": {
     "en": "Never. Our care is 100% family-style: your dog lives with us inside our house, enjoys the living room, the fenced garden, and real walks. To guarantee a peaceful atmosphere, we review each pet's profile beforehand (socialisation, habits, health). Two dog-friendly cats also live in the house and have their own separate space if needed.",
     "es": "Jamás. La acogida es 100 % familiar: su perro vive con nosotros en la casa, disfruta del salón, del jardín vallado y de verdaderos paseos. Para garantizar un ambiente tranquilo, validamos previamente el perfil de cada animal (sociabilidad, hábitos, salud). Dos gatos acostumbrados a los perros viven también en la casa y disponen de un espacio separado si es necesario."
+  },
+  "Jardin & extérieur": {
+    "en": "Garden & outdoors",
+    "es": "Jardín y exterior"
   },
   "Jardin et sorties": {
     "en": "Garden and outings",
@@ -4697,6 +4785,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Language / Language / Idioma",
     "es": "Idioma / Idioma / Idioma"
   },
+  "Langue": {
+    "en": "Language",
+    "es": "Idioma"
+  },
   "Le calcul se fait sur la durée réelle entre le dépôt et la reprise, sans nouvelle facturation au simple passage de minuit.": {
     "en": "The calculation is based on the actual duration between deposit and collection, without new invoicing at the passing of midnight.",
     "es": "El cálculo se basa en el tiempo real entre el depósito y el cobro, sin nueva facturación al pasar la medianoche."
@@ -4888,6 +4980,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Légal": {
     "en": "Legal",
     "es": "Legal"
+  },
+  "Légal & Aide": {
+    "en": "Legal & Help",
+    "es": "Legal y Ayuda"
   },
   "les 30 premières minutes, puis": {
     "en": "the first 30 minutes, then",
@@ -5668,6 +5764,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Nos gardes par besoin en Seine-et-Marne (77)": {
     "en": "Our pet care options in Seine-et-Marne (77)",
     "es": "Nuestros cuidados según tu necesidad en Seine-et-Marne (77)"
+  },
+  "Nos pensionnaires comme à la maison": {
+    "en": "Our guests right at home",
+    "es": "Nuestros huéspedes como en casa"
   },
   "Nos prestations & tarifs": {
     "en": "Our services & rates",
@@ -6733,6 +6833,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Profiles, health, habits and useful information.",
     "es": "Perfiles, salud, hábitos e información útil."
   },
+  "Programme Fidélité": {
+    "en": "Loyalty Program",
+    "es": "Programa de Fidelidad"
+  },
   "Programme fidélité et Premium": {
     "en": "Loyalty and Premium program",
     "es": "Programa de fidelización y premium"
@@ -7097,6 +7201,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Report",
     "es": "Informe"
   },
+  "Repos au calme à la maison sans box": {
+    "en": "Quiet rest at home with no kennel",
+    "es": "Descanso tranquilo en casa sin jaulas"
+  },
+  "Repos au calme à la maison sans box ni cage chez La Patte Dorée": {
+    "en": "Quiet rest at home with no kennel or cage at La Patte Dorée",
+    "es": "Descanso tranquilo en casa sin jaulas ni perreras en La Patte Dorée"
+  },
   "RER A Bussy-Saint-Georges (8 min) · A4 sortie 12 (10 min)": {
     "en": "RER A Bussy-Saint-Georges (8 min) · A4 exit 12 (10 min)",
     "es": "RER A Bussy-Saint-Georges (8 min) · A4 salida 12 (10 min)"
@@ -7276,6 +7388,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Retour aux animaux": {
     "en": "Back to animals",
     "es": "Volver a los animales"
+  },
+  "Retrouvez encore plus de photos et de stories de nos pensionnaires au quotidien sur Instagram.": {
+    "en": "Find even more daily photos and stories of our guests on Instagram.",
+    "es": "Descubre aún más fotos e historias diarias de nuestros huéspedes en Instagram."
   },
   "Retrouvez les témoignages sur nos profils ci-dessous.": {
     "en": "Read testimonials on our profiles below.",
@@ -7525,6 +7641,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Live quote",
     "es": "Simulación en directo"
   },
+  "Simuler & Réserver": {
+    "en": "Simulate & Book",
+    "es": "Simular y Reservar"
+  },
   "Simuler mon prix": {
     "en": "Simulate my price",
     "es": "Simular mi precio"
@@ -7649,6 +7769,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Daily updates",
     "es": "Seguimiento diario"
   },
+  "Suivre sur Instagram": {
+    "en": "Follow on Instagram",
+    "es": "Seguir en Instagram"
+  },
   "Supabase": {
     "en": "Supabase",
     "es": "Supabase"
@@ -7752,6 +7876,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Tarifs": {
     "en": "Prices",
     "es": "Precios"
+  },
+  "Tarifs & Conditions": {
+    "en": "Rates & Terms",
+    "es": "Tarifas y Condiciones"
   },
   "Tarifs affichés avant paiement": {
     "en": "Prices displayed before payment",
@@ -8024,6 +8152,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Un accueil familial et attentionné pour vos compagnons près de Disneyland Paris : hébergement sans box, visites à domicile et promenades.": {
     "en": "A caring family welcome for your companions near Disneyland Paris: accommodation without box, home visits and walks.",
     "es": "Una cálida bienvenida familiar para sus acompañantes cerca de Disneyland París: alojamiento sin box, visitas a domicilio y paseos."
+  },
+  "Un aperçu réel du quotidien chez La Patte Dorée à Bussy-Saint-Georges : vie au salon, jardin clos et balades attentives, sans box ni cage.": {
+    "en": "A real glimpse of daily life at La Patte Dorée in Bussy-Saint-Georges: living room comfort, enclosed garden and attentive walks, with no kennels or cages.",
+    "es": "Un vistazo real al día a día en La Patte Dorée en Bussy-Saint-Georges: vida en el salón, jardín cercado y paseos atentos, sin jaulas ni perreras."
   },
   "Un avis a déjà été envoyé avec ce lien.": {
     "en": "A notice has already been sent with this link.",
@@ -8380,6 +8512,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Vider": {
     "en": "Empty",
     "es": "Vacío"
+  },
+  "Vie au salon": {
+    "en": "Living room life",
+    "es": "Vida en el salón"
   },
   "Vie de famille 24/7": {
     "en": "Family life 24/7",
@@ -8796,6 +8932,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Vous visitez Disneyland Paris pour la journée ou séjournez dans un hôtel à Val d'Europe ? Offrez à votre chien de vraies vacances pendant que vous profitez des attractions. Située à Bussy-Saint-Georges (à 2 stations de RER A ou 10 minutes en voiture des parcs), La Patte Dorée accueille votre compagnon dans une vraie maison avec jardin, sans box ni cage, avec promenades incluses et photos envoyées dans la journée.": {
     "en": "Visiting Disneyland Paris for the day or staying at a hotel in Val d'Europe? Give your dog a real holiday while you enjoy the attractions. Located in Bussy-Saint-Georges (just 2 RER A stops or a 10-minute drive from the parks), La Patte Dorée welcomes your dog into a real family house with a fenced garden, 100% cage-free and kennel-free, with walks included and photo updates sent throughout the day.",
     "es": "¿Visita Disneyland Paris por el día o se aloja en un hotel en Val d'Europe? Ofrezca a su perro unas verdaderas vacaciones mientras disfruta de las atracciones. Situada en Bussy-Saint-Georges (a 2 paradas de RER A o 10 minutos en coche de los parques), La Patte Dorée acoge a su compañero en una verdadera casa familiar con jardín, sin jaulas ni perreras, con paseos incluidos y fotos enviadas durante el día."
+  },
+  "Vraies photos · Cadre 100 % familial": {
+    "en": "Real photos · 100% family setting",
+    "es": "Fotos reales · Entorno 100 % familiar"
   },
   "wait": {
     "en": "wait",

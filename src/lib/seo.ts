@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GOOGLE_MAPS_PLACE_URL } from "@/lib/google-reviews";
 import { LEGAL_INFORMATION } from "@/lib/legal";
 import { INSTAGRAM_URL } from "@/lib/social-links";
 
@@ -116,7 +117,7 @@ export function buildMetadata({
       type: "website",
       images: [
         {
-          url: "/opengraph-image",
+          url: "/og-image.jpg",
           width: 1200,
           height: 630,
           alt: "La Patte Dorée — Garde familiale de chiens et chats près de Disneyland Paris",
@@ -127,7 +128,7 @@ export function buildMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: ["/opengraph-image"],
+      images: ["/og-image.jpg"],
     },
     robots: noIndex
       ? {
@@ -743,7 +744,9 @@ export function getLocalBusinessJsonLd() {
     alternateName: LEGAL_INFORMATION.commercialName,
     url: getSiteUrl(),
     telephone: "+33771593016",
-    image: absoluteUrl("/logo-mark.png"),
+    email: LEGAL_INFORMATION.contactEmail,
+    hasMap: GOOGLE_MAPS_PLACE_URL,
+    image: absoluteUrl("/og-image.jpg"),
     logo: absoluteUrl("/logo-mark.png"),
     description:
       "Service de garde d'animaux pour chiens et chats près de Disneyland Paris, Bussy-Saint-Georges, Val d'Europe et en Seine-et-Marne.",
@@ -753,6 +756,7 @@ export function getLocalBusinessJsonLd() {
       streetAddress: "29 boulevard des 100 Arpents",
       postalCode: "77600",
       addressLocality: "Bussy-Saint-Georges",
+      addressRegion: "Île-de-France",
       addressCountry: "FR",
     },
     geo: {
@@ -760,6 +764,22 @@ export function getLocalBusinessJsonLd() {
       latitude: 48.8414,
       longitude: 2.7095,
     },
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ],
+        opens: "07:00",
+        closes: "21:00",
+      },
+    ],
     areaServed: coreServiceAreas.map((area) => ({
       "@type": "AdministrativeArea",
       name: area,

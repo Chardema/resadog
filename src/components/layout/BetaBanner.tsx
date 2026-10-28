@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Bug, CheckCircle2, X } from "lucide-react";
+
+export const OPEN_BUG_REPORT_EVENT = "resadog:open-bug-report";
 
 export function BetaBanner() {
   const pathname = usePathname();
@@ -13,6 +15,12 @@ export function BetaBanner() {
   const [description, setDescription] = useState("");
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener(OPEN_BUG_REPORT_EVENT, handleOpen);
+    return () => window.removeEventListener(OPEN_BUG_REPORT_EVENT, handleOpen);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +50,7 @@ export function BetaBanner() {
 
   return (
     <>
-      <div className="fixed bottom-20 right-3 z-40 md:bottom-6 md:right-6">
+      <div className="hidden md:block fixed bottom-6 right-6 z-40">
         <Button 
           onClick={() => setIsOpen(true)}
           size="icon"

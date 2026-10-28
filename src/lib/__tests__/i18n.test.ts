@@ -204,4 +204,26 @@ describe("i18n translations & word boundary safety", () => {
       expect(es, `Missing ES for: ${s}`).not.toBe(s);
     }
   });
+
+  it("translates all Chantier 4 navigation, visitor footer, NAP and bug report strings into EN and ES", () => {
+    const chantier4Strings = [
+      "Langue",
+      "Certifié ACACED Chien & Chat n°",
+      "Certifié ACACED Chien & Chat n° 2025/ef33-4a9c",
+      "Simuler & Réserver",
+      "Tarifs & Conditions",
+      "Programme Fidélité",
+      "Connexion client",
+      "Légal & Aide",
+      "Signaler un problème",
+      "77600 Bussy-Saint-Georges (à 10 min de Disneyland Paris & Val d’Europe) · Accueil 7j/7 sur réservation",
+    ];
+
+    for (const s of chantier4Strings) {
+      const en = translateFrenchText(s, "en");
+      const es = translateFrenchText(s, "es");
+      expect(en, `Missing EN for: ${s}`).not.toBe(s);
+      expect(es, `Missing ES for: ${s}`).not.toBe(s);
+    }
+  });
 });

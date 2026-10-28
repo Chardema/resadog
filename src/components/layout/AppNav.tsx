@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { BadgeEuro, CalendarPlus, History, Home, Menu, PawPrint, Shield, UserRound, X, type LucideIcon } from "lucide-react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { adminMenuItems } from "@/components/admin/navigation";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { cn } from "@/lib/utils";
 
 type NavLink = { href: string; label: string; icon?: LucideIcon };
@@ -100,6 +101,10 @@ function NavigationMenu({ pathname, authenticated, canAccessAdmin, isAdmin }: {
               <Link href="/auth/signup" onClick={() => setOpen(false)} className={cn(linkClass, "bg-gray-900 text-white")}>S&apos;inscrire</Link>
             </>}
           </div>
+          <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+            <span className="text-xs font-semibold text-gray-600">Langue</span>
+            <LanguageSwitcher inline />
+          </div>
         </div>
       )}
     </div>
@@ -117,7 +122,7 @@ export function AppNav() {
     ? [{ href: "/", label: "Voir le site" }, { href: "/dashboard", label: "Mon espace" }]
     : authenticated && isClient ? clientLinks.filter((link) => link.href !== "/booking") : publicLinks;
   const action = !authenticated
-    ? { href: "/auth/signup", label: "S'inscrire" }
+    ? { href: "/booking", label: "Réserver" }
     : isClient ? { href: "/booking", label: "Réserver" }
     : { href: isAdmin ? "/admin/dashboard" : "/dashboard", label: isAdmin ? "Admin" : "Mon espace" };
 
@@ -150,9 +155,9 @@ export function AppNav() {
         <nav aria-label="Raccourcis de votre espace" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-gray-200 bg-white/95 px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-xl md:hidden">
           {clientLinks.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} aria-current={isActive(pathname, href) ? "page" : undefined}
-              className={cn("flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md px-1 py-1.5", isActive(pathname, href) ? "bg-orange-50 text-orange-700" : "text-gray-500")}>
+              className={cn("flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md px-1 py-1.5", isActive(pathname, href) ? "bg-orange-50 text-orange-700" : "text-gray-600")}>
               {Icon && <Icon className="h-5 w-5" aria-hidden="true" />}
-              <span className="text-[10px] font-semibold">{label}</span>
+              <span className="text-[11px] font-semibold">{label}</span>
             </Link>
           ))}
         </nav>
