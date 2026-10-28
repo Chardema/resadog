@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -35,6 +36,153 @@ type SeoPageProps = {
     slug: string;
   }>;
 };
+
+type LocalPhotoCard = {
+  src: string;
+  badge: string;
+  caption: string;
+  alt: string;
+};
+
+type LocalPagePhotosConfig = {
+  hero: {
+    src: string;
+    width: number;
+    height: number;
+    badge: string;
+    caption: string;
+    alt: string;
+  };
+  galleryHeading: string;
+  gallerySubheading: string;
+  gallery: [LocalPhotoCard, LocalPhotoCard, LocalPhotoCard];
+};
+
+function getLocalPagePhotos(slug: string): LocalPagePhotosConfig {
+  if (slug === "garde-chat-77" || slug === "visite-chat-domicile-77") {
+    return {
+      hero: {
+        src:
+          slug === "garde-chat-77"
+            ? "/images/galerie/chat-tigre-canape.webp"
+            : "/images/galerie/chat-soleil-jardin.webp",
+        width: 800,
+        height: 600,
+        badge: "Garde chat · 100 % sereine",
+        caption:
+          slug === "garde-chat-77"
+            ? "Chat tigré détendu sur le canapé familial chez La Patte Dorée"
+            : "Chat profitant du soleil dans l'herbe pendant sa garde en Seine-et-Marne",
+        alt:
+          slug === "garde-chat-77"
+            ? "Chat tigré détendu sur le canapé familial chez La Patte Dorée en Seine-et-Marne (77)"
+            : "Chat profitant du soleil dans l'herbe pendant une garde chat en Seine-et-Marne (77)",
+      },
+      galleryHeading: "Un aperçu réel de nos gardes et visites chats dans le 77",
+      gallerySubheading:
+        "Vraies photos prises lors de nos gardes : respect des habitudes, calme, câlins et nouvelles envoyées à chaque passage.",
+      gallery: [
+        {
+          src: "/images/galerie/chat-tigre-canape.webp",
+          badge: "Confort familial",
+          caption: "Chat tigré détendu sur le canapé",
+          alt: "Chat tigré détendu sur le canapé familial chez La Patte Dorée",
+        },
+        {
+          src: "/images/galerie/chat-soleil-jardin.webp",
+          badge: "Garde chat",
+          caption: "Chat profitant du soleil dans l'herbe",
+          alt: "Chat profitant du soleil dans l'herbe pendant sa garde",
+        },
+        {
+          src: "/images/galerie/salon-chien-chat.webp",
+          badge: "Vie au salon",
+          caption: "Chien et chat cohabitant paisiblement au salon",
+          alt: "Chien et chat cohabitant paisiblement au salon chez La Patte Dorée",
+        },
+      ],
+    };
+  }
+
+  if (slug === "garde-animaux-seine-et-marne") {
+    return {
+      hero: {
+        src: "/images/hero-famille.webp",
+        width: 1200,
+        height: 900,
+        badge: "Maison familiale · Zéro box",
+        caption: "Accueil familial chiens et chats à Bussy-Saint-Georges (77)",
+        alt: "Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée en Seine-et-Marne (77)",
+      },
+      galleryHeading: "Le cadre réel chez La Patte Dorée en Seine-et-Marne",
+      gallerySubheading:
+        "Vraies photos de nos pensionnaires chiens et chats à Bussy-Saint-Georges : salon familial, jardin clos et repos au calme.",
+      gallery: [
+        {
+          src: "/images/galerie/salon-chien-chat.webp",
+          badge: "Vie au salon",
+          caption: "Chien et chat cohabitant paisiblement au salon",
+          alt: "Chien et chat cohabitant paisiblement au salon chez La Patte Dorée",
+        },
+        {
+          src: "/images/galerie/jardin-golden.webp",
+          badge: "Jardin & extérieur",
+          caption: "Golden Retriever en promenade dans le jardin ensoleillé",
+          alt: "Golden Retriever en promenade dans le jardin ensoleillé chez La Patte Dorée",
+        },
+        {
+          src: "/images/galerie/chat-tigre-canape.webp",
+          badge: "Confort familial",
+          caption: "Chat tigré détendu sur le canapé",
+          alt: "Chat tigré détendu sur le canapé familial chez La Patte Dorée",
+        },
+      ],
+    };
+  }
+
+  return {
+    hero: {
+      src: "/images/hero-famille.webp",
+      width: 1200,
+      height: 900,
+      badge: "Maison familiale · 100 % sans box",
+      caption:
+        slug === "garde-chien-disneyland-paris"
+          ? "Repos au calme en maison familiale à 10 min de Disneyland Paris"
+          : "Hébergement familial sans box ni chenil en Seine-et-Marne (77)",
+      alt:
+        slug === "garde-chien-disneyland-paris"
+          ? "Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée à 10 min de Disneyland Paris"
+          : "Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée en Seine-et-Marne (77)",
+    },
+    galleryHeading:
+      slug === "garde-chien-disneyland-paris"
+        ? "Le cadre réel pendant votre journée à Disneyland Paris"
+        : "Un cadre de maison réel pour votre chien dans le 77",
+    gallerySubheading:
+      "Vraies photos de nos pensionnaires à Bussy-Saint-Georges : jardin clos, vraies promenades incluses et repos au salon sans cage.",
+    gallery: [
+      {
+        src: "/images/galerie/jardin-golden.webp",
+        badge: "Jardin & extérieur",
+        caption: "Golden Retriever en promenade dans le jardin ensoleillé",
+        alt: "Golden Retriever en promenade dans le jardin ensoleillé chez La Patte Dorée",
+      },
+      {
+        src: "/images/galerie/balade-golden-creme.webp",
+        badge: "Promenades",
+        caption: "Balade quotidienne en pleine nature",
+        alt: "Balade quotidienne en pleine nature avec un chien gardé par La Patte Dorée",
+      },
+      {
+        src: "/images/galerie/interieur-chien-noir.webp",
+        badge: "Comme à la maison",
+        caption: "Repos au calme à la maison sans box",
+        alt: "Repos au calme à la maison sans box ni cage chez La Patte Dorée",
+      },
+    ],
+  };
+}
 
 export const dynamicParams = false;
 
@@ -87,6 +235,7 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
 
   const isDisneyPage = page.slug === "garde-chien-disneyland-paris";
   const isDogFocused = page.slug.includes("chien");
+  const pagePhotos = getLocalPagePhotos(page.slug);
 
   const boardingPrice = getServiceDisplayPrice("BOARDING");
   const dayCarePrice = getServiceDisplayPrice("DAY_CARE");
@@ -173,7 +322,7 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
 
       <main className="pt-24 md:pt-32">
         <section className="border-b border-orange-100 bg-white">
-          <div className="container mx-auto grid gap-10 px-6 py-14 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
+          <div className="container mx-auto grid gap-10 px-6 py-14 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
             <div>
               {isDisneyPage && (
                 <div className="mb-4 flex flex-wrap items-center gap-2.5">
@@ -229,9 +378,31 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
                   Service indépendant de garde d'animaux certifié ACACED, non affilié à Disneyland Paris.
                 </p>
               )}
+
+              <figure className="mt-8 overflow-hidden rounded-2xl border border-orange-100 bg-[#FDFbf7] shadow-sm">
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-orange-50/50">
+                  <Image
+                    src={pagePhotos.hero.src}
+                    alt={pagePhotos.hero.alt}
+                    width={pagePhotos.hero.width}
+                    height={pagePhotos.hero.height}
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 55vw"
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full border border-orange-100 bg-white/95 px-3 py-1 text-xs font-bold text-orange-900 shadow-sm backdrop-blur-sm">
+                    <Camera className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
+                    <span>{pagePhotos.hero.badge}</span>
+                  </span>
+                </div>
+                <figcaption className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs font-medium text-gray-700">
+                  <span>{pagePhotos.hero.caption}</span>
+                  <span className="shrink-0 font-bold text-orange-800">Bussy-Saint-Georges (77)</span>
+                </figcaption>
+              </figure>
             </div>
 
-            <aside className="rounded-lg border border-gray-200 bg-[#FDFbf7] p-5">
+            <aside className="rounded-2xl border border-gray-200 bg-[#FDFbf7] p-5 shadow-sm">
               <div className="flex items-center gap-3 border-b border-orange-100 pb-4">
                 <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-600 text-white">
                   <PawPrint className="h-5 w-5" aria-hidden="true" />
@@ -284,6 +455,43 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        <section className="container mx-auto px-6 pb-12">
+          <div className="mb-6 max-w-2xl">
+            <p className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-800">
+              <Camera className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
+              <span>Vraies photos · Cadre 100 % familial</span>
+            </p>
+            <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">{pagePhotos.galleryHeading}</h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600 sm:text-base">{pagePhotos.gallerySubheading}</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {pagePhotos.gallery.map((photo) => (
+              <figure
+                key={photo.src}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-orange-50/50">
+                  <Image
+                    src={photo.src}
+                    alt={photo.alt}
+                    width={800}
+                    height={600}
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  />
+                  <span className="absolute top-2.5 left-2.5 rounded-full border border-orange-100 bg-white/95 px-2.5 py-1 text-[11px] font-bold text-orange-900 shadow-sm backdrop-blur-sm">
+                    {photo.badge}
+                  </span>
+                </div>
+                <figcaption className="p-3.5 text-xs sm:text-sm font-medium leading-snug text-gray-700">
+                  {photo.caption}
+                </figcaption>
+              </figure>
+            ))}
           </div>
         </section>
 
