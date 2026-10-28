@@ -1,10 +1,39 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
 import { LOYALTY_REWARDS } from "@/lib/loyalty";
+
+const CONCEPT_PHOTOS = [
+  {
+    src: "/images/hero-famille.webp",
+    width: 1200,
+    height: 900,
+    badge: "Maison familiale · Zéro box",
+    caption: "Cavalier King Charles endormi paisiblement dans un fauteuil au salon",
+    alt: "Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée à Bussy-Saint-Georges",
+  },
+  {
+    src: "/images/galerie/salon-chien-chat.webp",
+    width: 800,
+    height: 600,
+    badge: "Cohabitation sereine",
+    caption: "Chien et chat cohabitant paisiblement au salon familial",
+    alt: "Chien et chat cohabitant paisiblement au salon chez La Patte Dorée",
+  },
+  {
+    src: "/images/galerie/interieur-chien-noir.webp",
+    width: 800,
+    height: 600,
+    badge: "Repos sans cage",
+    caption: "Repos au calme à la maison, comme chez vous",
+    alt: "Chien se reposant au calme à l’intérieur de la maison familiale sans box",
+  },
+] as const;
 
 export default function ConceptPage() {
 
@@ -45,6 +74,47 @@ export default function ConceptPage() {
             Tous les clients gagnent des Pattes à chaque réservation. Premium ajoute une remise automatique, les Pattes doublées et des avantages de confort.
           </motion.p>
         </div>
+
+        <section className="mb-20">
+          <div className="mb-6 text-center max-w-2xl mx-auto">
+            <p className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-800">
+              <Camera className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
+              <span>L’esprit La Patte Dorée · Accueil familial</span>
+            </p>
+            <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">
+              Une vraie vie de famille, récompensée à chaque séjour
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600 sm:text-base">
+              Nos pensionnaires vivent avec nous dans notre maison à Bussy-Saint-Georges, sans box ni cage, et chaque réservation alimente votre cagnotte de Pattes.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {CONCEPT_PHOTOS.map((photo) => (
+              <figure
+                key={photo.src}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-orange-50/50">
+                  <Image
+                    src={photo.src}
+                    alt={photo.alt}
+                    width={photo.width}
+                    height={photo.height}
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  />
+                  <span className="absolute top-2.5 left-2.5 rounded-full border border-orange-100 bg-white/95 px-2.5 py-1 text-[11px] font-bold text-orange-900 shadow-sm backdrop-blur-sm">
+                    {photo.badge}
+                  </span>
+                </div>
+                <figcaption className="p-3.5 text-xs sm:text-sm font-medium leading-snug text-gray-700">
+                  {photo.caption}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
 
         <div className="grid md:grid-cols-3 gap-8 mb-24">
           {[

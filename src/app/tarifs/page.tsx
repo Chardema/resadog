@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
+  Camera,
   BadgeEuro,
   CalendarClock,
   CheckCircle2,
@@ -42,6 +44,27 @@ export const metadata: Metadata = buildMetadata({
     "prix pension chien Seine-et-Marne",
   ],
 });
+
+const PRICING_PHOTOS = [
+  {
+    src: "/images/galerie/jardin-golden.webp",
+    badge: "Pension & Garderie chien",
+    caption: "Golden Retriever en promenade dans le jardin clos ensoleillé",
+    alt: "Golden Retriever en promenade dans le jardin ensoleillé chez La Patte Dorée",
+  },
+  {
+    src: "/images/galerie/chat-tigre-canape.webp",
+    badge: "Pension & Visites chat",
+    caption: "Chat tigré détendu sur le canapé familial au calme",
+    alt: "Chat tigré détendu sur le canapé familial chez La Patte Dorée",
+  },
+  {
+    src: "/images/galerie/balade-golden-creme.webp",
+    badge: "Promenades & Jardin clos",
+    caption: "Sorties quotidiennes en pleine nature incluses dans l’accueil",
+    alt: "Balade quotidienne en pleine nature avec un chien gardé par La Patte Dorée",
+  },
+] as const;
 
 const formatPrice = (amount: number) =>
   amount.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -138,6 +161,47 @@ export default function PricingPage() {
                 {LAST_MINUTE_DESCRIPTION}
               </p>
             </aside>
+          </div>
+        </section>
+
+        <section className="container mx-auto px-6 pt-12">
+          <div className="mb-6 max-w-2xl">
+            <p className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-800">
+              <Camera className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
+              <span>Cadre réel · Maison familiale sans box</span>
+            </p>
+            <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">
+              Chaque tarif inclut un vrai accueil familial
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600 sm:text-base">
+              Zéro cage ni chenil : vos chiens et chats profitent du salon familial, du jardin clos et de vraies sorties quotidiennes à Bussy-Saint-Georges (77).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {PRICING_PHOTOS.map((photo) => (
+              <figure
+                key={photo.src}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-orange-50/50">
+                  <Image
+                    src={photo.src}
+                    alt={photo.alt}
+                    width={800}
+                    height={600}
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  />
+                  <span className="absolute top-2.5 left-2.5 rounded-full border border-orange-100 bg-white/95 px-2.5 py-1 text-[11px] font-bold text-orange-900 shadow-sm backdrop-blur-sm">
+                    {photo.badge}
+                  </span>
+                </div>
+                <figcaption className="p-3.5 text-xs sm:text-sm font-medium leading-snug text-gray-700">
+                  {photo.caption}
+                </figcaption>
+              </figure>
+            ))}
           </div>
         </section>
 

@@ -9040,5 +9040,89 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Vraies photos prises lors de nos gardes : respect des habitudes, calme, câlins et nouvelles envoyées à chaque passage.": {
     "en": "Real photos taken during our stays: routines respected, calm environment, cuddles, and updates sent at every visit.",
     "es": "Fotos reales tomadas durante nuestras guardias: respeto de las rutinas, calma, mimos y noticias enviadas en cada visita."
+  },
+  "Cadre réel · Maison familiale sans box": {
+    "en": "Real home setting · Cage-free family house",
+    "es": "Entorno real · Casa familiar sin jaulas"
+  },
+  "Chaque tarif inclut un vrai accueil familial": {
+    "en": "Every rate includes genuine family home care",
+    "es": "Cada tarifa incluye una verdadera acogida familiar"
+  },
+  "Chat profitant du soleil dans l’herbe pendant sa garde": {
+    "en": "Cat enjoying the sun in the grass during its stay",
+    "es": "Gato disfrutando del sol en la hierba durante su estancia"
+  },
+  "Chat tigré détendu sur le canapé familial au calme": {
+    "en": "Tabby cat relaxed on the quiet family sofa",
+    "es": "Gato atigrado relajado en el sofá familiar con tranquilidad"
+  },
+  "Chien et chat cohabitant paisiblement au salon familial": {
+    "en": "Dog and cat living peacefully together in the family living room",
+    "es": "Perro y gato conviviendo pacíficamente en el salón familiar"
+  },
+  "Chien se reposant au calme à l’intérieur de la maison familiale sans box": {
+    "en": "Dog resting peacefully inside the cage-free family home",
+    "es": "Perro descansando tranquilo dentro de la casa familiar sin jaulas"
+  },
+  "Golden Retriever en promenade dans le jardin clos ensoleillé": {
+    "en": "Golden Retriever walking in the sunny enclosed garden",
+    "es": "Golden Retriever paseando por el jardín vallado y soleado"
+  },
+  "Habitués du club": {
+    "en": "Club regulars",
+    "es": "Habituales del club"
+  },
+  "L’esprit La Patte Dorée · Accueil familial": {
+    "en": "The La Patte Dorée spirit · Family home care",
+    "es": "El espíritu La Patte Dorée · Acogida familiar"
+  },
+  "Le confort des habitués · Maison familiale à Bussy-Saint-Georges": {
+    "en": "Comfort for regulars · Family home in Bussy-Saint-Georges",
+    "es": "La comodidad de los habituales · Casa familiar en Bussy-Saint-Georges"
+  },
+  "Nos pensionnaires vivent avec nous dans notre maison à Bussy-Saint-Georges, sans box ni cage, et chaque réservation alimente votre cagnotte de Pattes.": {
+    "en": "Our guests live with us in our home in Bussy-Saint-Georges, with no cages or kennels, and every booking builds up your Paws reward balance.",
+    "es": "Nuestros huéspedes viven con nosotros en nuestra casa en Bussy-Saint-Georges, sin jaulas ni perreras, y cada reserva suma a tu saldo de Patitas."
+  },
+  "Pension & Garderie chien": {
+    "en": "Dog boarding & daycare",
+    "es": "Pensión y guardería canina"
+  },
+  "Pension & Visites chat": {
+    "en": "Cat boarding & drop-in visits",
+    "es": "Pensión y visitas para gatos"
+  },
+  "Photos des pensionnaires": {
+    "en": "Photos of our guests",
+    "es": "Fotos de nuestros huéspedes"
+  },
+  "Promenades et détente régulières au jardin clos": {
+    "en": "Regular walks and relaxation in the enclosed garden",
+    "es": "Paseos y descanso regulares en el jardín vallado"
+  },
+  "Repères familiers au salon pour vos chiens et chats": {
+    "en": "Familiar living room comforts for your dogs and cats",
+    "es": "Referencias familiares en el salón para tus perros y gatos"
+  },
+  "Repos au calme à la maison, comme chez vous": {
+    "en": "Peaceful rest at home, just like at yours",
+    "es": "Descanso tranquilo en casa, como en tu propio hogar"
+  },
+  "Séjours sereins toute l’année avec Pattes doublées": {
+    "en": "Peaceful stays all year round with double Paws",
+    "es": "Estancias tranquilas todo el año con Patitas dobles"
+  },
+  "Sorties quotidiennes en pleine nature incluses dans l’accueil": {
+    "en": "Daily outdoor nature walks included with every stay",
+    "es": "Paseos diarios en plena naturaleza incluidos en la acogida"
+  },
+  "Une vraie vie de famille, récompensée à chaque séjour": {
+    "en": "A true family home life, rewarded with every stay",
+    "es": "Una verdadera vida de familia, recompensada en cada estancia"
+  },
+  "Zéro cage ni chenil : vos chiens et chats profitent du salon familial, du jardin clos et de vraies sorties quotidiennes à Bussy-Saint-Georges (77).": {
+    "en": "Zero cages or kennels: your dogs and cats enjoy the family living room, the enclosed garden, and real daily walks in Bussy-Saint-Georges (77).",
+    "es": "Cero jaulas ni perreras: tus perros y gatos disfrutan del salón familiar, del jardín vallado y de verdaderos paseos diarios en Bussy-Saint-Georges (77)."
   }
 } as const;

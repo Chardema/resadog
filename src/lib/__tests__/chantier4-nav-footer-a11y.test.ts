@@ -171,4 +171,62 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
       expect(fs.statSync(fullPath).size).toBeGreaterThan(10_000);
     }
   });
+  it("integrates real gallery photos on /tarifs, /concept and /subscriptions", () => {
+    const tarifsSource = readSource("src/app/tarifs/page.tsx");
+    expect(tarifsSource).toContain("PRICING_PHOTOS");
+    expect(tarifsSource).toContain("/images/galerie/jardin-golden.webp");
+    expect(tarifsSource).toContain("/images/galerie/chat-tigre-canape.webp");
+    expect(tarifsSource).toContain("/images/galerie/balade-golden-creme.webp");
+    expect(tarifsSource).toContain("Pension & Garderie chien");
+    expect(tarifsSource).toContain("Pension & Visites chat");
+    expect(tarifsSource).toContain("Promenades & Jardin clos");
+    expect(tarifsSource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
+
+    const conceptSource = readSource("src/app/concept/page.tsx");
+    expect(conceptSource).toContain("CONCEPT_PHOTOS");
+    expect(conceptSource).toContain("/images/hero-famille.webp");
+    expect(conceptSource).toContain("/images/galerie/salon-chien-chat.webp");
+    expect(conceptSource).toContain("/images/galerie/interieur-chien-noir.webp");
+    expect(conceptSource).toContain("Maison familiale · Zéro box");
+    expect(conceptSource).toContain("Cohabitation sereine");
+    expect(conceptSource).toContain("Repos sans cage");
+    expect(conceptSource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
+
+    const subscriptionsSource = readSource("src/app/subscriptions/page.tsx");
+    expect(subscriptionsSource).toContain("SUBSCRIPTION_PHOTOS");
+    expect(subscriptionsSource).toContain("/images/galerie/jardin-golden.webp");
+    expect(subscriptionsSource).toContain("/images/galerie/salon-chien-chat.webp");
+    expect(subscriptionsSource).toContain("/images/galerie/chat-soleil-jardin.webp");
+    expect(subscriptionsSource).toContain("Habitués du club");
+    expect(subscriptionsSource).toContain("Comme à la maison");
+    expect(subscriptionsSource).toContain("Priorité vacances");
+    expect(subscriptionsSource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
+  });
+
+  it("wires all business check:* scripts and check:translations in .github/workflows/ci.yml and ignores semver-major in dependabot.yml", () => {
+    const ciSource = readSource(".github/workflows/ci.yml");
+    const expectedScripts = [
+      "npm audit --omit=dev --audit-level=high",
+      "npm run check:translations",
+      "npm run lint",
+      "npm run check:types",
+      "npm run check:pricing",
+      "npm run check:pets",
+      "npm run check:payments",
+      "npm run check:finance",
+      "npm run check:attendance",
+      "npm run check:direct-bookings",
+      "npm run check:two-factor",
+      "npm run check:quote-email",
+      "npm test",
+      "npm run build",
+    ];
+    for (const script of expectedScripts) {
+      expect(ciSource).toContain(script);
+    }
+
+    const dependabotSource = readSource(".github/dependabot.yml");
+    expect(dependabotSource).toContain("version-update:semver-major");
+    expect(dependabotSource).not.toContain("npm-major");
+  });
 });
