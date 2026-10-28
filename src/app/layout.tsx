@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/opengraph-image",
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "La Patte Dorée — Garde familiale de chiens et chats près de Disneyland Paris",
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     title: "La Patte Dorée | Pet-sitter près de Disneyland Paris",
     description:
       "Hébergement familial, visites et promenades près de Disneyland Paris, avec réservation en ligne.",
-    images: ["/opengraph-image"],
+    images: ["/og-image.jpg"],
   },
   robots: {
     index: true,

@@ -117,7 +117,7 @@ export function buildMetadata({
       type: "website",
       images: [
         {
-          url: "/opengraph-image",
+          url: "/og-image.jpg",
           width: 1200,
           height: 630,
           alt: "La Patte Dorée — Garde familiale de chiens et chats près de Disneyland Paris",
@@ -128,7 +128,7 @@ export function buildMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: ["/opengraph-image"],
+      images: ["/og-image.jpg"],
     },
     robots: noIndex
       ? {
@@ -746,7 +746,7 @@ export function getLocalBusinessJsonLd() {
     telephone: "+33771593016",
     email: LEGAL_INFORMATION.contactEmail,
     hasMap: GOOGLE_MAPS_PLACE_URL,
-    image: absoluteUrl("/logo-mark.png"),
+    image: absoluteUrl("/og-image.jpg"),
     logo: absoluteUrl("/logo-mark.png"),
     description:
       "Service de garde d'animaux pour chiens et chats près de Disneyland Paris, Bussy-Saint-Georges, Val d'Europe et en Seine-et-Marne.",

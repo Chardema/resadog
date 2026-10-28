@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { PhotoGallerySection } from "@/components/home/PhotoGallerySection";
 import { ReviewsSection } from "@/components/home/ReviewsSection";
 import { LocationSection } from "@/components/home/LocationSection";
 import {
@@ -27,7 +28,7 @@ import { getServiceDisplayPrice } from "@/lib/pricing";
 import type { PublicGooglePlaceSummary, SerializedReview } from "@/lib/public-reviews";
 
 // Définir le chemin vers "/images/hero-famille.webp" dès que la photo est disponible
-const HERO_PHOTO_SRC: string | null = null; // "/images/hero-famille.webp"
+const HERO_PHOTO_SRC = "/images/hero-famille.webp";
 
 interface HomePageClientProps {
   initialReviews: SerializedReview[];
@@ -127,16 +128,15 @@ export function HomePageClient({
             {/* Colonne droite */}
             <div className="rounded-[2rem] border border-orange-200/80 bg-gradient-to-br from-orange-50 via-[#FDFBF7] to-amber-50/70 p-6 sm:p-8 shadow-2xl shadow-orange-950/10">
               {HERO_PHOTO_SRC && (
-                <div className="mb-5 overflow-hidden rounded-2xl border border-orange-100">
-                  <Image
-                    src={HERO_PHOTO_SRC}
-                    alt="Garde familiale de chiens et chats chez La Patte Dorée"
-                    width={640}
-                    height={420}
-                    className="h-56 w-full object-cover"
-                    priority
-                  />
-                </div>
+                <Image
+                  src={HERO_PHOTO_SRC}
+                  alt="Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée à Bussy-Saint-Georges"
+                  width={1200}
+                  height={900}
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 42vw"
+                  className="h-64 sm:h-80 w-full object-cover rounded-2xl mb-5 shadow-md"
+                />
               )}
 
               <div className="flex items-center justify-between gap-3 mb-5">
@@ -488,6 +488,9 @@ export function HomePageClient({
             </div>
           </div>
         </section>
+
+        {/* Photo Gallery Section - Nos pensionnaires comme à la maison */}
+        <PhotoGallerySection />
 
         {/* Reviews Section - Dynamic + SSR preloaded */}
         <ReviewsSection

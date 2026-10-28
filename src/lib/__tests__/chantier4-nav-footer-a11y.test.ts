@@ -4,18 +4,20 @@ import { describe, expect, it } from "vitest";
 import { OPEN_BUG_REPORT_EVENT } from "@/components/layout/BetaBanner";
 import { GOOGLE_MAPS_PLACE_URL } from "@/lib/google-reviews";
 import { LEGAL_INFORMATION } from "@/lib/legal";
-import { getLocalBusinessJsonLd } from "@/lib/seo";
+import { absoluteUrl, getLocalBusinessJsonLd } from "@/lib/seo";
 
 const rootDir = process.cwd();
 const readSource = (relPath: string) =>
   fs.readFileSync(path.join(rootDir, relPath), "utf8");
 
-describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, NAP/JSON-LD & WCAG AA", () => {
-  it("enriches getLocalBusinessJsonLd with email, hasMap, addressRegion and openingHoursSpecification", () => {
+describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, NAP/JSON-LD, WCAG AA & real GBP photos", () => {
+  it("enriches getLocalBusinessJsonLd with email, hasMap, og-image.jpg, addressRegion and openingHoursSpecification", () => {
     const jsonLd = getLocalBusinessJsonLd();
 
     expect(jsonLd.email).toBe(LEGAL_INFORMATION.contactEmail);
     expect(jsonLd.hasMap).toBe(GOOGLE_MAPS_PLACE_URL);
+    expect(jsonLd.image).toBe(absoluteUrl("/og-image.jpg"));
+    expect(jsonLd.logo).toBe(absoluteUrl("/logo-mark.png"));
     expect(jsonLd.address.addressRegion).toBe("Île-de-France");
     expect(jsonLd.openingHoursSpecification).toEqual([
       {
@@ -102,5 +104,35 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(cssSource).toContain("@media (prefers-reduced-motion: reduce)");
     expect(cssSource).toContain("animation-duration: 0.01ms !important;");
     expect(cssSource).toContain("transition-duration: 0.01ms !important;");
+  });
+
+  it("integrates real GBP hero photo, og-image.jpg and 6-photo PhotoGallerySection on home page", () => {
+    const homeSource = readSource("src/components/home/HomePageClient.tsx");
+    expect(homeSource).toContain(`const HERO_PHOTO_SRC = "/images/hero-famille.webp";`);
+    expect(homeSource).toContain(
+      `alt="Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée à Bussy-Saint-Georges"`
+    );
+    expect(homeSource).toContain("<PhotoGallerySection />");
+
+    const gallerySource = readSource("src/components/home/PhotoGallerySection.tsx");
+    expect(gallerySource).toContain("Nos pensionnaires comme à la maison");
+    expect(gallerySource).toContain("grid-cols-2 md:grid-cols-3 gap-4");
+    expect(gallerySource).toContain("@lapatte_doree");
+
+    const expectedAssets = [
+      "public/og-image.jpg",
+      "public/images/hero-famille.webp",
+      "public/images/galerie/salon-chien-chat.webp",
+      "public/images/galerie/jardin-golden.webp",
+      "public/images/galerie/balade-golden-creme.webp",
+      "public/images/galerie/chat-soleil-jardin.webp",
+      "public/images/galerie/interieur-chien-noir.webp",
+      "public/images/galerie/chat-tigre-canape.webp",
+    ];
+    for (const relAsset of expectedAssets) {
+      const fullPath = path.join(rootDir, relAsset);
+      expect(fs.existsSync(fullPath)).toBe(true);
+      expect(fs.statSync(fullPath).size).toBeGreaterThan(10_000);
+    }
   });
 });
