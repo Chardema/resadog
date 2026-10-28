@@ -713,6 +713,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "7. Your rights",
     "es": "7. Tus derechos"
   },
+  "77600 Bussy-Saint-Georges · Val d’Europe": {
+    "en": "77600 Bussy-Saint-Georges · Val d’Europe",
+    "es": "77600 Bussy-Saint-Georges · Val d’Europe"
+  },
+  "77600 Bussy-Saint-Georges (à 10 min de Disneyland Paris & Val d’Europe) · Accueil 7j/7 sur réservation": {
+    "en": "77600 Bussy-Saint-Georges (10 min from Disneyland Paris & Val d’Europe) · Open 7 days a week by booking",
+    "es": "77600 Bussy-Saint-Georges (a 10 min de Disneyland Paris y Val d’Europe) · Abierto 7 días/7 con reserva"
+  },
   "8. Cookies et mesure d’audience": {
     "en": "8. Cookies and audience measurement",
     "es": "8. Cookies y medición de audiencia"
@@ -1637,6 +1645,14 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Official French pet care certification, health record check and strict adherence to your instructions.",
     "es": "Certificado oficial de capacidad, verificación de la cartilla sanitaria y estricto respeto de sus indicaciones."
   },
+  "Certifié ACACED Chien & Chat n°": {
+    "en": "ACACED Dogs & Cats Certified No.",
+    "es": "Certificado ACACED Perros y Gatos n.º"
+  },
+  "Certifié ACACED Chien & Chat n° 2025/ef33-4a9c": {
+    "en": "ACACED Dogs & Cats Certified No. 2025/ef33-4a9c",
+    "es": "Certificado ACACED Perros y Gatos n.º 2025/ef33-4a9c"
+  },
   "Ces contenus sont soumis à la": {
     "en": "This content is subject to the",
     "es": "Este contenido está sujeto a la"
@@ -2168,6 +2184,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Connexion": {
     "en": "Connection",
     "es": "Conexión"
+  },
+  "Connexion client": {
+    "en": "Client login",
+    "es": "Acceso clientes"
   },
   "Connexion impossible.": {
     "en": "Unable to connect.",
@@ -4065,6 +4085,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "identity, species, breed, date of birth, weight, behavior, diet, treatments, veterinary information, emergency contact, photos and supporting documents sent.",
     "es": "identidad, especie, raza, fecha de nacimiento, peso, comportamiento, dieta, tratamientos, información veterinaria, contacto de emergencia, fotografías y documentos justificativos enviados."
   },
+  "Île-de-France": {
+    "en": "Île-de-France",
+    "es": "Isla de Francia"
+  },
   "Ils nous font confiance ❤️": {
     "en": "They trust us ❤️",
     "es": "Ellos confían en nosotros ❤️"
@@ -4697,6 +4721,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Language / Language / Idioma",
     "es": "Idioma / Idioma / Idioma"
   },
+  "Langue": {
+    "en": "Language",
+    "es": "Idioma"
+  },
   "Le calcul se fait sur la durée réelle entre le dépôt et la reprise, sans nouvelle facturation au simple passage de minuit.": {
     "en": "The calculation is based on the actual duration between deposit and collection, without new invoicing at the passing of midnight.",
     "es": "El cálculo se basa en el tiempo real entre el depósito y el cobro, sin nueva facturación al pasar la medianoche."
@@ -4888,6 +4916,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Légal": {
     "en": "Legal",
     "es": "Legal"
+  },
+  "Légal & Aide": {
+    "en": "Legal & Help",
+    "es": "Legal y Ayuda"
   },
   "les 30 premières minutes, puis": {
     "en": "the first 30 minutes, then",
@@ -6733,6 +6765,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Profiles, health, habits and useful information.",
     "es": "Perfiles, salud, hábitos e información útil."
   },
+  "Programme Fidélité": {
+    "en": "Loyalty Program",
+    "es": "Programa de Fidelidad"
+  },
   "Programme fidélité et Premium": {
     "en": "Loyalty and Premium program",
     "es": "Programa de fidelización y premium"
@@ -7525,6 +7561,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Live quote",
     "es": "Simulación en directo"
   },
+  "Simuler & Réserver": {
+    "en": "Simulate & Book",
+    "es": "Simular y Reservar"
+  },
   "Simuler mon prix": {
     "en": "Simulate my price",
     "es": "Simular mi precio"
@@ -7752,6 +7792,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Tarifs": {
     "en": "Prices",
     "es": "Precios"
+  },
+  "Tarifs & Conditions": {
+    "en": "Rates & Terms",
+    "es": "Tarifas y Condiciones"
   },
   "Tarifs affichés avant paiement": {
     "en": "Prices displayed before payment",

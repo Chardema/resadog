@@ -63,6 +63,10 @@ export function LocationSection() {
             <h3 className="text-xl font-bold text-gray-900">Une question avant de réserver ?</h3>
             <p className="mt-2 text-sm leading-6 text-gray-600">Parlons des habitudes de votre compagnon et de vos dates.</p>
             <div className="mt-4 flex flex-col items-start gap-1">
+              <div className="inline-flex min-h-11 items-center gap-3 text-sm font-medium text-gray-700">
+                <MapPin className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+                <span>77600 Bussy-Saint-Georges (à 10 min de Disneyland Paris &amp; Val d’Europe) · Accueil 7j/7 sur réservation</span>
+              </div>
               <a data-no-translate href={`tel:${LEGAL_INFORMATION.phone.replace(/\D/g, "")}`} className="inline-flex min-h-11 items-center gap-3 text-sm font-semibold text-gray-800 hover:text-orange-700"><Phone className="h-4 w-4 shrink-0" aria-hidden="true" />{LEGAL_INFORMATION.phone}</a>
               <a data-no-translate href={`mailto:${LEGAL_INFORMATION.contactEmail}`} className="inline-flex min-h-11 items-center gap-3 break-all text-sm font-semibold text-gray-800 hover:text-orange-700"><Mail className="h-4 w-4 shrink-0" aria-hidden="true" />{LEGAL_INFORMATION.contactEmail}</a>
             </div>

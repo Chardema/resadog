@@ -4,10 +4,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { Languages } from "lucide-react";
 import { localeNames, supportedLocales, type Locale } from "@/lib/i18n";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { cn } from "@/lib/utils";
 
 const shortLabels: Record<Locale, string> = { fr: "FR", en: "EN", es: "ES" };
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ inline = false }: { inline?: boolean }) {
   const { locale, setLocale } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
@@ -24,7 +25,12 @@ export function LanguageSwitcher() {
   return (
     <div
       data-no-translate
-      className="fixed bottom-20 left-4 z-[55] flex items-center gap-1 rounded-full border border-gray-200 bg-white/95 p-1.5 shadow-xl shadow-gray-900/10 backdrop-blur-xl md:bottom-6 md:left-6"
+      className={cn(
+        "items-center gap-1 rounded-full border border-gray-200 bg-white/95 p-1.5 backdrop-blur-xl",
+        inline
+          ? "inline-flex shadow-sm"
+          : "hidden md:flex fixed bottom-6 left-6 z-[55] shadow-xl shadow-gray-900/10"
+      )}
       aria-label="Language / Langue / Idioma"
     >
       <Languages className="ml-1 mr-0.5 h-4 w-4 text-orange-600" aria-hidden="true" />
