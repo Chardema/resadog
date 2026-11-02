@@ -24,12 +24,12 @@ const SUBSCRIPTION_PHOTOS = [
   {
     src: "/images/galerie/jardin-golden.webp",
     badge: "Habitués du club",
-    caption: "Promenades et détente régulières au jardin clos",
-    alt: "Golden Retriever en promenade dans le jardin ensoleillé chez La Patte Dorée",
+    caption: "Promenades et détente régulières",
+    alt: "Golden Retriever en promenade au soleil avec La Patte Dorée",
   },
   {
     src: "/images/galerie/salon-chien-chat.webp",
-    badge: "Comme à la maison",
+    badge: "Comme chez vous",
     caption: "Repères familiers au salon pour vos chiens et chats",
     alt: "Chien et chat cohabitant paisiblement au salon chez La Patte Dorée",
   },
@@ -129,7 +129,7 @@ export default function SubscriptionPage() {
         <section className="mb-8" aria-label="Photos des pensionnaires">
           <div className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-800">
             <Camera className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
-            <span>Le confort des habitués · Maison familiale à Bussy-Saint-Georges</span>
+            <span>Le confort des habitués · Cadre familial à Bussy-Saint-Georges</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {SUBSCRIPTION_PHOTOS.map((photo) => (

@@ -85,7 +85,7 @@ const serviceTypes: ServiceOption[] = [
     value: "BOARDING",
     name: "Hébergement",
     unit: "période de 24 h",
-    description: "Votre compagnon vit avec nous, avec nuit, accès canapé et jardin inclus. Le tarif suit des périodes réelles de 24 h à partir de l’arrivée.",
+    description: "Votre compagnon vit avec nous, avec nuit et accès canapé inclus. Le tarif suit des périodes réelles de 24 h à partir de l’arrivée.",
     icon: "🏠",
     maxHours: 24,
     maxPets: 3,
@@ -255,7 +255,7 @@ const ResidentCatsNotice = ({ compact = false }: { compact?: boolean }) => {
         🐈
       </div>
       <div>
-        <p className="font-bold">{t("Deux chats vivent à la maison")}</p>
+        <p className="font-bold">{t("Deux chats vivent avec nous")}</p>
         <p className="mt-1 text-sm leading-6 text-sky-900">
           {t("Pour la garderie et l'hébergement, la compatibilité est prise en compte. Si la cohabitation avec votre animal n'est pas sereine, nos chats restent dans un espace séparé.")}
         </p>

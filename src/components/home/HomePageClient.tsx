@@ -79,7 +79,7 @@ export function HomePageClient({
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] mb-6 tracking-tight">
                 Garde familiale de chiens &amp; chats près de Disneyland Paris,{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-700 to-amber-700 relative inline-block">
-                  comme à la maison.
+                  comme chez vous.
                   <svg className="absolute w-full h-3 -bottom-1 left-0 text-orange-200 -z-10" viewBox="0 0 100 10" preserveAspectRatio="none">
                     <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
                   </svg>
@@ -146,7 +146,7 @@ export function HomePageClient({
                   </div>
                   <div>
                     <p className="text-sm font-extrabold text-gray-900">Cadre 100 % familial</p>
-                    <p className="text-xs font-medium text-gray-600">Maison &amp; suivi personnalisé</p>
+                    <p className="text-xs font-medium text-gray-600">Chez nous &amp; suivi personnalisé</p>
                   </div>
                 </div>
                 <span className="shrink-0 rounded-full border border-orange-200 bg-white px-3.5 py-1.5 text-xs sm:text-sm font-extrabold text-orange-800 shadow-sm">
@@ -162,7 +162,7 @@ export function HomePageClient({
                   <div>
                     <p className="text-sm font-bold text-gray-900">Zéro box, zéro cage</p>
                     <p className="mt-0.5 text-xs sm:text-sm leading-relaxed text-gray-600">
-                      Votre compagnon vit avec nous dans la maison, à son rythme, avec sorties et moments de jeu adaptés.
+                      Votre compagnon vit avec nous dans notre appartement, à son rythme, avec sorties et moments de jeu adaptés.
                     </p>
                   </div>
                 </div>
@@ -292,7 +292,7 @@ export function HomePageClient({
                   Hébergement familial (24 h)
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-gray-600">
-                  Votre compagnon vit à la maison avec nous et profite du jardin clos, des sorties et d’une présence rassurante jour et nuit, avec photos chaque jour.
+                  Votre compagnon est notre seul pensionnaire de la nuit, dans notre appartement de 45 m² : sorties, présence rassurante jour et nuit et photos chaque jour.
                 </p>
 
                 <div className="mt-5 grid grid-cols-2 gap-3">
@@ -341,7 +341,7 @@ export function HomePageClient({
                   Garderie de jour
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-gray-600">
-                  Accueil dès 6h30 à 10 minutes des parcs Disney : jeux au jardin, repos au calme et compagnie continue jusqu’à 10 h de garde en journée.
+                  Accueil dès 6h30 à 10 minutes des parcs Disney : jeux, sorties, repos au calme et compagnie continue jusqu’à 10 h de garde en journée.
                 </p>
 
                 <div className="mt-5 grid grid-cols-2 gap-3">
@@ -489,7 +489,7 @@ export function HomePageClient({
           </div>
         </section>
 
-        {/* Photo Gallery Section - Nos pensionnaires comme à la maison */}
+        {/* Photo Gallery Section - Nos pensionnaires comme chez eux */}
         <PhotoGallerySection />
 
         {/* Reviews Section - Dynamic + SSR preloaded */}

@@ -130,7 +130,7 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(homeSource).toContain("<PhotoGallerySection />");
 
     const gallerySource = readSource("src/components/home/PhotoGallerySection.tsx");
-    expect(gallerySource).toContain("Nos pensionnaires comme à la maison");
+    expect(gallerySource).toContain("Nos pensionnaires comme chez eux");
     expect(gallerySource).toContain("grid-cols-2 md:grid-cols-3 gap-4");
     expect(gallerySource).toContain("@lapatte_doree");
 
@@ -179,7 +179,7 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(tarifsSource).toContain("/images/galerie/balade-golden-creme.webp");
     expect(tarifsSource).toContain("Pension & Garderie chien");
     expect(tarifsSource).toContain("Pension & Visites chat");
-    expect(tarifsSource).toContain("Promenades & Jardin clos");
+    expect(tarifsSource).toContain("Promenades & sorties");
     expect(tarifsSource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
 
     const conceptSource = readSource("src/app/concept/page.tsx");
@@ -187,7 +187,7 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(conceptSource).toContain("/images/hero-famille.webp");
     expect(conceptSource).toContain("/images/galerie/salon-chien-chat.webp");
     expect(conceptSource).toContain("/images/galerie/interieur-chien-noir.webp");
-    expect(conceptSource).toContain("Maison familiale · Zéro box");
+    expect(conceptSource).toContain("Cadre familial · Zéro box");
     expect(conceptSource).toContain("Cohabitation sereine");
     expect(conceptSource).toContain("Repos sans cage");
     expect(conceptSource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
@@ -198,7 +198,7 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(subscriptionsSource).toContain("/images/galerie/salon-chien-chat.webp");
     expect(subscriptionsSource).toContain("/images/galerie/chat-soleil-jardin.webp");
     expect(subscriptionsSource).toContain("Habitués du club");
-    expect(subscriptionsSource).toContain("Comme à la maison");
+    expect(subscriptionsSource).toContain("Comme chez vous");
     expect(subscriptionsSource).toContain("Priorité vacances");
     expect(subscriptionsSource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
   });

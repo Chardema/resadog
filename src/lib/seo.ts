@@ -161,7 +161,7 @@ export const localSeoPages: LocalSeoPage[] = [
       "Alternative familiale au chenil de Disneyland Paris : garde chien sans box à 10 min des parcs (Bussy-St-Georges). Garderie jour 35 €, pension 24h 45 €, photos.",
     eyebrow: "Garde chien Disneyland Paris · À 10 min des parcs (Bussy-Saint-Georges)",
     lead:
-      "Vous visitez Disneyland Paris pour la journée ou séjournez dans un hôtel à Val d'Europe ? Offrez à votre chien de vraies vacances pendant que vous profitez des attractions. Située à Bussy-Saint-Georges (à 2 stations de RER A ou 10 minutes en voiture des parcs), La Patte Dorée accueille votre compagnon dans une vraie maison avec jardin, sans box ni cage, avec promenades incluses et photos envoyées dans la journée.",
+      "Vous visitez Disneyland Paris pour la journée ou séjournez dans un hôtel à Val d'Europe ? Offrez à votre chien de vraies vacances pendant que vous profitez des attractions. Située à Bussy-Saint-Georges (à 2 stations de RER A ou 10 minutes en voiture des parcs), La Patte Dorée accueille votre compagnon dans notre appartement familial de 45 m² (un seul animal par nuit), sans box ni cage, avec promenades incluses et photos envoyées dans la journée.",
     intent:
       "Que vous veniez pour une journée aux parcs ou pour un séjour de plusieurs nuits dans un hôtel Disney, Val d'Europe ou Villages Nature, notre tarification s'adapte à vos horaires réels (le passage de minuit ne déclenche jamais une seconde journée facturée).",
     keywords: [
@@ -191,7 +191,7 @@ export const localSeoPages: LocalSeoPage[] = [
       "Villages Nature Paris",
     ],
     proofPoints: [
-      "Maison & jardin clos — 100 % sans box ni cage",
+      "Appartement familial · 1 animal par nuit — 100 % sans box ni cage",
       "À 10 min de Disneyland Paris (A4 sortie 12 / RER A Bussy-St-Georges)",
       "Promenades incluses & photos envoyées pendant votre journée au parc",
       "Pet-sitter diplômée ACACED · Réservation en ligne sécurisée",
@@ -207,7 +207,7 @@ export const localSeoPages: LocalSeoPage[] = [
       },
       {
         title: "Séjour multi-jours & week-end Disney",
-        text: "Vous logez dans un hôtel de Marne-la-Vallée qui n'accepte pas les animaux ? Votre chien séjourne avec nous comme à la maison (canapé, jardin, sorties régulières et suivi quotidien).",
+        text: "Vous logez dans un hôtel de Marne-la-Vallée qui n'accepte pas les animaux ? Votre chien séjourne avec nous comme chez vous (canapé, sorties régulières et suivi quotidien).",
       },
       {
         title: "Visites & promenades autour de Val d'Europe",
@@ -220,7 +220,7 @@ export const localSeoPages: LocalSeoPage[] = [
         body:
           "Le chenil officiel du parc (Animal Care Center) dépanne, mais impose des contraintes lourdes : votre chien y est placé en box individuel et le personnel n'est pas autorisé à le promener (vous devez sortir du parc en cours de journée pour venir le balader vous-même). Avec La Patte Dorée, vous n'avez aucun aller-retour à faire en pleine journée : nous nous occupons de tout.",
         bullets: [
-          "Zéro cage, zéro box : vie de famille en maison avec accès au jardin et au canapé",
+          "Zéro cage, zéro box : vie de famille dans notre appartement, avec accès au canapé",
           "Promenades assurées par nos soins : profitez des deux parcs sans devoir ressortir à midi",
           "Idéal si vous voulez rester jusqu'au spectacle pyrotechnique du soir (formule 24 h à 45 €)",
           "Nouvelles et photos envoyées pour rassurer toute la famille dans les files d'attente",
@@ -229,7 +229,7 @@ export const localSeoPages: LocalSeoPage[] = [
       {
         title: "Accès ultra-rapide depuis les parcs, la gare TGV/RER de Chessy et l'autoroute A4",
         body:
-          "Notre maison d'accueil est située à Bussy-Saint-Georges (77600), sur votre trajet direct vers Disneyland Paris. Le dépôt et la reprise se font sur rendez-vous rapide pour ne pas retarder votre entrée aux parcs.",
+          "Notre appartement d'accueil est situé à Bussy-Saint-Georges (77600), sur votre trajet direct vers Disneyland Paris. Le dépôt et la reprise se font sur rendez-vous rapide pour ne pas retarder votre entrée aux parcs.",
         bullets: [
           "En voiture : à 10 minutes des parkings Disney et des hôtels via l'A4 (sortie 12 Bussy-Saint-Georges)",
           "En RER A : station Bussy-Saint-Georges, à seulement 2 arrêts (8 minutes) de Marne-la-Vallée Chessy",
@@ -242,7 +242,7 @@ export const localSeoPages: LocalSeoPage[] = [
       {
         question: "Quelle est la différence entre La Patte Dorée et le chenil officiel de Disneyland Paris (Animal Care Center) ?",
         answer:
-          "Au chenil officiel de Disneyland Paris, les chiens sont gardés en box individuel et le personnel ne les promène pas : les propriétaires doivent revenir eux-mêmes pendant la journée pour les sortir. Chez La Patte Dorée, votre chien est accueilli dans une vraie maison familiale avec jardin à Bussy-Saint-Georges (à 10 min du parc), sans cage ni box. Nous assurons ses promenades, ses repas et ses moments de jeu, et nous vous envoyons des photos pendant que vous profitez des parcs sans interruption.",
+          "Au chenil officiel de Disneyland Paris, les chiens sont gardés en box individuel et le personnel ne les promène pas : les propriétaires doivent revenir eux-mêmes pendant la journée pour les sortir. Chez La Patte Dorée, votre chien est accueilli dans notre appartement familial à Bussy-Saint-Georges (à 10 min du parc), sans cage ni box. Nous assurons ses promenades, ses repas et ses moments de jeu, et nous vous envoyons des photos pendant que vous profitez des parcs sans interruption.",
       },
       {
         question: "Comment choisir entre la garderie de jour (35 €) et l'hébergement 24 h (45 €) pour une journée à Disney ?",
@@ -257,7 +257,7 @@ export const localSeoPages: LocalSeoPage[] = [
       {
         question: "Mon chien sera-t-il enfermé en box ou en cage ?",
         answer:
-          "Jamais. L'accueil est 100 % familial : votre chien vit avec nous dans la maison, profite du salon, du jardin clos et de vraies balades. Pour garantir une ambiance sereine, nous validons au préalable le profil de chaque animal (sociabilité, habitudes, santé). Deux chats habitués aux chiens vivent également à la maison et disposent d'un espace séparé si nécessaire.",
+          "Jamais. L'accueil est 100 % familial : votre chien vit avec nous dans notre appartement de 45 m², seul animal accueilli pour la nuit, et profite du salon et de vraies balades. Pour garantir une ambiance sereine, nous validons au préalable le profil de chaque animal (sociabilité, habitudes, santé). Deux chats habitués aux chiens vivent également avec nous et disposent d'un espace séparé si nécessaire.",
       },
       {
         question: "Puis-je déposer mon chien tôt le matin avant l'ouverture des parcs ?",
@@ -390,7 +390,7 @@ export const localSeoPages: LocalSeoPage[] = [
     areas: ["Seine-et-Marne", "Val d'Europe", "Chessy", "Serris", "Montévrain", "Magny-le-Hongre", "Coupvray", "Bailly-Romainvilliers"],
     proofPoints: [
       "Profil animal détaillé",
-      "Maison et jardin",
+      "Appartement familial, 1 animal par nuit",
       "Promenades incluses selon prestation",
       "Consignes santé suivies",
     ],
@@ -464,10 +464,10 @@ export const localSeoPages: LocalSeoPage[] = [
     title: "Pension chien familiale en Seine-et-Marne",
     metaTitle: "Pension chien 77 | Hébergement familial sans box",
     description:
-      "Pension chien 77 en cadre familial : hébergement sans box, promenades, jardin, photos et suivi personnalisé en Seine-et-Marne.",
+      "Pension chien 77 en cadre familial : hébergement sans box, un seul animal par nuit, promenades, photos et suivi personnalisé en Seine-et-Marne.",
     eyebrow: "Pension chien 77",
     lead:
-      "La pension chien chez La Patte Dorée privilégie un cadre de maison : présence, sorties, repos et suivi, sans environnement de chenil.",
+      "La pension chien chez La Patte Dorée se fait dans notre appartement, avec un seul animal par nuit : présence, sorties, repos et suivi, sans environnement de chenil.",
     intent:
       "Un hébergement familial sans box, conçu pour offrir à votre chien un séjour calme et proche de ses habitudes.",
     keywords: [
@@ -494,8 +494,8 @@ export const localSeoPages: LocalSeoPage[] = [
         text: "Organisation possible pour les absences prolongées, avec suivi régulier.",
       },
       {
-        title: "Jardin et sorties",
-        text: "Accès extérieur et promenades selon les besoins du chien.",
+        title: "Promenades et sorties",
+        text: "Sorties et promenades selon les besoins du chien.",
       },
       {
         title: "Profil complet",
@@ -508,7 +508,7 @@ export const localSeoPages: LocalSeoPage[] = [
         body:
           "Certains chiens vivent mal les box, le bruit ou les grands groupes. L'hébergement familial permet de garder une ambiance plus calme et plus proche du quotidien.",
         bullets: [
-          "Garde limitée et validée selon compatibilité",
+          "Un seul animal par nuit, validé selon compatibilité",
           "Rythme individualisé",
           "Nouvelles régulières pendant le séjour",
         ],
@@ -528,7 +528,7 @@ export const localSeoPages: LocalSeoPage[] = [
       {
         question: "La pension chien se fait-elle en box ?",
         answer:
-          "Non. La Patte Dorée propose un hébergement familial, dans un cadre de maison, sous réserve de compatibilité entre les animaux accueillis.",
+          "Non. La Patte Dorée propose un hébergement familial dans notre appartement, avec un seul animal accueilli par nuit.",
       },
       {
         question: "Quel est le tarif de pension chien ?",
@@ -668,7 +668,7 @@ export const localSeoPages: LocalSeoPage[] = [
     services: [
       {
         title: "Hébergement familial",
-        text: "Accueil de votre animal dans un environnement de maison pour les nuits et vacances.",
+        text: "Accueil de votre animal dans notre appartement pour les nuits et vacances.",
       },
       {
         title: "Garde à domicile",

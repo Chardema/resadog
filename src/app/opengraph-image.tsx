@@ -125,7 +125,7 @@ export default function OpenGraphImage() {
               lineHeight: 1.32,
             }}
           >
-            Garde familiale de chiens &amp; chats — en maison avec jardin clos,
+            Garde familiale de chiens &amp; chats à Bussy-Saint-Georges,
             sans box ni chenil
           </div>
         </div>

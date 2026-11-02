@@ -1317,7 +1317,7 @@ export const sendWelcomeEmail = async (
             `Zone / adresse de prise en charge : ${SERVICE_LOCATION}. Pour la garderie et l'hébergement, les détails d'arrivée sont confirmés avec la réservation.`,
             "Comment réserver : 1) ajoutez votre animal et complétez son profil ; 2) choisissez le service et les dates ; 3) vérifiez le tarif puis enregistrez votre carte ; 4) nous validons la demande sous 48 h. Votre carte n'est débitée qu'après acceptation.",
             "À préparer : identification par puce ou tatouage, vaccins à jour, informations de santé et de comportement, habitudes de repas et contact d'urgence.",
-            "À savoir pour la garderie et l'hébergement : deux chats vivent à la maison. Si la cohabitation avec votre animal n'est pas sereine, ils restent dans un espace séparé.",
+            "À savoir pour la garderie et l'hébergement : deux chats vivent avec nous. Si la cohabitation avec votre animal n'est pas sereine, ils restent dans un espace séparé.",
             "Fidélité : chaque euro dépensé rapporte 1 Patte.",
             "Tarifs de base (le total exact est toujours affiché avant la demande) :",
           ],
@@ -1332,7 +1332,7 @@ export const sendWelcomeEmail = async (
             `Service area / drop-off location: ${SERVICE_LOCATION_EN}. For day care and boarding, arrival details are confirmed with your booking.`,
             "How to book: 1) add your pet and complete their profile; 2) choose the service and dates; 3) review the price and register your card; 4) we confirm your request within 48 hours. Your card is charged only after acceptance.",
             "Please prepare: microchip or tattoo identification, up-to-date vaccinations, health and behaviour information, feeding routine and an emergency contact.",
-            "For day care and boarding: two cats live in the house. If they are not comfortable sharing the space with your pet, they are kept in a separate area.",
+            "For day care and boarding: two cats live with us. If they are not comfortable sharing the space with your pet, they are kept in a separate area.",
             "Loyalty: every euro spent earns 1 Paw point.",
             "Base rates (the exact total is always shown before you submit your request):",
           ],
@@ -1368,7 +1368,7 @@ export const sendWelcomeEmail = async (
           </p>
           <div style="margin:20px 0 0; padding:16px 18px; border-radius:10px; background:#f0f9ff; border:1px solid #bae6fd;">
             <p style="margin:0; color:#0c4a6e; font-size:15px; line-height:1.7;">
-              <strong>Deux chats vivent à la maison.</strong> Pour la garderie et l'hébergement, si la cohabitation avec votre animal n'est pas sereine, ils restent dans un espace séparé.
+              <strong>Deux chats vivent avec nous.</strong> Pour la garderie et l'hébergement, si la cohabitation avec votre animal n'est pas sereine, ils restent dans un espace séparé.
             </p>
           </div>
           <div style="margin:20px 0 0; padding:16px 18px; border-radius:10px; background:#ecfdf3; border:1px solid #a7f3d0;">
@@ -1400,7 +1400,7 @@ export const sendWelcomeEmail = async (
           </p>
           <div style="margin:20px 0 0; padding:16px 18px; border-radius:10px; background:#f0f9ff; border:1px solid #bae6fd;">
             <p style="margin:0; color:#0c4a6e; font-size:15px; line-height:1.7;">
-              <strong>Two cats live in the house.</strong> For day care and boarding, if they are not comfortable sharing the space with your pet, they are kept in a separate area.
+              <strong>Two cats live with us.</strong> For day care and boarding, if they are not comfortable sharing the space with your pet, they are kept in a separate area.
             </p>
           </div>
           <div style="margin:20px 0 0; padding:16px 18px; border-radius:10px; background:#ecfdf3; border:1px solid #a7f3d0;">
@@ -1578,7 +1578,7 @@ export const sendEmailVerificationEmail = async (
             `La Patte Dorée propose de l'hébergement familial, de la garde à votre domicile, de la garderie de jour, des visites et des promenades dans le ${SERVICE_LOCATION}.`,
             "Comment ça marche : complétez le profil de votre animal, choisissez un service et vos dates, vérifiez le prix puis envoyez votre demande. Nous répondons sous 48 h et votre carte n'est débitée qu'après acceptation.",
             "Votre animal doit être identifié, à jour de ses vaccins et son profil doit préciser ses besoins de santé, de comportement et d'alimentation.",
-            "À savoir pour la garderie et l'hébergement : deux chats vivent à la maison. Si la cohabitation avec votre animal n'est pas sereine, ils restent dans un espace séparé.",
+            "À savoir pour la garderie et l'hébergement : deux chats vivent avec nous. Si la cohabitation avec votre animal n'est pas sereine, ils restent dans un espace séparé.",
             "Fidélité : chaque euro dépensé rapporte 1 Patte.",
             "Tarifs de base (le total exact est toujours affiché avant la demande) :",
             "Ce lien est personnel, utilisable une seule fois et expire dans 24 heures. Si vous n'êtes pas à l'origine de cette inscription, ignorez cet email.",
@@ -1594,7 +1594,7 @@ export const sendEmailVerificationEmail = async (
             `La Patte Dorée offers family boarding, pet sitting in your home, day care, home visits and dog walking in the ${SERVICE_LOCATION_EN}.`,
             "How it works: complete your pet's profile, choose a service and dates, review the price and submit your request. We reply within 48 hours, and your card is charged only after acceptance.",
             "Your pet must be identified, have up-to-date vaccinations, and their profile must include health, behaviour and feeding information.",
-            "For day care and boarding: two cats live in the house. If they are not comfortable sharing the space with your pet, they are kept in a separate area.",
+            "For day care and boarding: two cats live with us. If they are not comfortable sharing the space with your pet, they are kept in a separate area.",
             "Loyalty: every euro spent earns 1 Paw point.",
             "Base rates (the exact total is always shown before you submit your request):",
             "This personal, single-use link expires in 24 hours. If you did not create this account, you can ignore this email.",
@@ -1630,7 +1630,7 @@ export const sendEmailVerificationEmail = async (
         </p>
         <div style="margin:20px 0 0; padding:16px 18px; border-radius:10px; background:#f0f9ff; border:1px solid #bae6fd;">
           <p style="margin:0; color:#0c4a6e; font-size:15px; line-height:1.7;">
-            <strong>Deux chats vivent à la maison.</strong> Pour la garderie et l'hébergement, si la cohabitation avec votre animal n'est pas sereine, ils restent dans un espace séparé.
+            <strong>Deux chats vivent avec nous.</strong> Pour la garderie et l'hébergement, si la cohabitation avec votre animal n'est pas sereine, ils restent dans un espace séparé.
           </p>
         </div>
         <h3 style="margin:24px 0 10px; color:#171717; font-size:18px;">Services et tarifs de base</h3>
@@ -1666,7 +1666,7 @@ export const sendEmailVerificationEmail = async (
         </p>
         <div style="margin:20px 0 0; padding:16px 18px; border-radius:10px; background:#f0f9ff; border:1px solid #bae6fd;">
           <p style="margin:0; color:#0c4a6e; font-size:15px; line-height:1.7;">
-            <strong>Two cats live in the house.</strong> For day care and boarding, if they are not comfortable sharing the space with your pet, they are kept in a separate area.
+            <strong>Two cats live with us.</strong> For day care and boarding, if they are not comfortable sharing the space with your pet, they are kept in a separate area.
           </p>
         </div>
         <h3 style="margin:24px 0 10px; color:#171717; font-size:18px;">Services and base rates</h3>

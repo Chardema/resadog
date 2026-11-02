@@ -44,7 +44,6 @@ const catalogue: Record<string, Translation> = {
     en: "La Patte Dorée | Pet sitter near Disneyland Paris",
     es: "La Patte Dorée | Cuidadora de mascotas cerca de Disneyland Paris",
   },
-  "Comme à la maison,": { en: "Just like home,", es: "Como en casa," },
   "même quand vous êtes loin.": { en: "even when you are away.", es: "incluso cuando está lejos." },
   "Hébergement familial sans box, visites à domicile et promenades, tout près de Disneyland Paris. Partez l'esprit tranquille, on s'occupe du reste.": {
     en: "Cage-free family boarding, home visits and walks near Disneyland Paris. Relax and enjoy your time away — we will take care of everything.",
@@ -176,9 +175,9 @@ const catalogue: Record<string, Translation> = {
     en: "Choose arrival and departure. Pricing starts at the arrival time and is calculated per started 24-hour period.",
     es: "Elija la llegada y la salida. La tarifa se calcula desde la hora de llegada, por cada periodo de 24 h iniciado.",
   },
-  "Votre compagnon vit avec nous, avec nuit, accès canapé et jardin inclus. Le tarif suit des périodes réelles de 24 h à partir de l’arrivée.": {
-    en: "Your pet stays with us overnight, with sofa and garden access included. Pricing follows actual 24-hour periods from arrival.",
-    es: "Su mascota se queda con nosotros por la noche, con acceso al sofá y al jardín. La tarifa sigue periodos reales de 24 h desde la llegada.",
+  "Votre compagnon vit avec nous, avec nuit et accès canapé inclus. Le tarif suit des périodes réelles de 24 h à partir de l’arrivée.": {
+    en: "Your pet stays with us overnight, with sofa access included. Pricing follows actual 24-hour periods from arrival.",
+    es: "Su mascota se queda con nosotros por la noche, con acceso al sofá. La tarifa sigue periodos reales de 24 h desde la llegada.",
   },
   "Tout ce qu'il faut pour son bonheur.": { en: "Everything they need to feel happy.", es: "Todo lo que necesita para ser feliz." },
   "Hébergement Familial": { en: "Family boarding", es: "Alojamiento familiar" },
@@ -187,10 +186,6 @@ const catalogue: Record<string, Translation> = {
   "Le calcul se fait sur la durée réelle entre le dépôt et la reprise, sans nouvelle facturation au simple passage de minuit.": {
     en: "Pricing is based on the actual time between drop-off and pick-up. Crossing midnight does not trigger a new charge on its own.",
     es: "La tarifa se calcula según el tiempo real entre la entrega y la recogida. El paso de la medianoche no genera por sí solo un nuevo cobro.",
-  },
-  "Votre compagnon vit avec nous, dans la maison. Pas de box, accès jardin illimité et séances de câlins sur le canapé. C'est comme chez vous, en mieux.": {
-    en: "Your pet lives with us in our home. No cages, unlimited garden access and plenty of sofa cuddles. Just like home, only better.",
-    es: "Su mascota vive con nosotros en casa. Sin jaulas, con acceso ilimitado al jardín y muchos mimos en el sofá. Como en casa, pero aún mejor.",
   },
   "Vie de famille 24/7": { en: "Family life 24/7", es: "Vida familiar 24/7" },
   "Photos tous les jours": { en: "Daily photos", es: "Fotos diarias" },
@@ -465,10 +460,6 @@ const catalogue: Record<string, Translation> = {
   "Garderie Jour": { en: "Day care", es: "Guardería de día" },
   "Visite à votre domicile": { en: "Home visit", es: "Visita a domicilio" },
   "Promenade": { en: "Dog walk", es: "Paseo" },
-  "Votre compagnon vit avec nous, accès canapé et jardin inclus.": {
-    en: "Your pet stays in our home, with sofa and garden access included.",
-    es: "Su mascota se queda en nuestra casa, con acceso al sofá y al jardín.",
-  },
   "Présence longue chez vous sur une journée complète : repas, sorties, compagnie et surveillance.": {
     en: "Full-day care in your home: meals, walks, company and supervision.",
     es: "Cuidado durante todo el día en su casa: comidas, paseos, compañía y supervisión.",
@@ -804,10 +795,7 @@ const catalogue: Record<string, Translation> = {
   "L'offre de bienvenue n'est pas associée à cette réservation.": { en: "The welcome offer is not linked to this booking.", es: "La oferta de bienvenida no está vinculada a esta reserva." },
 
   // Resident cats shown during bookings hosted at the pet-sitter's home
-  "Deux chats vivent à la maison": {
-    en: "Two cats live in the house",
-    es: "Dos gatos viven en la casa",
-  },
+  "Deux chats vivent avec nous": { en: "Two cats live with us", es: "Dos gatos viven con nosotros" },
   "Pour la garderie et l'hébergement, la compatibilité est prise en compte. Si la cohabitation avec votre animal n'est pas sereine, nos chats restent dans un espace séparé.": {
     en: "For day care and boarding, compatibility is taken into account. If they are not comfortable sharing the space with your pet, our cats are kept in a separate area.",
     es: "Para la guardería y el alojamiento, se tiene en cuenta la compatibilidad. Si no están cómodos compartiendo el espacio con su mascota, nuestros gatos permanecen en una zona separada.",
@@ -841,7 +829,7 @@ const catalogue: Record<string, Translation> = {
     en: "Family dog & cat boarding near Disneyland Paris,",
     es: "Alojamiento familiar para perros y gatos cerca de Disneyland Paris,",
   },
-  "comme à la maison.": { en: "just like home.", es: "como en casa." },
+  "comme chez vous.": { en: "just like home.", es: "como en casa." },
   "100 % sans box ni cage": {
     en: "100% cage-free and kennel-free",
     es: "100 % sin jaulas ni perreras",
@@ -878,9 +866,9 @@ const catalogue: Record<string, Translation> = {
     en: "100% family home environment",
     es: "Entorno 100 % familiar",
   },
-  "Maison & suivi personnalisé": {
-    en: "Home setting & personalised care",
-    es: "Hogar y seguimiento personalizado",
+  "Chez nous & suivi personnalisé": {
+    en: "At our place & personalised care",
+    es: "En nuestro hogar y seguimiento personalizado",
   },
   "Dès": { en: "From", es: "Desde" },
   "dès": { en: "from", es: "desde" },
@@ -890,9 +878,9 @@ const catalogue: Record<string, Translation> = {
     en: "Zero kennels, zero cages",
     es: "Cero perreras, cero jaulas",
   },
-  "Votre compagnon vit avec nous dans la maison, à son rythme, avec sorties et moments de jeu adaptés.": {
-    en: "Your pet lives with us inside our home at their own pace, with tailored outings and playtime.",
-    es: "Su mascota vive con nosotros en casa, a su propio ritmo, con salidas y momentos de juego adaptados.",
+  "Votre compagnon vit avec nous dans notre appartement, à son rythme, avec sorties et moments de jeu adaptés.": {
+    en: "Your pet lives with us in our apartment at their own pace, with tailored outings and playtime.",
+    es: "Su mascota vive con nosotros en nuestro apartamento, a su propio ritmo, con salidas y momentos de juego adaptados.",
   },
   "Photos & nouvelles quotidiennes": {
     en: "Daily photos & updates",
@@ -1059,9 +1047,9 @@ const catalogue: Record<string, Translation> = {
     en: "Dog boarding Disneyland Paris · 10 min from the parks (Bussy-Saint-Georges)",
     es: "Cuidado de perros Disneyland Paris · A 10 min de los parques (Bussy-Saint-Georges)",
   },
-  "Vous visitez Disneyland Paris pour la journée ou séjournez dans un hôtel à Val d'Europe ? Offrez à votre chien de vraies vacances pendant que vous profitez des attractions. Située à Bussy-Saint-Georges (à 2 stations de RER A ou 10 minutes en voiture des parcs), La Patte Dorée accueille votre compagnon dans une vraie maison avec jardin, sans box ni cage, avec promenades incluses et photos envoyées dans la journée.": {
-    en: "Visiting Disneyland Paris for the day or staying at a hotel in Val d'Europe? Give your dog a real holiday while you enjoy the attractions. Located in Bussy-Saint-Georges (just 2 RER A stops or a 10-minute drive from the parks), La Patte Dorée welcomes your dog into a real family house with a fenced garden, 100% cage-free and kennel-free, with walks included and photo updates sent throughout the day.",
-    es: "¿Visita Disneyland Paris por el día o se aloja en un hotel en Val d'Europe? Ofrezca a su perro unas verdaderas vacaciones mientras disfruta de las atracciones. Situada en Bussy-Saint-Georges (a 2 paradas de RER A o 10 minutos en coche de los parques), La Patte Dorée acoge a su compañero en una verdadera casa familiar con jardín, sin jaulas ni perreras, con paseos incluidos y fotos enviadas durante el día.",
+  "Vous visitez Disneyland Paris pour la journée ou séjournez dans un hôtel à Val d'Europe ? Offrez à votre chien de vraies vacances pendant que vous profitez des attractions. Située à Bussy-Saint-Georges (à 2 stations de RER A ou 10 minutes en voiture des parcs), La Patte Dorée accueille votre compagnon dans notre appartement familial de 45 m² (un seul animal par nuit), sans box ni cage, avec promenades incluses et photos envoyées dans la journée.": {
+    en: "Visiting Disneyland Paris for the day or staying at a hotel in Val d'Europe? Give your dog a real holiday while you enjoy the attractions. Located in Bussy-Saint-Georges (just 2 RER A stops or a 10-minute drive from the parks), La Patte Dorée welcomes your dog into our 45 m² family apartment (one pet per night), 100% cage-free and kennel-free, with walks included and photo updates sent throughout the day.",
+    es: "¿Visita Disneyland Paris por el día o se aloja en un hotel en Val d'Europe? Ofrezca a su perro unas verdaderas vacaciones mientras disfruta de las atracciones. Situada en Bussy-Saint-Georges (a 2 paradas de RER A o 10 minutos en coche de los parques), La Patte Dorée acoge a su compañero en nuestro apartamento familiar de 45 m² (un solo animal por noche), sin jaulas ni perreras, con paseos incluidos y fotos enviadas durante el día.",
   },
   "Que vous veniez pour une journée aux parcs ou pour un séjour de plusieurs nuits dans un hôtel Disney, Val d'Europe ou Villages Nature, notre tarification s'adapte à vos horaires réels (le passage de minuit ne déclenche jamais une seconde journée facturée).": {
     en: "Whether you are visiting the parks for a single day or staying several nights at a Disney, Val d'Europe or Villages Nature hotel, our pricing adapts to your actual schedule (crossing midnight never triggers an extra billed day).",
@@ -1071,9 +1059,9 @@ const catalogue: Record<string, Translation> = {
     en: "Check availability & book",
     es: "Comprobar disponibilidad y reservar",
   },
-  "Maison & jardin clos — 100 % sans box ni cage": {
-    en: "House & fenced garden — 100% cage-free and kennel-free",
-    es: "Casa y jardín vallado — 100 % sin jaulas ni perreras",
+  "Appartement familial · 1 animal par nuit — 100 % sans box ni cage": {
+    en: "Family apartment · 1 pet per night — 100% cage-free and kennel-free",
+    es: "Apartamento familiar · 1 animal por noche — 100 % sin jaulas ni perreras",
   },
   "À 10 min de Disneyland Paris (A4 sortie 12 / RER A Bussy-St-Georges)": {
     en: "10 min from Disneyland Paris (A4 exit 12 / RER A Bussy-St-Georges)",
@@ -1107,9 +1095,9 @@ const catalogue: Record<string, Translation> = {
     en: "Multi-day stay & Disney weekend",
     es: "Estancia de varios días y fin de semana en Disney",
   },
-  "Vous logez dans un hôtel de Marne-la-Vallée qui n'accepte pas les animaux ? Votre chien séjourne avec nous comme à la maison (canapé, jardin, sorties régulières et suivi quotidien).": {
-    en: "Staying at a hotel in Marne-la-Vallée that doesn't allow pets? Your dog stays with us just like at home (sofa, garden, regular walks, and daily photo updates).",
-    es: "¿Se aloja en un hotel de Marne-la-Vallée que no admite mascotas? Su perro se queda con nosotros como en casa (sofá, jardín, salidas regulares y seguimiento diario).",
+  "Vous logez dans un hôtel de Marne-la-Vallée qui n'accepte pas les animaux ? Votre chien séjourne avec nous comme chez vous (canapé, sorties régulières et suivi quotidien).": {
+    en: "Staying at a hotel in Marne-la-Vallée that doesn't allow pets? Your dog stays with us just like at home (sofa, regular walks, and daily photo updates).",
+    es: "¿Se aloja en un hotel de Marne-la-Vallée que no admite mascotas? Su perro se queda con nosotros como en su propio hogar (sofá, salidas regulares y seguimiento diario).",
   },
   "Visites & promenades autour de Val d'Europe": {
     en: "Home visits & dog walks around Val d'Europe",
@@ -1127,9 +1115,9 @@ const catalogue: Record<string, Translation> = {
     en: "The park's official kennel (Animal Care Center) is a basic fallback, but comes with strict limitations: dogs are kept in individual kennels and staff are not allowed to walk them (you must leave the park during the day to walk your dog yourself). With La Patte Dorée, you never have to leave the park mid-day: we take care of everything.",
     es: "La perrera oficial del parque (Animal Care Center) saca de un apuro, pero impone fuertes limitaciones: su perro permanece en un box individual y el personal no está autorizado a pasearlo (usted debe salir del parque durante el día para pasearlo). Con La Patte Dorée, no tendrá que hacer idas y vueltas a mitad del día: nos ocupamos de todo.",
   },
-  "Zéro cage, zéro box : vie de famille en maison avec accès au jardin et au canapé": {
-    en: "Zero cages, zero kennels: family life in a real house with access to the garden and sofa",
-    es: "Cero jaulas, cero perreras: vida familiar en casa con acceso al jardín y al sofá",
+  "Zéro cage, zéro box : vie de famille dans notre appartement, avec accès au canapé": {
+    en: "Zero cages, zero kennels: family life in our apartment, with sofa access",
+    es: "Cero jaulas, cero perreras: vida familiar en nuestro apartamento, con acceso al sofá",
   },
   "Promenades assurées par nos soins : profitez des deux parcs sans devoir ressortir à midi": {
     en: "Walks handled by us: enjoy both Disney parks without having to leave at midday",
@@ -1147,9 +1135,9 @@ const catalogue: Record<string, Translation> = {
     en: "Ultra-fast access from the parks, Marne-la-Vallée Chessy TGV/RER station and the A4 motorway",
     es: "Acceso ultrarrápido desde los parques, la estación TGV/RER de Chessy y la autopista A4",
   },
-  "Notre maison d'accueil est située à Bussy-Saint-Georges (77600), sur votre trajet direct vers Disneyland Paris. Le dépôt et la reprise se font sur rendez-vous rapide pour ne pas retarder votre entrée aux parcs.": {
-    en: "Our family home is located in Bussy-Saint-Georges (77600), right on your route to Disneyland Paris. Drop-off and pick-up are arranged by quick appointment so you don't delay your park entry.",
-    es: "Nuestra casa de acogida está situada en Bussy-Saint-Georges (77600), en su trayecto directo hacia Disneyland Paris. La entrega y recogida se realizan con cita rápida para no retrasar su entrada a los parques.",
+  "Notre appartement d'accueil est situé à Bussy-Saint-Georges (77600), sur votre trajet direct vers Disneyland Paris. Le dépôt et la reprise se font sur rendez-vous rapide pour ne pas retarder votre entrée aux parcs.": {
+    en: "Our apartment is located in Bussy-Saint-Georges (77600), right on your route to Disneyland Paris. Drop-off and pick-up are arranged by quick appointment so you don't delay your park entry.",
+    es: "Nuestro apartamento de acogida está situado en Bussy-Saint-Georges (77600), en su trayecto directo hacia Disneyland Paris. La entrega y recogida se realizan con cita rápida para no retrasar su entrada a los parques.",
   },
   "En voiture : à 10 minutes des parkings Disney et des hôtels via l'A4 (sortie 12 Bussy-Saint-Georges)": {
     en: "By car: 10 minutes from Disney parking lots and hotels via the A4 motorway (Exit 12 Bussy-Saint-Georges)",
@@ -1171,9 +1159,9 @@ const catalogue: Record<string, Translation> = {
     en: "What is the difference between La Patte Dorée and the official Disneyland Paris kennel (Animal Care Center)?",
     es: "¿Cuál es la diferencia entre La Patte Dorée y la perrera oficial de Disneyland Paris (Animal Care Center)?",
   },
-  "Au chenil officiel de Disneyland Paris, les chiens sont gardés en box individuel et le personnel ne les promène pas : les propriétaires doivent revenir eux-mêmes pendant la journée pour les sortir. Chez La Patte Dorée, votre chien est accueilli dans une vraie maison familiale avec jardin à Bussy-Saint-Georges (à 10 min du parc), sans cage ni box. Nous assurons ses promenades, ses repas et ses moments de jeu, et nous vous envoyons des photos pendant que vous profitez des parcs sans interruption.": {
-    en: "At the official Disneyland Paris kennel, dogs are kept in individual runs and staff do not walk them: owners must come back during the day to take them out themselves. At La Patte Dorée, your dog stays in a real family home with a garden in Bussy-Saint-Georges (10 minutes from the park), with no cages or kennels. We handle their walks, meals, and playtime, and send you photo updates while you enjoy the parks uninterrupted.",
-    es: "En la perrera oficial de Disneyland Paris, los perros permanecen en boxes individuales y el personal no los pasea: los propietarios deben volver durante el día para sacarlos. En La Patte Dorée, su perro es acogido en una verdadera casa familiar con jardín en Bussy-Saint-Georges (a 10 min del parque), sin jaulas ni boxes. Nos encargamos de sus paseos, comidas y juegos, y le enviamos fotos mientras disfruta de los parques sin interrupciones.",
+  "Au chenil officiel de Disneyland Paris, les chiens sont gardés en box individuel et le personnel ne les promène pas : les propriétaires doivent revenir eux-mêmes pendant la journée pour les sortir. Chez La Patte Dorée, votre chien est accueilli dans notre appartement familial à Bussy-Saint-Georges (à 10 min du parc), sans cage ni box. Nous assurons ses promenades, ses repas et ses moments de jeu, et nous vous envoyons des photos pendant que vous profitez des parcs sans interruption.": {
+    en: "At the official Disneyland Paris kennel, dogs are kept in individual runs and staff do not walk them: owners must come back during the day to take them out themselves. At La Patte Dorée, your dog stays in our family apartment in Bussy-Saint-Georges (10 minutes from the park), with no cages or kennels. We handle their walks, meals, and playtime, and send you photo updates while you enjoy the parks uninterrupted.",
+    es: "En la perrera oficial de Disneyland Paris, los perros permanecen en boxes individuales y el personal no los pasea: los propietarios deben volver durante el día para sacarlos. En La Patte Dorée, su perro es acogido en nuestro apartamento familiar en Bussy-Saint-Georges (a 10 min del parque), sin jaulas ni boxes. Nos encargamos de sus paseos, comidas y juegos, y le enviamos fotos mientras disfruta de los parques sin interrupciones.",
   },
   "Comment choisir entre la garderie de jour (35 €) et l'hébergement 24 h (45 €) pour une journée à Disney ?": {
     en: "How do I choose between day care (€35) and 24-hour boarding (€45) for a day at Disney?",
@@ -1195,9 +1183,9 @@ const catalogue: Record<string, Translation> = {
     en: "Will my dog be locked in a kennel run or cage?",
     es: "¿Estará mi perro encerrado en un box o jaula?",
   },
-  "Jamais. L'accueil est 100 % familial : votre chien vit avec nous dans la maison, profite du salon, du jardin clos et de vraies balades. Pour garantir une ambiance sereine, nous validons au préalable le profil de chaque animal (sociabilité, habitudes, santé). Deux chats habitués aux chiens vivent également à la maison et disposent d'un espace séparé si nécessaire.": {
-    en: "Never. Our care is 100% family-style: your dog lives with us inside our house, enjoys the living room, the fenced garden, and real walks. To guarantee a peaceful atmosphere, we review each pet's profile beforehand (socialisation, habits, health). Two dog-friendly cats also live in the house and have their own separate space if needed.",
-    es: "Jamás. La acogida es 100 % familiar: su perro vive con nosotros en la casa, disfruta del salón, del jardín vallado y de verdaderos paseos. Para garantizar un ambiente tranquilo, validamos previamente el perfil de cada animal (sociabilidad, hábitos, salud). Dos gatos acostumbrados a los perros viven también en la casa y disponen de un espacio separado si es necesario.",
+  "Jamais. L'accueil est 100 % familial : votre chien vit avec nous dans notre appartement de 45 m², seul animal accueilli pour la nuit, et profite du salon et de vraies balades. Pour garantir une ambiance sereine, nous validons au préalable le profil de chaque animal (sociabilité, habitudes, santé). Deux chats habitués aux chiens vivent également avec nous et disposent d'un espace séparé si nécessaire.": {
+    en: "Never. Our care is 100% family-style: your dog lives with us in our 45 m² apartment as the only overnight guest, and enjoys the living room and real walks. To guarantee a peaceful atmosphere, we review each pet's profile beforehand (socialisation, habits, health). Two dog-friendly cats also live with us and have their own separate space if needed.",
+    es: "Jamás. La acogida es 100 % familiar: su perro vive con nosotros en nuestro apartamento de 45 m², como único huésped de la noche, y disfruta del salón y de verdaderos paseos. Para garantizar un ambiente tranquilo, validamos previamente el perfil de cada animal (sociabilidad, hábitos, salud). Dos gatos acostumbrados a los perros viven también con nosotros y disponen de un espacio separado si es necesario.",
   },
   "Puis-je déposer mon chien tôt le matin avant l'ouverture des parcs ?": {
     en: "Can I drop my dog off early in the morning before the parks open?",
@@ -1251,7 +1239,10 @@ const catalogue: Record<string, Translation> = {
     en: "Strict adherence to meal times and instructions",
     es: "Respeto de los horarios de comida y de las indicaciones",
   },
-  "Maison et jardin": { en: "House and garden", es: "Casa y jardín" },
+  "Appartement familial, 1 animal par nuit": {
+    en: "Family apartment, 1 pet per night",
+    es: "Apartamento familiar, 1 animal por noche",
+  },
   "Promenades incluses selon prestation": {
     en: "Walks included depending on the service",
     es: "Paseos incluidos según el servicio",
@@ -1273,7 +1264,7 @@ const catalogue: Record<string, Translation> = {
     es: "Validación antes de la confirmación",
   },
   "Vacances longues": { en: "Long holidays", es: "Vacaciones largas" },
-  "Jardin et sorties": { en: "Garden and outings", es: "Jardín y salidas" },
+  "Promenades et sorties": { en: "Walks and outings", es: "Paseos y salidas" },
   "Une alternative au chenil classique": {
     en: "An alternative to traditional kennels",
     es: "Una alternativa a la perrera tradicional",
@@ -1578,9 +1569,9 @@ const catalogue: Record<string, Translation> = {
     en: "€1 = 1 Paw point",
     es: "1 € = 1 punto Patita",
   },
-  "Accueil dès 6h30 à 10 minutes des parcs Disney : jeux au jardin, repos au calme et compagnie continue jusqu’à 10 h de garde en journée.": {
-    en: "Drop-off from 6:30 a.m. just 10 minutes from the Disney parks: garden play, quiet rest, and continuous company for up to 10 hours of daytime care.",
-    es: "Recepción desde las 6:30 a 10 minutos de los parques Disney: juegos en el jardín, descanso tranquilo y compañía continua hasta 10 h de guardería diurna.",
+  "Accueil dès 6h30 à 10 minutes des parcs Disney : jeux, sorties, repos au calme et compagnie continue jusqu’à 10 h de garde en journée.": {
+    en: "Drop-off from 6:30 a.m. just 10 minutes from the Disney parks: play, walks, quiet rest, and continuous company for up to 10 hours of daytime care.",
+    es: "Recepción desde las 6:30 a 10 minutos de los parques Disney: juegos, salidas, descanso tranquilo y compañía continua hasta 10 h de guardería diurna.",
   },
   "Autour de chez vous · 30 min à 2 h": {
     en: "Around your home · 30 min to 2 hrs",
@@ -1600,11 +1591,11 @@ const catalogue: Record<string, Translation> = {
   },
   "Chez nous · Journée jusqu’à 10 h": {
     en: "At our home · Day care up to 10 hrs",
-    es: "En nuestra casa · Día de hasta 10 h",
+    es: "En nuestro hogar · Día de hasta 10 h",
   },
   "Chez nous · Nuit incluse": {
     en: "At our home · Night included",
-    es: "En nuestra casa · Noche incluida",
+    es: "En nuestro hogar · Noche incluida",
   },
   "Chez vous · 30 min à 2 h": {
     en: "At your home · 30 min to 2 hrs",
@@ -1700,7 +1691,7 @@ const catalogue: Record<string, Translation> = {
   },
   "Hébergement familial chez nous ou visites et promenades à domicile dans tout le secteur de Marne-la-Vallée :": {
     en: "Family boarding at our home or home visits and walks across the Marne-la-Vallée area:",
-    es: "Alojamiento familiar en nuestra casa o visitas y paseos a domicilio en todo el sector de Marne-la-Vallée:",
+    es: "Alojamiento familiar en nuestro hogar o visitas y paseos a domicilio en todo el sector de Marne-la-Vallée:",
   },
   "Idéal journée Disneyland Paris": {
     en: "Ideal for a Disneyland Paris day trip",
@@ -1786,9 +1777,9 @@ const catalogue: Record<string, Translation> = {
     en: "See Premium benefits",
     es: "Ver ventajas Premium",
   },
-  "Votre compagnon vit à la maison avec nous et profite du jardin clos, des sorties et d’une présence rassurante jour et nuit, avec photos chaque jour.": {
-    en: "Your pet lives in our family house and enjoys our fenced garden, walks, and reassuring company day and night, with daily photos.",
-    es: "Tu compañero vive en casa con nosotros y disfruta del jardín vallado, salidas y una presencia tranquilizadora día y noche, con fotos cada día.",
+  "Votre compagnon est notre seul pensionnaire de la nuit, dans notre appartement de 45 m² : sorties, présence rassurante jour et nuit et photos chaque jour.": {
+    en: "Your pet is our only overnight guest, in our 45 m² apartment: walks, reassuring company day and night, and daily photos.",
+    es: "Tu compañero es nuestro único huésped de la noche, en nuestro apartamento de 45 m²: salidas, presencia tranquilizadora día y noche y fotos cada día.",
   },
   "77600 Bussy-Saint-Georges · Val d’Europe": {
     en: "77600 Bussy-Saint-Georges · Val d’Europe",
@@ -1878,29 +1869,26 @@ const catalogue: Record<string, Translation> = {
     en: "The real home environment during your day at Disneyland Paris",
     es: "El entorno real durante tu día en Disneyland Paris",
   },
-  "Maison familiale · Zéro box": {
-    en: "Family home · Zero cages",
-    es: "Casa familiar · Cero jaulas",
-  },
-  "Repos au calme en maison familiale à 10 min de Disneyland Paris": {
-    en: "Peaceful rest in a family home 10 min from Disneyland Paris",
-    es: "Descanso tranquilo en una casa familiar a 10 min de Disneyland Paris",
+  "Cadre familial · Zéro box": { en: "Family setting · Zero cages", es: "Entorno familiar · Cero jaulas" },
+  "Repos au calme en cadre familial à 10 min de Disneyland Paris": {
+    en: "Peaceful rest in a family setting 10 min from Disneyland Paris",
+    es: "Descanso tranquilo en un entorno familiar a 10 min de Disneyland Paris",
   },
   "Un aperçu réel de nos gardes et visites chats dans le 77": {
     en: "A real glimpse of our cat boarding and drop-in visits in the 77 area",
     es: "Un vistazo real a nuestras estancias y visitas para gatos en el 77",
   },
-  "Un cadre de maison réel pour votre chien dans le 77": {
-    en: "A real family home setting for your dog in the 77 area",
-    es: "Un verdadero entorno de hogar para tu perro en el 77",
+  "Un cadre familial réel pour votre chien dans le 77": {
+    en: "A real family setting for your dog in the 77 area",
+    es: "Un verdadero entorno familiar para tu perro en el 77",
   },
-  "Vraies photos de nos pensionnaires à Bussy-Saint-Georges : jardin clos, vraies promenades incluses et repos au salon sans cage.": {
-    en: "Real photos of our guests in Bussy-Saint-Georges: enclosed garden, real walks included, and cage-free rest in the living room.",
-    es: "Fotos reales de nuestros huéspedes en Bussy-Saint-Georges: jardín vallado, paseos reales incluidos y descanso en el salón sin jaulas.",
+  "Vraies photos de nos pensionnaires à Bussy-Saint-Georges : vraies promenades incluses et repos au salon sans cage.": {
+    en: "Real photos of our guests in Bussy-Saint-Georges: real walks included and cage-free rest in the living room.",
+    es: "Fotos reales de nuestros huéspedes en Bussy-Saint-Georges: paseos reales incluidos y descanso en el salón sin jaulas.",
   },
-  "Vraies photos de nos pensionnaires chiens et chats à Bussy-Saint-Georges : salon familial, jardin clos et repos au calme.": {
-    en: "Real photos of our dog and cat guests in Bussy-Saint-Georges: family living room, enclosed garden, and peaceful rest.",
-    es: "Fotos reales de nuestros huéspedes perros y gatos en Bussy-Saint-Georges: salón familiar, jardín vallado y descanso tranquilo.",
+  "Vraies photos de nos pensionnaires chiens et chats à Bussy-Saint-Georges : salon familial, sorties et repos au calme.": {
+    en: "Real photos of our dog and cat guests in Bussy-Saint-Georges: family living room, outings and peaceful rest.",
+    es: "Fotos reales de nuestros huéspedes perros y gatos en Bussy-Saint-Georges: salón familiar, salidas y descanso tranquilo.",
   },
   "Vraies photos prises lors de nos gardes : respect des habitudes, calme, câlins et nouvelles envoyées à chaque passage.": {
     en: "Real photos taken during our stays: routines respected, calm environment, cuddles, and updates sent at every visit.",
@@ -1910,9 +1898,9 @@ const catalogue: Record<string, Translation> = {
     en: "Public rate:",
     es: "Tarifa pública:",
   },
-  "Cadre réel · Maison familiale sans box": {
-    en: "Real home setting · Cage-free family house",
-    es: "Entorno real · Casa familiar sin jaulas",
+  "Cadre réel · Accueil familial sans box": {
+    en: "Real setting · Cage-free family care",
+    es: "Entorno real · Acogida familiar sin jaulas",
   },
   "Chaque tarif inclut un vrai accueil familial": {
     en: "Every rate includes genuine family home care",
@@ -1930,13 +1918,13 @@ const catalogue: Record<string, Translation> = {
     en: "Dog and cat living peacefully together in the family living room",
     es: "Perro y gato conviviendo pacíficamente en el salón familiar",
   },
-  "Chien se reposant au calme à l’intérieur de la maison familiale sans box": {
-    en: "Dog resting peacefully inside the cage-free family home",
-    es: "Perro descansando tranquilo dentro de la casa familiar sin jaulas",
+  "Chien se reposant au calme à l’intérieur de notre appartement, sans box": {
+    en: "Dog resting peacefully inside our apartment, cage-free",
+    es: "Perro descansando tranquilo dentro de nuestro apartamento, sin jaulas",
   },
-  "Golden Retriever en promenade dans le jardin clos ensoleillé": {
-    en: "Golden Retriever walking in the sunny enclosed garden",
-    es: "Golden Retriever paseando por el jardín vallado y soleado",
+  "Golden Retriever en promenade au soleil": {
+    en: "Golden Retriever on a sunny walk",
+    es: "Golden Retriever paseando al sol",
   },
   "Habitués du club": {
     en: "Club regulars",
@@ -1946,13 +1934,13 @@ const catalogue: Record<string, Translation> = {
     en: "The La Patte Dorée spirit · Family home care",
     es: "El espíritu La Patte Dorée · Acogida familiar",
   },
-  "Le confort des habitués · Maison familiale à Bussy-Saint-Georges": {
-    en: "Comfort for regulars · Family home in Bussy-Saint-Georges",
-    es: "La comodidad de los habituales · Casa familiar en Bussy-Saint-Georges",
+  "Le confort des habitués · Cadre familial à Bussy-Saint-Georges": {
+    en: "Comfort for regulars · Family setting in Bussy-Saint-Georges",
+    es: "La comodidad de los habituales · Entorno familiar en Bussy-Saint-Georges",
   },
-  "Nos pensionnaires vivent avec nous dans notre maison à Bussy-Saint-Georges, sans box ni cage, et chaque réservation alimente votre cagnotte de Pattes.": {
-    en: "Our guests live with us in our home in Bussy-Saint-Georges, with no cages or kennels, and every booking builds up your Paws reward balance.",
-    es: "Nuestros huéspedes viven con nosotros en nuestra casa en Bussy-Saint-Georges, sin jaulas ni perreras, y cada reserva suma a tu saldo de Patitas.",
+  "Nos pensionnaires vivent avec nous dans notre appartement à Bussy-Saint-Georges, sans box ni cage, et chaque réservation alimente votre cagnotte de Pattes.": {
+    en: "Our guests live with us in our apartment in Bussy-Saint-Georges, with no cages or kennels, and every booking builds up your Paws reward balance.",
+    es: "Nuestros huéspedes viven con nosotros en nuestro apartamento en Bussy-Saint-Georges, sin jaulas ni perreras, y cada reserva suma a tu saldo de Patitas.",
   },
   "Pension & Garderie chien": {
     en: "Dog boarding & daycare",
@@ -1966,17 +1954,14 @@ const catalogue: Record<string, Translation> = {
     en: "Photos of our guests",
     es: "Fotos de nuestros huéspedes",
   },
-  "Promenades et détente régulières au jardin clos": {
-    en: "Regular walks and relaxation in the enclosed garden",
-    es: "Paseos y descanso regulares en el jardín vallado",
-  },
+  "Promenades et détente régulières": { en: "Regular walks and relaxation", es: "Paseos y descanso regulares" },
   "Repères familiers au salon pour vos chiens et chats": {
     en: "Familiar living room comforts for your dogs and cats",
     es: "Referencias familiares en el salón para tus perros y gatos",
   },
-  "Repos au calme à la maison, comme chez vous": {
-    en: "Peaceful rest at home, just like at yours",
-    es: "Descanso tranquilo en casa, como en tu propio hogar",
+  "Repos au calme à l’intérieur, comme chez vous": {
+    en: "Peaceful indoor rest, just like at home",
+    es: "Descanso tranquilo en el interior, como en su propio hogar",
   },
   "Séjours sereins toute l’année avec Pattes doublées": {
     en: "Peaceful stays all year round with double Paws",
@@ -1990,9 +1975,9 @@ const catalogue: Record<string, Translation> = {
     en: "A true family home life, rewarded with every stay",
     es: "Una verdadera vida de familia, recompensada en cada estancia",
   },
-  "Zéro cage ni chenil : vos chiens et chats profitent du salon familial, du jardin clos et de vraies sorties quotidiennes à Bussy-Saint-Georges (77).": {
-    en: "Zero cages or kennels: your dogs and cats enjoy the family living room, the enclosed garden, and real daily walks in Bussy-Saint-Georges (77).",
-    es: "Cero jaulas ni perreras: tus perros y gatos disfrutan del salón familiar, del jardín vallado y de verdaderos paseos diarios en Bussy-Saint-Georges (77).",
+  "Zéro cage ni chenil : vos chiens et chats profitent du salon familial et de vraies sorties quotidiennes à Bussy-Saint-Georges (77).": {
+    en: "Zero cages or kennels: your dogs and cats enjoy the family living room and real daily walks in Bussy-Saint-Georges (77).",
+    es: "Cero jaulas ni perreras: tus perros y gatos disfrutan del salón familiar y de verdaderos paseos diarios en Bussy-Saint-Georges (77).",
   },
 };
 

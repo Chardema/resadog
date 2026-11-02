@@ -31,9 +31,9 @@ const EN_HERO_PHOTO = {
 const EN_GALLERY_PHOTOS = [
   {
     src: "/images/galerie/jardin-golden.webp",
-    badge: "Enclosed garden",
-    caption: "Golden Retriever enjoying our sunny enclosed garden",
-    alt: "Golden Retriever walking in the sunny enclosed garden at La Patte Dorée near Disneyland Paris",
+    badge: "Outdoor walks",
+    caption: "Golden Retriever on a sunny walk",
+    alt: "Golden Retriever on a sunny walk with La Patte Dorée near Disneyland Paris",
   },
   {
     src: "/images/galerie/balade-golden-creme.webp",
@@ -75,7 +75,7 @@ const enAreas = [
 const enProofPoints = [
   {
     icon: Home,
-    text: "100% Cage-Free Family Home & Enclosed Garden",
+    text: "100% Cage-Free Family Apartment · One Pet per Night",
   },
   {
     icon: MapPin,
@@ -94,7 +94,7 @@ const enProofPoints = [
 const enServices = [
   {
     title: "Dog Day Care — €35 (Up to 10 Hours)",
-    text: "Drop your dog off in the morning before rope drop and pick them up in the evening (up to 10 hours total). Includes walks, playtime in the garden, rest inside our home, and photo updates.",
+    text: "Drop your dog off in the morning before rope drop and pick them up in the evening (up to 10 hours total). Includes walks, playtime, rest inside our home, and photo updates.",
   },
   {
     title: "24-Hour Family Boarding — €45 (10h to 24h, Overnight Included)",
@@ -115,7 +115,7 @@ const enSections = [
     title: "Why Pet Owners Choose La Patte Dorée Over the Official Park Kennel",
     body: "Many international visitors don't realise until they arrive that the official Disneyland Paris Animal Care Center is a traditional kennel: dogs are kept in individual cages, and cast members do not walk the dogs (owners are expected to leave the parks during the day to walk their pet themselves). At La Patte Dorée, your dog stays in a calm, cage-free home and we handle every walk for you.",
     bullets: [
-      "No cages, no concrete runs: your dog relaxes on the sofa and plays in our enclosed garden",
+      "No cages, no concrete runs: your dog relaxes on the sofa in our apartment and enjoys real walks",
       "Walks are included: stay inside the parks all day without having to leave at lunchtime",
       "Stay for the evening fireworks: our €45 / 24h boarding lets you enjoy the night show or pick up the next morning",
       "Regular photo and message updates so your whole family can enjoy the rides worry-free",
@@ -137,7 +137,7 @@ const enFaqs = [
   {
     question: "How is La Patte Dorée different from the Disneyland Paris Animal Care Center (kennel)?",
     answer:
-      "At the official Disneyland Paris Animal Care Center, dogs stay in individual kennel cages and staff do not walk them — owners must leave the parks during the day to walk their dogs themselves. At La Patte Dorée, your dog stays in our family home in Bussy-Saint-Georges (10 minutes away) with zero cages, garden access, real walks included, and photo updates sent to you while you enjoy the parks.",
+      "At the official Disneyland Paris Animal Care Center, dogs stay in individual kennel cages and staff do not walk them — owners must leave the parks during the day to walk their dogs themselves. At La Patte Dorée, your dog stays in our family apartment in Bussy-Saint-Georges (10 minutes away) with zero cages, real walks included, and photo updates sent to you while you enjoy the parks.",
   },
   {
     question: "Should I book Day Care (€35) or 24-Hour Boarding (€45) for a full park day?",
@@ -152,7 +152,7 @@ const enFaqs = [
   {
     question: "Will my dog be kept in a cage or crate?",
     answer:
-      "Never. We provide 100% cage-free family boarding. Your dog lives indoors with us as part of the family, with access to our enclosed garden and regular walks. Two dog-friendly cats also live in our house and have their own separate space whenever needed.",
+      "Never. We provide 100% cage-free family boarding. Your dog lives indoors with us as part of the family, in our 45 m² apartment where they are the only overnight guest, with regular walks. Two dog-friendly cats also live with us and have their own separate space whenever needed.",
   },
   {
     question: "Can I drop my dog off early before the parks open?",
@@ -335,7 +335,7 @@ export default function EnglishDisneyDogBoardingPage() {
                 <strong className="font-semibold text-gray-900">2 RER A train stops (8 minutes)</strong> or a{" "}
                 <strong className="font-semibold text-gray-900">10-minute drive</strong> from Disneyland Paris —{" "}
                 <strong className="font-semibold text-gray-900">La Patte Dorée</strong> offers cage-free family care,
-                garden access, real walks, and photo updates throughout the day.
+                real walks, and photo updates throughout the day.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -459,7 +459,7 @@ export default function EnglishDisneyDogBoardingPage() {
               See Where Your Dog Stays While You Visit Disneyland Paris
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-600 sm:text-base">
-              Authentic photos of our guests in Bussy-Saint-Georges: enclosed sunny garden, real outdoor walks, and peaceful indoor rest without cages.
+              Authentic photos of our guests in Bussy-Saint-Georges: real outdoor walks and peaceful indoor rest without cages.
             </p>
           </div>
 
