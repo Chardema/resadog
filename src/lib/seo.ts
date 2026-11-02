@@ -194,7 +194,7 @@ export const localSeoPages: LocalSeoPage[] = [
       "Appartement familial · 1 animal par nuit — 100 % sans box ni cage",
       "À 10 min de Disneyland Paris (A4 sortie 12 / RER A Bussy-St-Georges)",
       "Promenades incluses & photos envoyées pendant votre journée au parc",
-      "Pet-sitter diplômée ACACED · Réservation en ligne sécurisée",
+      "Pet-sitter titulaire de l'attestation de connaissances ACACED · Réservation en ligne sécurisée",
     ],
     services: [
       {
@@ -272,7 +272,7 @@ export const localSeoPages: LocalSeoPage[] = [
       {
         question: "La Patte Dorée est-elle affiliée à Disneyland Paris ?",
         answer:
-          "Non. La Patte Dorée est un service indépendant de garde d'animaux déclaré et certifié ACACED en Seine-et-Marne (77), sans aucune affiliation commerciale avec Disneyland Paris / Euro Disney.",
+          "Non. La Patte Dorée est un service indépendant de garde d'animaux déclaré en Seine-et-Marne (77), assuré par une pet-sitter titulaire de l'attestation de connaissances ACACED, sans aucune affiliation commerciale avec Disneyland Paris / Euro Disney.",
       },
     ],
     ctaLabel: "Vérifier les disponibilités & réserver",

@@ -328,7 +328,7 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
                 <div className="mb-4 flex flex-wrap items-center gap-2.5">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-900">
                     <Award className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
-                    Diplômée d’État ACACED Chien &amp; Chat
+                    Attestation de connaissances ACACED Chien &amp; Chat
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-800">
                     <MapPin className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
@@ -375,7 +375,7 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
 
               {page.disneyDisclaimer && (
                 <p className="mt-4 max-w-2xl text-xs leading-5 text-gray-500">
-                  Service indépendant de garde d'animaux certifié ACACED, non affilié à Disneyland Paris.
+                  Service indépendant de garde d'animaux par une pet-sitter titulaire de l'attestation de connaissances ACACED, non affilié à Disneyland Paris.
                 </p>
               )}
 
@@ -419,7 +419,7 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
 
               {isDisneyPage && (
                 <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/80 px-3.5 py-2.5 text-xs font-semibold text-emerald-900">
-                  ✓ Diplômée ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 sortie 12 10 min)
+                  ✓ Attestation de connaissances ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 sortie 12 10 min)
                 </div>
               )}
 

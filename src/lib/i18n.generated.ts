@@ -217,9 +217,9 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "✅ Available",
     "es": "✅ Disponible"
   },
-  "✓ Diplômée ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 sortie 12 10 min)": {
-    "en": "✓ ACACED certified · ✓ Bussy-Saint-Georges (RER A 8 min / A4 exit 12 10 min)",
-    "es": "✓ Certificada ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 salida 12 10 min)"
+  "✓ Attestation de connaissances ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 sortie 12 10 min)": {
+    "en": "✓ ACACED certificate of knowledge · ✓ Bussy-Saint-Georges (RER A 8 min / A4 exit 12 10 min)",
+    "es": "✓ Certificado de conocimientos ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 salida 12 10 min)"
   },
   "❌ Metadata manquantes pour l'abonnement": {
     "en": "❌ Missing metadata for subscription",
@@ -1657,17 +1657,17 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Some service providers may process data outside the European Economic Area. In this case, the transfer must be based on a mechanism recognized by the applicable regulations and on the contractual guarantees of the service provider concerned.",
     "es": "Algunos proveedores de servicios pueden procesar datos fuera del Espacio Económico Europeo. En este caso, la transferencia deberá basarse en un mecanismo reconocido por la normativa aplicable y en las garantías contractuales del prestador del servicio de que se trate."
   },
-  "Certificat officiel de capacité, vérification du carnet de santé et respect strict des consignes.": {
-    "en": "Official French pet care certification, health record check and strict adherence to your instructions.",
-    "es": "Certificado oficial de capacidad, verificación de la cartilla sanitaria y estricto respeto de sus indicaciones."
+  "Vérification du carnet de santé et respect strict des consignes.": {
+    "en": "Health record check and strict adherence to your instructions.",
+    "es": "Verificación de la cartilla sanitaria y respeto estricto de sus instrucciones."
   },
-  "Certifié ACACED Chien & Chat n°": {
-    "en": "ACACED Dogs & Cats Certified No.",
-    "es": "Certificado ACACED Perros y Gatos n.º"
+  "Attestation de connaissances ACACED Chien & Chat n°": {
+    "en": "ACACED certificate of knowledge (Dog & Cat) No.",
+    "es": "Certificado de conocimientos ACACED Perro y Gato n.º"
   },
-  "Certifié ACACED Chien & Chat n° 2025/ef33-4a9c": {
-    "en": "ACACED Dogs & Cats Certified No. 2025/ef33-4a9c",
-    "es": "Certificado ACACED Perros y Gatos n.º 2025/ef33-4a9c"
+  "Attestation de connaissances ACACED Chien & Chat n° 2026/f9c3-6ee5": {
+    "en": "ACACED certificate of knowledge (Dog & Cat) No. 2026/f9c3-6ee5",
+    "es": "Certificado de conocimientos ACACED Perro y Gato n.º 2026/f9c3-6ee5"
   },
   "Ces contenus sont soumis à la": {
     "en": "This content is subject to the",
@@ -1869,9 +1869,9 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "dog:",
     "es": "Perro:"
   },
-  "Chien & chat certifié": {
-    "en": "Certified for dogs & cats",
-    "es": "Certificado para perros y gatos"
+  "Chien & chat": {
+    "en": "Dog & cat",
+    "es": "Perro y gato"
   },
   "Chien 16 € · Chat 15 €": {
     "en": "Dog €16 · Cat €15",
@@ -2176,10 +2176,6 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Conditions historiques : engagement initial d’un mois": {
     "en": "Historical conditions: initial commitment of one month",
     "es": "Condiciones históricas: compromiso inicial de un mes"
-  },
-  "Confier les prestations à une professionnelle titulaire de l’ACACED.": {
-    "en": "Entrust the services to a professional with ACACED certification.",
-    "es": "Confía los servicios a un profesional con certificación ACACED."
   },
   "Configuration Stripe Premium invalide": {
     "en": "Invalid Stripe Premium configuration",
@@ -2829,13 +2825,13 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Two cats live with us",
     "es": "Dos gatos viven con nosotros"
   },
-  "Diplômé ACACED": {
-    "en": "State-certified (ACACED)",
-    "es": "Titulado ACACED"
+  "Attestation de connaissances ACACED": {
+    "en": "ACACED certificate of knowledge",
+    "es": "Certificado de conocimientos ACACED"
   },
-  "Diplômée d’État ACACED Chien & Chat": {
-    "en": "State-certified ACACED Dog & Cat",
-    "es": "Certificado estatal ACACED Perro y Gato"
+  "Attestation de connaissances ACACED Chien & Chat": {
+    "en": "ACACED certificate of knowledge · Dog & Cat",
+    "es": "Certificado de conocimientos ACACED Perro y Gato"
   },
   "Directeur ou directrice de la publication": {
     "en": "Director of publication",
@@ -5145,10 +5141,6 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "The services are based on precise information concerning each animal before validation.",
     "es": "Los servicios se basan en información precisa sobre cada animal antes de la validación."
   },
-  "Les prestations sont encadrées par une professionnelle titulaire de l’ACACED.": {
-    "en": "The services are supervised by a professional with ACACED certification.",
-    "es": "Los servicios son supervisados ​​por un profesional con certificación ACACED."
-  },
   "Les prestations sont encadrées par une titulaire de l'ACACED et s'appuient sur des informations précises avant validation.": {
     "en": "The services are supervised by an ACACED holder and are based on precise information before validation.",
     "es": "Los servicios son supervisados ​​por un titular de ACACED y se basan en información precisa antes de la validación."
@@ -5721,9 +5713,9 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "No-show:",
     "es": "No presentarse:"
   },
-  "Non. La Patte Dorée est un service indépendant de garde d'animaux déclaré et certifié ACACED en Seine-et-Marne (77), sans aucune affiliation commerciale avec Disneyland Paris / Euro Disney.": {
-    "en": "No. La Patte Dorée is an independent, registered and ACACED-certified pet sitting service in Seine-et-Marne (77), with no commercial affiliation with Disneyland Paris / Euro Disney.",
-    "es": "No. La Patte Dorée es un servicio independiente de cuidado de mascotas declarado y certificado por ACACED en Seine-et-Marne (77), sin ninguna afiliación comercial con Disneyland Paris / Euro Disney."
+  "Non. La Patte Dorée est un service indépendant de garde d'animaux déclaré en Seine-et-Marne (77), assuré par une pet-sitter titulaire de l'attestation de connaissances ACACED, sans aucune affiliation commerciale avec Disneyland Paris / Euro Disney.": {
+    "en": "No. La Patte Dorée is an independent, registered pet sitting service in Seine-et-Marne (77), run by a pet sitter holding the ACACED certificate of knowledge, with no commercial affiliation with Disneyland Paris / Euro Disney.",
+    "es": "No. La Patte Dorée es un servicio independiente de cuidado de mascotas declarado en Seine-et-Marne (77), a cargo de una cuidadora titular del certificado de conocimientos ACACED, sin ninguna afiliación comercial con Disneyland Paris / Euro Disney."
   },
   "Non. La Patte Dorée est un service indépendant de garde d'animaux situé sur le secteur, sans affiliation avec Disneyland Paris.": {
     "en": "No. La Patte Dorée is an independent pet sitting service located in the area, without affiliation with Disneyland Paris.",
@@ -6325,9 +6317,9 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Person to contact in case of emergency",
     "es": "Persona a contactar en caso de emergencia"
   },
-  "Pet-sitter diplômée ACACED · Réservation en ligne sécurisée": {
-    "en": "ACACED-certified pet sitter · Secure online booking",
-    "es": "Cuidadora certificada ACACED · Reserva online segura"
+  "Pet-sitter titulaire de l'attestation de connaissances ACACED · Réservation en ligne sécurisée": {
+    "en": "Pet sitter holding the ACACED certificate of knowledge · Secure online booking",
+    "es": "Cuidadora titular del certificado de conocimientos ACACED · Reserva online segura"
   },
   "Pet-sitting Seine-et-Marne": {
     "en": "Pet sitting Seine-et-Marne",
@@ -6925,14 +6917,6 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "What are cookies?",
     "es": "¿Qué son las galletas?"
   },
-  "Qualification ACACED chien et chat": {
-    "en": "ACACED qualification for dogs and cats",
-    "es": "Cualificación ACACED para perros y gatos"
-  },
-  "Qualification ACACED déclarée.": {
-    "en": "ACACED qualification declared.",
-    "es": "Titulación ACACED declarada."
-  },
   "Qualification et assurance professionnelles": {
     "en": "Professional qualification and insurance",
     "es": "Cualificación profesional y seguro."
@@ -6940,10 +6924,6 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Qualification professionnelle": {
     "en": "Professional qualification",
     "es": "Cualificación profesional"
-  },
-  "Qualifié ACACED": {
-    "en": "ACACED Certified",
-    "es": "Certificado ACACED"
   },
   "Quantité, fréquence, croquettes, pâtée...": {
     "en": "Quantity, frequency, kibble, mash...",
@@ -7541,9 +7521,9 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Premium pet sitting service with real-time tracking. Give your companions a vacation as beautiful as yours.",
     "es": "Servicio premium de cuidado de mascotas con seguimiento en tiempo real. Regala a tus acompañantes unas vacaciones tan bonitas como las tuyas."
   },
-  "Service indépendant de garde d'animaux certifié ACACED, non affilié à Disneyland Paris.": {
-    "en": "Independent ACACED-certified pet sitting service, not affiliated with Disneyland Paris.",
-    "es": "Servicio independiente de cuidado de mascotas certificado por ACACED, no afiliado a Disneyland Paris."
+  "Service indépendant de garde d'animaux par une pet-sitter titulaire de l'attestation de connaissances ACACED, non affilié à Disneyland Paris.": {
+    "en": "Independent pet sitting service run by a holder of the ACACED certificate of knowledge, not affiliated with Disneyland Paris.",
+    "es": "Servicio independiente de cuidado de mascotas a cargo de una titular del certificado de conocimientos ACACED, no afiliado a Disneyland Paris."
   },
   "Service indépendant de garde d'animaux, non affilié à Disneyland Paris.": {
     "en": "Independent pet sitting service, not affiliated with Disneyland Paris.",
@@ -7924,10 +7904,6 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Terminées": {
     "en": "Completed",
     "es": "Terminado"
-  },
-  "Titulaire ACACED Chien & Chat": {
-    "en": "State-certified ACACED Dog & Cat holder",
-    "es": "Titular del certificado oficial ACACED Perro y Gato"
   },
   "total": {
     "en": "total",

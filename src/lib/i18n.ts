@@ -100,10 +100,6 @@ const catalogue: Record<string, Translation> = {
     es: "Un cuidado basado en el conocimiento de las necesidades biológicas, fisiológicas y de comportamiento de perros y gatos.",
   },
   "Besoins individualisés": { en: "Personalised care", es: "Atención personalizada" },
-  "Qualification ACACED chien et chat": {
-    en: "ACACED qualification for dogs and cats",
-    es: "Cualificación ACACED para perros y gatos",
-  },
   "Photos et nouvelles": { en: "Photos and updates", es: "Fotos y noticias" },
   "Paiement sécurisé": { en: "Secure payment", es: "Pago seguro" },
   "Garde locale 77": { en: "Local pet care in Seine-et-Marne", es: "Cuidado local en Seine-et-Marne" },
@@ -890,24 +886,20 @@ const catalogue: Record<string, Translation> = {
     en: "Follow their stay every day during your visit to Disneyland Paris or your holiday.",
     es: "Siga su estancia cada día durante su visita a Disneyland Paris o sus vacaciones.",
   },
-  "Titulaire ACACED Chien & Chat": {
-    en: "State-certified ACACED Dog & Cat holder",
-    es: "Titular del certificado oficial ACACED Perro y Gato",
-  },
-  "Certificat officiel de capacité, vérification du carnet de santé et respect strict des consignes.": {
-    en: "Official French pet care certification, health record check and strict adherence to your instructions.",
-    es: "Certificado oficial de capacidad, verificación de la cartilla sanitaria y estricto respeto de sus indicaciones.",
+  "Vérification du carnet de santé et respect strict des consignes.": {
+    en: "Health record check and strict adherence to your instructions.",
+    es: "Verificación de la cartilla sanitaria y respeto estricto de sus instrucciones.",
   },
   "Bussy-Saint-Georges · à 10 min des parcs Disney": {
     en: "Bussy-Saint-Georges · 10 min from the Disney parks",
     es: "Bussy-Saint-Georges · a 10 min de los parques Disney",
   },
   "Lire les avis →": { en: "Read reviews →", es: "Leer opiniones →" },
-  "Qualifié ACACED": { en: "ACACED Certified", es: "Certificado ACACED" },
-  "Chien & chat certifié": {
-    en: "Certified for dogs & cats",
-    es: "Certificado para perros y gatos",
+  "Attestation de connaissances ACACED": {
+    en: "ACACED certificate of knowledge",
+    es: "Certificado de conocimientos ACACED",
   },
+  "Chien & chat": { en: "Dog & cat", es: "Perro y gato" },
   "100 % sans box": { en: "100% kennel-free", es: "100 % sin jaulas" },
   "Cadre familial calme": {
     en: "Calm family home",
@@ -974,9 +966,9 @@ const catalogue: Record<string, Translation> = {
     es: "Cuidado en su domicilio / hotel",
   },
   "Sur demande": { en: "On request", es: "Bajo petición" },
-  "Diplômée d’État ACACED Chien & Chat": {
-    en: "State-certified ACACED Dog & Cat",
-    es: "Certificado estatal ACACED Perro y Gato",
+  "Attestation de connaissances ACACED Chien & Chat": {
+    en: "ACACED certificate of knowledge · Dog & Cat",
+    es: "Certificado de conocimientos ACACED Perro y Gato",
   },
   "RER A Bussy-Saint-Georges (8 min) · A4 sortie 12 (10 min)": {
     en: "RER A Bussy-Saint-Georges (8 min) · A4 exit 12 (10 min)",
@@ -987,9 +979,9 @@ const catalogue: Record<string, Translation> = {
     en: "Visiting from abroad? Read this page in English",
     es: "¿Nos visita desde el extranjero? Lea esta página en inglés",
   },
-  "Service indépendant de garde d'animaux certifié ACACED, non affilié à Disneyland Paris.": {
-    en: "Independent ACACED-certified pet sitting service, not affiliated with Disneyland Paris.",
-    es: "Servicio independiente de cuidado de mascotas certificado por ACACED, no afiliado a Disneyland Paris.",
+  "Service indépendant de garde d'animaux par une pet-sitter titulaire de l'attestation de connaissances ACACED, non affilié à Disneyland Paris.": {
+    en: "Independent pet sitting service run by a holder of the ACACED certificate of knowledge, not affiliated with Disneyland Paris.",
+    es: "Servicio independiente de cuidado de mascotas a cargo de una titular del certificado de conocimientos ACACED, no afiliado a Disneyland Paris.",
   },
   "Service de garde d'animaux pour chiens et chats près de Disneyland Paris, Bussy-Saint-Georges, Val d'Europe et en Seine-et-Marne.": {
     en: "Dog and cat sitting and boarding service near Disneyland Paris, Bussy-Saint-Georges, Val d'Europe and in Seine-et-Marne.",
@@ -1003,9 +995,9 @@ const catalogue: Record<string, Translation> = {
     en: "Dog and cat sitting in Seine-et-Marne (77)",
     es: "Cuidado de perros y gatos en Seine-et-Marne (77)",
   },
-  "✓ Diplômée ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 sortie 12 10 min)": {
-    en: "✓ ACACED certified · ✓ Bussy-Saint-Georges (RER A 8 min / A4 exit 12 10 min)",
-    es: "✓ Certificada ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 salida 12 10 min)",
+  "✓ Attestation de connaissances ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 sortie 12 10 min)": {
+    en: "✓ ACACED certificate of knowledge · ✓ Bussy-Saint-Georges (RER A 8 min / A4 exit 12 10 min)",
+    es: "✓ Certificado de conocimientos ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 salida 12 10 min)",
   },
   "Horaires réels : la période de 24 h démarre à l’heure de dépôt (le passage de minuit ne déclenche jamais une seconde journée facturée).": {
     en: "Real-time billing: the 24-hour period starts at drop-off time (crossing midnight never triggers a second billed day).",
@@ -1071,9 +1063,9 @@ const catalogue: Record<string, Translation> = {
     en: "Walks included & photo updates sent during your day at the park",
     es: "Paseos incluidos y fotos enviadas durante su día en el parque",
   },
-  "Pet-sitter diplômée ACACED · Réservation en ligne sécurisée": {
-    en: "ACACED-certified pet sitter · Secure online booking",
-    es: "Cuidadora certificada ACACED · Reserva online segura",
+  "Pet-sitter titulaire de l'attestation de connaissances ACACED · Réservation en ligne sécurisée": {
+    en: "Pet sitter holding the ACACED certificate of knowledge · Secure online booking",
+    es: "Cuidadora titular del certificado de conocimientos ACACED · Reserva online segura",
   },
   "Garderie de jour — 35 € (jusqu'à 10 h)": {
     en: "Day care — €35 (up to 10 hours)",
@@ -1203,9 +1195,9 @@ const catalogue: Record<string, Translation> = {
     en: "Bring your dog's usual food (to avoid any digestive upset), their collar or harness, leash, up-to-date health/vaccination record, and if you wish, their favourite bed or toy so they feel right at home.",
     es: "Traiga la comida habitual de su perro (para evitar cambios digestivos), su collar o arnés, su correa, su cartilla sanitaria al día y, si lo desea, su cama o juguete favorito para que conserve sus referencias.",
   },
-  "Non. La Patte Dorée est un service indépendant de garde d'animaux déclaré et certifié ACACED en Seine-et-Marne (77), sans aucune affiliation commerciale avec Disneyland Paris / Euro Disney.": {
-    en: "No. La Patte Dorée is an independent, registered and ACACED-certified pet sitting service in Seine-et-Marne (77), with no commercial affiliation with Disneyland Paris / Euro Disney.",
-    es: "No. La Patte Dorée es un servicio independiente de cuidado de mascotas declarado y certificado por ACACED en Seine-et-Marne (77), sin ninguna afiliación comercial con Disneyland Paris / Euro Disney.",
+  "Non. La Patte Dorée est un service indépendant de garde d'animaux déclaré en Seine-et-Marne (77), assuré par une pet-sitter titulaire de l'attestation de connaissances ACACED, sans aucune affiliation commerciale avec Disneyland Paris / Euro Disney.": {
+    en: "No. La Patte Dorée is an independent, registered pet sitting service in Seine-et-Marne (77), run by a pet sitter holding the ACACED certificate of knowledge, with no commercial affiliation with Disneyland Paris / Euro Disney.",
+    es: "No. La Patte Dorée es un servicio independiente de cuidado de mascotas declarado en Seine-et-Marne (77), a cargo de una cuidadora titular del certificado de conocimientos ACACED, sin ninguna afiliación comercial con Disneyland Paris / Euro Disney.",
   },
   "Animal Care Center Disneyland Paris": {
     en: "Animal Care Center Disneyland Paris",
@@ -1789,13 +1781,13 @@ const catalogue: Record<string, Translation> = {
     en: "77600 Bussy-Saint-Georges (10 min from Disneyland Paris & Val d’Europe) · Open 7 days a week by booking",
     es: "77600 Bussy-Saint-Georges (a 10 min de Disneyland Paris y Val d’Europe) · Abierto 7 días/7 con reserva",
   },
-  "Certifié ACACED Chien & Chat n°": {
-    en: "ACACED Dogs & Cats Certified No.",
-    es: "Certificado ACACED Perros y Gatos n.º",
+  "Attestation de connaissances ACACED Chien & Chat n°": {
+    en: "ACACED certificate of knowledge (Dog & Cat) No.",
+    es: "Certificado de conocimientos ACACED Perro y Gato n.º",
   },
-  "Certifié ACACED Chien & Chat n° 2025/ef33-4a9c": {
-    en: "ACACED Dogs & Cats Certified No. 2025/ef33-4a9c",
-    es: "Certificado ACACED Perros y Gatos n.º 2025/ef33-4a9c",
+  "Attestation de connaissances ACACED Chien & Chat n° 2026/f9c3-6ee5": {
+    en: "ACACED certificate of knowledge (Dog & Cat) No. 2026/f9c3-6ee5",
+    es: "Certificado de conocimientos ACACED Perro y Gato n.º 2026/f9c3-6ee5",
   },
   "Connexion client": {
     en: "Client login",

@@ -87,7 +87,7 @@ const enProofPoints = [
   },
   {
     icon: ShieldCheck,
-    text: "French State-Certified Pet Sitter (ACACED) & Secure Stripe Booking",
+    text: "Pet Sitter Holding the ACACED Certificate of Knowledge & Secure Stripe Booking",
   },
 ];
 
@@ -167,7 +167,7 @@ const enFaqs = [
   {
     question: "Is La Patte Dorée affiliated with Disneyland Paris?",
     answer:
-      "No. La Patte Dorée is an independent, French state-certified (ACACED) pet sitting and boarding service located in Seine-et-Marne (77), with no affiliation with Disneyland Paris.",
+      "No. La Patte Dorée is an independent pet sitting and boarding service located in Seine-et-Marne (77), run by a holder of the ACACED certificate of knowledge, with no affiliation with Disneyland Paris.",
   },
 ];
 
@@ -314,7 +314,7 @@ export default function EnglishDisneyDogBoardingPage() {
               <div className="mb-4 flex flex-wrap items-center gap-2.5">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-900">
                   <Award className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
-                  French State-Certified (ACACED)
+                  ACACED Certificate of Knowledge
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-800">
                   <MapPin className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
@@ -370,7 +370,7 @@ export default function EnglishDisneyDogBoardingPage() {
               </div>
 
               <p className="mt-4 max-w-2xl text-xs leading-5 text-gray-500">
-                Independent, state-certified (ACACED) pet care service. Not affiliated with Disneyland Paris.
+                Independent pet care service run by a holder of the ACACED certificate of knowledge. Not affiliated with Disneyland Paris.
               </p>
 
               <figure className="mt-8 overflow-hidden rounded-2xl border border-orange-100 bg-[#FDFbf7] shadow-sm">

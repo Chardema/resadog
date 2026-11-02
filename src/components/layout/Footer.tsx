@@ -78,7 +78,7 @@ export function Footer() {
               <li className="flex items-center gap-2 text-xs font-semibold text-emerald-800">
                 <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
                 <span>
-                  Certifié ACACED Chien &amp; Chat n° <span data-no-translate>{LEGAL_INFORMATION.acaced.number}</span>
+                  Attestation de connaissances ACACED Chien &amp; Chat n° <span data-no-translate>{LEGAL_INFORMATION.acaced.number}</span>
                 </span>
               </li>
             </ul>

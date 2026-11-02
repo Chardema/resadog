@@ -167,7 +167,7 @@ export default function OpenGraphImage() {
               fontWeight: 700,
             }}
           >
-            Diplômé ACACED
+            Attestation de connaissances ACACED
           </div>
 
           <div

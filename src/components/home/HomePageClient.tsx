@@ -184,9 +184,9 @@ export function HomePageClient({
                     <ShieldCheck className="h-5 w-5" aria-hidden="true" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-900">Titulaire ACACED Chien &amp; Chat</p>
+                    <p className="text-sm font-bold text-gray-900">Attestation de connaissances ACACED Chien &amp; Chat</p>
                     <p className="mt-0.5 text-xs sm:text-sm leading-relaxed text-gray-600">
-                      Certificat officiel de capacité, vérification du carnet de santé et respect strict des consignes.
+                      Vérification du carnet de santé et respect strict des consignes.
                     </p>
                   </div>
                 </div>
@@ -211,8 +211,8 @@ export function HomePageClient({
                 <ShieldCheck className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900">Qualifié ACACED</p>
-                <p className="text-xs text-gray-500">Chien &amp; chat certifié</p>
+                <p className="text-sm font-bold text-gray-900">Attestation de connaissances ACACED</p>
+                <p className="text-xs text-gray-500">Chien &amp; chat</p>
               </div>
             </div>
 
