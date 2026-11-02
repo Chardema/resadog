@@ -47,6 +47,8 @@ import {
   type PriceLine,
 } from "@/lib/pricing";
 import {
+  BOARDING_MAX_PETS,
+  BOARDING_MAX_PETS_ERROR,
   isHourlyServiceType,
   isOvernightServiceType,
   type AppServiceType,
@@ -89,7 +91,7 @@ const serviceTypes: ServiceOption[] = [
     description: "Votre compagnon vit avec nous, avec nuit et accès canapé inclus. Le tarif suit des périodes réelles de 24 h à partir de l’arrivée.",
     icon: "🏠",
     maxHours: 24,
-    maxPets: 3,
+    maxPets: BOARDING_MAX_PETS,
   },
   {
     value: "HOUSE_SITTING",
@@ -1848,8 +1850,11 @@ export default function BookingPage() {
   // Navigation helpers
   const goNext = () => { setDirection(1); setStep(step + 1); };
   const goBack = () => { setDirection(-1); setStep(step - 1); };
-  const step1CanContinue = activePetIds.length > 0;
+  const selectedServiceMaxPets = serviceTypes.find((s) => s.value === formData.serviceType)?.maxPets ?? Infinity;
+  const selectedServiceOverPetLimit = activePetIds.length > selectedServiceMaxPets;
+  const step1CanContinue = activePetIds.length > 0 && !selectedServiceOverPetLimit;
   const step2CanContinue =
+    !selectedServiceOverPetLimit &&
     availabilityStatus.available &&
     calculateTotalPrice() > 0 &&
     (!isHourlyService(formData.serviceType) || formData.serviceAddress.trim().length >= 8);
@@ -2255,6 +2260,12 @@ export default function BookingPage() {
                       </div>
                     )})}
                   </div>
+                  {selectedServiceOverPetLimit && formData.serviceType === "BOARDING" && (
+                    <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                      <p className="font-bold">{BOARDING_MAX_PETS_ERROR}</p>
+                      <p className="mt-1">Sélectionnez un seul animal pour l’hébergement, ou choisissez un autre service.</p>
+                    </div>
+                  )}
                   {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
                     <div className="mt-4">
                       <ResidentCatsNotice />

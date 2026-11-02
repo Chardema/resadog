@@ -4461,6 +4461,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "The team will be able to verify the calculation with the details of your reservation.",
     "es": "El equipo podrá verificar el cálculo con los detalles de su reserva."
   },
+  "L'hébergement est limité à un seul animal par nuit.": {
+    "en": "Boarding is limited to one pet per night.",
+    "es": "El alojamiento está limitado a un solo animal por noche."
+  },
   "L’heure de fin doit être postérieure à l’heure de début.": {
     "en": "The end time must be later than the start time.",
     "es": "La hora de finalización debe ser posterior a la hora de inicio."
@@ -7476,6 +7480,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Sélectionnez au moins 1 compagnon pour simuler votre tarif et vérifier les disponibilités.": {
     "en": "Select at least 1 pet to simulate your rate and check availability.",
     "es": "Selecciona al menos 1 mascota para simular tu tarifa y comprobar la disponibilidad."
+  },
+  "Sélectionnez un seul animal pour l’hébergement, ou choisissez un autre service.": {
+    "en": "Select only one pet for boarding, or choose another service.",
+    "es": "Seleccione un solo animal para el alojamiento o elija otro servicio."
   },
   "Sélectionnez vos compagnons (jusqu'à 4) pour calculer immédiatement votre tarif exact. Vos choix sont sauvegardés automatiquement.": {
     "en": "Select your pets (up to 4) to immediately calculate your exact rate. Your choices are saved automatically.",

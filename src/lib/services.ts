@@ -38,3 +38,12 @@ export function isOvernightServiceType(serviceType: string): serviceType is (typ
 export function getServiceLabel(serviceType: string) {
   return SERVICE_LABELS[serviceType as AppServiceType] || serviceType;
 }
+
+// Le logement est un appartement de 45 m² : un seul animal hébergé par nuit.
+export const BOARDING_MAX_PETS = 1;
+export const BOARDING_MAX_PETS_ERROR = "L'hébergement est limité à un seul animal par nuit.";
+
+export function getServicePetLimitError(serviceType: string, petCount: number) {
+  if (serviceType === "BOARDING" && petCount > BOARDING_MAX_PETS) return BOARDING_MAX_PETS_ERROR;
+  return null;
+}
