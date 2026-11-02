@@ -14,8 +14,8 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://uploadthing.com https://*.uploadthing.com https://utfs.io https://*.utfs.io https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://www.google.com https://google.com",
-  "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://www.google.com/maps https://td.doubleclick.net https://www.googletagmanager.com",
+  "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://uploadthing.com https://*.uploadthing.com https://utfs.io https://*.utfs.io https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://www.google.com https://google.com https://*.doubleclick.net https://www.google.fr",
+  "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://www.google.com/maps https://td.doubleclick.net https://www.googletagmanager.com https://*.doubleclick.net",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join("; ");
