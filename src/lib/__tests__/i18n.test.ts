@@ -4,11 +4,12 @@ import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { translateFrenchText } from "@/lib/i18n";
 import { localSeoPages } from "@/lib/seo";
+import { getServiceDisplayPrice } from "@/lib/pricing";
 
 const HERO_STRINGS = [
   "· Avis vérifiés",
   "Garde familiale de chiens & chats près de Disneyland Paris,",
-  "comme à la maison.",
+  "comme chez vous.",
   "Hébergement familial",
   "100 % sans box ni cage",
   ", garderie de jour, visites à domicile et promenades en Seine-et-Marne (77). Partez l’esprit tranquille avec des photos et nouvelles chaque jour.",
@@ -18,19 +19,19 @@ const HERO_STRINGS = [
   "Tarif calculé à la durée réelle",
   "Consignes santé & habitudes vérifiées avant chaque garde",
   "Cadre 100 % familial",
-  "Maison & suivi personnalisé",
+  "Chez nous & suivi personnalisé",
   "Dès",
-  "Dès 35 €",
+  `Dès ${getServiceDisplayPrice("DAY_CARE").dogPrice} €`,
   "Zéro box, zéro cage",
-  "Votre compagnon vit avec nous dans la maison, à son rythme, avec sorties et moments de jeu adaptés.",
+  "Votre compagnon vit avec nous dans notre appartement, à son rythme, avec sorties et moments de jeu adaptés.",
   "Photos & nouvelles quotidiennes",
   "Vous suivez son séjour chaque jour pendant votre visite à Disneyland Paris ou vos vacances.",
-  "Titulaire ACACED Chien & Chat",
-  "Certificat officiel de capacité, vérification du carnet de santé et respect strict des consignes.",
+  "Attestation de connaissances ACACED Chien & Chat",
+  "Vérification du carnet de santé et respect strict des consignes.",
   "Bussy-Saint-Georges · à 10 min des parcs Disney",
   "Lire les avis →",
-  "Qualifié ACACED",
-  "Chien & chat certifié",
+  "Attestation de connaissances ACACED",
+  "Chien & chat",
   "100 % sans box",
   "Cadre familial calme",
   "Suivi quotidien",
@@ -158,12 +159,12 @@ describe("i18n translations & word boundary safety", () => {
       "Chez nous · Nuit incluse",
       "-10 % dès 14 périodes",
       "Hébergement familial (24 h)",
-      "Votre compagnon vit à la maison avec nous et profite du jardin clos, des sorties et d’une présence rassurante jour et nuit, avec photos chaque jour.",
+      "Votre compagnon est notre seul pensionnaire de la nuit, dans notre appartement de 45 m² : sorties, présence rassurante jour et nuit et photos chaque jour.",
       "Compteur 24 h dès l’heure de dépôt",
       "Simuler un séjour →",
       "Chez nous · Journée jusqu’à 10 h",
       "Idéal journée Disneyland Paris",
-      "Accueil dès 6h30 à 10 minutes des parcs Disney : jeux au jardin, repos au calme et compagnie continue jusqu’à 10 h de garde en journée.",
+      "Accueil dès 6h30 à 10 minutes des parcs Disney : jeux, sorties, repos au calme et compagnie continue jusqu’à 10 h de garde en journée.",
       "Dépose dès 6h30 · Retour jusqu’à 20h30",
       "Réserver une journée →",
       "Chez vous · Présence prolongée",
@@ -212,8 +213,8 @@ describe("i18n translations & word boundary safety", () => {
   it("translates all Chantier 4 navigation, visitor footer, NAP and bug report strings into EN and ES", () => {
     const chantier4Strings = [
       "Langue",
-      "Certifié ACACED Chien & Chat n°",
-      "Certifié ACACED Chien & Chat n° 2025/ef33-4a9c",
+      "Attestation de connaissances ACACED Chien & Chat n°",
+      "Attestation de connaissances ACACED Chien & Chat n° 2026/f9c3-6ee5",
       "Simuler & Réserver",
       "Tarifs & Conditions",
       "Programme Fidélité",
@@ -250,6 +251,20 @@ describe("i18n translations & word boundary safety", () => {
       const content = fs.readFileSync(path.join(root, relPath), "utf8");
       expect(content, `${relPath} should not contain BIENVENUE10`).not.toContain("BIENVENUE10");
       expect(content, `${relPath} should not import welcome-offer`).not.toContain("welcome-offer");
+    }
+  });
+
+  it("keeps French by default and never switches language from the browser or Accept-Language", () => {
+    const root = process.cwd();
+    const provider = fs.readFileSync(path.join(root, "src/components/providers/LanguageProvider.tsx"), "utf8");
+    expect(provider).not.toContain("navigator.language");
+    expect(provider).toContain('window.localStorage.getItem(STORAGE_KEY)');
+    expect(provider).toContain("document.cookie = `${COOKIE_NAME}=${nextLocale}");
+
+    const layout = fs.readFileSync(path.join(root, "src/app/layout.tsx"), "utf8");
+    expect(layout).toContain('const initialLocale = isLocale(cookieLocale) ? cookieLocale : "fr";');
+    for (const relPath of ["src/app/layout.tsx", "src/components/providers/LanguageProvider.tsx"]) {
+      expect(fs.readFileSync(path.join(root, relPath), "utf8").toLowerCase()).not.toContain("accept-language");
     }
   });
 });

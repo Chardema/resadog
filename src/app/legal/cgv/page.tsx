@@ -1,3 +1,4 @@
+import { buildMetadata } from "@/lib/seo";
 import Link from "next/link";
 import {
   LAST_MINUTE_DESCRIPTION,
@@ -12,6 +13,13 @@ import {
 } from "@/lib/pricing";
 import { LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
 import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
+
+export const metadata = buildMetadata({
+  title: "Conditions générales de vente (CGV)",
+  description: "Conditions générales de vente de La Patte Dorée.",
+  path: "/legal/cgv",
+  noIndex: true,
+});
 
 export default function CGVPage() {
   const boarding = getServiceDisplayPrice("BOARDING");

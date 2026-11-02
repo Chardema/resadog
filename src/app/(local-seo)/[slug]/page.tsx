@@ -110,13 +110,13 @@ function getLocalPagePhotos(slug: string): LocalPagePhotosConfig {
         src: "/images/hero-famille.webp",
         width: 1200,
         height: 900,
-        badge: "Maison familiale · Zéro box",
+        badge: "Cadre familial · Zéro box",
         caption: "Accueil familial chiens et chats à Bussy-Saint-Georges (77)",
         alt: "Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée en Seine-et-Marne (77)",
       },
       galleryHeading: "Le cadre réel chez La Patte Dorée en Seine-et-Marne",
       gallerySubheading:
-        "Vraies photos de nos pensionnaires chiens et chats à Bussy-Saint-Georges : salon familial, jardin clos et repos au calme.",
+        "Vraies photos de nos pensionnaires chiens et chats à Bussy-Saint-Georges : salon familial, sorties et repos au calme.",
       gallery: [
         {
           src: "/images/galerie/salon-chien-chat.webp",
@@ -126,9 +126,9 @@ function getLocalPagePhotos(slug: string): LocalPagePhotosConfig {
         },
         {
           src: "/images/galerie/jardin-golden.webp",
-          badge: "Jardin & extérieur",
-          caption: "Golden Retriever en promenade dans le jardin ensoleillé",
-          alt: "Golden Retriever en promenade dans le jardin ensoleillé chez La Patte Dorée",
+          badge: "Sorties au grand air",
+          caption: "Golden Retriever en promenade au soleil",
+          alt: "Golden Retriever en promenade au soleil avec La Patte Dorée",
         },
         {
           src: "/images/galerie/chat-tigre-canape.webp",
@@ -145,10 +145,10 @@ function getLocalPagePhotos(slug: string): LocalPagePhotosConfig {
       src: "/images/hero-famille.webp",
       width: 1200,
       height: 900,
-      badge: "Maison familiale · 100 % sans box",
+      badge: "Cadre familial · 100 % sans box",
       caption:
         slug === "garde-chien-disneyland-paris"
-          ? "Repos au calme en maison familiale à 10 min de Disneyland Paris"
+          ? "Repos au calme en cadre familial à 10 min de Disneyland Paris"
           : "Hébergement familial sans box ni chenil en Seine-et-Marne (77)",
       alt:
         slug === "garde-chien-disneyland-paris"
@@ -158,15 +158,15 @@ function getLocalPagePhotos(slug: string): LocalPagePhotosConfig {
     galleryHeading:
       slug === "garde-chien-disneyland-paris"
         ? "Le cadre réel pendant votre journée à Disneyland Paris"
-        : "Un cadre de maison réel pour votre chien dans le 77",
+        : "Un cadre familial réel pour votre chien dans le 77",
     gallerySubheading:
-      "Vraies photos de nos pensionnaires à Bussy-Saint-Georges : jardin clos, vraies promenades incluses et repos au salon sans cage.",
+      "Vraies photos de nos pensionnaires à Bussy-Saint-Georges : vraies promenades incluses et repos au salon sans cage.",
     gallery: [
       {
         src: "/images/galerie/jardin-golden.webp",
-        badge: "Jardin & extérieur",
-        caption: "Golden Retriever en promenade dans le jardin ensoleillé",
-        alt: "Golden Retriever en promenade dans le jardin ensoleillé chez La Patte Dorée",
+        badge: "Sorties au grand air",
+        caption: "Golden Retriever en promenade au soleil",
+        alt: "Golden Retriever en promenade au soleil avec La Patte Dorée",
       },
       {
         src: "/images/galerie/balade-golden-creme.webp",
@@ -176,9 +176,9 @@ function getLocalPagePhotos(slug: string): LocalPagePhotosConfig {
       },
       {
         src: "/images/galerie/interieur-chien-noir.webp",
-        badge: "Comme à la maison",
-        caption: "Repos au calme à la maison sans box",
-        alt: "Repos au calme à la maison sans box ni cage chez La Patte Dorée",
+        badge: "Comme chez vous",
+        caption: "Repos au calme à l’intérieur, sans box",
+        alt: "Repos au calme à l’intérieur, sans box ni cage, chez La Patte Dorée",
       },
     ],
   };
@@ -328,7 +328,7 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
                 <div className="mb-4 flex flex-wrap items-center gap-2.5">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-900">
                     <Award className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
-                    Diplômée d’État ACACED Chien &amp; Chat
+                    Attestation de connaissances ACACED Chien &amp; Chat
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-800">
                     <MapPin className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
@@ -375,7 +375,7 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
 
               {page.disneyDisclaimer && (
                 <p className="mt-4 max-w-2xl text-xs leading-5 text-gray-500">
-                  Service indépendant de garde d'animaux certifié ACACED, non affilié à Disneyland Paris.
+                  Service indépendant de garde d'animaux par une pet-sitter titulaire de l'attestation de connaissances ACACED, non affilié à Disneyland Paris.
                 </p>
               )}
 
@@ -419,7 +419,7 @@ export default async function LocalSeoPage({ params }: SeoPageProps) {
 
               {isDisneyPage && (
                 <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/80 px-3.5 py-2.5 text-xs font-semibold text-emerald-900">
-                  ✓ Diplômée ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 sortie 12 10 min)
+                  ✓ Attestation de connaissances ACACED · ✓ Bussy-Saint-Georges (RER A 8 min / A4 sortie 12 10 min)
                 </div>
               )}
 

@@ -37,10 +37,19 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
           "Saturday",
           "Sunday",
         ],
-        opens: "07:00",
-        closes: "21:00",
+        opens: "06:30",
+        closes: "20:30",
       },
     ]);
+    expect(jsonLd.geo).toEqual({
+      "@type": "GeoCoordinates",
+      latitude: 48.849459,
+      longitude: 2.7521626,
+    });
+    expect(jsonLd.sameAs).toContain(
+      "https://www.google.com/maps/place/?q=place_id:ChIJI-wflSG3oWUR3KMOStac4oo"
+    );
+    expect(jsonLd.sameAs).toContain("https://www.allovoisins.com/p/meganemelique-1#avis");
   });
 
   it("includes og-image.jpg on Service and provider in getLocalServiceJsonLd for all 6 French local SEO pages", () => {
@@ -130,9 +139,11 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(homeSource).toContain("<PhotoGallerySection />");
 
     const gallerySource = readSource("src/components/home/PhotoGallerySection.tsx");
-    expect(gallerySource).toContain("Nos pensionnaires comme à la maison");
+    expect(gallerySource).toContain("Nos pensionnaires comme chez eux");
     expect(gallerySource).toContain("grid-cols-2 md:grid-cols-3 gap-4");
-    expect(gallerySource).toContain("@lapatte_doree");
+    expect(gallerySource).toContain("{INSTAGRAM_HANDLE}");
+    expect(gallerySource).not.toContain("@lapatte_doree");
+    expect(readSource("src/lib/social-links.ts")).toContain(`INSTAGRAM_HANDLE = "@lapattedoree77"`);
 
     const localSeoSource = readSource("src/app/(local-seo)/[slug]/page.tsx");
     expect(localSeoSource).toContain("/images/hero-famille.webp");
@@ -179,7 +190,7 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(tarifsSource).toContain("/images/galerie/balade-golden-creme.webp");
     expect(tarifsSource).toContain("Pension & Garderie chien");
     expect(tarifsSource).toContain("Pension & Visites chat");
-    expect(tarifsSource).toContain("Promenades & Jardin clos");
+    expect(tarifsSource).toContain("Promenades & sorties");
     expect(tarifsSource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
 
     const conceptSource = readSource("src/app/concept/page.tsx");
@@ -187,7 +198,7 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(conceptSource).toContain("/images/hero-famille.webp");
     expect(conceptSource).toContain("/images/galerie/salon-chien-chat.webp");
     expect(conceptSource).toContain("/images/galerie/interieur-chien-noir.webp");
-    expect(conceptSource).toContain("Maison familiale · Zéro box");
+    expect(conceptSource).toContain("Cadre familial · Zéro box");
     expect(conceptSource).toContain("Cohabitation sereine");
     expect(conceptSource).toContain("Repos sans cage");
     expect(conceptSource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
@@ -198,7 +209,7 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(subscriptionsSource).toContain("/images/galerie/salon-chien-chat.webp");
     expect(subscriptionsSource).toContain("/images/galerie/chat-soleil-jardin.webp");
     expect(subscriptionsSource).toContain("Habitués du club");
-    expect(subscriptionsSource).toContain("Comme à la maison");
+    expect(subscriptionsSource).toContain("Comme chez vous");
     expect(subscriptionsSource).toContain("Priorité vacances");
     expect(subscriptionsSource).toContain("grid-cols-1 sm:grid-cols-3 gap-4");
   });

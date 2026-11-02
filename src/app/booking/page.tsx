@@ -41,11 +41,14 @@ import {
   HOUSE_SITTING_DURATION_TIERS,
   LONG_BOARDING_DISCOUNT_RATE,
   LONG_BOARDING_MIN_PERIODS,
+  MIN_DISPLAY_PRICE,
   YOUNG_ANIMAL_SURCHARGE,
   type Species,
   type PriceLine,
 } from "@/lib/pricing";
 import {
+  BOARDING_MAX_PETS,
+  BOARDING_MAX_PETS_ERROR,
   isHourlyServiceType,
   isOvernightServiceType,
   type AppServiceType,
@@ -85,10 +88,10 @@ const serviceTypes: ServiceOption[] = [
     value: "BOARDING",
     name: "Hébergement",
     unit: "période de 24 h",
-    description: "Votre compagnon vit avec nous, avec nuit, accès canapé et jardin inclus. Le tarif suit des périodes réelles de 24 h à partir de l’arrivée.",
+    description: "Votre compagnon vit avec nous, avec nuit et accès canapé inclus. Le tarif suit des périodes réelles de 24 h à partir de l’arrivée.",
     icon: "🏠",
     maxHours: 24,
-    maxPets: 3,
+    maxPets: BOARDING_MAX_PETS,
   },
   {
     value: "HOUSE_SITTING",
@@ -255,7 +258,7 @@ const ResidentCatsNotice = ({ compact = false }: { compact?: boolean }) => {
         🐈
       </div>
       <div>
-        <p className="font-bold">{t("Deux chats vivent à la maison")}</p>
+        <p className="font-bold">{t("Deux chats vivent avec nous")}</p>
         <p className="mt-1 text-sm leading-6 text-sky-900">
           {t("Pour la garderie et l'hébergement, la compatibilité est prise en compte. Si la cohabitation avec votre animal n'est pas sereine, nos chats restent dans un espace séparé.")}
         </p>
@@ -1807,7 +1810,7 @@ export default function BookingPage() {
     }
   };
 
-  if (status === "loading" && !draftHydrated) return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>;
+  if (status === "loading" && !draftHydrated) return <main className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce"><h1 className="sr-only">Nouvelle Réservation</h1><span aria-hidden="true">🐾</span></main>;
 
   const originalDisplayedTotal = calculateTotalBeforeDiscounts();
   const automaticDisplayedTotal = calculateTotalPrice();
@@ -1847,8 +1850,11 @@ export default function BookingPage() {
   // Navigation helpers
   const goNext = () => { setDirection(1); setStep(step + 1); };
   const goBack = () => { setDirection(-1); setStep(step - 1); };
-  const step1CanContinue = activePetIds.length > 0;
+  const selectedServiceMaxPets = serviceTypes.find((s) => s.value === formData.serviceType)?.maxPets ?? Infinity;
+  const selectedServiceOverPetLimit = activePetIds.length > selectedServiceMaxPets;
+  const step1CanContinue = activePetIds.length > 0 && !selectedServiceOverPetLimit;
   const step2CanContinue =
+    !selectedServiceOverPetLimit &&
     availabilityStatus.available &&
     calculateTotalPrice() > 0 &&
     (!isHourlyService(formData.serviceType) || formData.serviceAddress.trim().length >= 8);
@@ -1878,7 +1884,7 @@ export default function BookingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFbf7] pb-28 md:pb-24">
+    <main className="min-h-screen bg-[#FDFbf7] pb-28 md:pb-24">
 
       <div className="container mx-auto px-4 sm:px-6 pt-28 sm:pt-32 max-w-4xl overflow-hidden">
         {/* Header */}
@@ -1919,7 +1925,7 @@ export default function BookingPage() {
                       ? "cursor-pointer border-emerald-200 bg-emerald-50/80 text-emerald-950 hover:border-emerald-300"
                       : canClickStep
                         ? "cursor-pointer border-gray-200 bg-white text-gray-700 hover:border-orange-300"
-                        : "cursor-default border-gray-200/80 bg-white/70 text-gray-400"
+                        : "cursor-default border-gray-200/80 bg-white/70 text-gray-500"
                 }`}
               >
                 <div className="flex items-center justify-between gap-1.5">
@@ -2211,11 +2217,11 @@ export default function BookingPage() {
                             </div>
                           ) : (
                             <div data-no-translate className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm">
-                              <span className="text-orange-600 font-bold">🐕 {displayPrice.dogPrice}€</span>
+                              <span className="text-orange-700 font-bold">🐕 {displayPrice.dogPrice}€</span>
                               <span className="text-blue-600 font-bold">
                                 🐈 {displayPrice.catRequestOnly ? t("sur demande") : `${displayPrice.catPrice}€`}
                               </span>
-                              <span className="text-gray-400">/ {t(displayPrice.unit)}</span>
+                              <span className="text-gray-500">/ {t(displayPrice.unit)}</span>
                               {displayPrice.durationMinutes && (
                                 <span className="text-gray-500">{displayPrice.durationMinutes} min</span>
                               )}
@@ -2254,6 +2260,12 @@ export default function BookingPage() {
                       </div>
                     )})}
                   </div>
+                  {selectedServiceOverPetLimit && formData.serviceType === "BOARDING" && (
+                    <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                      <p className="font-bold">{BOARDING_MAX_PETS_ERROR}</p>
+                      <p className="mt-1">Sélectionnez un seul animal pour l’hébergement, ou choisissez un autre service.</p>
+                    </div>
+                  )}
                   {(formData.serviceType === "BOARDING" || formData.serviceType === "DAY_CARE") && (
                     <div className="mt-4">
                       <ResidentCatsNotice />
@@ -2554,14 +2566,14 @@ export default function BookingPage() {
                                           )}
 
                                           {!uniformVisitDuration && durationExtraTotal > 0 && (
-                                            <div className="flex justify-between gap-4 text-xs text-orange-600">
+                                            <div className="flex justify-between gap-4 text-xs text-orange-700">
                                               <span>Supplément durée prolongée</span>
                                               <span>+{formatPrice(durationExtraTotal)}€</span>
                                             </div>
                                           )}
 
                                           {otherSurchargeLines.map((line, idx) => (
-                                            <div key={idx} className="flex justify-between gap-4 text-xs text-orange-600">
+                                            <div key={idx} className="flex justify-between gap-4 text-xs text-orange-700">
                                               <span>{line.label}</span>
                                               <span>+{formatPrice(line.amount)}€</span>
                                             </div>
@@ -2830,7 +2842,7 @@ export default function BookingPage() {
                                 className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
                             />
                             <label data-no-translate htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
-                                J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de confidentialité</Link>. L&apos;annulation est gratuite au moins 48 h avant le début de la garde. Passé ce délai, 50 % du montant est retenu, sous réserve des droits légaux. {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
+                                J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-700 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-700 hover:text-orange-800">Politique de confidentialité</Link>. L&apos;annulation est gratuite au moins 48 h avant le début de la garde. Passé ce délai, 50 % du montant est retenu, sous réserve des droits légaux. {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
                             </label>
                         </div>
 
@@ -2883,7 +2895,7 @@ export default function BookingPage() {
                 ? `${formatPrice(finalDisplayedTotal)} €`
                 : currentServicePreview
                   ? `${t("Dès")} ${formatPrice(currentServicePreview.amount)} €`
-                  : `${t("Dès")} 35 €`}
+                  : `${t("Dès")} ${formatPrice(MIN_DISPLAY_PRICE)} €`}
             </p>
           </div>
 
@@ -3047,6 +3059,6 @@ export default function BookingPage() {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </main>
   );
 }

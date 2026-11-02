@@ -1,4 +1,12 @@
+import { buildMetadata } from "@/lib/seo";
 import { LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+
+export const metadata = buildMetadata({
+  title: "Cookies et traceurs",
+  description: "Cookies et traceurs utilisés sur le site de La Patte Dorée.",
+  path: "/legal/cookies",
+  noIndex: true,
+});
 
 export default function CookiesPage() {
   return (

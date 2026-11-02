@@ -39,7 +39,7 @@ export function LanguageSwitcher({ inline = false }: { inline?: boolean }) {
           key={item}
           type="button"
           onClick={() => handleSelectLocale(item)}
-          aria-label={localeNames[item]}
+          aria-label={`${shortLabels[item]} – ${localeNames[item]}`}
           aria-pressed={locale === item}
           title={localeNames[item]}
           className={`min-h-9 rounded-full px-2.5 text-xs font-extrabold transition-colors sm:px-3 ${

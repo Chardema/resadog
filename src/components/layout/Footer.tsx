@@ -78,7 +78,7 @@ export function Footer() {
               <li className="flex items-center gap-2 text-xs font-semibold text-emerald-800">
                 <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
                 <span>
-                  Certifié ACACED Chien &amp; Chat n° <span data-no-translate>{LEGAL_INFORMATION.acaced.number}</span>
+                  Attestation de connaissances ACACED Chien &amp; Chat n° <span data-no-translate>{LEGAL_INFORMATION.acaced.number}</span>
                 </span>
               </li>
             </ul>
@@ -98,7 +98,7 @@ export function Footer() {
               <li><Link href="/booking" className="hover:text-orange-600 transition-colors">Simuler &amp; Réserver</Link></li>
               <li><Link href="/tarifs" className="hover:text-orange-600 transition-colors">Tarifs &amp; Conditions</Link></li>
               <li><Link href="/concept" className="hover:text-orange-600 transition-colors">Programme Fidélité</Link></li>
-              <li><Link href="/subscriptions" className="hover:text-orange-600 transition-colors font-bold text-orange-600">Premium ✨</Link></li>
+              <li><Link href="/subscriptions" className="hover:text-orange-800 transition-colors font-bold text-orange-700">Premium ✨</Link></li>
               {isAuthenticated ? (
                 <>
                   <li><Link href="/dashboard" className="hover:text-orange-600 transition-colors">Mon Espace</Link></li>

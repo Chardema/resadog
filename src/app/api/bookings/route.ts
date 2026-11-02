@@ -8,7 +8,7 @@ import { selectBestBookingDiscount } from "@/lib/booking-discounts";
 import { parisAppointment } from "@/lib/booking-dates";
 import { calculateBookingPrice, calculateSameDayDurationMinutes, isValidDayCareSchedule, MAX_VISIT_DURATION_MINUTES } from "@/lib/pricing";
 import { calculateCouponDiscount } from "@/lib/coupon-pricing";
-import { isHourlyServiceType, isOvernightServiceType, SERVICE_TYPES } from "@/lib/services";
+import { getServicePetLimitError, isHourlyServiceType, isOvernightServiceType, SERVICE_TYPES } from "@/lib/services";
 import {
   countBookingsByDate,
   getDateKeysInRange,
@@ -114,6 +114,12 @@ export async function POST(request: NextRequest) {
     const isHourlyService = isHourlyServiceType(serviceType);
     const visitSlots = serviceDetails?.visitSlots || [];
     const pricingContextIds = pricingPetIds || petIds;
+
+    // Les animaux du contexte tarifaire sont gardés ensemble : la limite porte sur leur total.
+    const petLimitError = getServicePetLimitError(serviceType, new Set([...petIds, ...pricingContextIds]).size);
+    if (petLimitError) {
+      return NextResponse.json({ error: petLimitError }, { status: 400 });
+    }
 
     // Convertir les dates en UTC pour éviter les problèmes de fuseau horaire
     const start = parseUTCDate(startDate);

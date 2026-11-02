@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { MIN_DISPLAY_PRICE } from "@/lib/pricing";
 
 export const size = {
   width: 1200,
@@ -125,7 +126,7 @@ export default function OpenGraphImage() {
               lineHeight: 1.32,
             }}
           >
-            Garde familiale de chiens &amp; chats — en maison avec jardin clos,
+            Garde familiale de chiens &amp; chats à Bussy-Saint-Georges,
             sans box ni chenil
           </div>
         </div>
@@ -167,7 +168,7 @@ export default function OpenGraphImage() {
               fontWeight: 700,
             }}
           >
-            Diplômé ACACED
+            Attestation de connaissances ACACED
           </div>
 
           <div
@@ -183,7 +184,7 @@ export default function OpenGraphImage() {
               fontWeight: 800,
             }}
           >
-            Dès 35 € / jour
+            {`Dès ${MIN_DISPLAY_PRICE} €`}
           </div>
         </div>
       </div>

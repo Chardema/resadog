@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Camera, Instagram } from "lucide-react";
-import { INSTAGRAM_URL } from "@/lib/social-links";
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
 
 const GALLERY_PHOTOS = [
   {
@@ -13,9 +13,9 @@ const GALLERY_PHOTOS = [
   },
   {
     src: "/images/galerie/jardin-golden.webp",
-    badge: "Jardin & extérieur",
-    caption: "Golden Retriever en promenade dans le jardin ensoleillé",
-    alt: "Golden Retriever en promenade dans le jardin ensoleillé chez La Patte Dorée",
+    badge: "Sorties au grand air",
+    caption: "Golden Retriever en promenade au soleil",
+    alt: "Golden Retriever en promenade au soleil avec La Patte Dorée",
   },
   {
     src: "/images/galerie/balade-golden-creme.webp",
@@ -31,9 +31,9 @@ const GALLERY_PHOTOS = [
   },
   {
     src: "/images/galerie/interieur-chien-noir.webp",
-    badge: "Comme à la maison",
-    caption: "Repos au calme à la maison sans box",
-    alt: "Repos au calme à la maison sans box ni cage chez La Patte Dorée",
+    badge: "Comme chez vous",
+    caption: "Repos au calme à l’intérieur, sans box",
+    alt: "Repos au calme à l’intérieur, sans box ni cage, chez La Patte Dorée",
   },
   {
     src: "/images/galerie/chat-tigre-canape.webp",
@@ -58,10 +58,10 @@ export function PhotoGallerySection() {
           <h2
             className="text-3xl font-bold text-gray-900 md:text-4xl"
           >
-            Nos pensionnaires comme à la maison
+            Nos pensionnaires comme chez eux
           </h2>
           <p className="mt-2 text-base text-gray-600 sm:text-lg">
-            Un aperçu réel du quotidien chez La Patte Dorée à Bussy-Saint-Georges : vie au salon, jardin clos et balades attentives, sans box ni cage.
+            Un aperçu réel du quotidien chez La Patte Dorée à Bussy-Saint-Georges : vie au salon, repos au calme et balades attentives, sans box ni cage.
           </p>
         </div>
       </div>
@@ -104,7 +104,7 @@ export function PhotoGallerySection() {
         >
           <Instagram className="h-4 w-4 text-orange-700" aria-hidden="true" />
           <span>Suivre sur Instagram</span>
-          <span data-no-translate className="text-orange-700">@lapatte_doree</span>
+          <span data-no-translate className="text-orange-700">{INSTAGRAM_HANDLE}</span>
         </a>
       </div>
     </section>

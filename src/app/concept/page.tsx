@@ -13,7 +13,7 @@ const CONCEPT_PHOTOS = [
     src: "/images/hero-famille.webp",
     width: 1200,
     height: 900,
-    badge: "Maison familiale · Zéro box",
+    badge: "Cadre familial · Zéro box",
     caption: "Cavalier King Charles endormi paisiblement dans un fauteuil au salon",
     alt: "Cavalier King Charles endormi paisiblement dans un fauteuil chez La Patte Dorée à Bussy-Saint-Georges",
   },
@@ -30,8 +30,8 @@ const CONCEPT_PHOTOS = [
     width: 800,
     height: 600,
     badge: "Repos sans cage",
-    caption: "Repos au calme à la maison, comme chez vous",
-    alt: "Chien se reposant au calme à l’intérieur de la maison familiale sans box",
+    caption: "Repos au calme à l’intérieur, comme chez vous",
+    alt: "Chien se reposant au calme à l’intérieur de notre appartement, sans box",
   },
 ] as const;
 
@@ -85,7 +85,7 @@ export default function ConceptPage() {
               Une vraie vie de famille, récompensée à chaque séjour
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-600 sm:text-base">
-              Nos pensionnaires vivent avec nous dans notre maison à Bussy-Saint-Georges, sans box ni cage, et chaque réservation alimente votre cagnotte de Pattes.
+              Nos pensionnaires vivent avec nous dans notre appartement à Bussy-Saint-Georges, sans box ni cage, et chaque réservation alimente votre cagnotte de Pattes.
             </p>
           </div>
 

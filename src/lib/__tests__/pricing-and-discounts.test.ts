@@ -9,6 +9,7 @@ import {
   getServiceDisplayPrice,
   getServiceDisplayPriceForDuration,
   isValidDayCareSchedule,
+  MIN_DISPLAY_PRICE,
 } from "@/lib/pricing";
 import {
   addCalendarMonthsClamped,
@@ -58,6 +59,17 @@ describe("Pricing engine (src/lib/pricing.ts)", () => {
     expect(getServiceDisplayPriceForDuration("DROP_IN", "DOG", 120)).toBe(40);
     expect(getServiceDisplayPriceForDuration("DROP_IN", "CAT", 120)).toBe(39);
     expect(getServiceDisplayPriceForDuration("DOG_WALKING", "DOG", 60)).toBe(22);
+  });
+
+  it("derives the « Dès … € » price from the lowest bookable base price (30 min walk / cat visit)", () => {
+    expect(MIN_DISPLAY_PRICE).toBe(15);
+    expect(MIN_DISPLAY_PRICE).toBe(Math.min(
+      getServiceDisplayPrice("DOG_WALKING").dogPrice,
+      getServiceDisplayPrice("DROP_IN").catPrice,
+      getServiceDisplayPrice("DROP_IN").dogPrice,
+      getServiceDisplayPrice("DAY_CARE").catPrice,
+      getServiceDisplayPrice("BOARDING").catPrice,
+    ));
   });
 
   it("validates DAY_CARE schedule and quotes ≤10h at 35€ and >10h same day at 45€", () => {

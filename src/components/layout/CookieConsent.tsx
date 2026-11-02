@@ -11,13 +11,7 @@ import {
   OPEN_COOKIE_SETTINGS_EVENT,
   type GoogleConsentChoice,
 } from "@/lib/google-consent";
-
-declare global {
-  interface Window {
-    dataLayer?: unknown[];
-    gtag?: (...args: unknown[]) => void;
-  }
-}
+import { loadGoogleTag, revokeGoogleTag } from "@/lib/google-analytics";
 
 type CookieConsentProps = {
   promptOnFirstVisit: boolean;
@@ -42,13 +36,13 @@ export function CookieConsent({ promptOnFirstVisit }: CookieConsentProps) {
 
   const saveChoice = (choice: GoogleConsentChoice) => {
     localStorage.setItem(GOOGLE_CONSENT_STORAGE_KEY, choice);
-    const granted = choice === "accepted" ? "granted" : "denied";
-    window.gtag?.("consent", "update", {
-      analytics_storage: granted,
-      ad_storage: granted,
-      ad_user_data: granted,
-      ad_personalization: granted,
-    });
+    // gtag.js n'est chargé qu'après « Tout accepter » ; un refus (y compris
+    // un retrait après acceptation) repasse le consentement à « denied ».
+    if (choice === "accepted") {
+      loadGoogleTag();
+    } else {
+      revokeGoogleTag();
+    }
     window.dispatchEvent(new CustomEvent(GOOGLE_CONSENT_EVENT, { detail: choice }));
     setIsVisible(false);
   };

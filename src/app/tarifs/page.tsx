@@ -49,8 +49,8 @@ const PRICING_PHOTOS = [
   {
     src: "/images/galerie/jardin-golden.webp",
     badge: "Pension & Garderie chien",
-    caption: "Golden Retriever en promenade dans le jardin clos ensoleillé",
-    alt: "Golden Retriever en promenade dans le jardin ensoleillé chez La Patte Dorée",
+    caption: "Golden Retriever en promenade au soleil",
+    alt: "Golden Retriever en promenade au soleil avec La Patte Dorée",
   },
   {
     src: "/images/galerie/chat-tigre-canape.webp",
@@ -60,7 +60,7 @@ const PRICING_PHOTOS = [
   },
   {
     src: "/images/galerie/balade-golden-creme.webp",
-    badge: "Promenades & Jardin clos",
+    badge: "Promenades & sorties",
     caption: "Sorties quotidiennes en pleine nature incluses dans l’accueil",
     alt: "Balade quotidienne en pleine nature avec un chien gardé par La Patte Dorée",
   },
@@ -168,13 +168,13 @@ export default function PricingPage() {
           <div className="mb-6 max-w-2xl">
             <p className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-800">
               <Camera className="h-3.5 w-3.5 text-orange-700" aria-hidden="true" />
-              <span>Cadre réel · Maison familiale sans box</span>
+              <span>Cadre réel · Accueil familial sans box</span>
             </p>
             <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">
               Chaque tarif inclut un vrai accueil familial
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-600 sm:text-base">
-              Zéro cage ni chenil : vos chiens et chats profitent du salon familial, du jardin clos et de vraies sorties quotidiennes à Bussy-Saint-Georges (77).
+              Zéro cage ni chenil : vos chiens et chats profitent du salon familial et de vraies sorties quotidiennes à Bussy-Saint-Georges (77).
             </p>
           </div>
 
