@@ -14,11 +14,7 @@ import { cookies, headers } from "next/headers";
 import Script from "next/script";
 import { isLocale } from "@/lib/i18n";
 import { isGoogleConsentRequiredRegion } from "@/lib/google-consent";
-import {
-  GOOGLE_ANALYTICS_ID,
-  GOOGLE_CONSENT_BOOTSTRAP,
-  GOOGLE_TAG_CONFIGURATION,
-} from "@/lib/google-analytics";
+import { GOOGLE_CONSENT_BOOTSTRAP } from "@/lib/google-analytics";
 import { TwoFactorGuard } from "@/components/auth/TwoFactorGuard";
 
 const geistSans = Geist({
@@ -117,16 +113,6 @@ export default async function RootLayout({
           id="google-consent-default"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: GOOGLE_CONSENT_BOOTSTRAP }}
-        />
-        <Script
-          id="google-tag-manager"
-          strategy="beforeInteractive"
-          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
-        />
-        <Script
-          id="google-tag-config"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: GOOGLE_TAG_CONFIGURATION }}
         />
       </body>
     </html>
