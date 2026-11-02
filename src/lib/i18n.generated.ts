@@ -137,9 +137,9 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "), to the address",
     "es": "), a la dirección"
   },
-  "@lapatte_doree": {
-    "en": "@lapatte_doree",
-    "es": "@lapatte_doree"
+  "@lapattedoree77": {
+    "en": "@lapattedoree77",
+    "es": "@lapattedoree77"
   },
   "&ldquo;": {
     "en": "“",

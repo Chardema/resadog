@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Camera, Instagram } from "lucide-react";
-import { INSTAGRAM_URL } from "@/lib/social-links";
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
 
 const GALLERY_PHOTOS = [
   {
@@ -104,7 +104,7 @@ export function PhotoGallerySection() {
         >
           <Instagram className="h-4 w-4 text-orange-700" aria-hidden="true" />
           <span>Suivre sur Instagram</span>
-          <span data-no-translate className="text-orange-700">@lapatte_doree</span>
+          <span data-no-translate className="text-orange-700">{INSTAGRAM_HANDLE}</span>
         </a>
       </div>
     </section>

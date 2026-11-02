@@ -132,7 +132,9 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     const gallerySource = readSource("src/components/home/PhotoGallerySection.tsx");
     expect(gallerySource).toContain("Nos pensionnaires comme chez eux");
     expect(gallerySource).toContain("grid-cols-2 md:grid-cols-3 gap-4");
-    expect(gallerySource).toContain("@lapatte_doree");
+    expect(gallerySource).toContain("{INSTAGRAM_HANDLE}");
+    expect(gallerySource).not.toContain("@lapatte_doree");
+    expect(readSource("src/lib/social-links.ts")).toContain(`INSTAGRAM_HANDLE = "@lapattedoree77"`);
 
     const localSeoSource = readSource("src/app/(local-seo)/[slug]/page.tsx");
     expect(localSeoSource).toContain("/images/hero-famille.webp");
