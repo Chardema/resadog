@@ -37,10 +37,19 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
           "Saturday",
           "Sunday",
         ],
-        opens: "07:00",
-        closes: "21:00",
+        opens: "06:30",
+        closes: "20:30",
       },
     ]);
+    expect(jsonLd.geo).toEqual({
+      "@type": "GeoCoordinates",
+      latitude: 48.849459,
+      longitude: 2.7521626,
+    });
+    expect(jsonLd.sameAs).toContain(
+      "https://www.google.com/maps/place/?q=place_id:ChIJI-wflSG3oWUR3KMOStac4oo"
+    );
+    expect(jsonLd.sameAs).toContain("https://www.allovoisins.com/p/meganemelique-1#avis");
   });
 
   it("includes og-image.jpg on Service and provider in getLocalServiceJsonLd for all 6 French local SEO pages", () => {

@@ -761,8 +761,8 @@ export function getLocalBusinessJsonLd() {
     },
     geo: {
       "@type": "GeoCoordinates",
-      latitude: 48.8414,
-      longitude: 2.7095,
+      latitude: 48.849459,
+      longitude: 2.7521626,
     },
     openingHoursSpecification: [
       {
@@ -776,8 +776,8 @@ export function getLocalBusinessJsonLd() {
           "Saturday",
           "Sunday",
         ],
-        opens: "07:00",
-        closes: "21:00",
+        opens: "06:30",
+        closes: "20:30",
       },
     ],
     areaServed: coreServiceAreas.map((area) => ({
@@ -788,6 +788,7 @@ export function getLocalBusinessJsonLd() {
       INSTAGRAM_URL,
       "https://www.allovoisins.com/p/meganemelique-1#avis",
       "https://www.rover.com/members/megane-m-le-paradis-des-animaux/",
+      "https://www.google.com/maps/place/?q=place_id:ChIJI-wflSG3oWUR3KMOStac4oo",
     ],
   };
 }
