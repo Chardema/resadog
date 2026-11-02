@@ -2737,14 +2737,6 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "From €15 / 30 min",
     "es": "Desde 15 € / 30 min"
   },
-  "Dès 35 €": {
-    "en": "From €35",
-    "es": "Desde 35 €"
-  },
-  "Dès 35 € / jour": {
-    "en": "From €35 / day",
-    "es": "Desde 35 € / día"
-  },
   "Dès 40 € / jour": {
     "en": "From €40 / day",
     "es": "Desde 40 € / día"

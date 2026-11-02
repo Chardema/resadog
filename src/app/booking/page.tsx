@@ -41,6 +41,7 @@ import {
   HOUSE_SITTING_DURATION_TIERS,
   LONG_BOARDING_DISCOUNT_RATE,
   LONG_BOARDING_MIN_PERIODS,
+  MIN_DISPLAY_PRICE,
   YOUNG_ANIMAL_SURCHARGE,
   type Species,
   type PriceLine,
@@ -2883,7 +2884,7 @@ export default function BookingPage() {
                 ? `${formatPrice(finalDisplayedTotal)} €`
                 : currentServicePreview
                   ? `${t("Dès")} ${formatPrice(currentServicePreview.amount)} €`
-                  : `${t("Dès")} 35 €`}
+                  : `${t("Dès")} ${formatPrice(MIN_DISPLAY_PRICE)} €`}
             </p>
           </div>
 

@@ -104,6 +104,15 @@ const PRICING: Record<string, Record<Species, PriceEntry>> = {
   },
 };
 
+/** Plus petit tarif de base affiché parmi les prestations réservables (hors « sur demande »), pour les mentions « Dès … € ». */
+export const MIN_DISPLAY_PRICE = Math.min(
+  ...Object.values(PRICING).flatMap((bySpecies) =>
+    Object.values(bySpecies)
+      .filter((entry) => !entry.requestOnly)
+      .map((entry) => entry.base)
+  )
+);
+
 const PRICING_ADJUSTMENTS = {
   youngAnimalUnderOneYear: YOUNG_ANIMAL_SURCHARGE,
   longBoarding: {

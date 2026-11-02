@@ -869,7 +869,6 @@ const catalogue: Record<string, Translation> = {
   "Dès": { en: "From", es: "Desde" },
   "dès": { en: "from", es: "desde" },
   "% dès": { en: "% from", es: "% desde" },
-  "Dès 35 €": { en: "From €35", es: "Desde 35 €" },
   "Zéro box, zéro cage": {
     en: "Zero kennels, zero cages",
     es: "Cero perreras, cero jaulas",
