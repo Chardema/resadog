@@ -17,11 +17,11 @@ const ignoredParents = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "CODE"]);
 type TextSnapshot = { source: string; rendered: string };
 type AttributeSnapshot = Record<string, TextSnapshot>;
 
-function preferredBrowserLocale(): Locale {
+// French is the default. Another locale is only used after an explicit choice
+// (language switcher), persisted in localStorage + the site-locale cookie.
+function storedLocale(): Locale | null {
   const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (isLocale(stored)) return stored;
-  const browserLocale = window.navigator.language.toLowerCase().split("-")[0];
-  return isLocale(browserLocale) ? browserLocale : "fr";
+  return isLocale(stored) ? stored : null;
 }
 
 export function LanguageProvider({ children, initialLocale }: { children: React.ReactNode; initialLocale: Locale }) {
@@ -37,9 +37,9 @@ export function LanguageProvider({ children, initialLocale }: { children: React.
   }, []);
 
   useLayoutEffect(() => {
-    const preferred = preferredBrowserLocale();
-    if (preferred !== locale) updateLocale(preferred);
-    // Only detect once. Subsequent language changes are user initiated.
+    const stored = storedLocale();
+    if (stored && stored !== locale) updateLocale(stored);
+    // Only restore once. Subsequent language changes are user initiated.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

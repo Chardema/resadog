@@ -253,4 +253,18 @@ describe("i18n translations & word boundary safety", () => {
       expect(content, `${relPath} should not import welcome-offer`).not.toContain("welcome-offer");
     }
   });
+
+  it("keeps French by default and never switches language from the browser or Accept-Language", () => {
+    const root = process.cwd();
+    const provider = fs.readFileSync(path.join(root, "src/components/providers/LanguageProvider.tsx"), "utf8");
+    expect(provider).not.toContain("navigator.language");
+    expect(provider).toContain('window.localStorage.getItem(STORAGE_KEY)');
+    expect(provider).toContain("document.cookie = `${COOKIE_NAME}=${nextLocale}");
+
+    const layout = fs.readFileSync(path.join(root, "src/app/layout.tsx"), "utf8");
+    expect(layout).toContain('const initialLocale = isLocale(cookieLocale) ? cookieLocale : "fr";');
+    for (const relPath of ["src/app/layout.tsx", "src/components/providers/LanguageProvider.tsx"]) {
+      expect(fs.readFileSync(path.join(root, relPath), "utf8").toLowerCase()).not.toContain("accept-language");
+    }
+  });
 });
