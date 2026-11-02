@@ -12,11 +12,22 @@ declare global {
 export const GOOGLE_ANALYTICS_ID =
   process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID?.trim() || "G-6HN68EFFPH";
 
-export const GOOGLE_ADS_ID =
-  process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim() || "";
+// Valeur send_to complète de la conversion Google Ads (ex. AW-XXXX/libellé).
+// Vide → aucune conversion Ads n'est envoyée.
+export const GOOGLE_ADS_CONVERSION_SEND_TO =
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_SEND_TO?.trim() || "";
 
-export const GOOGLE_ADS_CONVERSION_LABEL =
-  process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL?.trim() || "";
+export function getGoogleAdsIdFromSendTo(sendTo: string) {
+  const prefix = sendTo.split("/")[0]?.trim() ?? "";
+  return prefix.startsWith("AW-") ? prefix : "";
+}
+
+// Utilisé pour gtag('config', AW-...) ; à défaut, dérivé du préfixe de send_to.
+export const GOOGLE_ADS_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim() ||
+  getGoogleAdsIdFromSendTo(GOOGLE_ADS_CONVERSION_SEND_TO);
+
+export const DEFAULT_BOOKING_CONVERSION_VALUE = 45;
 
 const GOOGLE_TAG_IDS = [GOOGLE_ANALYTICS_ID, GOOGLE_ADS_ID].filter(Boolean);
 
@@ -106,6 +117,81 @@ export function revokeGoogleTag() {
   window.__lpdRevokeGoogleTag?.();
 }
 
+export function resolveBookingConversionValue(value?: number) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.round(value * 100) / 100
+    : DEFAULT_BOOKING_CONVERSION_VALUE;
+}
+
+type ConversionStorage = Pick<Storage, "getItem" | "setItem">;
+
+export type BookingConversionDeps = {
+  gtag: ((...args: unknown[]) => void) | undefined;
+  storage: ConversionStorage | null;
+  hasConsent: boolean;
+  sendTo: string;
+};
+
+// Garde en mémoire pour la page courante (double effet React, stockage
+// indisponible) en plus du marqueur persistant en localStorage.
+const sentInThisPage = new Set<string>();
+
+export function resetBookingConversionMemory() {
+  sentInThisPage.clear();
+}
+
+function sendOnce(
+  key: string,
+  storage: ConversionStorage | null,
+  send: () => void
+) {
+  if (sentInThisPage.has(key)) return false;
+  try {
+    if (storage?.getItem(key)) return false;
+  } catch {
+    // Stockage inaccessible (navigation restreinte) : garde mémoire seule.
+  }
+  send();
+  sentInThisPage.add(key);
+  try {
+    storage?.setItem(key, "1");
+  } catch {
+    // Ignore storage access errors in restricted browsing modes
+  }
+  return true;
+}
+
+export function sendBookingConversion(
+  { bookingId, value }: { bookingId: string; value?: number },
+  { gtag, storage, hasConsent, sendTo }: BookingConversionDeps
+) {
+  const result = { lead: false, ads: false };
+  if (!bookingId || !hasConsent || typeof gtag !== "function") return result;
+
+  const resolvedValue = resolveBookingConversionValue(value);
+
+  result.lead = sendOnce(`lpd_ga_lead_${bookingId}`, storage, () => {
+    gtag("event", "generate_lead", {
+      currency: "EUR",
+      value: resolvedValue,
+      transaction_id: bookingId,
+    });
+  });
+
+  if (sendTo) {
+    result.ads = sendOnce(`lpd_ads_conv_${bookingId}`, storage, () => {
+      gtag("event", "conversion", {
+        send_to: sendTo,
+        value: resolvedValue,
+        currency: "EUR",
+        transaction_id: bookingId,
+      });
+    });
+  }
+
+  return result;
+}
+
 export function trackBookingConversion({
   bookingId,
   value,
@@ -113,35 +199,22 @@ export function trackBookingConversion({
   bookingId: string;
   value?: number;
 }) {
-  if (!bookingId) return;
-  if (!hasGoogleConsent()) return;
-  if (typeof window.gtag !== "function") return;
+  if (typeof window === "undefined") return;
 
-  const storageKey = `lpd_conv_${bookingId}`;
+  let storage: ConversionStorage | null = null;
   try {
-    if (window.sessionStorage.getItem(storageKey)) {
-      return;
-    }
-    window.sessionStorage.setItem(storageKey, "1");
+    storage = window.localStorage;
   } catch {
-    // Ignore storage access errors in restricted browsing modes
+    storage = null;
   }
 
-  const resolvedValue =
-    typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 35;
-
-  window.gtag("event", "generate_lead", {
-    currency: "EUR",
-    value: resolvedValue,
-    transaction_id: bookingId,
-  });
-
-  if (GOOGLE_ADS_ID && GOOGLE_ADS_CONVERSION_LABEL) {
-    window.gtag("event", "conversion", {
-      send_to: `${GOOGLE_ADS_ID}/${GOOGLE_ADS_CONVERSION_LABEL}`,
-      value: resolvedValue,
-      currency: "EUR",
-      transaction_id: bookingId,
-    });
-  }
+  sendBookingConversion(
+    { bookingId, value },
+    {
+      gtag: window.gtag,
+      storage,
+      hasConsent: hasGoogleConsent(),
+      sendTo: GOOGLE_ADS_CONVERSION_SEND_TO,
+    }
+  );
 }

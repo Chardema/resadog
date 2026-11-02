@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/button";
 import { trackBookingConversion } from "@/lib/google-analytics";
+import { GOOGLE_CONSENT_EVENT } from "@/lib/google-consent";
 
 function BookingSuccessContent() {
   const router = useRouter();
@@ -17,12 +18,17 @@ function BookingSuccessContent() {
   const [countdown, setCountdown] = useState(10);
 
   useEffect(() => {
-    if (bookingId) {
-      trackBookingConversion({
-        bookingId,
-        value: parsedValue,
-      });
-    }
+    if (!bookingId) return;
+    const track = () => trackBookingConversion({ bookingId, value: parsedValue });
+    // Sans consentement « accepted », rien n'est envoyé ; si le visiteur
+    // accepte ensuite sur cette page, la conversion part à ce moment-là
+    // (une seule fois grâce au marqueur par réservation).
+    track();
+    const onConsentChange = (event: Event) => {
+      if ((event as CustomEvent).detail === "accepted") track();
+    };
+    window.addEventListener(GOOGLE_CONSENT_EVENT, onConsentChange);
+    return () => window.removeEventListener(GOOGLE_CONSENT_EVENT, onConsentChange);
   }, [bookingId, parsedValue]);
 
   useEffect(() => {
