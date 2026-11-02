@@ -1808,7 +1808,7 @@ export default function BookingPage() {
     }
   };
 
-  if (status === "loading" && !draftHydrated) return <div className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce">🐾</div>;
+  if (status === "loading" && !draftHydrated) return <main className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce"><span aria-hidden="true">🐾</span></main>;
 
   const originalDisplayedTotal = calculateTotalBeforeDiscounts();
   const automaticDisplayedTotal = calculateTotalPrice();
@@ -1879,7 +1879,7 @@ export default function BookingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFbf7] pb-28 md:pb-24">
+    <main className="min-h-screen bg-[#FDFbf7] pb-28 md:pb-24">
 
       <div className="container mx-auto px-4 sm:px-6 pt-28 sm:pt-32 max-w-4xl overflow-hidden">
         {/* Header */}
@@ -1920,7 +1920,7 @@ export default function BookingPage() {
                       ? "cursor-pointer border-emerald-200 bg-emerald-50/80 text-emerald-950 hover:border-emerald-300"
                       : canClickStep
                         ? "cursor-pointer border-gray-200 bg-white text-gray-700 hover:border-orange-300"
-                        : "cursor-default border-gray-200/80 bg-white/70 text-gray-400"
+                        : "cursor-default border-gray-200/80 bg-white/70 text-gray-500"
                 }`}
               >
                 <div className="flex items-center justify-between gap-1.5">
@@ -2212,11 +2212,11 @@ export default function BookingPage() {
                             </div>
                           ) : (
                             <div data-no-translate className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm">
-                              <span className="text-orange-600 font-bold">🐕 {displayPrice.dogPrice}€</span>
+                              <span className="text-orange-700 font-bold">🐕 {displayPrice.dogPrice}€</span>
                               <span className="text-blue-600 font-bold">
                                 🐈 {displayPrice.catRequestOnly ? t("sur demande") : `${displayPrice.catPrice}€`}
                               </span>
-                              <span className="text-gray-400">/ {t(displayPrice.unit)}</span>
+                              <span className="text-gray-500">/ {t(displayPrice.unit)}</span>
                               {displayPrice.durationMinutes && (
                                 <span className="text-gray-500">{displayPrice.durationMinutes} min</span>
                               )}
@@ -2555,14 +2555,14 @@ export default function BookingPage() {
                                           )}
 
                                           {!uniformVisitDuration && durationExtraTotal > 0 && (
-                                            <div className="flex justify-between gap-4 text-xs text-orange-600">
+                                            <div className="flex justify-between gap-4 text-xs text-orange-700">
                                               <span>Supplément durée prolongée</span>
                                               <span>+{formatPrice(durationExtraTotal)}€</span>
                                             </div>
                                           )}
 
                                           {otherSurchargeLines.map((line, idx) => (
-                                            <div key={idx} className="flex justify-between gap-4 text-xs text-orange-600">
+                                            <div key={idx} className="flex justify-between gap-4 text-xs text-orange-700">
                                               <span>{line.label}</span>
                                               <span>+{formatPrice(line.amount)}€</span>
                                             </div>
@@ -2831,7 +2831,7 @@ export default function BookingPage() {
                                 className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
                             />
                             <label data-no-translate htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
-                                J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-600 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-600 hover:text-orange-800">Politique de confidentialité</Link>. L&apos;annulation est gratuite au moins 48 h avant le début de la garde. Passé ce délai, 50 % du montant est retenu, sous réserve des droits légaux. {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
+                                J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-700 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-700 hover:text-orange-800">Politique de confidentialité</Link>. L&apos;annulation est gratuite au moins 48 h avant le début de la garde. Passé ce délai, 50 % du montant est retenu, sous réserve des droits légaux. {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
                             </label>
                         </div>
 
@@ -3048,6 +3048,6 @@ export default function BookingPage() {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </main>
   );
 }
