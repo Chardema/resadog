@@ -24,7 +24,7 @@ import {
   Star,
   Sun,
 } from "lucide-react";
-import { getServiceDisplayPrice, MIN_DISPLAY_PRICE } from "@/lib/pricing";
+import { getServiceDisplayPrice } from "@/lib/pricing";
 import type { PublicGooglePlaceSummary, SerializedReview } from "@/lib/public-reviews";
 
 // Définir le chemin vers "/images/hero-famille.webp" dès que la photo est disponible
@@ -150,7 +150,7 @@ export function HomePageClient({
                   </div>
                 </div>
                 <span className="shrink-0 rounded-full border border-orange-200 bg-white px-3.5 py-1.5 text-xs sm:text-sm font-extrabold text-orange-800 shadow-sm">
-                  Dès <span data-no-translate>{MIN_DISPLAY_PRICE} €</span>
+                  Dès <span data-no-translate>{dayCarePrice.dogPrice} €</span>
                 </span>
               </div>
 

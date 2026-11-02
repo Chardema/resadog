@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { translateFrenchText } from "@/lib/i18n";
 import { localSeoPages } from "@/lib/seo";
-import { MIN_DISPLAY_PRICE } from "@/lib/pricing";
+import { getServiceDisplayPrice } from "@/lib/pricing";
 
 const HERO_STRINGS = [
   "· Avis vérifiés",
@@ -21,7 +21,7 @@ const HERO_STRINGS = [
   "Cadre 100 % familial",
   "Chez nous & suivi personnalisé",
   "Dès",
-  `Dès ${MIN_DISPLAY_PRICE} €`,
+  `Dès ${getServiceDisplayPrice("DAY_CARE").dogPrice} €`,
   "Zéro box, zéro cage",
   "Votre compagnon vit avec nous dans notre appartement, à son rythme, avec sorties et moments de jeu adaptés.",
   "Photos & nouvelles quotidiennes",
