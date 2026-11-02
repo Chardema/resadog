@@ -1,5 +1,13 @@
+import { buildMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+
+export const metadata = buildMetadata({
+  title: "Politique de confidentialité",
+  description: "Politique de confidentialité de La Patte Dorée.",
+  path: "/legal/confidentialite",
+  noIndex: true,
+});
 
 export default function PrivacyPolicyPage() {
   return (

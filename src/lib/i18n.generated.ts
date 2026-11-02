@@ -9072,5 +9072,57 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "pension chien Disneyland Paris": {
     "en": "dog boarding Disneyland Paris",
     "es": "pensión perro Disneyland París"
+  },
+  "Choisissez un nouveau mot de passe pour votre compte La Patte Dorée.": {
+    "en": "Choose a new password for your La Patte Dorée account.",
+    "es": "Elija una nueva contraseña para su cuenta de La Patte Dorée."
+  },
+  "Conditions générales de vente de La Patte Dorée.": {
+    "en": "General terms and conditions of sale of La Patte Dorée.",
+    "es": "Condiciones generales de venta de La Patte Dorée."
+  },
+  "Connectez-vous à votre espace La Patte Dorée.": {
+    "en": "Sign in to your La Patte Dorée account.",
+    "es": "Inicie sesión en su espacio de La Patte Dorée."
+  },
+  "Cookies et traceurs utilisés sur le site de La Patte Dorée.": {
+    "en": "Cookies and trackers used on the La Patte Dorée website.",
+    "es": "Cookies y rastreadores utilizados en el sitio web de La Patte Dorée."
+  },
+  "Créez votre compte La Patte Dorée.": {
+    "en": "Create your La Patte Dorée account.",
+    "es": "Cree su cuenta de La Patte Dorée."
+  },
+  "Erreur de connexion à votre compte La Patte Dorée.": {
+    "en": "Sign-in error on your La Patte Dorée account.",
+    "es": "Error de conexión a su cuenta de La Patte Dorée."
+  },
+  "Mentions légales du site La Patte Dorée.": {
+    "en": "Legal notice of the La Patte Dorée website.",
+    "es": "Aviso legal del sitio web de La Patte Dorée."
+  },
+  "Mot de passe oublié": {
+    "en": "Forgot password",
+    "es": "Contraseña olvidada"
+  },
+  "Nouvelle Réservation": {
+    "en": "New booking",
+    "es": "Nueva reserva"
+  },
+  "Politique de confidentialité de La Patte Dorée.": {
+    "en": "Privacy policy of La Patte Dorée.",
+    "es": "Política de privacidad de La Patte Dorée."
+  },
+  "Réinitialisez le mot de passe de votre compte La Patte Dorée.": {
+    "en": "Reset the password of your La Patte Dorée account.",
+    "es": "Restablezca la contraseña de su cuenta de La Patte Dorée."
+  },
+  "Vérification de l'adresse e-mail de votre compte La Patte Dorée.": {
+    "en": "Email address verification for your La Patte Dorée account.",
+    "es": "Verificación de la dirección de correo electrónico de su cuenta de La Patte Dorée."
+  },
+  "Vérification en deux étapes de votre compte La Patte Dorée.": {
+    "en": "Two-step verification for your La Patte Dorée account.",
+    "es": "Verificación en dos pasos de su cuenta de La Patte Dorée."
   }
 } as const;

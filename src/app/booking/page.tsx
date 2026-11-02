@@ -1808,7 +1808,7 @@ export default function BookingPage() {
     }
   };
 
-  if (status === "loading" && !draftHydrated) return <main className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce"><span aria-hidden="true">🐾</span></main>;
+  if (status === "loading" && !draftHydrated) return <main className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce"><h1 className="sr-only">Nouvelle Réservation</h1><span aria-hidden="true">🐾</span></main>;
 
   const originalDisplayedTotal = calculateTotalBeforeDiscounts();
   const automaticDisplayedTotal = calculateTotalPrice();

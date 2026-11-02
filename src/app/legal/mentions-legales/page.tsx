@@ -1,4 +1,12 @@
+import { buildMetadata } from "@/lib/seo";
 import { LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+
+export const metadata = buildMetadata({
+  title: "Mentions légales",
+  description: "Mentions légales du site La Patte Dorée.",
+  path: "/legal/mentions-legales",
+  noIndex: true,
+});
 
 const Field = ({ label, value }: { label: string; value?: string | null }) => {
   if (!value) return null;
