@@ -9,6 +9,7 @@ const publicRoutes: Array<{
   { path: "/", priority: 1, changeFrequency: "weekly" },
   { path: "/tarifs", priority: 0.9, changeFrequency: "weekly" },
   { path: "/en/dog-boarding-disneyland-paris", priority: 0.95, changeFrequency: "weekly" },
+  { path: "/a-propos", priority: 0.6, changeFrequency: "monthly" },
   { path: "/concept", priority: 0.55, changeFrequency: "monthly" },
   { path: "/subscriptions", priority: 0.55, changeFrequency: "monthly" },
 ];

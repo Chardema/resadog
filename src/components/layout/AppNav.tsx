@@ -16,6 +16,7 @@ const publicLinks: NavLink[] = [
   { href: "/#services", label: "Services" },
   { href: "/tarifs", label: "Tarifs" },
   { href: "/#avis", label: "Avis" },
+  { href: "/a-propos", label: "À propos" },
   { href: "/#nous-trouver", label: "Contact" },
 ];
 const clientLinks: NavLink[] = [

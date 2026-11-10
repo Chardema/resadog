@@ -97,6 +97,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-gray-600">
               <li><Link href="/booking" className="hover:text-orange-600 transition-colors">Simuler &amp; Réserver</Link></li>
               <li><Link href="/tarifs" className="hover:text-orange-600 transition-colors">Tarifs &amp; Conditions</Link></li>
+              <li><Link href="/a-propos" className="hover:text-orange-600 transition-colors">À propos de Mégane</Link></li>
               <li><Link href="/concept" className="hover:text-orange-600 transition-colors">Programme Fidélité</Link></li>
               <li><Link href="/subscriptions" className="hover:text-orange-800 transition-colors font-bold text-orange-700">Premium ✨</Link></li>
               {isAuthenticated ? (
