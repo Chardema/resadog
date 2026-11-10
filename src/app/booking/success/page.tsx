@@ -7,29 +7,20 @@ import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/button";
 import { trackBookingConversion } from "@/lib/google-analytics";
-import { GOOGLE_CONSENT_EVENT } from "@/lib/google-consent";
 
 function BookingSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
-  const rawValue = searchParams.get("value") || searchParams.get("total");
-  const parsedValue = rawValue ? Number(rawValue) : undefined;
   const [countdown, setCountdown] = useState(10);
 
   useEffect(() => {
     if (!bookingId) return;
-    const track = () => trackBookingConversion({ bookingId, value: parsedValue });
-    // Sans consentement « accepted », rien n'est envoyé ; si le visiteur
-    // accepte ensuite sur cette page, la conversion part à ce moment-là
-    // (une seule fois grâce au marqueur par réservation).
-    track();
-    const onConsentChange = (event: Event) => {
-      if ((event as CustomEvent).detail === "accepted") track();
-    };
-    window.addEventListener(GOOGLE_CONSENT_EVENT, onConsentChange);
-    return () => window.removeEventListener(GOOGLE_CONSENT_EVENT, onConsentChange);
-  }, [bookingId, parsedValue]);
+    // Consentement déjà accordé : envoi après vérification serveur (valeur
+    // issue de la base, pas de l'URL). Sinon la conversion est mise en
+    // attente et partira dès « Tout accepter », même après la redirection.
+    void trackBookingConversion(bookingId);
+  }, [bookingId]);
 
   useEffect(() => {
     // Lancer les confettis !
