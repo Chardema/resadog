@@ -788,6 +788,23 @@ function buildSimulatedPets(counts: SimCounts): Pet[] {
   return virtualPets;
 }
 
+// En-tête statique, rendu côté serveur et visible dès le premier paint : il
+// contient l'élément LCP mobile (paragraphe du supplément de dernière minute).
+// Pas d'animation d'opacité ici, sinon le LCP attend l'hydratation complète.
+function BookingHeader({ t }: { t: (value: string) => string }) {
+  return (
+    <div className="text-center mb-8 sm:mb-10">
+      <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1 text-xs font-bold text-orange-800 mb-3">
+        <span>✨</span>
+        <span>Simulation &amp; disponibilités en accès libre</span>
+      </div>
+      <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">Nouvelle Réservation ✨</h1>
+      <p className="text-gray-500">Quelques étapes pour des vacances de rêve.</p>
+      <p data-no-translate className="mt-3 text-sm leading-6 text-gray-600">{t(LAST_MINUTE_DESCRIPTION)}</p>
+    </div>
+  );
+}
+
 export default function BookingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -1810,7 +1827,22 @@ export default function BookingPage() {
     }
   };
 
-  if (status === "loading" && !draftHydrated) return <main className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce"><h1 className="sr-only">Nouvelle Réservation</h1><span aria-hidden="true">🐾</span></main>;
+  // Rendu serveur / premier rendu client : l'en-tête est déjà affiché, seul le
+  // formulaire attend la restauration du brouillon. La structure main > div >
+  // BookingHeader est identique au rendu complet pour que React conserve les
+  // mêmes nœuds DOM (pas de nouveau candidat LCP après hydratation).
+  if (status === "loading" && !draftHydrated) {
+    return (
+      <main className="min-h-screen bg-[#FDFbf7] pb-28 md:pb-24">
+        <div className="container mx-auto px-4 sm:px-6 pt-28 sm:pt-32 max-w-4xl overflow-hidden">
+          <BookingHeader t={t} />
+          <div role="status" aria-label="Chargement du formulaire de réservation" className="flex justify-center py-16 text-6xl animate-bounce">
+            <span aria-hidden="true">🐾</span>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   const originalDisplayedTotal = calculateTotalBeforeDiscounts();
   const automaticDisplayedTotal = calculateTotalPrice();
@@ -1887,16 +1919,7 @@ export default function BookingPage() {
     <main className="min-h-screen bg-[#FDFbf7] pb-28 md:pb-24">
 
       <div className="container mx-auto px-4 sm:px-6 pt-28 sm:pt-32 max-w-4xl overflow-hidden">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8 sm:mb-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1 text-xs font-bold text-orange-800 mb-3">
-            <span>✨</span>
-            <span>Simulation &amp; disponibilités en accès libre</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">Nouvelle Réservation ✨</h1>
-          <p className="text-gray-500">Quelques étapes pour des vacances de rêve.</p>
-          <p data-no-translate className="mt-3 text-sm leading-6 text-gray-600">{t(LAST_MINUTE_DESCRIPTION)}</p>
-        </motion.div>
+        <BookingHeader t={t} />
 
         {/* Explicit 3-Card Stepper */}
         <nav aria-label="Étapes de réservation" className="grid grid-cols-3 gap-2 sm:gap-4 mb-8 sm:mb-10">
