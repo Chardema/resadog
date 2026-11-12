@@ -1,7 +1,9 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { GOOGLE_CONSENT_EVENT, GOOGLE_CONSENT_STORAGE_KEY } from "@/lib/google-consent";
 import { GOOGLE_MAPS_PLACE_URL } from "@/lib/google-reviews";
 import { LEGAL_INFORMATION } from "@/lib/legal";
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
@@ -31,7 +33,96 @@ const LOCAL_SEO_LINKS = [
   { href: "/garde-animaux-seine-et-marne", label: "Pet-sitting Seine-et-Marne" },
 ];
 
+const GOOGLE_MAPS_EMBED_URL = "https://www.google.com/maps?q=Bussy-Saint-Georges%2C%20France&z=13&output=embed";
+
+// Affichage de la carte demandé pour cette session uniquement : ce n'est pas
+// un consentement Analytics/Ads et cela ne charge pas gtag.js.
+const MAP_SESSION_STORAGE_KEY = "la-patte-doree-google-maps-session";
+const MAP_SESSION_EVENT = "la-patte-doree-google-maps-session-change";
+
+function subscribeToMapPermission(onChange: () => void) {
+  window.addEventListener(GOOGLE_CONSENT_EVENT, onChange);
+  window.addEventListener(MAP_SESSION_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(GOOGLE_CONSENT_EVENT, onChange);
+    window.removeEventListener(MAP_SESSION_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+// Repli mémoire si sessionStorage est inaccessible (navigation restreinte).
+let mapAllowedInThisPage = false;
+
+function getMapPermission() {
+  if (mapAllowedInThisPage) return true;
+  try {
+    return (
+      window.localStorage.getItem(GOOGLE_CONSENT_STORAGE_KEY) === "accepted" ||
+      window.sessionStorage.getItem(MAP_SESSION_STORAGE_KEY) === "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Côté serveur (et au premier rendu) : aperçu statique, aucune requête Google.
+function getServerMapPermission() {
+  return false;
+}
+
+function allowMapForSession() {
+  mapAllowedInThisPage = true;
+  try {
+    window.sessionStorage.setItem(MAP_SESSION_STORAGE_KEY, "1");
+  } catch {
+    // Stockage indisponible : la carte reste affichée pour cette page.
+  }
+  window.dispatchEvent(new Event(MAP_SESSION_EVENT));
+}
+
+function StaticMapPreview({ onShowMap }: { onShowMap: () => void }) {
+  return (
+    <div className="relative flex h-80 w-full items-center justify-center overflow-hidden sm:h-96">
+      {/* Illustration 100 % CSS : aucune tuile ni image Google n'est chargée. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-emerald-50"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(6,95,70,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(6,95,70,0.07) 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}
+      >
+        <div className="absolute left-[-10%] top-[38%] h-3 w-[120%] -rotate-6 bg-white/90" />
+        <div className="absolute left-[-10%] top-[68%] h-2 w-[120%] rotate-3 bg-white/80" />
+        <div className="absolute left-[30%] top-[-10%] h-[120%] w-2.5 rotate-12 bg-white/80" />
+        <div className="absolute right-[18%] top-[14%] h-20 w-28 rounded-[40%] bg-emerald-200/60" />
+        <div className="absolute bottom-[10%] left-[12%] h-16 w-24 rounded-[45%] bg-sky-200/60" />
+      </div>
+      <div className="relative mx-6 flex max-w-sm flex-col items-center rounded-2xl bg-white/95 px-6 py-5 text-center shadow-lg">
+        <MapPin className="h-7 w-7 text-orange-700" aria-hidden="true" />
+        <p className="mt-2 font-bold text-gray-900">Bussy-Saint-Georges · Val d’Europe</p>
+        <p className="mt-1 text-xs leading-5 text-gray-600">La carte Google Maps n’est chargée qu’à votre demande, pour cette visite uniquement.</p>
+        <button
+          type="button"
+          onClick={onShowMap}
+          className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-900"
+        >
+          Afficher la carte
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function LocationSection() {
+  const isMapAllowed = useSyncExternalStore(
+    subscribeToMapPermission,
+    getMapPermission,
+    getServerMapPermission
+  );
+
   return (
     <section id="nous-trouver" aria-labelledby="location-title" className="container mx-auto scroll-mt-28 px-6 py-16 md:py-20">
       <div className="mb-8 max-w-2xl">
@@ -43,14 +134,18 @@ export function LocationSection() {
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-white">
           <div className="flex min-h-80 items-center justify-center bg-emerald-50">
-            <iframe
-              title="Carte du secteur de Bussy-Saint-Georges"
-              src="https://www.google.com/maps?q=Bussy-Saint-Georges%2C%20France&z=13&output=embed"
-              className="h-80 w-full border-0 sm:h-96"
-              loading={"lazy"}
-              referrerPolicy="no-referrer"
-              allowFullScreen
-            />
+            {isMapAllowed ? (
+              <iframe
+                title="Carte du secteur de Bussy-Saint-Georges"
+                src={GOOGLE_MAPS_EMBED_URL}
+                className="h-80 w-full border-0 sm:h-96"
+                loading={"lazy"}
+                referrerPolicy="no-referrer"
+                allowFullScreen
+              />
+            ) : (
+              <StaticMapPreview onShowMap={allowMapForSession} />
+            )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <p className="text-sm text-gray-600">Carte du secteur d’intervention</p>
