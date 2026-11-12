@@ -9165,22 +9165,6 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Introducing Mégane",
     "es": "Presentación de Mégane"
   },
-  "Photo à valider": {
-    "en": "Photo to be approved",
-    "es": "Foto pendiente de validación"
-  },
-  "Emplacement réservé à la photo de Mégane.": {
-    "en": "Space reserved for Mégane's photo.",
-    "es": "Espacio reservado para la foto de Mégane."
-  },
-  "Texte personnel à valider": {
-    "en": "Personal text to be approved",
-    "es": "Texto personal pendiente de validación"
-  },
-  "Emplacement réservé au texte de présentation de Mégane.": {
-    "en": "Space reserved for Mégane's introduction text.",
-    "es": "Espacio reservado para el texto de presentación de Mégane."
-  },
   "En bref": {
     "en": "At a glance",
     "es": "En resumen"

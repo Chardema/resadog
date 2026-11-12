@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { filterAboutPageRoutes } from "@/lib/about-page";
 import { absoluteUrl, localSeoPages, SEO_LAST_MODIFIED } from "@/lib/seo";
 
 const publicRoutes: Array<{
@@ -18,7 +19,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date(SEO_LAST_MODIFIED);
 
   return [
-    ...publicRoutes.map((route) => ({
+    // /a-propos n'est listée qu'une fois sa photo et son texte renseignés.
+    ...filterAboutPageRoutes(publicRoutes).map((route) => ({
       url: absoluteUrl(route.path),
       lastModified,
       changeFrequency: route.changeFrequency,

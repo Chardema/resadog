@@ -7,9 +7,13 @@ import { useSession } from "next-auth/react";
 import { Instagram, Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
 import { OPEN_BUG_REPORT_EVENT } from "@/components/layout/BetaBanner";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { ABOUT_PAGE_PATH, filterAboutPageLinks } from "@/lib/about-page";
 import { OPEN_COOKIE_SETTINGS_EVENT } from "@/lib/google-consent";
 import { LEGAL_INFORMATION } from "@/lib/legal";
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
+
+// Vide tant que la page /a-propos n'est pas publiée (src/lib/about-page.ts).
+const aboutPageFooterLinks = filterAboutPageLinks([{ href: ABOUT_PAGE_PATH, label: "À propos de Mégane" }]);
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -97,7 +101,9 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-gray-600">
               <li><Link href="/booking" className="hover:text-orange-600 transition-colors">Simuler &amp; Réserver</Link></li>
               <li><Link href="/tarifs" className="hover:text-orange-600 transition-colors">Tarifs &amp; Conditions</Link></li>
-              <li><Link href="/a-propos" className="hover:text-orange-600 transition-colors">À propos de Mégane</Link></li>
+              {aboutPageFooterLinks.map(({ href, label }) => (
+                <li key={href}><Link href={href} className="hover:text-orange-600 transition-colors">{label}</Link></li>
+              ))}
               <li><Link href="/concept" className="hover:text-orange-600 transition-colors">Programme Fidélité</Link></li>
               <li><Link href="/subscriptions" className="hover:text-orange-800 transition-colors font-bold text-orange-700">Premium ✨</Link></li>
               {isAuthenticated ? (

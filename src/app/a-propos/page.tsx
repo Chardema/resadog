@@ -1,27 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, Camera, GraduationCap, Home, MapPin, MoonStar, PenLine, type LucideIcon } from "lucide-react";
+import { BadgeCheck, GraduationCap, Home, MapPin, MoonStar, type LucideIcon } from "lucide-react";
+import { ABOUT_PAGE_PATH, getAboutPageRobotsOptions, getPublishedAboutPageContent } from "@/lib/about-page";
 import { buildMetadata } from "@/lib/seo";
 
+// La photo et le texte personnel se renseignent dans src/lib/about-page.ts.
+// Tant qu'ils ne le sont pas tous les deux, la page reste en noindex (canonical
+// conservé) et n'affiche que le contenu déjà validé ci-dessous.
 export const metadata = buildMetadata({
   title: "À propos de Mégane",
   description:
     "Découvrez Mégane, pet-sitter de La Patte Dorée à Bussy-Saint-Georges : diplômée ACACED, activité déclarée, appartement de 45 m² et 1 animal par nuit.",
-  path: "/a-propos",
+  path: ABOUT_PAGE_PATH,
+  ...getAboutPageRobotsOptions(),
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CONTENU À VALIDER PAR CHRISTOPHER
-// Tant que ces deux constantes valent `null`, la page affiche des emplacements
-// visibles « Photo à valider » et « Texte personnel à valider ».
-// - Photo : déposer le fichier dans /public/images/ puis renseigner src, alt,
-//   width et height (ex. { src: "/images/megane.webp", alt: "…", width: 800, height: 1000 }).
-// - Texte : un paragraphe par entrée du tableau, en français. Penser ensuite à
-//   ajouter les traductions EN/ES (npm run check:translations).
-// ─────────────────────────────────────────────────────────────────────────────
-// `as` évite que TypeScript réduise le type à `null` tant que rien n'est renseigné.
-const MEGANE_PHOTO = null as { src: string; alt: string; width: number; height: number } | null;
-const MEGANE_PERSONAL_TEXT = null as string[] | null;
 
 const FACTS: Array<{ icon: LucideIcon; label: string; title: string }> = [
   { icon: GraduationCap, label: "Formation", title: "Diplômée ACACED" },
@@ -32,6 +24,8 @@ const FACTS: Array<{ icon: LucideIcon; label: string; title: string }> = [
 ];
 
 export default function AboutPage() {
+  const content = getPublishedAboutPageContent();
+
   return (
     <div className="min-h-screen bg-[#FDFbf7] selection:bg-orange-200">
       <main className="pt-32 pb-24 container mx-auto px-6 max-w-5xl">
@@ -50,54 +44,28 @@ export default function AboutPage() {
           </p>
         </div>
 
-        <section className="grid gap-6 md:grid-cols-[2fr_3fr] md:items-stretch mb-16">
-          <h2 className="sr-only">Présentation de Mégane</h2>
+        {content && (
+          <section className="grid gap-6 md:grid-cols-[2fr_3fr] md:items-stretch mb-16">
+            <h2 className="sr-only">Présentation de Mégane</h2>
 
-          {MEGANE_PHOTO ? (
             <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[2rem] border border-orange-100 bg-orange-50/50 shadow-sm">
               <Image
-                src={MEGANE_PHOTO.src}
-                alt={MEGANE_PHOTO.alt}
-                width={MEGANE_PHOTO.width}
-                height={MEGANE_PHOTO.height}
+                src={content.photo.src}
+                alt={content.photo.alt}
+                width={content.photo.width}
+                height={content.photo.height}
                 sizes="(max-width: 768px) 100vw, 40vw"
                 className="h-full w-full object-cover"
               />
             </div>
-          ) : (
-            <div
-              id="photo-megane-a-valider"
-              data-a-valider
-              className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 rounded-[2rem] border-2 border-dashed border-orange-300 bg-orange-50/60 p-6 text-center"
-            >
-              <Camera className="h-10 w-10 text-orange-500" aria-hidden="true" />
-              <p className="rounded-full bg-orange-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
-                Photo à valider
-              </p>
-              <p className="text-sm text-orange-900">Emplacement réservé à la photo de Mégane.</p>
-            </div>
-          )}
 
-          {MEGANE_PERSONAL_TEXT ? (
             <div className="rounded-[2rem] border border-gray-100 bg-white p-8 shadow-xl shadow-orange-100/50 space-y-4 text-gray-700 leading-relaxed">
-              {MEGANE_PERSONAL_TEXT.map((paragraph) => (
+              {content.paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
             </div>
-          ) : (
-            <div
-              id="texte-personnel-megane-a-valider"
-              data-a-valider
-              className="flex flex-col items-center justify-center gap-3 rounded-[2rem] border-2 border-dashed border-orange-300 bg-white p-8 text-center"
-            >
-              <PenLine className="h-10 w-10 text-orange-500" aria-hidden="true" />
-              <p className="rounded-full bg-orange-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
-                Texte personnel à valider
-              </p>
-              <p className="text-sm text-gray-600">Emplacement réservé au texte de présentation de Mégane.</p>
-            </div>
-          )}
-        </section>
+          </section>
+        )}
 
         <section className="mb-16">
           <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl text-center mb-8">
@@ -121,7 +89,7 @@ export default function AboutPage() {
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/booking"
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white shadow-lg transition-colors hover:bg-orange-600"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white shadow-lg transition-colors hover:bg-orange-800"
           >
             Simuler &amp; Réserver
           </Link>
