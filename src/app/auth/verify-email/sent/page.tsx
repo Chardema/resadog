@@ -55,7 +55,7 @@ function VerificationSentContent() {
           type="button"
           disabled={loading || !email}
           onClick={resend}
-          className="mt-7 h-12 w-full rounded-xl bg-gray-950 font-bold text-white hover:bg-orange-600 disabled:opacity-50"
+          className="mt-7 h-12 w-full rounded-xl bg-gray-950 font-bold text-white hover:bg-orange-800 disabled:opacity-50"
         >
           {loading ? "Envoi..." : "Renvoyer l'email"}
         </button>

@@ -18,7 +18,7 @@ function AuthErrorContent() {
             ? "Cette adresse est déjà associée à une autre méthode de connexion. Connectez-vous d'abord avec cette méthode."
             : "Le fournisseur d'identité n'a pas pu confirmer la connexion. Aucun accès n'a été accordé."}
         </p>
-        <Link href="/auth/signin" className="mt-7 inline-flex h-12 items-center rounded-xl bg-gray-950 px-6 font-bold text-white hover:bg-orange-600">
+        <Link href="/auth/signin" className="mt-7 inline-flex h-12 items-center rounded-xl bg-gray-950 px-6 font-bold text-white hover:bg-orange-800">
           Revenir à la connexion
         </Link>
       </section>

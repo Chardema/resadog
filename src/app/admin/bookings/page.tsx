@@ -887,7 +887,7 @@ export default function AdminBookingsPage() {
                             type="button"
                             onClick={() => openActionDialog(booking, "COMPLETED")}
                             disabled={isWorking}
-                            className="bg-gray-900 text-white hover:bg-orange-600"
+                            className="bg-gray-900 text-white hover:bg-orange-800"
                           >
                             <CheckCircle2 className="h-4 w-4" />
                             Terminer
@@ -912,7 +912,7 @@ export default function AdminBookingsPage() {
                             type="button"
                             onClick={() => openActionDialog(booking, "COMPLETED")}
                             disabled={isWorking}
-                            className="bg-gray-900 text-white hover:bg-orange-600"
+                            className="bg-gray-900 text-white hover:bg-orange-800"
                           >
                             <CheckCircle2 className="h-4 w-4" />
                             Terminer
@@ -1051,7 +1051,7 @@ export default function AdminBookingsPage() {
                   actionDialog.action === "CANCELLED"
                     ? "bg-red-600 text-white hover:bg-red-700"
                     : actionDialog.action === "COMPLETED"
-                      ? "bg-orange-600 text-white hover:bg-orange-700"
+                      ? "bg-orange-800 text-white hover:bg-orange-900"
                       : "bg-emerald-600 text-white hover:bg-emerald-700"
                 }
               >

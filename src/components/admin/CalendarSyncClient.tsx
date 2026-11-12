@@ -79,7 +79,7 @@ export function CalendarSyncClient({ initialToken, configuredBaseUrl }: Calendar
 
         <a
           href={webcalUrl}
-          className="block w-full rounded-lg bg-gray-900 py-4 text-center text-lg font-bold text-white shadow-lg transition-colors hover:bg-orange-600"
+          className="block w-full rounded-lg bg-gray-900 py-4 text-center text-lg font-bold text-white shadow-lg transition-colors hover:bg-orange-800"
         >
           Ajouter à Apple Calendar
         </a>
@@ -98,7 +98,7 @@ export function CalendarSyncClient({ initialToken, configuredBaseUrl }: Calendar
               type="button"
               onClick={handleCopy}
               className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
-                copied ? "bg-green-500 text-white" : "bg-gray-900 text-white hover:bg-orange-600"
+                copied ? "bg-green-500 text-white" : "bg-gray-900 text-white hover:bg-orange-800"
               }`}
             >
               {copied ? "Copié !" : "Copier"}

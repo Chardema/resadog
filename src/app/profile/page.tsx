@@ -191,7 +191,7 @@ export default function ProfilePage() {
                   >
                     <X className="h-4 w-4" /> Annuler
                   </Button>
-                  <Button type="submit" disabled={isSaving} className="h-11 bg-gray-950 text-white hover:bg-orange-600">
+                  <Button type="submit" disabled={isSaving} className="h-11 bg-gray-950 text-white hover:bg-orange-800">
                     <Check className="h-4 w-4" />
                     {isSaving ? "Enregistrement" : "Enregistrer"}
                   </Button>

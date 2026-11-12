@@ -107,7 +107,7 @@ export function SecuritySettings() {
         </div>
 
         {!status.enabled && !setup && recoveryCodes.length === 0 && (
-          <button onClick={beginSetup} disabled={loading} className="mt-6 h-12 rounded-xl bg-gray-950 px-5 font-bold text-white hover:bg-orange-600 disabled:opacity-50">
+          <button onClick={beginSetup} disabled={loading} className="mt-6 h-12 rounded-xl bg-gray-950 px-5 font-bold text-white hover:bg-orange-800 disabled:opacity-50">
             Activer la double authentification
           </button>
         )}
@@ -134,7 +134,7 @@ export function SecuritySettings() {
             </ol>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <input value={code} onChange={(event) => setCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" className="h-12 flex-1 rounded-xl border border-gray-200 px-4 text-center font-mono tracking-[0.2em]" />
-              <button onClick={confirmSetup} disabled={loading} className="h-12 rounded-xl bg-orange-600 px-5 font-bold text-white disabled:opacity-50">Confirmer</button>
+              <button onClick={confirmSetup} disabled={loading} className="h-12 rounded-xl bg-orange-800 px-5 font-bold text-white disabled:opacity-50">Confirmer</button>
             </div>
           </div>
         )}
