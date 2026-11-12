@@ -135,7 +135,7 @@ export default function PetsPage() {
 
           <Link
             href="/pets/new"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-orange-600"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-orange-800"
           >
             <Plus className="h-4 w-4" />
             Ajouter un animal
@@ -164,7 +164,7 @@ export default function PetsPage() {
             </p>
             <Link
               href="/pets/new"
-              className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-5 py-2 text-sm font-bold text-white hover:bg-orange-600"
+              className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-5 py-2 text-sm font-bold text-white hover:bg-orange-800"
             >
               <Plus className="h-4 w-4" />
               Créer un profil

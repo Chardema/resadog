@@ -437,7 +437,7 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig; o
                 {batchSlotCount} {t(batchSlotCount > 1 ? "passages prêts à être ajoutés" : "passage prêt à être ajouté")} · {batchDayCount} {t(batchDayCount > 1 ? "jours" : "jour")}
               </p>
             )}
-            <Button type="button" className="h-12 w-full rounded-xl bg-orange-500 font-bold hover:bg-orange-600" onClick={addRangeSlots} disabled={!batchStartDate || batchDayCount === 0}>
+            <Button type="button" className="h-12 w-full rounded-xl bg-orange-800 font-bold hover:bg-orange-900" onClick={addRangeSlots} disabled={!batchStartDate || batchDayCount === 0}>
               <Plus className="mr-2 size-4" />{t(config.visitSlots.length > 0 ? "Ajouter au planning" : "Créer le planning")}
             </Button>
           </div>
@@ -786,6 +786,23 @@ function buildSimulatedPets(counts: SimCounts): Pet[] {
     });
   }
   return virtualPets;
+}
+
+// En-tête statique, rendu côté serveur et visible dès le premier paint : il
+// contient l'élément LCP mobile (paragraphe du supplément de dernière minute).
+// Pas d'animation d'opacité ici, sinon le LCP attend l'hydratation complète.
+function BookingHeader({ t }: { t: (value: string) => string }) {
+  return (
+    <div className="text-center mb-8 sm:mb-10">
+      <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1 text-xs font-bold text-orange-800 mb-3">
+        <span>✨</span>
+        <span>Simulation &amp; disponibilités en accès libre</span>
+      </div>
+      <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">Nouvelle Réservation ✨</h1>
+      <p className="text-gray-500">Quelques étapes pour des vacances de rêve.</p>
+      <p data-no-translate className="mt-3 text-sm leading-6 text-gray-600">{t(LAST_MINUTE_DESCRIPTION)}</p>
+    </div>
+  );
 }
 
 export default function BookingPage() {
@@ -1810,7 +1827,22 @@ export default function BookingPage() {
     }
   };
 
-  if (status === "loading" && !draftHydrated) return <main className="min-h-screen bg-[#FDFbf7] flex items-center justify-center text-6xl animate-bounce"><h1 className="sr-only">Nouvelle Réservation</h1><span aria-hidden="true">🐾</span></main>;
+  // Rendu serveur / premier rendu client : l'en-tête est déjà affiché, seul le
+  // formulaire attend la restauration du brouillon. La structure main > div >
+  // BookingHeader est identique au rendu complet pour que React conserve les
+  // mêmes nœuds DOM (pas de nouveau candidat LCP après hydratation).
+  if (status === "loading" && !draftHydrated) {
+    return (
+      <main className="min-h-screen bg-[#FDFbf7] pb-28 md:pb-24">
+        <div className="container mx-auto px-4 sm:px-6 pt-28 sm:pt-32 max-w-4xl overflow-hidden">
+          <BookingHeader t={t} />
+          <div role="status" aria-label="Chargement du formulaire de réservation" className="flex justify-center py-16 text-6xl animate-bounce">
+            <span aria-hidden="true">🐾</span>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   const originalDisplayedTotal = calculateTotalBeforeDiscounts();
   const automaticDisplayedTotal = calculateTotalPrice();
@@ -1887,16 +1919,7 @@ export default function BookingPage() {
     <main className="min-h-screen bg-[#FDFbf7] pb-28 md:pb-24">
 
       <div className="container mx-auto px-4 sm:px-6 pt-28 sm:pt-32 max-w-4xl overflow-hidden">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8 sm:mb-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1 text-xs font-bold text-orange-800 mb-3">
-            <span>✨</span>
-            <span>Simulation &amp; disponibilités en accès libre</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">Nouvelle Réservation ✨</h1>
-          <p className="text-gray-500">Quelques étapes pour des vacances de rêve.</p>
-          <p data-no-translate className="mt-3 text-sm leading-6 text-gray-600">{t(LAST_MINUTE_DESCRIPTION)}</p>
-        </motion.div>
+        <BookingHeader t={t} />
 
         {/* Explicit 3-Card Stepper */}
         <nav aria-label="Étapes de réservation" className="grid grid-cols-3 gap-2 sm:gap-4 mb-8 sm:mb-10">
@@ -2114,7 +2137,7 @@ export default function BookingPage() {
                                   aria-label={`Ajouter ${item.label}`}
                                   disabled={totalSimPets >= MAX_SIM_PETS}
                                   onClick={() => updateSimCount(item.key, 1)}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-900 bg-gray-900 text-base font-extrabold text-white hover:bg-orange-600 hover:border-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-900 bg-gray-900 text-base font-extrabold text-white hover:bg-orange-800 hover:border-orange-800 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                   +
                                 </button>
@@ -2278,7 +2301,7 @@ export default function BookingPage() {
 
                 <div className="flex gap-4">
                     <Button type="button" variant="ghost" onClick={() => router.push(status === "authenticated" ? "/dashboard" : "/")} className="flex-1 h-14 rounded-xl text-gray-500">Annuler</Button>
-                    <Button type="button" onClick={goNext} disabled={!step1CanContinue} className="flex-[2] h-14 rounded-xl text-lg bg-gray-900 hover:bg-orange-600">Continuer vers les dates</Button>
+                    <Button type="button" onClick={goNext} disabled={!step1CanContinue} className="flex-[2] h-14 rounded-xl text-lg bg-gray-900 hover:bg-orange-800">Continuer vers les dates</Button>
                 </div>
               </motion.div>
             )}
@@ -2426,7 +2449,7 @@ export default function BookingPage() {
 
                  <div className="flex gap-4">
                   <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-14 rounded-xl">Retour</Button>
-                  <Button type="button" onClick={goNext} disabled={!step2CanContinue} className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-600">Voir le récapitulatif →</Button>
+                  <Button type="button" onClick={goNext} disabled={!step2CanContinue} className="flex-1 h-14 rounded-xl bg-gray-900 hover:bg-orange-800">Voir le récapitulatif →</Button>
                 </div>
               </motion.div>
             )}
@@ -2668,7 +2691,7 @@ export default function BookingPage() {
                                     </div>
 
                                     {!isPremium && (
-                                      <Link href="/subscriptions" className="shrink-0 rounded-xl bg-gray-950 px-4 py-3 text-center text-sm font-bold text-white shadow-sm hover:bg-orange-600">
+                                      <Link href="/subscriptions" className="shrink-0 rounded-xl bg-gray-950 px-4 py-3 text-center text-sm font-bold text-white shadow-sm hover:bg-orange-800">
                                         Passer Premium
                                       </Link>
                                     )}
@@ -2743,7 +2766,7 @@ export default function BookingPage() {
                           <div className="mt-5 flex flex-col sm:flex-row gap-3">
                             <Link
                               href="/auth/signup?callbackUrl=/booking"
-                              className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-6 py-4 text-center text-base font-bold text-white shadow-md hover:bg-orange-600 transition-colors"
+                              className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-6 py-4 text-center text-base font-bold text-white shadow-md hover:bg-orange-800 transition-colors"
                             >
                               Créer mon compte &amp; continuer →
                             </Link>
@@ -2785,7 +2808,7 @@ export default function BookingPage() {
                                       setFormData((prev) => ({ ...prev, petIds: [eligiblePets[0].id] }));
                                     }
                                   }}
-                                  className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-6 py-4 text-center text-base font-bold text-white shadow-md hover:bg-orange-600 transition-colors"
+                                  className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-6 py-4 text-center text-base font-bold text-white shadow-md hover:bg-orange-800 transition-colors"
                                 >
                                   Utiliser mon compagnon enregistré →
                                 </button>
@@ -2809,14 +2832,14 @@ export default function BookingPage() {
                                 {pets.length > 0 ? (
                                   <Link
                                     href={`/pets/${pets[0].id}/edit`}
-                                    className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-6 py-4 text-center text-base font-bold text-white shadow-md hover:bg-orange-600 transition-colors"
+                                    className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-6 py-4 text-center text-base font-bold text-white shadow-md hover:bg-orange-800 transition-colors"
                                   >
                                     Compléter la fiche de mon compagnon →
                                   </Link>
                                 ) : null}
                                 <Link
                                   href="/pets/new?returnTo=/booking"
-                                  className={`${pets.length === 0 ? "flex-1 bg-gray-950 text-white hover:bg-orange-600 shadow-md" : "border border-gray-300 bg-white text-gray-900 hover:bg-gray-50"} inline-flex items-center justify-center rounded-xl px-6 py-4 text-center text-base font-bold transition-colors`}
+                                  className={`${pets.length === 0 ? "flex-1 bg-gray-950 text-white hover:bg-orange-800 shadow-md" : "border border-gray-300 bg-white text-gray-900 hover:bg-gray-50"} inline-flex items-center justify-center rounded-xl px-6 py-4 text-center text-base font-bold transition-colors`}
                                 >
                                   Ajouter mon compagnon →
                                 </Link>
@@ -2905,7 +2928,7 @@ export default function BookingPage() {
                 type="button"
                 onClick={goNext}
                 disabled={!step1CanContinue}
-                className="h-11 rounded-xl bg-gray-900 px-4 text-sm font-bold text-white hover:bg-orange-600"
+                className="h-11 rounded-xl bg-gray-900 px-4 text-sm font-bold text-white hover:bg-orange-800"
               >
                 Choisir les dates →
               </Button>
@@ -2915,7 +2938,7 @@ export default function BookingPage() {
                 type="button"
                 onClick={goNext}
                 disabled={!step2CanContinue}
-                className="h-11 rounded-xl bg-gray-900 px-4 text-sm font-bold text-white hover:bg-orange-600"
+                className="h-11 rounded-xl bg-gray-900 px-4 text-sm font-bold text-white hover:bg-orange-800"
               >
                 Voir le récapitulatif →
               </Button>
@@ -2933,7 +2956,7 @@ export default function BookingPage() {
               ) : status !== "authenticated" ? (
                 <Link
                   href="/auth/signup?callbackUrl=/booking"
-                  className="inline-flex h-11 items-center justify-center rounded-xl bg-gray-950 px-4 text-sm font-bold text-white hover:bg-orange-600"
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-gray-950 px-4 text-sm font-bold text-white hover:bg-orange-800"
                 >
                   Continuer &amp; réserver →
                 </Link>
@@ -2946,14 +2969,14 @@ export default function BookingPage() {
                       setFormData((prev) => ({ ...prev, petIds: [eligiblePets[0].id] }));
                     }
                   }}
-                  className="h-11 rounded-xl bg-gray-950 px-4 text-sm font-bold text-white hover:bg-orange-600"
+                  className="h-11 rounded-xl bg-gray-950 px-4 text-sm font-bold text-white hover:bg-orange-800"
                 >
                   Continuer &amp; réserver →
                 </Button>
               ) : (
                 <Link
                   href={pets.length > 0 ? `/pets/${pets[0].id}/edit` : "/pets/new?returnTo=/booking"}
-                  className="inline-flex h-11 items-center justify-center rounded-xl bg-gray-950 px-4 text-sm font-bold text-white hover:bg-orange-600"
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-gray-950 px-4 text-sm font-bold text-white hover:bg-orange-800"
                 >
                   Continuer &amp; réserver →
                 </Link>
@@ -2997,7 +3020,7 @@ export default function BookingPage() {
                   <Button
                     type="button"
                     onClick={() => setPriceIssueOpen(false)}
-                    className="mt-5 bg-gray-900 text-white hover:bg-orange-600"
+                    className="mt-5 bg-gray-900 text-white hover:bg-orange-800"
                   >
                     Fermer
                   </Button>
@@ -3048,7 +3071,7 @@ export default function BookingPage() {
                       type="button"
                       onClick={submitPriceIssue}
                       disabled={priceIssueSending}
-                      className="flex-1 bg-orange-600 text-white hover:bg-orange-700"
+                      className="flex-1 bg-orange-800 text-white hover:bg-orange-900"
                     >
                       {priceIssueSending ? "Envoi..." : "Envoyer"}
                     </Button>

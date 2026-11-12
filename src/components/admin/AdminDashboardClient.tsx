@@ -179,7 +179,7 @@ export function AdminDashboardClient({ stats, upcomingBookings }: AdminDashboard
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link
             href="/admin/bookings"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 text-sm font-semibold text-white transition hover:bg-orange-600"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 text-sm font-semibold text-white transition hover:bg-orange-800"
           >
             Réservations
             <ArrowRight className="h-4 w-4" />

@@ -9,15 +9,18 @@ import { BadgeEuro, CalendarPlus, History, Home, Menu, PawPrint, Shield, UserRou
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { adminMenuItems } from "@/components/admin/navigation";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { ABOUT_PAGE_PATH, filterAboutPageLinks } from "@/lib/about-page";
 import { cn } from "@/lib/utils";
 
 type NavLink = { href: string; label: string; icon?: LucideIcon };
-const publicLinks: NavLink[] = [
+// Le lien « À propos » n'apparaît qu'une fois la page publiée (src/lib/about-page.ts).
+const publicLinks: NavLink[] = filterAboutPageLinks([
   { href: "/#services", label: "Services" },
   { href: "/tarifs", label: "Tarifs" },
   { href: "/#avis", label: "Avis" },
+  { href: ABOUT_PAGE_PATH, label: "À propos" },
   { href: "/#nous-trouver", label: "Contact" },
-];
+]);
 const clientLinks: NavLink[] = [
   { href: "/dashboard", label: "Accueil", icon: Home },
   { href: "/booking", label: "Réserver", icon: CalendarPlus },
@@ -145,7 +148,7 @@ export function AppNav() {
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {status === "loading" ? <div className="h-11 w-24 animate-pulse rounded-full bg-gray-100" aria-hidden="true" /> : <>
               {!authenticated && <Link href="/auth/signin" className="hidden min-h-11 items-center text-sm font-semibold text-gray-600 hover:text-orange-700 sm:inline-flex">Connexion</Link>}
-              <Link href={action.href} className="inline-flex min-h-11 items-center justify-center rounded-md bg-gray-900 px-3 py-2 text-sm font-bold text-white shadow-lg transition-colors hover:bg-orange-600 hover:shadow-orange-500/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 sm:rounded-full sm:px-5">{action.label}</Link>
+              <Link href={action.href} className="inline-flex min-h-11 items-center justify-center rounded-md bg-gray-900 px-3 py-2 text-sm font-bold text-white shadow-lg transition-colors hover:bg-orange-800 hover:shadow-orange-500/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 sm:rounded-full sm:px-5">{action.label}</Link>
             </>}
             <NavigationMenu key={pathname} pathname={pathname} authenticated={authenticated} canAccessAdmin={canAccessAdmin} isAdmin={isAdmin} />
           </div>

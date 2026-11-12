@@ -226,7 +226,7 @@ export default function ConceptPage() {
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-6">Prêt à passer Premium ?</h2>
           <Link href="/subscriptions">
-            <Button className="h-16 px-10 rounded-full bg-gray-900 text-white font-bold text-xl hover:bg-orange-600 hover:scale-105 transition-all shadow-xl">
+            <Button className="h-16 px-10 rounded-full bg-gray-900 text-white font-bold text-xl hover:bg-orange-800 hover:scale-105 transition-all shadow-xl">
               Voir Premium
             </Button>
           </Link>

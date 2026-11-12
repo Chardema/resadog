@@ -86,7 +86,7 @@ function SignInContent() {
     <main className="min-h-screen bg-[#FDFbf7] px-5 py-12 sm:grid sm:place-items-center">
       <section className="mx-auto w-full max-w-[440px] rounded-[2rem] border border-orange-100 bg-white p-7 shadow-2xl shadow-orange-950/10 sm:p-10">
         <div className="mb-7 text-center">
-          <Link href="/" className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-orange-600 text-2xl text-white">
+          <Link href="/" className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-orange-800 text-2xl text-white">
             🐾
           </Link>
           <h1 className="text-3xl font-extrabold text-gray-950">
@@ -174,7 +174,7 @@ function SignInContent() {
             </div>
           )}
 
-          <Button type="submit" disabled={isLoading} className="h-13 w-full rounded-xl bg-gray-950 text-base font-bold hover:bg-orange-600">
+          <Button type="submit" disabled={isLoading} className="h-13 w-full rounded-xl bg-gray-950 text-base font-bold hover:bg-orange-800">
             <ShieldCheck className="h-5 w-5" />
             {isLoading ? "Vérification..." : needsTwoFactor ? "Valider le code" : "Se connecter"}
           </Button>
