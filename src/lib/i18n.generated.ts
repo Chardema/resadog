@@ -9132,5 +9132,25 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Vérification en deux étapes de votre compte La Patte Dorée.": {
     "en": "Two-step verification for your La Patte Dorée account.",
     "es": "Verificación en dos pasos de su cuenta de La Patte Dorée."
+  },
+  "Tarif calculé à la durée réelle : le compteur démarre à l’heure de dépôt (aucune double facturation au passage de minuit).": {
+    "en": "Rate calculated on actual duration: the clock starts at drop-off time (no double billing at midnight).",
+    "es": "Tarifa calculada según la duración real: el contador empieza a la hora de entrega (sin doble facturación a medianoche)."
+  },
+  "Supplément chiot (moins d’un an) : +": {
+    "en": "Puppy supplement (under one year old): +",
+    "es": "Suplemento cachorro (menos de un año): +"
+  },
+  "€ en garderie et hébergement.": {
+    "en": "€ for day care and boarding.",
+    "es": "€ en guardería y alojamiento."
+  },
+  "Afficher la carte": {
+    "en": "Show the map",
+    "es": "Mostrar el mapa"
+  },
+  "La carte Google Maps n’est chargée qu’à votre demande, pour cette visite uniquement.": {
+    "en": "The Google Maps map only loads at your request, for this visit only.",
+    "es": "El mapa de Google Maps solo se carga si lo solicita, únicamente durante esta visita."
   }
 } as const;
