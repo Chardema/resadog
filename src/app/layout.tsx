@@ -37,9 +37,8 @@ export const metadata: Metadata = {
   description:
     "La Patte Dorée garde vos chiens et chats près de Disneyland Paris, Val d'Europe et en Seine-et-Marne 77 : hébergement familial, visites, promenades et garderie.",
   keywords: coreKeywords,
-  alternates: {
-    canonical: "/",
-  },
+  // Pas de canonical ici : chaque page le déclare (buildMetadata, page.tsx),
+  // sinon la 404 et les pages sans métadonnées hériteraient de « / ».
   openGraph: {
     title: "La Patte Dorée | Pet-sitter près de Disneyland Paris",
     description:
