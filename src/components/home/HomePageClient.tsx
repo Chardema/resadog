@@ -24,7 +24,7 @@ import {
   Star,
   Sun,
 } from "lucide-react";
-import { getServiceDisplayPrice } from "@/lib/pricing";
+import { getServiceDisplayPrice, PUPPY_SURCHARGE_NOTICE } from "@/lib/pricing";
 import type { PublicGooglePlaceSummary, SerializedReview } from "@/lib/public-reviews";
 
 // Définir le chemin vers "/images/hero-famille.webp" dès que la photo est disponible
@@ -469,7 +469,8 @@ export function HomePageClient({
                 <Check className="h-4 w-4" aria-hidden="true" />
               </div>
               <p className="text-sm leading-6 text-gray-700">
-                {"Tarif calculé à la durée réelle : le compteur démarre à l’heure de dépôt (aucune double facturation au passage de minuit). Supplément chiot/chaton (< 1 an) : +5 €."}
+                <span>{"Tarif calculé à la durée réelle : le compteur démarre à l’heure de dépôt (aucune double facturation au passage de minuit)."}</span>{" "}
+                <span>{PUPPY_SURCHARGE_NOTICE}</span>
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">

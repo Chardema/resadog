@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { translateFrenchText } from "@/lib/i18n";
 import { localSeoPages } from "@/lib/seo";
-import { getServiceDisplayPrice } from "@/lib/pricing";
+import { getServiceDisplayPrice, PUPPY_SURCHARGE_NOTICE } from "@/lib/pricing";
 
 const HERO_STRINGS = [
   "· Avis vérifiés",
@@ -180,7 +180,8 @@ describe("i18n translations & word boundary safety", () => {
       "Promenades chien",
       "Balade attentive au rythme de votre chien autour de votre domicile, avec compte-rendu et photo au retour.",
       "Planifier une balade →",
-      "Tarif calculé à la durée réelle : le compteur démarre à l’heure de dépôt (aucune double facturation au passage de minuit). Supplément chiot/chaton (< 1 an) : +5 €.",
+      "Tarif calculé à la durée réelle : le compteur démarre à l’heure de dépôt (aucune double facturation au passage de minuit).",
+      PUPPY_SURCHARGE_NOTICE,
       "Détail des tarifs & remises",
       "Simuler mon prix",
       "avis vérifiés",
@@ -230,6 +231,25 @@ describe("i18n translations & word boundary safety", () => {
       expect(en, `Missing EN for: ${s}`).not.toBe(s);
       expect(es, `Missing ES for: ${s}`).not.toBe(s);
     }
+  });
+
+  it("translates the consent-gated Google Maps preview into EN and ES", () => {
+    const mapStrings = [
+      "Afficher la carte",
+      "La carte Google Maps n’est chargée qu’à votre demande, pour cette visite uniquement.",
+    ];
+
+    for (const s of mapStrings) {
+      const en = translateFrenchText(s, "en");
+      const es = translateFrenchText(s, "es");
+      expect(en, `Missing EN for: ${s}`).not.toBe(s);
+      expect(es, `Missing ES for: ${s}`).not.toBe(s);
+    }
+  });
+
+  it("no longer shows the puppy/kitten surcharge wording on the home page", () => {
+    const source = fs.readFileSync(path.join(process.cwd(), "src/components/home/HomePageClient.tsx"), "utf8");
+    expect(source).not.toMatch(/chiot\/chaton/);
   });
 
   it("removes inactive BIENVENUE10 welcome promo code from public pages, emails, and API routes", () => {

@@ -59,7 +59,8 @@ function ReviewCard({ review }: { review: Review }) {
   const author = (
     <>
       {isGoogle && review.authorPhotoUri ? (
-        <Image src={review.authorPhotoUri} alt="" width={40} height={40} unoptimized className="h-10 w-10 shrink-0 rounded-full object-cover" />
+        // Servie via /_next/image : le navigateur ne contacte pas googleusercontent.com avant consentement.
+        <Image src={review.authorPhotoUri} alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full object-cover" />
       ) : (
         <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-50 font-bold text-orange-800">{review.author.charAt(0)}</span>
       )}
