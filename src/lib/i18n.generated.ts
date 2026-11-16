@@ -9152,5 +9152,9 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "La carte Google Maps n’est chargée qu’à votre demande, pour cette visite uniquement.": {
     "en": "The Google Maps map only loads at your request, for this visit only.",
     "es": "El mapa de Google Maps solo se carga si lo solicita, únicamente durante esta visita."
+  },
+  "€ en garderie et hébergement)": {
+    "en": "€ in daycare and accommodation)",
+    "es": "€ en guardería y alojamiento)"
   }
 } as const;

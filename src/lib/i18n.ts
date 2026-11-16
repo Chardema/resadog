@@ -1,5 +1,10 @@
 import { generatedCatalogue } from "@/lib/i18n.generated";
-import { PUPPY_SURCHARGE_NOTICE, YOUNG_ANIMAL_SURCHARGE } from "@/lib/pricing";
+import {
+  PUPPY_AGE_LABEL,
+  PUPPY_SURCHARGE_NOTICE,
+  YOUNG_ANIMAL_AGE_LABEL,
+  YOUNG_ANIMAL_SURCHARGE,
+} from "@/lib/pricing";
 
 export const supportedLocales = ["fr", "en", "es"] as const;
 
@@ -1389,9 +1394,13 @@ const catalogue: Record<string, Translation> = {
     en: "1 year & older",
     es: "1 año o más",
   },
-  "Moins d'1 an (+5 €/période)": {
-    en: "Under 1 year (+€5/period)",
-    es: "Menos de 1 año (+5 €/período)",
+  [YOUNG_ANIMAL_AGE_LABEL]: {
+    en: "Under 1 year",
+    es: "Menos de 1 año",
+  },
+  [PUPPY_AGE_LABEL]: {
+    en: `Under 1 year (+€${YOUNG_ANIMAL_SURCHARGE} for day care and boarding)`,
+    es: `Menos de 1 año (+${YOUNG_ANIMAL_SURCHARGE} € en guardería y alojamiento)`,
   },
   "Choisir les dates →": {
     en: "Choose dates →",

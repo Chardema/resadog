@@ -54,6 +54,7 @@ import {
   type AppServiceType,
 } from "@/lib/services";
 import { ATTENDANCE_SUMMARY } from "@/lib/booking-attendance";
+import { SIMULATOR_PET_CARDS } from "@/components/booking/simulatorPetCards";
 import { LEGAL_DOCUMENT_VERSION, LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
 import {
   formatPetAge,
@@ -2040,32 +2041,7 @@ export default function BookingPage() {
                         )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                        {([
-                          {
-                            key: "adultDog" as const,
-                            emoji: "🐕",
-                            label: "Chien adulte",
-                            subtitle: "1 an et +",
-                          },
-                          {
-                            key: "puppy" as const,
-                            emoji: "🐶",
-                            label: "Chiot",
-                            subtitle: "Moins d'1 an (+5 €/période)",
-                          },
-                          {
-                            key: "adultCat" as const,
-                            emoji: "🐈",
-                            label: "Chat adulte",
-                            subtitle: "1 an et +",
-                          },
-                          {
-                            key: "kitten" as const,
-                            emoji: "🐱",
-                            label: "Chaton",
-                            subtitle: "Moins d'1 an (+5 €/période)",
-                          },
-                        ]).map((item) => {
+                        {SIMULATOR_PET_CARDS.map((item) => {
                           const count = simCounts[item.key];
                           const isSelected = count > 0;
                           return (
