@@ -342,7 +342,7 @@ export default function EnglishDisneyDogBoardingPage() {
                 <LocaleBookingLink
                   href="/booking"
                   locale="en"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-sm font-bold text-white transition-colors hover:bg-orange-600"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-sm font-bold text-white transition-colors hover:bg-orange-800"
                 >
                   <CalendarCheck className="h-4 w-4" aria-hidden="true" />
                   Check Availability &amp; Book Online
@@ -398,7 +398,7 @@ export default function EnglishDisneyDogBoardingPage() {
 
             <aside className="rounded-lg border border-gray-200 bg-[#FDFbf7] p-5">
               <div className="flex items-center gap-3 border-b border-orange-100 pb-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-600 text-white">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-800 text-white">
                   <PawPrint className="h-5 w-5" aria-hidden="true" />
                 </div>
                 <div>

@@ -131,7 +131,7 @@ export default function AdminReviewsPage() {
           <Button variant="outline" onClick={syncAlloVoisins} disabled={alloLoading} className="rounded-xl">
             {alloLoading ? "Sync..." : "🔄 Sync AlloVoisins"}
           </Button>
-          <Button onClick={() => setShowForm(!showForm)} className="rounded-xl bg-gray-900 hover:bg-orange-600">
+          <Button onClick={() => setShowForm(!showForm)} className="rounded-xl bg-gray-900 hover:bg-orange-800">
             {showForm ? "Annuler" : "+ Ajouter un avis"}
           </Button>
         </div>
@@ -252,7 +252,7 @@ export default function AdminReviewsPage() {
               />
             </div>
           </div>
-          <Button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-700 rounded-xl">
+          <Button type="submit" disabled={saving} className="bg-orange-800 hover:bg-orange-900 rounded-xl">
             {saving ? "Enregistrement..." : "Ajouter l'avis"}
           </Button>
         </motion.form>

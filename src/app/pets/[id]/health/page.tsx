@@ -352,7 +352,7 @@ export default function PetHealthPage({ params }: { params: Promise<{ id: string
                 <h2 className="text-xl font-bold text-gray-900">Carnet de vaccination</h2>
                 <button
                   onClick={() => setShowVaccineForm(!showVaccineForm)}
-                  className="bg-gray-900 text-white px-5 py-2.5 rounded-full text-sm font-bold hover:bg-orange-600 transition-colors"
+                  className="bg-gray-900 text-white px-5 py-2.5 rounded-full text-sm font-bold hover:bg-orange-800 transition-colors"
                 >
                   {showVaccineForm ? "Annuler" : "+ Ajouter un vaccin"}
                 </button>
@@ -452,7 +452,7 @@ export default function PetHealthPage({ params }: { params: Promise<{ id: string
                     <button
                       type="submit"
                       disabled={saving}
-                      className="mt-4 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-700 transition-colors disabled:opacity-50 w-full md:w-auto"
+                      className="mt-4 bg-orange-800 text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-900 transition-colors disabled:opacity-50 w-full md:w-auto"
                     >
                       {saving ? "Enregistrement..." : "Ajouter le vaccin"}
                     </button>
@@ -525,7 +525,7 @@ export default function PetHealthPage({ params }: { params: Promise<{ id: string
                   className={`px-5 py-2.5 rounded-full text-sm font-bold transition-colors ${
                     editingMedical
                       ? "bg-green-600 text-white hover:bg-green-700"
-                      : "bg-gray-900 text-white hover:bg-orange-600"
+                      : "bg-gray-900 text-white hover:bg-orange-800"
                   }`}
                 >
                   {saving ? "Sauvegarde..." : editingMedical ? "Sauvegarder ✓" : "Modifier"}

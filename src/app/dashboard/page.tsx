@@ -293,7 +293,7 @@ function DashboardContent() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link
               href="/booking"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-orange-600"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-orange-800"
             >
               <CalendarPlus className="h-4 w-4" />
               Nouvelle réservation
@@ -360,7 +360,7 @@ function DashboardContent() {
               <p className="font-bold">Premium est inactif</p>
               <p className="text-sm text-gray-600">Le programme fidélité gratuit reste disponible.</p>
             </div>
-            <Link href="/subscriptions" className="rounded-md bg-orange-600 px-4 py-2 text-sm font-bold text-white hover:bg-orange-700">
+            <Link href="/subscriptions" className="rounded-md bg-orange-800 px-4 py-2 text-sm font-bold text-white hover:bg-orange-900">
               Réactiver Premium
             </Link>
           </motion.div>
@@ -405,7 +405,7 @@ function DashboardContent() {
             </div>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link href="/booking" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white hover:bg-orange-600">
+              <Link href="/booking" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white hover:bg-orange-800">
                 Réserver
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -613,7 +613,7 @@ function EmptyState() {
       <PawPrint className="mx-auto h-10 w-10 text-gray-300" />
       <p className="mt-3 font-bold text-gray-800">Aucune réservation active</p>
       <p className="mt-1 text-sm text-gray-500">Les réservations terminées ou annulées restent dans l&apos;historique.</p>
-      <Link href="/booking" className="mt-4 inline-flex min-h-11 items-center justify-center rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white hover:bg-orange-600">
+      <Link href="/booking" className="mt-4 inline-flex min-h-11 items-center justify-center rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white hover:bg-orange-800">
         Créer une réservation
       </Link>
     </div>

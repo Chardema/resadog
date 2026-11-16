@@ -132,7 +132,7 @@ export function PetProfileForm({
                 onUploadError={() => alert("Erreur upload")}
                 appearance={{
                   container: "w-full",
-                  button: "w-full rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white after:bg-orange-600 hover:bg-orange-600",
+                  button: "w-full rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white after:bg-orange-800 hover:bg-orange-800",
                   allowedContent: "text-xs text-gray-500",
                 }}
                 content={{

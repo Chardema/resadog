@@ -71,7 +71,7 @@ function TwoFactorChallenge() {
             className="h-14 w-full rounded-xl border border-gray-200 px-4 text-center font-mono text-xl tracking-[0.2em]"
           />
           {error && <p className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-          <button disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gray-950 font-bold text-white hover:bg-orange-600 disabled:opacity-50">
+          <button disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gray-950 font-bold text-white hover:bg-orange-800 disabled:opacity-50">
             <KeyRound className="h-5 w-5" />
             {loading ? "Vérification..." : "Continuer"}
           </button>

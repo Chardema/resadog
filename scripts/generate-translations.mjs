@@ -5,6 +5,7 @@ import ts from "typescript";
 const projectRoot = process.cwd();
 const sourceRoots = ["src/app", "src/components"];
 const extraFiles = [
+  "src/lib/about-page.ts",
   "src/lib/pets.ts",
   "src/lib/pricing.ts",
   "src/lib/seo.ts",

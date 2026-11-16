@@ -112,7 +112,7 @@ function NewPetContent() {
             <Button type="button" variant="outline" onClick={() => router.push(returnTo)} className="h-12 rounded-md border-gray-300">
               Annuler
             </Button>
-            <Button type="submit" disabled={isLoading} className="h-12 rounded-md bg-gray-950 text-white hover:bg-orange-600">
+            <Button type="submit" disabled={isLoading} className="h-12 rounded-md bg-gray-950 text-white hover:bg-orange-800">
               {isLoading ? "Création..." : "Créer le profil"}
             </Button>
           </div>

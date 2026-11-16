@@ -76,7 +76,7 @@ function SignUpContent() {
               12 caractères minimum, avec une majuscule, une minuscule et un chiffre.
             </p>
           </div>
-          <Button type="submit" disabled={isLoading} className="h-13 w-full rounded-xl bg-gray-950 text-base font-bold hover:bg-orange-600">
+          <Button type="submit" disabled={isLoading} className="h-13 w-full rounded-xl bg-gray-950 text-base font-bold hover:bg-orange-800">
             {isLoading ? "Création..." : "Créer mon compte"}
           </Button>
         </form>

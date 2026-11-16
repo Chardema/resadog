@@ -9208,5 +9208,57 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Votre demande d’affichage est mémorisée dans votre navigateur, pour la durée de la session, sous la clé": {
     "en": "Your display request is stored in your browser, for the duration of the session, under the key",
     "es": "Su solicitud de visualización se almacena en su navegador, durante la duración de la sesión, bajo la clave"
+  },
+  "1 animal par nuit": {
+    "en": "1 pet per night",
+    "es": "1 animal por noche"
+  },
+  "À propos": {
+    "en": "About",
+    "es": "Acerca de"
+  },
+  "À propos de Mégane": {
+    "en": "About Mégane",
+    "es": "Acerca de Mégane"
+  },
+  "Activité déclarée": {
+    "en": "Registered business",
+    "es": "Actividad declarada"
+  },
+  "Celle qui s’occupe de votre compagnon chez La Patte Dorée, à Bussy-Saint-Georges.": {
+    "en": "The person who looks after your companion at La Patte Dorée, in Bussy-Saint-Georges.",
+    "es": "La persona que cuida de su compañero en La Patte Dorée, en Bussy-Saint-Georges."
+  },
+  "Chargement du formulaire de réservation": {
+    "en": "Loading the booking form",
+    "es": "Cargando el formulario de reserva"
+  },
+  "Découvrez Mégane, pet-sitter de La Patte Dorée à Bussy-Saint-Georges : diplômée ACACED, activité déclarée, appartement de 45 m² et 1 animal par nuit.": {
+    "en": "Meet Mégane, La Patte Dorée's pet sitter in Bussy-Saint-Georges: ACACED certified, registered business, 45 m² apartment and 1 pet per night.",
+    "es": "Conozca a Mégane, cuidadora de mascotas de La Patte Dorée en Bussy-Saint-Georges: titulada ACACED, actividad declarada, apartamento de 45 m² y 1 animal por noche."
+  },
+  "Diplômée ACACED": {
+    "en": "ACACED certified",
+    "es": "Titulada ACACED"
+  },
+  "En bref": {
+    "en": "At a glance",
+    "es": "En resumen"
+  },
+  "la pet-sitter de La Patte Dorée": {
+    "en": "pet sitter at La Patte Dorée",
+    "es": "la cuidadora de mascotas de La Patte Dorée"
+  },
+  "Mégane,": {
+    "en": "Mégane,",
+    "es": "Mégane,"
+  },
+  "Présentation de Mégane": {
+    "en": "Introducing Mégane",
+    "es": "Presentación de Mégane"
+  },
+  "Statut": {
+    "en": "Status",
+    "es": "Estatus"
   }
 } as const;

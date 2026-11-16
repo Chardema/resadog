@@ -208,7 +208,7 @@ export default function AdminCouponsPage() {
             setEditingCouponId(null);
             setShowForm(!showForm);
           }}
-          className="bg-gray-900 text-white rounded-xl shadow-lg hover:bg-orange-600 transition-all"
+          className="bg-gray-900 text-white rounded-xl shadow-lg hover:bg-orange-800 transition-all"
         >
           {showForm ? "Fermer" : "+ Nouveau Code"}
         </Button>

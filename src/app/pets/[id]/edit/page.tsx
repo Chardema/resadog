@@ -159,7 +159,7 @@ export default function EditPetPage() {
             <Button type="button" variant="outline" onClick={() => router.push("/pets")} className="h-12 rounded-md border-gray-300">
               Annuler
             </Button>
-            <Button type="submit" disabled={isSaving} className="h-12 rounded-md bg-gray-950 text-white hover:bg-orange-600">
+            <Button type="submit" disabled={isSaving} className="h-12 rounded-md bg-gray-950 text-white hover:bg-orange-800">
               {isSaving ? "Sauvegarde..." : "Enregistrer"}
             </Button>
           </div>

@@ -153,7 +153,7 @@ export function CatVisitSimulator() {
               <div className="flex justify-between gap-4"><dt className="text-gray-400">Visites</dt><dd className="text-right">{quote.quantity} × {formatQuoteAmount(quote.unitPrice)} = {formatQuoteAmount(quote.serviceTotal)}</dd></div>
               <div className="flex justify-between gap-4"><dt className="text-gray-400">Déplacement</dt><dd className="text-right">{quote.quantity} × {formatQuoteAmount(quote.travelFeePerVisit)} = {formatQuoteAmount(quote.travelTotal)}</dd></div>
             </dl>
-            <button type="button" onClick={generateQuote} disabled={!canGenerate} className="mt-6 min-h-12 w-full rounded-md bg-orange-500 px-4 py-3 font-bold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50">Générer le devis</button>
+            <button type="button" onClick={generateQuote} disabled={!canGenerate} className="mt-6 min-h-12 w-full rounded-md bg-orange-800 px-4 py-3 font-bold text-white hover:bg-orange-900 disabled:cursor-not-allowed disabled:opacity-50">Générer le devis</button>
             {!canGenerate ? <p role="alert" className="mt-3 text-sm text-amber-200">Choisissez des dates à venir et une validité entre 1 et 90 jours pour établir le devis.</p> : null}
             <p className="mt-3 text-xs leading-5 text-gray-400">Hors promotions et Premium. La réservation et les horaires restent à confirmer.</p>
           </> : <>

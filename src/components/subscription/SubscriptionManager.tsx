@@ -387,7 +387,7 @@ export function SubscriptionManager() {
             {!isPremium ? (
               <Link
                 href="/subscriptions"
-                className="inline-flex h-12 items-center justify-center rounded-md bg-gray-950 px-4 text-sm font-semibold text-white hover:bg-orange-600 sm:col-span-2"
+                className="inline-flex h-12 items-center justify-center rounded-md bg-gray-950 px-4 text-sm font-semibold text-white hover:bg-orange-800 sm:col-span-2"
               >
                 Activer Premium
               </Link>
