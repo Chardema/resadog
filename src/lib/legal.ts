@@ -33,6 +33,9 @@ export const LEGAL_INFORMATION = {
 
 export const LEGAL_DOCUMENT_VERSION = "2026-09-13";
 export const LEGAL_DOCUMENT_VERSION_LABEL = "13 septembre 2026";
+// Version propre à la politique cookies : la mettre à jour ne change pas la
+// version des CGV acceptée lors des paiements (LEGAL_DOCUMENT_VERSION).
+export const COOKIES_POLICY_VERSION_LABEL = "16 novembre 2026";
 // Seules les sessions Checkout créées avec cette version déclenchent l'envoi
 // automatique d'une facture de réservation. Les anciennes restent intactes.
 export const BOOKING_INVOICE_VERSION = "2026-09-06";

@@ -9152,5 +9152,49 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "La carte Google Maps n’est chargée qu’à votre demande, pour cette visite uniquement.": {
     "en": "The Google Maps map only loads at your request, for this visit only.",
     "es": "El mapa de Google Maps solo se carga si lo solicita, únicamente durante esta visita."
+  },
+  "consacrée à l’utilisation des cookies par Google": {
+    "en": "devoted to the use of cookies by Google",
+    "es": "dedicado al uso de cookies por parte de Google"
+  },
+  "Contenus tiers : carte Google Maps (chargée au clic)": {
+    "en": "Third-party content: Google Maps (loaded on click)",
+    "es": "Contenido de terceros: Google Maps (cargado al hacer clic)"
+  },
+  "et la page": {
+    "en": "and the page",
+    "es": "y la pagina"
+  },
+  "La page d’accueil affiche d’abord un simple aperçu, sans aucun chargement depuis Google. La carte Google Maps n’est chargée que si vous cliquez sur « Afficher la carte », et uniquement pour la visite en cours. Elle s’affiche également directement si vous avez déjà accepté la mesure d’audience Google décrite ci-dessus.": {
+    "en": "The homepage first shows a simple preview, without any loading from Google. The Google Maps map is only loaded if you click “Show Map”, and only for the current visit. It is also displayed directly if you have already accepted the Google audience measurement described above.",
+    "es": "La página de inicio primero muestra una vista previa simple, sin ninguna carga por parte de Google. El mapa de Google Maps solo se carga si hace clic en \"Mostrar mapa\" y solo para la visita actual. También se muestra directamente si ya has aceptado la medición de audiencia de Google descrita anteriormente."
+  },
+  "la-patte-doree-google-maps-session": {
+    "en": "la-patte-doree-google-maps-session",
+    "es": "sesión-de-google-maps-la-patte-doree"
+  },
+  "Mémorise la page de retour après la connexion. Déposé par Auth.js.": {
+    "en": "Remembers the return page after login. Filed by Auth.js.",
+    "es": "Recuerda la página de retorno después de iniciar sesión. Archivado por Auth.js."
+  },
+  "Protège les formulaires de connexion contre les requêtes falsifiées (CSRF). Déposé par Auth.js dès la première visite.": {
+    "en": "Protects login forms against forged requests (CSRF). Deposited by Auth.js on first visit.",
+    "es": "Protege los formularios de inicio de sesión contra solicitudes falsificadas (CSRF). Depositado por Auth.js en la primera visita."
+  },
+  "règles de confidentialité de Google": {
+    "en": "Google privacy policy",
+    "es": "política de privacidad de google"
+  },
+  "Session du navigateur": {
+    "en": "Browser session",
+    "es": "Sesión del navegador"
+  },
+  "Une fois la carte chargée, Google peut recevoir votre adresse IP et déposer ses propres cookies ou traceurs, sous sa seule responsabilité. Pour en savoir plus, consultez les": {
+    "en": "Once the map is loaded, Google can receive your IP address and place its own cookies or trackers, under its sole responsibility. To find out more, see",
+    "es": "Una vez cargado el mapa, Google puede recibir su dirección IP y colocar sus propias cookies o rastreadores, bajo su exclusiva responsabilidad. Para obtener más información, consulte"
+  },
+  "Votre demande d’affichage est mémorisée dans votre navigateur, pour la durée de la session, sous la clé": {
+    "en": "Your display request is stored in your browser, for the duration of the session, under the key",
+    "es": "Su solicitud de visualización se almacena en su navegador, durante la duración de la sesión, bajo la clave"
   }
 } as const;

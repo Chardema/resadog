@@ -1,5 +1,5 @@
 import { buildMetadata } from "@/lib/seo";
-import { LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+import { COOKIES_POLICY_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
 
 export const metadata = buildMetadata({
   title: "Cookies et traceurs",
@@ -13,7 +13,7 @@ export default function CookiesPage() {
     <div data-no-translate className="min-h-screen bg-[#FDFbf7] py-20">
       <div className="container mx-auto px-6 max-w-4xl">
         <h1 className="mb-3 text-4xl font-extrabold text-gray-900">Cookies et traceurs</h1>
-        <p className="mb-8 text-sm text-gray-500">Version en vigueur au {LEGAL_DOCUMENT_VERSION_LABEL}</p>
+        <p className="mb-8 text-sm text-gray-500">Version en vigueur au {COOKIES_POLICY_VERSION_LABEL}</p>
         
         <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-sm space-y-8 text-gray-700">
           
@@ -49,6 +49,16 @@ export default function CookiesPage() {
                     <td className="py-3 font-mono text-sm text-orange-600">site-locale</td>
                     <td className="py-3">Mémorise la langue choisie pour afficher le site.</td>
                     <td className="py-3">1 an</td>
+                  </tr>
+                  <tr className="border-b border-gray-100">
+                    <td className="py-3 font-mono text-sm text-orange-600">__Host-authjs.csrf-token</td>
+                    <td className="py-3">Protège les formulaires de connexion contre les requêtes falsifiées (CSRF). Déposé par Auth.js dès la première visite.</td>
+                    <td className="py-3">Session du navigateur</td>
+                  </tr>
+                  <tr className="border-b border-gray-100">
+                    <td className="py-3 font-mono text-sm text-orange-600">__Secure-authjs.callback-url</td>
+                    <td className="py-3">Mémorise la page de retour après la connexion. Déposé par Auth.js.</td>
+                    <td className="py-3">Session du navigateur</td>
                   </tr>
                 </tbody>
               </table>
@@ -87,6 +97,26 @@ export default function CookiesPage() {
               Si vous refusez, ces stockages restent désactivés. Vous pouvez modifier votre choix à tout moment depuis
               le lien « Gérer mes cookies » situé en bas du site. Le choix est mémorisé dans votre navigateur sous la clé
               <span className="font-mono text-sm"> la-patte-doree-google-consent-v2</span>. {LEGAL_INFORMATION.commercialName} ne revend pas vos données.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Contenus tiers : carte Google Maps (chargée au clic)</h2>
+            <p className="mb-4">
+              La page d’accueil affiche d’abord un simple aperçu, sans aucun chargement depuis Google. La carte Google Maps
+              n’est chargée que si vous cliquez sur « Afficher la carte », et uniquement pour la visite en cours. Elle
+              s’affiche également directement si vous avez déjà accepté la mesure d’audience Google décrite ci-dessus.
+            </p>
+            <p className="mb-4">
+              Une fois la carte chargée, Google peut recevoir votre adresse IP et déposer ses propres cookies ou traceurs,
+              sous sa seule responsabilité. Pour en savoir plus, consultez les{" "}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline text-orange-700 hover:text-orange-800">règles de confidentialité de Google</a>{" "}
+              et la page{" "}
+              <a href="https://policies.google.com/technologies/cookies" target="_blank" rel="noopener noreferrer" className="underline text-orange-700 hover:text-orange-800">consacrée à l’utilisation des cookies par Google</a>.
+            </p>
+            <p className="text-sm text-gray-600">
+              Votre demande d’affichage est mémorisée dans votre navigateur, pour la durée de la session, sous la clé
+              <span className="font-mono text-sm"> la-patte-doree-google-maps-session</span>.
             </p>
           </section>
 
