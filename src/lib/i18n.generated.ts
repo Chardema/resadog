@@ -9153,6 +9153,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "The Google Maps map only loads at your request, for this visit only.",
     "es": "El mapa de Google Maps solo se carga si lo solicita, únicamente durante esta visita."
   },
+  "€ en garderie et hébergement)": {
+    "en": "€ in daycare and accommodation)",
+    "es": "€ en guardería y alojamiento)"
+  },
   "Cette page n'existe pas ou a été déplacée. Retrouvez la garde d'animaux de La Patte Dorée depuis l'accueil.": {
     "en": "This page does not exist or has been moved. Find La Patte Dorée pet care from reception.",
     "es": "Esta página no existe o ha sido movida. Encuentre cuidado de mascotas La Patte Dorée en recepción."

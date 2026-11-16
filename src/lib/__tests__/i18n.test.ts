@@ -123,7 +123,7 @@ describe("i18n translations & word boundary safety", () => {
       "Chat adulte",
       "Chaton",
       "1 an et +",
-      "Moins d'1 an (+5 €/période)",
+      "Moins d'1 an",
       "Choisir les dates →",
       "Voir le récapitulatif →",
       "Payer & confirmer",
