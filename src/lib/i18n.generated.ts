@@ -9153,6 +9153,18 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "The Google Maps map only loads at your request, for this visit only.",
     "es": "El mapa de Google Maps solo se carga si lo solicita, únicamente durante esta visita."
   },
+  "€ en garderie et hébergement)": {
+    "en": "€ in daycare and accommodation)",
+    "es": "€ en guardería y alojamiento)"
+  },
+  "Cette page n'existe pas ou a été déplacée. Retrouvez la garde d'animaux de La Patte Dorée depuis l'accueil.": {
+    "en": "This page does not exist or has been moved. Find La Patte Dorée pet care from reception.",
+    "es": "Esta página no existe o ha sido movida. Encuentre cuidado de mascotas La Patte Dorée en recepción."
+  },
+  "Page introuvable | La Patte Dorée": {
+    "en": "Page not found | La Patte Dorée",
+    "es": "Página no encontrada | La Patte Dorée"
+  },
   "consacrée à l’utilisation des cookies par Google": {
     "en": "devoted to the use of cookies by Google",
     "es": "dedicado al uso de cookies por parte de Google"
@@ -9165,9 +9177,9 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "and the page",
     "es": "y la pagina"
   },
-  "La page d’accueil affiche d’abord un simple aperçu, sans aucun chargement depuis Google. La carte Google Maps n’est chargée que si vous cliquez sur « Afficher la carte », et uniquement pour la visite en cours. Elle s’affiche également directement si vous avez déjà accepté la mesure d’audience Google décrite ci-dessus.": {
-    "en": "The homepage first shows a simple preview, without any loading from Google. The Google Maps map is only loaded if you click “Show Map”, and only for the current visit. It is also displayed directly if you have already accepted the Google audience measurement described above.",
-    "es": "La página de inicio primero muestra una vista previa simple, sin ninguna carga por parte de Google. El mapa de Google Maps solo se carga si hace clic en \"Mostrar mapa\" y solo para la visita actual. También se muestra directamente si ya has aceptado la medición de audiencia de Google descrita anteriormente."
+  "La page d’accueil affiche d’abord un simple aperçu, sans aucun chargement depuis Google. La carte Google Maps n’est chargée que si vous cliquez sur « Afficher la carte », et uniquement pour la visite en cours. Accepter la mesure d’audience Google décrite ci-dessus ne charge pas la carte.": {
+    "en": "The homepage first shows a simple preview, without any loading from Google. The Google Maps map is only loaded if you click “Show Map”, and only for the current visit. Accepting the Google audience measurement described above does not load the map.",
+    "es": "La página de inicio primero muestra una vista previa simple, sin ninguna carga por parte de Google. El mapa de Google Maps solo se carga si hace clic en \"Mostrar mapa\" y solo para la visita actual. Aceptar la medición de audiencia de Google descrita anteriormente no carga el mapa."
   },
   "la-patte-doree-google-maps-session": {
     "en": "la-patte-doree-google-maps-session",
@@ -9196,9 +9208,5 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Votre demande d’affichage est mémorisée dans votre navigateur, pour la durée de la session, sous la clé": {
     "en": "Your display request is stored in your browser, for the duration of the session, under the key",
     "es": "Su solicitud de visualización se almacena en su navegador, durante la duración de la sesión, bajo la clave"
-  },
-  "La page d’accueil affiche d’abord un simple aperçu, sans aucun chargement depuis Google. La carte Google Maps n’est chargée que si vous cliquez sur « Afficher la carte », et uniquement pour la visite en cours. Accepter la mesure d’audience Google décrite ci-dessus ne charge pas la carte.": {
-    "en": "The homepage first shows a simple preview, without any loading from Google. The Google Maps map is only loaded if you click “Show Map”, and only for the current visit. Accepting the Google audience measurement described above does not load the map.",
-    "es": "La página de inicio primero muestra una vista previa simple, sin ninguna carga por parte de Google. El mapa de Google Maps solo se carga si hace clic en \"Mostrar mapa\" y solo para la visita actual. Aceptar la medición de audiencia de Google descrita anteriormente no carga el mapa."
   }
 } as const;

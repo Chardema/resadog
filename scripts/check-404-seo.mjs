@@ -13,6 +13,9 @@ const unknownPath = "/page-inexistante-audit-suivi";
 
 const robotsTags = (html) => html.match(/<meta\b[^>]*name="(?:robots|googlebot)"[^>]*>/gi) ?? [];
 const canonicalTags = (html) => html.match(/<link\b[^>]*rel="canonical"[^>]*>/gi) ?? [];
+const ogUrlTags = (html) => html.match(/<meta\b[^>]*property="og:url"[^>]*>/gi) ?? [];
+const htmlLang = (html) => html.match(/<html\b[^>]*\blang="([^"]+)"/i)?.[1];
+const titleText = (html) => html.match(/<title>([^<]*)<\/title>/i)?.[1];
 
 // Racine du site quelle que soit l'origine : « https://x.fr/ », « https://x.fr » ou « / ».
 function pointsToRoot(tag) {
@@ -42,9 +45,15 @@ check(notFound.status === 404, "URL inconnue en HTTP 404");
 check(notFoundRobots.length === 1, "une seule balise robots/googlebot sur la 404");
 check(
   notFoundRobots.length === 1 && /noindex/i.test(notFoundRobots[0]) && !/nofollow/i.test(notFoundRobots[0]),
-  "balise robots noindex sans nofollow (follow implicite)"
+  "balise robots noindex sans nofollow"
 );
 check(notFoundCanonicals.length === 0, "aucun <link rel=\"canonical\"> sur la 404");
+check(
+  titleText(notFoundHtml) === "Page introuvable | La Patte Dorée",
+  `title « Page introuvable | La Patte Dorée » (reçu : ${titleText(notFoundHtml) ?? "aucun"})`
+);
+check(ogUrlTags(notFoundHtml).length === 0, "aucun og:url sur la 404");
+check(htmlLang(notFoundHtml) === "fr", `<html lang="fr"> sur la 404 (reçu : ${htmlLang(notFoundHtml) ?? "aucun"})`);
 
 const home = await fetch(`${baseUrl}/`, { redirect: "manual" });
 const homeHtml = await home.text();
@@ -57,6 +66,10 @@ check(
   "accueil : un seul canonical vers /"
 );
 check(!robotsTags(homeHtml).some((tag) => /noindex/i.test(tag)), "accueil indexable");
+check(
+  ogUrlTags(homeHtml).length === 1 && pointsToRoot(ogUrlTags(homeHtml)[0].replace(/\bcontent=/i, "href=")),
+  "accueil : og:url vers /"
+);
 
 if (failures.length > 0) {
   console.error(`\n${failures.length} critère(s) en échec.`);
