@@ -145,7 +145,7 @@ describe("Chantier 4 UI/UX: Navigation, visitor footer, mobile floating pills, N
     expect(gallerySource).not.toContain("@lapatte_doree");
     expect(readSource("src/lib/social-links.ts")).toContain(`INSTAGRAM_HANDLE = "@lapattedoree77"`);
 
-    const localSeoSource = readSource("src/app/(local-seo)/[slug]/page.tsx");
+    const localSeoSource = readSource("src/app/(local-seo)/_components/LocalSeoPage.tsx");
     expect(localSeoSource).toContain("/images/hero-famille.webp");
     expect(localSeoSource).toContain("/images/galerie/chat-tigre-canape.webp");
     expect(localSeoSource).toContain("/images/galerie/chat-soleil-jardin.webp");

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import {
   ArrowRight,
   Award,
@@ -31,11 +30,20 @@ import {
   localSeoPages,
 } from "@/lib/seo";
 
-type SeoPageProps = {
-  params: Promise<{
-    slug: string;
-  }>;
+// Chaque page locale a sa propre route statique (src/app/(local-seo)/<slug>/page.tsx)
+// plutôt qu'une route [slug] : avec le layout racine dynamique (cookies, headers),
+// un notFound() levé par une page fait servir à Next sa coquille d'erreur
+// (<html id="__next_error__">, sans lang ni en-tête/pied de page). Une URL qui
+// ne correspond à aucune route est, elle, rendue dans le layout avec not-found.tsx.
+type LocalSeoPageProps = {
+  slug: string;
 };
+
+function requireLocalSeoPage(slug: string) {
+  const page = getLocalSeoPage(slug);
+  if (!page) throw new Error(`Page SEO locale inconnue : « ${slug} » (voir localSeoPages dans src/lib/seo.ts).`);
+  return page;
+}
 
 type LocalPhotoCard = {
   src: string;
@@ -184,27 +192,8 @@ function getLocalPagePhotos(slug: string): LocalPagePhotosConfig {
   };
 }
 
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return localSeoPages.map((page) => ({
-    slug: page.slug,
-  }));
-}
-
-export async function generateMetadata({ params }: SeoPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const page = getLocalSeoPage(slug);
-
-  if (!page) {
-    return buildMetadata({
-      title: "Page introuvable",
-      description: "Cette page n'existe pas.",
-      path: `/${slug}`,
-      noIndex: true,
-    });
-  }
-
+export function getLocalSeoMetadata(slug: string): Metadata {
+  const page = requireLocalSeoPage(slug);
   const isDisneyPage = slug === "garde-chien-disneyland-paris";
 
   return buildMetadata({
@@ -227,11 +216,8 @@ export async function generateMetadata({ params }: SeoPageProps): Promise<Metada
   });
 }
 
-export default async function LocalSeoPage({ params }: SeoPageProps) {
-  const { slug } = await params;
-  const page = getLocalSeoPage(slug);
-
-  if (!page) notFound();
+export function LocalSeoPage({ slug }: LocalSeoPageProps) {
+  const page = requireLocalSeoPage(slug);
 
   const isDisneyPage = page.slug === "garde-chien-disneyland-paris";
   const isDogFocused = page.slug.includes("chien");
