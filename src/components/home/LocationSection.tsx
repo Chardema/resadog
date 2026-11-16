@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Instagram, Mail, MapPin, Phone } from "lucide-react";
-import { GOOGLE_CONSENT_EVENT, GOOGLE_CONSENT_STORAGE_KEY } from "@/lib/google-consent";
+import { hasMapPermission, rememberMapForSession } from "@/lib/google-maps-permission";
 import { GOOGLE_MAPS_PLACE_URL } from "@/lib/google-reviews";
 import { LEGAL_INFORMATION } from "@/lib/legal";
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
@@ -35,17 +35,12 @@ const LOCAL_SEO_LINKS = [
 
 const GOOGLE_MAPS_EMBED_URL = "https://www.google.com/maps?q=Bussy-Saint-Georges%2C%20France&z=13&output=embed";
 
-// Affichage de la carte demandé pour cette session uniquement : ce n'est pas
-// un consentement Analytics/Ads et cela ne charge pas gtag.js.
-const MAP_SESSION_STORAGE_KEY = "la-patte-doree-google-maps-session";
 const MAP_SESSION_EVENT = "la-patte-doree-google-maps-session-change";
 
 function subscribeToMapPermission(onChange: () => void) {
-  window.addEventListener(GOOGLE_CONSENT_EVENT, onChange);
   window.addEventListener(MAP_SESSION_EVENT, onChange);
   window.addEventListener("storage", onChange);
   return () => {
-    window.removeEventListener(GOOGLE_CONSENT_EVENT, onChange);
     window.removeEventListener(MAP_SESSION_EVENT, onChange);
     window.removeEventListener("storage", onChange);
   };
@@ -55,15 +50,7 @@ function subscribeToMapPermission(onChange: () => void) {
 let mapAllowedInThisPage = false;
 
 function getMapPermission() {
-  if (mapAllowedInThisPage) return true;
-  try {
-    return (
-      window.localStorage.getItem(GOOGLE_CONSENT_STORAGE_KEY) === "accepted" ||
-      window.sessionStorage.getItem(MAP_SESSION_STORAGE_KEY) === "1"
-    );
-  } catch {
-    return false;
-  }
+  return hasMapPermission(window, mapAllowedInThisPage);
 }
 
 // Côté serveur (et au premier rendu) : aperçu statique, aucune requête Google.
@@ -73,11 +60,7 @@ function getServerMapPermission() {
 
 function allowMapForSession() {
   mapAllowedInThisPage = true;
-  try {
-    window.sessionStorage.setItem(MAP_SESSION_STORAGE_KEY, "1");
-  } catch {
-    // Stockage indisponible : la carte reste affichée pour cette page.
-  }
+  rememberMapForSession(window);
   window.dispatchEvent(new Event(MAP_SESSION_EVENT));
 }
 
