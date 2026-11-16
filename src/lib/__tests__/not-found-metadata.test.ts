@@ -18,15 +18,26 @@ describe("metadata de la page 404", () => {
     expect(metadata.twitter).toBeNull();
   });
 
-  it("garde le noindex injecté par Next seul et aucun canonical", () => {
-    // robots: null retire le « index, follow » du layout ; Next ajoute le
-    // seul <meta name="robots" content="noindex"> des réponses 404.
-    expect(metadata.robots).toBeNull();
+  it("déclare un noindex explicite, sans googleBot, et aucun canonical", () => {
+    // Sur Vercel, Next n'injecte pas de noindex dans la 404 : la balise doit
+    // venir des metadata. Elle remplace le « index, follow » et le googleBot
+    // du layout.
+    expect(metadata.robots).toEqual({ index: false, follow: true });
     expect(metadata.alternates).toEqual({ canonical: null });
   });
 
   it("titre traduit côté client en EN/ES", () => {
     expect(translateFrenchText("Page introuvable | La Patte Dorée", "en")).toBe("Page not found | La Patte Dorée");
     expect(translateFrenchText("Page introuvable | La Patte Dorée", "es")).toBe("Página no encontrada | La Patte Dorée");
+  });
+
+  it("description traduite côté client en EN/ES", () => {
+    const description = metadata.description as string;
+    expect(translateFrenchText(description, "en")).toBe(
+      "This page does not exist or has been moved. Find La Patte Dorée pet care from the home page.",
+    );
+    expect(translateFrenchText(description, "es")).toBe(
+      "Esta página no existe o ha sido movida. Encuentre el cuidado de mascotas de La Patte Dorée desde la página de inicio.",
+    );
   });
 });

@@ -45,7 +45,7 @@ check(notFound.status === 404, "URL inconnue en HTTP 404");
 check(notFoundRobots.length === 1, "une seule balise robots/googlebot sur la 404");
 check(
   notFoundRobots.length === 1 && /noindex/i.test(notFoundRobots[0]) && !/nofollow/i.test(notFoundRobots[0]),
-  "balise robots noindex sans nofollow (follow implicite)"
+  "balise robots noindex sans nofollow"
 );
 check(notFoundCanonicals.length === 0, "aucun <link rel=\"canonical\"> sur la 404");
 check(

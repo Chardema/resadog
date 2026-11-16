@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PawPrint } from "lucide-react";
 
-// Next.js injecte déjà <meta name="robots" content="noindex"> sur toute
-// réponse 404 (follow est implicite) : robots: null retire le « index, follow »
-// hérité du layout sans créer de seconde balise robots. Aucun canonical.
+// Sur Vercel, la 404 ne reçoit pas le <meta name="robots" content="noindex">
+// injecté par Next (constaté sur un déploiement réel) : la balise est donc
+// explicite. Ce robots remplace aussi le « index, follow » et le googleBot
+// hérités du layout. En `next start` local, Next peut ajouter en plus sa propre
+// balise « noindex » (doublon local uniquement). Aucun canonical.
 // Titre absolu : le template « %s | La Patte Dorée » du layout ne s'applique
 // pas toujours au not-found racine. openGraph/twitter à null : la 404 n'hérite
 // ni du titre, ni de la description, ni de l'og:url « / » de l'accueil.
@@ -12,7 +14,7 @@ export const metadata: Metadata = {
   title: { absolute: "Page introuvable | La Patte Dorée" },
   description:
     "Cette page n'existe pas ou a été déplacée. Retrouvez la garde d'animaux de La Patte Dorée depuis l'accueil.",
-  robots: null,
+  robots: { index: false, follow: true },
   alternates: { canonical: null },
   openGraph: null,
   twitter: null,
