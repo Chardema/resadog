@@ -936,11 +936,15 @@ const catalogue: Record<string, Translation> = {
   "· SIREN": { en: "· SIREN", es: "· SIREN" },
   "Historique": { en: "History", es: "Historial" },
 
-  // Local SEO & Disneyland Paris (src/lib/seo.ts & src/app/(local-seo)/[slug]/page.tsx)
+  // Local SEO & Disneyland Paris (src/lib/seo.ts & src/app/(local-seo)/_components/LocalSeoPage.tsx)
   "Page introuvable": { en: "Page not found", es: "Página no encontrada" },
   "Cette page n'existe pas.": {
     en: "This page does not exist.",
     es: "Esta página no existe.",
+  },
+  "Cette page n'existe pas ou a été déplacée. Retrouvez la garde d'animaux de La Patte Dorée depuis l'accueil.": {
+    en: "This page does not exist or has been moved. Find La Patte Dorée pet care from the home page.",
+    es: "Esta página no existe o ha sido movida. Encuentre el cuidado de mascotas de La Patte Dorée desde la página de inicio.",
   },
   "animaux": { en: "pets", es: "mascotas" },
   "total": { en: "total", es: "total" },

@@ -9156,5 +9156,13 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "€ en garderie et hébergement)": {
     "en": "€ in daycare and accommodation)",
     "es": "€ en guardería y alojamiento)"
+  },
+  "Cette page n'existe pas ou a été déplacée. Retrouvez la garde d'animaux de La Patte Dorée depuis l'accueil.": {
+    "en": "This page does not exist or has been moved. Find La Patte Dorée pet care from reception.",
+    "es": "Esta página no existe o ha sido movida. Encuentre cuidado de mascotas La Patte Dorée en recepción."
+  },
+  "Page introuvable | La Patte Dorée": {
+    "en": "Page not found | La Patte Dorée",
+    "es": "Página no encontrada | La Patte Dorée"
   }
 } as const;
