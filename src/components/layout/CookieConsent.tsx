@@ -11,7 +11,12 @@ import {
   OPEN_COOKIE_SETTINGS_EVENT,
   type GoogleConsentChoice,
 } from "@/lib/google-consent";
-import { loadGoogleTag, revokeGoogleTag } from "@/lib/google-analytics";
+import {
+  discardPendingBookingConversions,
+  flushPendingBookingConversions,
+  loadGoogleTag,
+  revokeGoogleTag,
+} from "@/lib/google-analytics";
 
 type CookieConsentProps = {
   promptOnFirstVisit: boolean;
@@ -34,14 +39,23 @@ export function CookieConsent({ promptOnFirstVisit }: CookieConsentProps) {
     };
   }, [promptOnFirstVisit]);
 
+  useEffect(() => {
+    // Conversion de réservation restée en attente (consentement accordé sur
+    // une autre page ou lors d'une visite précédente) : envoi après vérif serveur.
+    void flushPendingBookingConversions();
+  }, []);
+
   const saveChoice = (choice: GoogleConsentChoice) => {
     localStorage.setItem(GOOGLE_CONSENT_STORAGE_KEY, choice);
     // gtag.js n'est chargé qu'après « Tout accepter » ; un refus (y compris
-    // un retrait après acceptation) repasse le consentement à « denied ».
+    // un retrait après acceptation) repasse le consentement à « denied » et
+    // oublie les conversions en attente (les marqueurs « déjà envoyé » restent).
     if (choice === "accepted") {
       loadGoogleTag();
+      void flushPendingBookingConversions();
     } else {
       revokeGoogleTag();
+      discardPendingBookingConversions();
     }
     window.dispatchEvent(new CustomEvent(GOOGLE_CONSENT_EVENT, { detail: choice }));
     setIsVisible(false);

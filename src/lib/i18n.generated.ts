@@ -9133,9 +9133,29 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Two-step verification for your La Patte Dorée account.",
     "es": "Verificación en dos pasos de su cuenta de La Patte Dorée."
   },
-  "Chargement du formulaire de réservation": {
-    "en": "Loading the booking form",
-    "es": "Cargando el formulario de reserva"
+  "Tarif calculé à la durée réelle : le compteur démarre à l’heure de dépôt (aucune double facturation au passage de minuit).": {
+    "en": "Rate calculated on actual duration: the clock starts at drop-off time (no double billing at midnight).",
+    "es": "Tarifa calculada según la duración real: el contador empieza a la hora de entrega (sin doble facturación a medianoche)."
+  },
+  "Supplément chiot (moins d’un an) : +": {
+    "en": "Puppy supplement (under one year old): +",
+    "es": "Suplemento cachorro (menos de un año): +"
+  },
+  "€ en garderie et hébergement.": {
+    "en": "€ for day care and boarding.",
+    "es": "€ en guardería y alojamiento."
+  },
+  "Afficher la carte": {
+    "en": "Show the map",
+    "es": "Mostrar el mapa"
+  },
+  "La carte Google Maps n’est chargée qu’à votre demande, pour cette visite uniquement.": {
+    "en": "The Google Maps map only loads at your request, for this visit only.",
+    "es": "El mapa de Google Maps solo se carga si lo solicita, únicamente durante esta visita."
+  },
+  "1 animal par nuit": {
+    "en": "1 pet per night",
+    "es": "1 animal por noche"
   },
   "À propos": {
     "en": "About",
@@ -9145,68 +9165,44 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "About Mégane",
     "es": "Acerca de Mégane"
   },
-  "Découvrez Mégane, pet-sitter de La Patte Dorée à Bussy-Saint-Georges : diplômée ACACED, activité déclarée, appartement de 45 m² et 1 animal par nuit.": {
-    "en": "Meet Mégane, La Patte Dorée's pet sitter in Bussy-Saint-Georges: ACACED certified, registered business, 45 m² apartment and 1 pet per night.",
-    "es": "Conozca a Mégane, cuidadora de mascotas de La Patte Dorée en Bussy-Saint-Georges: titulada ACACED, actividad declarada, apartamento de 45 m² y 1 animal por noche."
-  },
-  "Mégane,": {
-    "en": "Mégane,",
-    "es": "Mégane,"
-  },
-  "la pet-sitter de La Patte Dorée": {
-    "en": "pet sitter at La Patte Dorée",
-    "es": "la cuidadora de mascotas de La Patte Dorée"
+  "Activité déclarée": {
+    "en": "Registered business",
+    "es": "Actividad declarada"
   },
   "Celle qui s’occupe de votre compagnon chez La Patte Dorée, à Bussy-Saint-Georges.": {
     "en": "The person who looks after your companion at La Patte Dorée, in Bussy-Saint-Georges.",
     "es": "La persona que cuida de su compañero en La Patte Dorée, en Bussy-Saint-Georges."
   },
-  "Présentation de Mégane": {
-    "en": "Introducing Mégane",
-    "es": "Presentación de Mégane"
+  "Chargement du formulaire de réservation": {
+    "en": "Loading the booking form",
+    "es": "Cargando el formulario de reserva"
   },
-  "En bref": {
-    "en": "At a glance",
-    "es": "En resumen"
-  },
-  "Formation": {
-    "en": "Qualification",
-    "es": "Formación"
+  "Découvrez Mégane, pet-sitter de La Patte Dorée à Bussy-Saint-Georges : diplômée ACACED, activité déclarée, appartement de 45 m² et 1 animal par nuit.": {
+    "en": "Meet Mégane, La Patte Dorée's pet sitter in Bussy-Saint-Georges: ACACED certified, registered business, 45 m² apartment and 1 pet per night.",
+    "es": "Conozca a Mégane, cuidadora de mascotas de La Patte Dorée en Bussy-Saint-Georges: titulada ACACED, actividad declarada, apartamento de 45 m² y 1 animal por noche."
   },
   "Diplômée ACACED": {
     "en": "ACACED certified",
     "es": "Titulada ACACED"
   },
+  "En bref": {
+    "en": "At a glance",
+    "es": "En resumen"
+  },
+  "la pet-sitter de La Patte Dorée": {
+    "en": "pet sitter at La Patte Dorée",
+    "es": "la cuidadora de mascotas de La Patte Dorée"
+  },
+  "Mégane,": {
+    "en": "Mégane,",
+    "es": "Mégane,"
+  },
+  "Présentation de Mégane": {
+    "en": "Introducing Mégane",
+    "es": "Presentación de Mégane"
+  },
   "Statut": {
     "en": "Status",
     "es": "Estatus"
-  },
-  "Activité déclarée": {
-    "en": "Registered business",
-    "es": "Actividad declarada"
-  },
-  "Logement": {
-    "en": "Home",
-    "es": "Vivienda"
-  },
-  "Appartement de 45 m²": {
-    "en": "45 m² apartment",
-    "es": "Apartamento de 45 m²"
-  },
-  "1 animal par nuit": {
-    "en": "1 pet per night",
-    "es": "1 animal por noche"
-  },
-  "Ville": {
-    "en": "Town",
-    "es": "Ciudad"
-  },
-  "Bussy-Saint-Georges": {
-    "en": "Bussy-Saint-Georges",
-    "es": "Bussy-Saint-Georges"
-  },
-  "À propos de Mégane | La Patte Dorée": {
-    "en": "About Mégane | La Patte Dorée",
-    "es": "Acerca de Mégane | La Patte Dorée"
   }
 } as const;

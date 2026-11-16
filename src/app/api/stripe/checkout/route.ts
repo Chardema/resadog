@@ -218,10 +218,8 @@ export async function POST(request: NextRequest) {
     // UUIDs are 36 chars. So ~13 IDs max. Should be enough for this use case.
     const bookingIdsStr = bookingIds.join(",");
     const returnBaseUrl = getStripeReturnBaseUrl(request);
-    // Montant réel (somme des réservations payées dans cette session) transmis
-    // à /booking/success pour la valeur de conversion Google Ads / GA4.
-    const conversionValue =
-      Math.round(bookings.reduce((sum, booking) => sum + booking.totalPrice, 0) * 100) / 100;
+    // La valeur de conversion Google Ads / GA4 n'est plus passée dans l'URL :
+    // /booking/success la récupère via /api/bookings/[id]/conversion.
 
     // Créer la Checkout Session avec setup_future_usage
     checkoutSession = await stripe.checkout.sessions.create(
@@ -252,7 +250,7 @@ export async function POST(request: NextRequest) {
             providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
           },
         },
-        success_url: `${returnBaseUrl}/booking/success?bookingId=${bookingIds[0]}&value=${conversionValue}`,
+        success_url: `${returnBaseUrl}/booking/success?bookingId=${bookingIds[0]}`,
         cancel_url: `${returnBaseUrl}/booking?cancelled=true`,
         // Toutes les demandes expirent rapidement : tant que Checkout n'est pas
         // terminé, elles ne doivent pas rester comme réservations actionnables.

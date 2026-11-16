@@ -1,4 +1,5 @@
 import { generatedCatalogue } from "@/lib/i18n.generated";
+import { PUPPY_SURCHARGE_NOTICE, YOUNG_ANIMAL_SURCHARGE } from "@/lib/pricing";
 
 export const supportedLocales = ["fr", "en", "es"] as const;
 
@@ -1752,9 +1753,21 @@ const catalogue: Record<string, Translation> = {
     en: "Simulate a stay →",
     es: "Simular una estancia →",
   },
-  "Tarif calculé à la durée réelle : le compteur démarre à l’heure de dépôt (aucune double facturation au passage de minuit). Supplément chiot/chaton (< 1 an) : +5 €.": {
-    en: "Rate calculated on actual duration: the clock starts at drop-off time (no double billing at midnight). Puppy/kitten supplement (< 1 year): +€5.",
-    es: "Tarifa calculada según la duración real: el contador empieza a la hora de entrega (sin doble facturación a medianoche). Suplemento cachorro/gatito (< 1 año): +5 €.",
+  "Tarif calculé à la durée réelle : le compteur démarre à l’heure de dépôt (aucune double facturation au passage de minuit).": {
+    en: "Rate calculated on actual duration: the clock starts at drop-off time (no double billing at midnight).",
+    es: "Tarifa calculada según la duración real: el contador empieza a la hora de entrega (sin doble facturación a medianoche).",
+  },
+  [PUPPY_SURCHARGE_NOTICE]: {
+    en: `Puppy supplement (under one year old): +€${YOUNG_ANIMAL_SURCHARGE} for day care and boarding.`,
+    es: `Suplemento cachorro (menos de un año): +${YOUNG_ANIMAL_SURCHARGE} € en guardería y alojamiento.`,
+  },
+  "Afficher la carte": {
+    en: "Show the map",
+    es: "Mostrar el mapa",
+  },
+  "La carte Google Maps n’est chargée qu’à votre demande, pour cette visite uniquement.": {
+    en: "The Google Maps map only loads at your request, for this visit only.",
+    es: "El mapa de Google Maps solo se carga si lo solicita, únicamente durante esta visita.",
   },
   "Une garde familiale attentive, sans box ni chenil. Choisissez un service pour simuler votre tarif exact selon vos dates et horaires.": {
     en: "Attentive family pet care with no cages or kennels. Choose a service to simulate your exact rate for your dates and schedule.",

@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PawPrint } from "lucide-react";
+
+// Next.js injecte déjà <meta name="robots" content="noindex"> sur toute
+// réponse 404 (follow est implicite) : robots: null retire le « index, follow »
+// hérité du layout sans créer de seconde balise robots. Aucun canonical.
+export const metadata: Metadata = {
+  robots: null,
+  alternates: { canonical: null },
+};
 
 export default function NotFound() {
   return (

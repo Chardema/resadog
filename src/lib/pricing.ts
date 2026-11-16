@@ -52,6 +52,8 @@ export function getLastMinuteFee(input: {
 export const DOG_DAY_CARE_RATE = 35;
 export const DOG_24_HOUR_RATE = 45;
 export const YOUNG_ANIMAL_SURCHARGE = 5;
+// Appliqué uniquement aux chiens (garderie et hébergement), par période facturée.
+export const PUPPY_SURCHARGE_NOTICE = `Supplément chiot (moins d’un an) : +${YOUNG_ANIMAL_SURCHARGE} € en garderie et hébergement.`;
 export const DOG_DAY_CARE_MAX_MINUTES = 10 * 60;
 export const DOG_CARE_PERIOD_MINUTES = 24 * 60;
 export const LONG_BOARDING_MIN_PERIODS = 14;
