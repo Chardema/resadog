@@ -104,8 +104,8 @@ export default function CookiesPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Contenus tiers : carte Google Maps (chargée au clic)</h2>
             <p className="mb-4">
               La page d’accueil affiche d’abord un simple aperçu, sans aucun chargement depuis Google. La carte Google Maps
-              n’est chargée que si vous cliquez sur « Afficher la carte », et uniquement pour la visite en cours. Elle
-              s’affiche également directement si vous avez déjà accepté la mesure d’audience Google décrite ci-dessus.
+              n’est chargée que si vous cliquez sur « Afficher la carte », et uniquement pour la visite en cours.
+              Accepter la mesure d’audience Google décrite ci-dessus ne charge pas la carte.
             </p>
             <p className="mb-4">
               Une fois la carte chargée, Google peut recevoir votre adresse IP et déposer ses propres cookies ou traceurs,
