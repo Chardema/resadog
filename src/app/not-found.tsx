@@ -5,9 +5,17 @@ import { PawPrint } from "lucide-react";
 // Next.js injecte déjà <meta name="robots" content="noindex"> sur toute
 // réponse 404 (follow est implicite) : robots: null retire le « index, follow »
 // hérité du layout sans créer de seconde balise robots. Aucun canonical.
+// Titre absolu : le template « %s | La Patte Dorée » du layout ne s'applique
+// pas toujours au not-found racine. openGraph/twitter à null : la 404 n'hérite
+// ni du titre, ni de la description, ni de l'og:url « / » de l'accueil.
 export const metadata: Metadata = {
+  title: { absolute: "Page introuvable | La Patte Dorée" },
+  description:
+    "Cette page n'existe pas ou a été déplacée. Retrouvez la garde d'animaux de La Patte Dorée depuis l'accueil.",
   robots: null,
   alternates: { canonical: null },
+  openGraph: null,
+  twitter: null,
 };
 
 export default function NotFound() {

@@ -9152,5 +9152,13 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "La carte Google Maps n’est chargée qu’à votre demande, pour cette visite uniquement.": {
     "en": "The Google Maps map only loads at your request, for this visit only.",
     "es": "El mapa de Google Maps solo se carga si lo solicita, únicamente durante esta visita."
+  },
+  "Cette page n'existe pas ou a été déplacée. Retrouvez la garde d'animaux de La Patte Dorée depuis l'accueil.": {
+    "en": "This page does not exist or has been moved. Find La Patte Dorée pet care from reception.",
+    "es": "Esta página no existe o ha sido movida. Encuentre cuidado de mascotas La Patte Dorée en recepción."
+  },
+  "Page introuvable | La Patte Dorée": {
+    "en": "Page not found | La Patte Dorée",
+    "es": "Página no encontrada | La Patte Dorée"
   }
 } as const;

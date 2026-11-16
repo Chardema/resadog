@@ -931,7 +931,7 @@ const catalogue: Record<string, Translation> = {
   "· SIREN": { en: "· SIREN", es: "· SIREN" },
   "Historique": { en: "History", es: "Historial" },
 
-  // Local SEO & Disneyland Paris (src/lib/seo.ts & src/app/(local-seo)/[slug]/page.tsx)
+  // Local SEO & Disneyland Paris (src/lib/seo.ts & src/app/(local-seo)/_components/LocalSeoPage.tsx)
   "Page introuvable": { en: "Page not found", es: "Página no encontrada" },
   "Cette page n'existe pas.": {
     en: "This page does not exist.",
