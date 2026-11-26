@@ -225,6 +225,14 @@ model Booking {
   cancellationOrigin CancellationOrigin?
   cancelledAt        DateTime?
   couponRedeemedAt   DateTime?
+  // Acompte + solde différé (spec 07). depositAmount porte l'acompte pour
+  // DEPOSIT_BALANCE, le total pour FULL (nom historique conservé).
+  paymentPlan         PaymentPlan         @default(FULL)
+  balanceAmount       Float?
+  balanceDueAt        DateTime?
+  // Consentement au prélèvement hors session du solde (MIT).
+  mandateAcceptedAt   DateTime?
+  mandateLegalVersion String?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -242,11 +250,13 @@ model Booking {
   reviewRequest       ReviewRequest?
   noShow              BookingNoShow?
   notices             BookingNotice[]
+  installments        BookingInstallment[]
 
   @@index([clientId])
   @@index([petId])
   @@index([startDate, endDate])
   @@index([status])
+  @@index([paymentPlan, balanceDueAt])
 }
 
 enum BookingStatus {
@@ -257,6 +267,7 @@ enum BookingStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  EXPIRED // Demande dont l'autorisation bancaire a expiré avant acceptation
 }
 
 enum CancellationOrigin {
@@ -270,6 +281,51 @@ enum ServiceType {
   DAY_CARE // Visite de jour
   DROP_IN // Visite rapide
   DOG_WALKING // Promenade uniquement
+}
+
+enum PaymentPlan {
+  FULL // Totalité autorisée à la demande, capturée à l'acceptation
+  DEPOSIT_BALANCE // Acompte capturé à l'acceptation, solde prélevé à J-7
+}
+
+enum InstallmentKind {
+  BALANCE
+  ADJUSTMENT
+}
+
+enum InstallmentStatus {
+  SCHEDULED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+// Échéances encaissées après l'acompte (solde à J-7, ajustements acceptés).
+model BookingInstallment {
+  id                    String            @id @default(cuid())
+  bookingId             String
+  kind                  InstallmentKind
+  amount                Float
+  status                InstallmentStatus @default(SCHEDULED)
+  dueAt                 DateTime
+  attempts              Int               @default(0)
+  lastAttemptAt         DateTime?
+  nextAttemptAt         DateTime?
+  lastErrorCode         String?
+  stripePaymentIntentId String?           @unique
+  idempotencyKey        String            @unique
+  paidAt                DateTime?
+  refundedAmount        Float?
+  reminderSentAt        DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([status, dueAt])
 }
 
 // ============================================
@@ -294,6 +350,8 @@ model Payment {
   refundFailureReason        String?       @db.Text
   refundStartedEmailSentAt   DateTime?
   refundCompletedEmailSentAt DateTime?
+  // Carte enregistrée pour cette réservation (solde hors session).
+  stripePaymentMethodId      String?
   createdAt                  DateTime      @default(now())
   updatedAt                  DateTime      @updatedAt
 
@@ -374,6 +432,7 @@ enum PaymentStatus {
   FAILED
   REFUNDED
   PARTIALLY_REFUNDED
+  EXPIRED // Autorisation non capturée avant son expiration Stripe
 }
 
 enum RefundStatus {

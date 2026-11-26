@@ -30,7 +30,7 @@ import { BookingAttendanceActions } from "@/components/admin/BookingAttendanceAc
 import { FinanceBreakdown } from "@/components/admin/FinanceBreakdown";
 import type { BookingFinance } from "@/lib/finance";
 
-type BookingStatus = "PENDING" | "ACCEPTING" | "CANCELLING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+type BookingStatus = "PENDING" | "ACCEPTING" | "CANCELLING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "EXPIRED";
 type BookingFilter = "all" | "pending" | "confirmed" | "completed" | "cancelled";
 type AdminAction = "CONFIRMED" | "CANCELLED" | "COMPLETED";
 
@@ -131,6 +131,7 @@ const STATUS_META: Record<BookingStatus, { label: string; className: string }> =
   IN_PROGRESS: { label: "En cours", className: "bg-blue-50 text-blue-800 ring-blue-200" },
   COMPLETED: { label: "Terminée", className: "bg-gray-100 text-gray-700 ring-gray-200" },
   CANCELLED: { label: "Refusée / annulée", className: "bg-red-50 text-red-800 ring-red-200" },
+  EXPIRED: { label: "Demande expirée", className: "bg-gray-100 text-gray-700 ring-gray-200" },
 };
 
 const SERVICE_LABELS: Record<string, string> = {
