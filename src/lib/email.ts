@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { GOOGLE_REVIEW_URL } from "@/lib/google-reviews";
 import { getServiceDisplayPrice } from "@/lib/pricing";
 import { LEGAL_INFORMATION } from "@/lib/legal";
+import { isProductionDeployment } from "@/lib/runtime-env";
 
 let resend: Resend | null | undefined;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'christo59@pm.me';
@@ -81,6 +82,16 @@ function getErrorMessage(error: unknown): string {
   return JSON.stringify(error);
 }
 
+export const NON_PRODUCTION_EMAIL_ERROR = "E-mail non envoyé (hors production).";
+
+export function maskEmailAddress(address: string): string {
+  const match = address.match(/<([^>]+)>/);
+  const email = (match ? match[1] : address).trim();
+  const at = email.lastIndexOf("@");
+  if (at <= 0) return "***";
+  return `${email[0]}***${email.slice(at)}`;
+}
+
 async function sendTransactionalEmail(payload: EmailPayload, idempotencyKey?: string) {
   const basePayload = {
     from: payload.from,
@@ -92,6 +103,22 @@ async function sendTransactionalEmail(payload: EmailPayload, idempotencyKey?: st
 
   if (!payload.html && !payload.text) {
     throw new Error("Email HTML ou texte requis.");
+  }
+
+  // Aperçus Vercel, local, CI : Resend n'est jamais appelé, même avec une clé.
+  // Pas d'erreur pour ne pas bloquer réservation ou webhook ; trace en FAILED.
+  if (!isProductionDeployment()) {
+    console.info("E-mail non envoyé (hors production)", {
+      to: (Array.isArray(payload.to) ? payload.to : [payload.to]).map(maskEmailAddress),
+      subject: payload.subject,
+    });
+    await recordEmailLog({
+      payload,
+      idempotencyKey,
+      status: "FAILED",
+      error: NON_PRODUCTION_EMAIL_ERROR,
+    });
+    return null;
   }
 
   try {

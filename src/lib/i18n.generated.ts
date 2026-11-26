@@ -7881,6 +7881,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Phone :",
     "es": "Teléfono :"
   },
+  "Téléversement désactivé sur les environnements de test": {
+    "en": "Uploads are disabled on test environments",
+    "es": "La carga de archivos está desactivada en los entornos de prueba"
+  },
   "Temps calme ou interaction selon le tempérament du chat.": {
     "en": "Calm time or interaction depending on the temperament of the cat.",
     "es": "Tiempo de calma o interacción dependiendo del temperamento del gato."

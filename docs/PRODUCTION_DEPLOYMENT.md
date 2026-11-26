@@ -26,6 +26,16 @@ CHECK_ENV_TARGET=production CHECK_ENV_FILE=.vercel/.env.production.local node sc
 CHECK_ENV_FILE=.vercel/.env.production.local node scripts/check-stripe-live.mjs
 ```
 
+## Hors production : pas de GA/Ads, pas d'e-mail, pas d'upload
+
+- Règle unique : `isProductionDeployment()` (`src/lib/runtime-env.ts`). Vrai seulement si `VERCEL_ENV=production` côté serveur, `NEXT_PUBLIC_VERCEL_ENV=production` côté navigateur. `NODE_ENV` n'est jamais utilisé.
+- Aperçus Vercel, local et CI sont donc hors production, même avec des clés réelles dans l'environnement.
+- GA/Ads : aucun ID, gtag.js jamais injecté, aucune conversion, même après « Tout accepter ». En prod, `G-6HN68EFFPH` est utilisé si `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID` est absente.
+- E-mails : Resend n'est jamais appelé. Le log indique « E-mail non envoyé (hors production) » (destinataire masqué) et l'EmailLog est enregistré en `FAILED`.
+- UploadThing : le middleware refuse l'envoi, l'interface masque les boutons et le justificatif de naissance n'est pas exigé.
+- Upstash Redis n'est pas utilisé : la limitation de débit passe par PostgreSQL, donc la base de test.
+- Prérequis : garder « Automatically expose System Environment Variables » activé sur Vercel (`NEXT_PUBLIC_VERCEL_ENV`).
+
 ## 2. Variables Vercel
 
 Configurer ces variables dans Vercel, pour Production et Preview si besoin :

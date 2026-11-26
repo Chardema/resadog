@@ -14,7 +14,7 @@ import { cookies, headers } from "next/headers";
 import Script from "next/script";
 import { isLocale } from "@/lib/i18n";
 import { isGoogleConsentRequiredRegion } from "@/lib/google-consent";
-import { GOOGLE_CONSENT_BOOTSTRAP } from "@/lib/google-analytics";
+import { getGoogleConsentBootstrap } from "@/lib/google-analytics";
 import { TwoFactorGuard } from "@/components/auth/TwoFactorGuard";
 
 const geistSans = Geist({
@@ -111,7 +111,7 @@ export default async function RootLayout({
         <Script
           id="google-consent-default"
           strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: GOOGLE_CONSENT_BOOTSTRAP }}
+          dangerouslySetInnerHTML={{ __html: getGoogleConsentBootstrap() }}
         />
       </body>
     </html>
