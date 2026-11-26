@@ -1,4 +1,8 @@
 import { isDirectPayment } from "@/lib/direct-booking";
+import {
+  ADDITIONAL_CHARGES_DISABLED_MESSAGE,
+  ADDITIONAL_CHARGES_ENABLED,
+} from "@/lib/additional-charges";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
@@ -14,7 +18,7 @@ const chargeSchema = z.object({
   idempotencyKey: z.string().uuid(),
 });
 
-// Créer un supplément et débiter automatiquement
+// Créer un supplément et débiter automatiquement (désactivé, voir ADDITIONAL_CHARGES_ENABLED)
 export async function POST(request: NextRequest) {
   let claimedIdempotencyKey: string | null = null;
   try {
@@ -24,6 +28,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Accès non autorisé" },
         { status: 403 }
+      );
+    }
+
+    if (!ADDITIONAL_CHARGES_ENABLED) {
+      return NextResponse.json(
+        { error: ADDITIONAL_CHARGES_DISABLED_MESSAGE },
+        { status: 409 }
       );
     }
 
