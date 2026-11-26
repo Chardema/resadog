@@ -1,3 +1,5 @@
+import { isProductionDeployment } from "@/lib/runtime-env";
+
 export function formatPetAge(age?: number | null) {
   if (age === undefined || age === null || Number.isNaN(age)) return "Âge inconnu";
 
@@ -91,6 +93,12 @@ export function isPetBirthDateVerified(pet: Pick<PetProfileData, "birthDateVerif
 
 export function requiresPetBirthDateProof(role?: string | null) {
   return role !== "ADMIN";
+}
+
+// Hors production le téléversement est désactivé : exiger le justificatif
+// empêcherait tout enregistrement de profil sur les environnements de test.
+export function isPetBirthDateProofRequired(role?: string | null) {
+  return isProductionDeployment() && requiresPetBirthDateProof(role);
 }
 
 function hasRequiredPetProfileValue(pet: PetProfileData, field: RequiredPetProfileField) {

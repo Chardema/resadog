@@ -1,5 +1,6 @@
 import { Redis } from "@upstash/redis";
 import { prisma } from "@/lib/db/prisma";
+import { isProductionDeployment } from "@/lib/runtime-env";
 
 /**
  * Rate limiter pour les endpoints sensibles.
@@ -12,6 +13,9 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 let redis: Redis | null = null;
 
 function getRedis() {
+  // Hors production, ne jamais écrire dans l'Upstash réel (compteurs partagés
+  // avec la prod) : la limite passe par PostgreSQL, donc la base de test.
+  if (!isProductionDeployment()) return null;
   if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
     return null;
   }

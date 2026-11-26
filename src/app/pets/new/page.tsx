@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { getPetProfileCompletion, requiresPetBirthDateProof } from "@/lib/pets";
+import { getPetProfileCompletion, isPetBirthDateProofRequired } from "@/lib/pets";
 import {
   emptyPetFormData,
   PetProfileForm,
@@ -27,7 +27,7 @@ function NewPetContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState<PetFormData>(emptyPetFormData);
-  const birthDateProofRequired = requiresPetBirthDateProof(session?.user?.role);
+  const birthDateProofRequired = isPetBirthDateProofRequired(session?.user?.role);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
