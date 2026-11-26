@@ -4,6 +4,16 @@ import { prisma } from "@/lib/db/prisma";
 import { GOOGLE_REVIEW_URL } from "@/lib/google-reviews";
 import { getServiceDisplayPrice } from "@/lib/pricing";
 import { LEGAL_INFORMATION } from "@/lib/legal";
+import {
+  AUTHORIZATION_EXPIRED_SUBJECT,
+  DEPOSIT_CONFIRMATION_SUBJECT,
+  PAYMENT_PLAN_LOCALES,
+  getAuthorizationExpiredSection,
+  getDepositConfirmationSection,
+  type DepositConfirmationSchedule,
+  type PaymentPlanLocale,
+  type PlanEmailSection,
+} from "@/lib/payment-plan-text";
 
 let resend: Resend | null | undefined;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'christo59@pm.me';
@@ -1783,3 +1793,186 @@ export function buildGoogleReviewEmail(userName: string, petName: string) {
 export async function sendGoogleReviewEmail(email: string, userName: string, petName: string, idempotencyKey: string) {
   return sendTransactionalEmail({ from: EMAIL_FROM, to: email, replyTo: SUPPORT_EMAIL, ...buildGoogleReviewEmail(userName, petName) }, idempotencyKey);
 }
+
+// ---------------------------------------------------------------------------
+// Plan acompte + solde (spec 07) : e-mails trilingues FR / EN / ES
+// ---------------------------------------------------------------------------
+
+const PLAN_GREETING: Record<PaymentPlanLocale, (name: string) => string> = {
+  fr: (name) => `Bonjour ${name},`,
+  en: (name) => `Hello ${name},`,
+  es: (name) => `Hola ${name}:`,
+};
+const PLAN_SUPPORT_LINE: Record<PaymentPlanLocale, string> = {
+  fr: `Pour toute question, répondez à cet email ou écrivez à ${SUPPORT_EMAIL}.`,
+  en: `If you have any questions, reply to this email or write to ${SUPPORT_EMAIL}.`,
+  es: `Si tiene alguna pregunta, responda a este correo o escriba a ${SUPPORT_EMAIL}.`,
+};
+const PLAN_SECTION_HEADER: Record<PaymentPlanLocale, string> = { fr: "", en: "ENGLISH", es: "ESPAÑOL" };
+
+export function buildPaymentPlanEmail({
+  subject,
+  userName,
+  sections,
+  url,
+  accent = "#15803d",
+}: {
+  subject: string;
+  userName: string;
+  sections: Record<PaymentPlanLocale, PlanEmailSection>;
+  url: string;
+  accent?: string;
+}) {
+  const text = PAYMENT_PLAN_LOCALES.map((locale) => {
+    const section = sections[locale];
+    return [
+      ...(PLAN_SECTION_HEADER[locale] ? [`────────── ${PLAN_SECTION_HEADER[locale]} ──────────`, ""] : ["La Patte Dorée"]),
+      section.title,
+      "",
+      PLAN_GREETING[locale](userName),
+      "",
+      section.subtitle,
+      ...section.paragraphs.flatMap((line) => ["", line]),
+      ...(section.rows.length > 0 ? ["", ...section.rows.map((row) => `${row.label} : ${row.value}`)] : []),
+      "",
+      `${section.buttonLabel} : ${url}`,
+      "",
+      PLAN_SUPPORT_LINE[locale],
+    ].join("\n");
+  }).join("\n\n");
+
+  const sectionHtml = (locale: PaymentPlanLocale) => {
+    const section = sections[locale];
+    const heading = locale === "fr" ? "" : `
+      <h2 style="margin:0; color:#171717; font-size:22px; line-height:1.3;">${escapeHtml(section.title)}</h2>
+      <p style="margin:10px 0 22px; color:#5f6b76; font-size:16px; line-height:1.6;">${escapeHtml(section.subtitle)}</p>
+    `;
+    return `
+      <section lang="${locale}">
+        ${heading}
+        <p style="margin:0; color:#344054; font-size:16px; line-height:1.7;">${escapeHtml(PLAN_GREETING[locale](userName))}</p>
+        ${section.rows.length > 0 ? detailRows(section.rows) : ""}
+        ${section.paragraphs.map((line) => `<p style="margin:16px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(line)}</p>`).join("")}
+        ${actionButton(section.buttonLabel, url, accent)}
+      </section>
+    `;
+  };
+
+  const html = emailLayout({
+    preview: sections.fr.subtitle,
+    title: sections.fr.title,
+    subtitle: `${sections.fr.subtitle} · English and Spanish below`,
+    accent,
+    bilingualFooter: true,
+    children: PAYMENT_PLAN_LOCALES.map(sectionHtml).join(`<div style="margin:32px 0; border-top:2px solid #eadfce;"></div>`),
+  });
+
+  return {
+    subject,
+    text: `${text}\n\nLa Patte Dorée · activité de ${LEGAL_INFORMATION.commercialName}, EI · SIREN ${LEGAL_INFORMATION.siren}`,
+    html,
+  };
+}
+
+const planSections = <T,>(build: (input: T, locale: PaymentPlanLocale) => PlanEmailSection, input: T) =>
+  Object.fromEntries(PAYMENT_PLAN_LOCALES.map((locale) => [locale, build(input, locale)])) as Record<PaymentPlanLocale, PlanEmailSection>;
+
+// Confirmation d'une réservation en plan acompte + solde, avec le calendrier.
+export const sendBookingDepositConfirmationEmail = async (
+  email: string,
+  userName: string,
+  schedule: DepositConfirmationSchedule,
+  options?: { idempotencyKey?: string }
+) => sendTransactionalEmail({
+  from: EMAIL_FROM,
+  to: email,
+  replyTo: SUPPORT_EMAIL,
+  ...buildPaymentPlanEmail({
+    subject: DEPOSIT_CONFIRMATION_SUBJECT,
+    userName,
+    sections: planSections(getDepositConfirmationSection, schedule),
+    url: `${APP_URL}/dashboard`,
+  }),
+}, options?.idempotencyKey);
+
+// Demande dont l'autorisation bancaire a expiré avant acceptation (rien n'est débité).
+export const sendBookingAuthorizationExpiredEmail = async (
+  email: string,
+  userName: string,
+  petName: string,
+  options?: { idempotencyKey?: string }
+) => sendTransactionalEmail({
+  from: EMAIL_FROM,
+  to: email,
+  replyTo: SUPPORT_EMAIL,
+  ...buildPaymentPlanEmail({
+    subject: AUTHORIZATION_EXPIRED_SUBJECT,
+    userName,
+    sections: planSections(getAuthorizationExpiredSection, petName),
+    url: `${APP_URL}/booking`,
+    accent: "#c66a2d",
+  }),
+}, options?.idempotencyKey);
+
+export type AuthorizationAlertDetails = {
+  bookingId: string;
+  petName: string;
+  userName: string;
+  userEmail: string;
+  startDate: string;
+  endDate: string;
+  authorizedAmount: number;
+  serviceLabel?: string;
+  expiresAt?: string;
+  clientNotified?: boolean;
+};
+
+// Alerte équipe : autorisation expirée (demande passée en « Demande expirée »)
+// ou sur le point d'expirer (dernier moment pour accepter ou refuser).
+export const sendBookingAuthorizationAlertAdminEmail = async (
+  kind: "EXPIRED" | "EXPIRING",
+  details: AuthorizationAlertDetails,
+  options?: { idempotencyKey?: string }
+) => {
+  const reference = `#${details.bookingId.slice(-8).toUpperCase()}`;
+  const rows = [
+    { label: "Réservation", value: reference },
+    { label: "Client", value: `${details.userName} (${details.userEmail})` },
+    { label: "Animal", value: details.petName },
+    ...(details.serviceLabel ? [{ label: "Prestation", value: details.serviceLabel }] : []),
+    { label: "Début", value: details.startDate },
+    { label: "Fin", value: details.endDate },
+    { label: "Montant autorisé", value: `${formatCurrency(details.authorizedAmount)} €` },
+    ...(details.expiresAt ? [{ label: "Expiration de l'autorisation", value: details.expiresAt }] : []),
+  ];
+  const title = kind === "EXPIRED" ? "Autorisation bancaire expirée" : "Autorisation bancaire bientôt expirée";
+  const body = kind === "EXPIRED"
+    ? [
+        `L'autorisation de la demande ${reference} a expiré avant acceptation : la demande est passée en « Demande expirée » et ne peut plus être acceptée.`,
+        details.clientNotified
+          ? "Le client a été prévenu par email et invité à refaire une demande."
+          : "Le client n'a pas été prévenu automatiquement (demande ancienne ou date passée).",
+      ]
+    : [
+        `L'autorisation de la demande ${reference} expire bientôt. Acceptez ou refusez la demande avant son expiration, sinon elle passera en « Demande expirée ».`,
+      ];
+
+  return sendTransactionalEmail({
+    from: EMAIL_FROM,
+    to: ADMIN_EMAIL,
+    replyTo: details.userEmail,
+    subject: `${title} - ${details.userName} - ${details.petName}`,
+    text: plainTextEmail({ title, greeting: "Bonjour,", body, rows, url: `${APP_URL}/admin/bookings` }),
+    html: emailLayout({
+      preview: body[0],
+      title,
+      subtitle: body[0],
+      accent: kind === "EXPIRED" ? "#b42318" : "#c66a2d",
+      children: `
+        ${detailRows(rows)}
+        ${body.slice(1).map((line) => `<p style="margin:16px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(line)}</p>`).join("")}
+        ${actionButton("Ouvrir les réservations", `${APP_URL}/admin/bookings`)}
+      `,
+    }),
+  }, options?.idempotencyKey);
+};

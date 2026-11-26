@@ -42,6 +42,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   IN_PROGRESS: { label: "En cours", color: "bg-blue-100 text-blue-700" },
   COMPLETED: { label: "Terminée", color: "bg-gray-100 text-gray-700" },
   CANCELLED: { label: "Annulée", color: "bg-red-100 text-red-700" },
+  EXPIRED: { label: "Demande expirée", color: "bg-gray-100 text-gray-700" },
 };
 
 function getRescheduleMailto(booking: Booking) {
@@ -88,7 +89,7 @@ export default function HistoryPage() {
 
   const filteredBookings = bookings.filter((b) => {
     if (filter === "all") return true;
-    if (filter === "past") return ["COMPLETED", "CANCELLED"].includes(b.status);
+    if (filter === "past") return ["COMPLETED", "CANCELLED", "EXPIRED"].includes(b.status);
     if (filter === "active") return ["PENDING", "ACCEPTING", "CANCELLING", "CONFIRMED", "IN_PROGRESS"].includes(b.status);
     return b.status === filter;
   });

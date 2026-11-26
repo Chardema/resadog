@@ -104,6 +104,11 @@ const statusLabels: Record<string, { label: string; className: string; icon: typ
     className: "bg-red-100 text-red-800",
     icon: X,
   },
+  EXPIRED: {
+    label: "Demande expirée",
+    className: "bg-gray-100 text-gray-700",
+    icon: AlertCircle,
+  },
 };
 
 function formatDate(date: string) {

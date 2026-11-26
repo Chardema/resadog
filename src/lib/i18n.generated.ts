@@ -2629,6 +2629,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Request sent",
     "es": "Solicitud enviada"
   },
+  "Demande expirée": {
+    "en": "Request expired",
+    "es": "Solicitud caducada"
+  },
   "Demande Reçue ! 🎉": {
     "en": "Request Received! 🎉",
     "es": "¡Solicitud recibida! 🎉"

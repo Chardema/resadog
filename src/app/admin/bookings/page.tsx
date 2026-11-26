@@ -149,6 +149,7 @@ const PAYMENT_META: Record<string, { label: string; className: string }> = {
   FAILED: { label: "Échoué", className: "bg-red-50 text-red-800" },
   REFUNDED: { label: "Libéré / remboursé", className: "bg-purple-50 text-purple-800" },
   PARTIALLY_REFUNDED: { label: "Remboursé partiel", className: "bg-purple-50 text-purple-800" },
+  EXPIRED: { label: "Empreinte expirée", className: "bg-gray-100 text-gray-700" },
 };
 
 const REFUND_META: Record<string, { label: string; className: string }> = {
@@ -295,7 +296,7 @@ export default function AdminBookingsPage() {
       if (["PENDING", "ACCEPTING", "CANCELLING"].includes(booking.status)) base.pending += 1;
       if (booking.status === "CONFIRMED") base.confirmed += 1;
       if (booking.status === "COMPLETED") base.completed += 1;
-      if (booking.status === "CANCELLED") base.cancelled += 1;
+      if (booking.status === "CANCELLED" || booking.status === "EXPIRED") base.cancelled += 1;
     });
     return base;
   }, [bookings]);
@@ -308,7 +309,8 @@ export default function AdminBookingsPage() {
       if (
         statusFilter &&
         booking.status !== statusFilter &&
-        !(filter === "pending" && ["ACCEPTING", "CANCELLING"].includes(booking.status))
+        !(filter === "pending" && ["ACCEPTING", "CANCELLING"].includes(booking.status)) &&
+        !(filter === "cancelled" && booking.status === "EXPIRED")
       ) return false;
       if (!query) return true;
 

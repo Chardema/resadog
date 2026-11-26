@@ -23,6 +23,12 @@ import {
   TeamCancellationPaymentError,
   type TeamCancellationPaymentResult,
 } from "@/lib/team-booking-cancellation";
+import {
+  ensureBalanceInstallment,
+  isDepositBalanceBooking,
+  sendDepositConfirmationEmail,
+} from "@/lib/booking-balance";
+import { expireBookingAuthorization, isAuthorizationExpiryEnabled } from "@/lib/authorization-expiry";
 
 const statusUpdateSchema = z.object({
   status: z.enum(["CONFIRMED", "CANCELLED", "COMPLETED"]),
@@ -178,10 +184,26 @@ export async function PATCH(
         paymentIntent = await stripe.paymentIntents.retrieve(booking.payment.stripePaymentId);
         
         if (paymentIntent.status === 'requires_capture') {
+          // Plan acompte : le PaymentIntent n'autorise que l'acompte, c'est lui seul qui est capturé.
           paymentIntent = await stripe.paymentIntents.capture(
             booking.payment.stripePaymentId,
             {},
             { idempotencyKey: `booking:${booking.id}:confirmation-capture` }
+          );
+        } else if (paymentIntent.status === "canceled" && isAuthorizationExpiryEnabled()) {
+          // Autorisation expirée : la demande ne peut plus être acceptée, elle
+          // passe en « Demande expirée » et le client est prévenu.
+          await releaseBookingConfirmationClaim(booking.id);
+          const expiry = await expireBookingAuthorization(paymentIntent);
+          if (expiry.notifyErrors.length > 0) {
+            console.error(`Demande ${booking.id} expirée, e-mails non envoyés :`, expiry.notifyErrors);
+          }
+          return NextResponse.json(
+            {
+              error: "L'autorisation bancaire de cette demande a expiré : elle ne peut plus être acceptée. La demande est passée en « Demande expirée ».",
+              expired: expiry.outcome === "EXPIRED" || expiry.outcome === "ALREADY_EXPIRED",
+            },
+            { status: 409 }
           );
         } else if (paymentIntent.status !== 'succeeded') {
           await releaseBookingConfirmationClaim(booking.id);
@@ -220,6 +242,8 @@ export async function PATCH(
         if (confirmedBooking.count !== 1) {
           throw new Error(`Verrou de confirmation perdu pour ${booking.id}`);
         }
+        // Plan acompte : le solde devient une échéance programmée à J-7.
+        await ensureBalanceInstallment(tx, booking);
         return tx.booking.findUniqueOrThrow({ where: { id: booking.id } });
       });
     }
@@ -281,13 +305,17 @@ export async function PATCH(
     if (status === "CONFIRMED") {
       await awardBookingLoyalty(bookingId);
       try {
-        const bookingDetails = getBookingEmailDetails(booking);
-        await sendBookingConfirmationEmail(
-          booking.client.email,
-          booking.client.name || "Client",
-          bookingDetails,
-          { idempotencyKey: `booking-confirmation-${booking.id}` }
-        );
+        if (isDepositBalanceBooking(booking)) {
+          await sendDepositConfirmationEmail(booking);
+        } else {
+          const bookingDetails = getBookingEmailDetails(booking);
+          await sendBookingConfirmationEmail(
+            booking.client.email,
+            booking.client.name || "Client",
+            bookingDetails,
+            { idempotencyKey: `booking-confirmation-${booking.id}` }
+          );
+        }
         confirmationEmailSent = true;
       } catch (emailError) {
         confirmationEmailSent = false;

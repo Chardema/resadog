@@ -19,6 +19,16 @@ import { randomUUID } from "crypto";
 import { awardBookingLoyalty } from "@/lib/loyalty-ledger";
 import { getBookingEmailDetails } from "@/lib/booking-email-details";
 import { readCheckoutDepositRecord } from "@/lib/checkout-payment-plan";
+import {
+  ensureBalanceInstallment,
+  isDepositBalanceBooking,
+  sendDepositConfirmationEmail,
+} from "@/lib/booking-balance";
+import {
+  assertExpiryNotified,
+  expireAuthorizationFromCharge,
+  expireBookingAuthorization,
+} from "@/lib/authorization-expiry";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -58,6 +68,15 @@ export async function POST(request: NextRequest) {
 
       case "payment_intent.payment_failed":
         await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+        break;
+
+      // Expiration d'une autorisation non capturée (spec 07, lot 4).
+      case "payment_intent.canceled":
+        assertExpiryNotified(await expireBookingAuthorization(event.data.object as Stripe.PaymentIntent));
+        break;
+
+      case "charge.expired":
+        assertExpiryNotified(await expireAuthorizationFromCharge(event.data.object as Stripe.Charge));
         break;
 
       case "refund.created":
@@ -356,16 +375,24 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     if (repaired.count === 1) {
       const booking = await prisma.booking.findUnique({
         where: { id: bookingId },
-        include: { client: true, pets: true, pet: true },
+        include: { client: true, pets: true, pet: true, payment: true },
       });
+      // Plan acompte : la validation interrompue n'a peut-être pas créé l'échéance du solde.
+      if (booking && isDepositBalanceBooking(booking)) {
+        await ensureBalanceInstallment(prisma, booking);
+      }
       if (booking) {
         try {
-          await sendBookingConfirmationEmail(
-            booking.client.email,
-            booking.client.name || "Client",
-            getBookingEmailDetails(booking),
-            { idempotencyKey: `booking-confirmation-${booking.id}` }
-          );
+          if (isDepositBalanceBooking(booking)) {
+            await sendDepositConfirmationEmail(booking);
+          } else {
+            await sendBookingConfirmationEmail(
+              booking.client.email,
+              booking.client.name || "Client",
+              getBookingEmailDetails(booking),
+              { idempotencyKey: `booking-confirmation-${booking.id}` }
+            );
+          }
         } catch (emailError) {
           console.error(`Email de confirmation non envoyé pour ${booking.id}:`, emailError);
         }
