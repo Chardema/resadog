@@ -26,10 +26,11 @@ import {
 } from "@/lib/booking-conversion";
 
 function booking(
-  overrides: Partial<BookingConversionCandidate> & { clientId?: string } = {}
+  overrides: Partial<BookingConversionCandidate> & { clientId?: string; serviceType?: string } = {}
 ) {
   return {
     clientId: "user-1",
+    serviceType: "BOARDING",
     totalPrice: 120,
     depositPaid: false,
     payment: { status: "PROCESSING", stripePaymentId: "pi_123", amount: 120 },
@@ -87,6 +88,7 @@ describe("GET /api/bookings/[bookingId]/conversion", () => {
       bookingId: "booking-1",
       value: 87.5,
       currency: "EUR",
+      serviceType: "BOARDING",
     });
     expect(mockBookingFindUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "booking-1" } })
