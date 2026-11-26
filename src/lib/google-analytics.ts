@@ -1,4 +1,5 @@
 import { GOOGLE_CONSENT_STORAGE_KEY } from "@/lib/google-consent";
+import { getServiceLabel, SERVICE_TYPES, type AppServiceType } from "@/lib/services";
 
 declare global {
   interface Window {
@@ -134,6 +135,7 @@ export type BookingConversionDeps = {
 
 const leadMarkerKey = (bookingId: string) => `lpd_ga_lead_${bookingId}`;
 const adsMarkerKey = (bookingId: string) => `lpd_ads_conv_${bookingId}`;
+const purchaseMarkerKey = (bookingId: string) => `lpd_ga_purchase_${bookingId}`;
 
 // Garde en mémoire pour la page courante (double effet React, stockage
 // indisponible) en plus du marqueur persistant en localStorage.
@@ -164,15 +166,45 @@ function sendOnce(
   return true;
 }
 
+function isKnownServiceType(serviceType: string | undefined): serviceType is AppServiceType {
+  return SERVICE_TYPES.includes(serviceType as AppServiceType);
+}
+
+// Article GA4 générique : type de prestation uniquement, aucune donnée
+// personnelle (ni nom, ni e-mail, ni animal, ni identifiant client).
+function getPurchaseItem(serviceType: string | undefined, price: number) {
+  const known = isKnownServiceType(serviceType);
+  return {
+    item_id: known ? serviceType : "booking",
+    item_name: known ? getServiceLabel(serviceType) : "Réservation",
+    item_category: "reservation",
+    price,
+    quantity: 1,
+  };
+}
+
+// purchase = paiement sécurisé : empreinte Stripe posée par le webhook
+// checkout.session.completed, ou paiement capturé / acompte réglé. Envoyé une
+// seule fois par transaction_id (= id de réservation).
 export function sendBookingConversion(
-  { bookingId, value }: { bookingId: string; value?: number },
+  { bookingId, value, serviceType }: { bookingId: string; value?: number; serviceType?: string },
   { gtag, storage, hasConsent, sendTo }: BookingConversionDeps
 ) {
-  const result = { lead: false, ads: false };
+  const result = { purchase: false, lead: false, ads: false };
   if (!bookingId || !hasConsent || typeof gtag !== "function") return result;
 
   const resolvedValue = resolveBookingConversionValue(value);
 
+  result.purchase = sendOnce(purchaseMarkerKey(bookingId), storage, () => {
+    gtag("event", "purchase", {
+      transaction_id: bookingId,
+      value: resolvedValue,
+      currency: "EUR",
+      items: [getPurchaseItem(serviceType, resolvedValue)],
+    });
+  });
+
+  // generate_lead conservé pour la continuité de l'historique GA4.
   result.lead = sendOnce(leadMarkerKey(bookingId), storage, () => {
     gtag("event", "generate_lead", {
       currency: "EUR",
@@ -280,7 +312,11 @@ export function isBookingConversionSent(
   storage: Pick<Storage, "getItem"> | null,
   sendTo: string
 ) {
-  const keys = [leadMarkerKey(bookingId), ...(sendTo ? [adsMarkerKey(bookingId)] : [])];
+  const keys = [
+    purchaseMarkerKey(bookingId),
+    leadMarkerKey(bookingId),
+    ...(sendTo ? [adsMarkerKey(bookingId)] : []),
+  ];
   return keys.every((key) => {
     if (sentInThisPage.has(key)) return true;
     try {
@@ -294,7 +330,7 @@ export function isBookingConversionSent(
 // ── Vérification serveur ────────────────────────────────────────────────
 
 export type BookingConversionVerification =
-  | { status: "paid"; value: number | null }
+  | { status: "paid"; value: number | null; serviceType?: string }
   // 401/403/404 ou toujours non payée après les réessais : ne rien envoyer.
   | { status: "rejected" }
   // Réseau ou erreur serveur : on pourra retenter plus tard.
@@ -331,13 +367,18 @@ export async function verifyBookingConversion(
         { cache: "no-store", credentials: "same-origin" }
       );
       if (response.ok) {
-        const data = (await response.json()) as { paid?: unknown; value?: unknown };
+        const data = (await response.json()) as {
+          paid?: unknown;
+          value?: unknown;
+          serviceType?: unknown;
+        };
         if (data?.paid !== true) return { status: "rejected" };
         const value =
           typeof data.value === "number" && Number.isFinite(data.value) && data.value > 0
             ? data.value
             : null;
-        return { status: "paid", value };
+        const serviceType = typeof data.serviceType === "string" ? data.serviceType : undefined;
+        return { status: "paid", value, serviceType };
       }
       if ([401, 403, 404].includes(response.status)) return { status: "rejected" };
       last = response.status === 409 ? { status: "rejected" } : { status: "unavailable" };
@@ -389,8 +430,9 @@ export function processBookingConversion(
 
 async function runBookingConversion(
   bookingId: string,
-  { storage, hasConsent, getGtag, sendTo, verify, now = Date.now }: ProcessBookingConversionDeps
+  deps: ProcessBookingConversionDeps
 ): Promise<BookingConversionOutcome> {
+  const { storage, hasConsent, getGtag, sendTo, verify, now = Date.now } = deps;
   if (isBookingConversionSent(bookingId, storage, sendTo)) {
     forgetPendingBookingConversion(bookingId, storage, now());
     return "already-sent";
@@ -412,7 +454,7 @@ async function runBookingConversion(
   if (!hasConsent()) return "pending";
 
   sendBookingConversion(
-    { bookingId, value: verification.value ?? undefined },
+    { bookingId, value: verification.value ?? undefined, serviceType: verification.serviceType },
     { gtag: getGtag(), storage, hasConsent: true, sendTo }
   );
   const sent = isBookingConversionSent(bookingId, storage, sendTo);

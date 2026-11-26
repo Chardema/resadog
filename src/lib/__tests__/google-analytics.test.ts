@@ -32,6 +32,96 @@ function adsCalls(gtag: ReturnType<typeof vi.fn>) {
   return gtag.mock.calls.filter((call) => call[0] === "event" && call[1] === "conversion");
 }
 
+function purchaseCalls(gtag: ReturnType<typeof vi.fn>) {
+  return gtag.mock.calls.filter((call) => call[0] === "event" && call[1] === "purchase");
+}
+
+describe("événement GA4 purchase", () => {
+  beforeEach(() => {
+    resetBookingConversionMemory();
+  });
+
+  it("envoie un purchase conforme avec la valeur fournie et le libellé de service", () => {
+    const gtag = vi.fn();
+    const result = sendBookingConversion(
+      { bookingId: "p1", value: 132.5, serviceType: "BOARDING" },
+      { gtag, storage: createStorage(), hasConsent: true, sendTo: SEND_TO }
+    );
+    expect(result).toEqual({ purchase: true, lead: true, ads: true });
+    expect(purchaseCalls(gtag)).toHaveLength(1);
+    expect(purchaseCalls(gtag)[0][2]).toEqual({
+      transaction_id: "p1",
+      value: 132.5,
+      currency: "EUR",
+      items: [
+        {
+          item_id: "BOARDING",
+          item_name: "Hébergement",
+          item_category: "reservation",
+          price: 132.5,
+          quantity: 1,
+        },
+      ],
+    });
+  });
+
+  it("utilise un article générique si le type de service est inconnu ou absent", () => {
+    const gtag = vi.fn();
+    const deps = { gtag, storage: createStorage(), hasConsent: true, sendTo: "" };
+    sendBookingConversion({ bookingId: "p2", value: 50 }, deps);
+    sendBookingConversion({ bookingId: "p3", value: 50, serviceType: "UNKNOWN" }, deps);
+    for (const call of purchaseCalls(gtag)) {
+      expect(call[2].items).toEqual([
+        { item_id: "booking", item_name: "Réservation", item_category: "reservation", price: 50, quantity: 1 },
+      ]);
+    }
+    expect(purchaseCalls(gtag)).toHaveLength(2);
+  });
+
+  it("ne transmet que les clés autorisées (liste blanche, aucune donnée personnelle)", () => {
+    const gtag = vi.fn();
+    sendBookingConversion(
+      { bookingId: "p4", value: 70, serviceType: "DOG_WALKING" },
+      { gtag, storage: createStorage(), hasConsent: true, sendTo: SEND_TO }
+    );
+    const params = purchaseCalls(gtag)[0][2] as Record<string, unknown>;
+    expect(Object.keys(params).sort()).toEqual(["currency", "items", "transaction_id", "value"]);
+    const items = params.items as Array<Record<string, unknown>>;
+    expect(items).toHaveLength(1);
+    expect(Object.keys(items[0]).sort()).toEqual([
+      "item_category",
+      "item_id",
+      "item_name",
+      "price",
+      "quantity",
+    ]);
+  });
+
+  it("pose son propre marqueur et n'envoie pas de second purchase après rechargement", () => {
+    const gtag = vi.fn();
+    const storage = createStorage();
+    const deps = { gtag, storage, hasConsent: true, sendTo: SEND_TO };
+    sendBookingConversion({ bookingId: "p5", value: 60, serviceType: "DAY_CARE" }, deps);
+    sendBookingConversion({ bookingId: "p5", value: 60, serviceType: "DAY_CARE" }, deps);
+    resetBookingConversionMemory();
+    sendBookingConversion({ bookingId: "p5", value: 60, serviceType: "DAY_CARE" }, deps);
+
+    expect(purchaseCalls(gtag)).toHaveLength(1);
+    expect(storage.values.get("lpd_ga_purchase_p5")).toBe("1");
+  });
+
+  it("n'envoie aucun purchase sans consentement et ne pose pas de marqueur", () => {
+    const gtag = vi.fn();
+    const storage = createStorage();
+    sendBookingConversion(
+      { bookingId: "p6", value: 60, serviceType: "BOARDING" },
+      { gtag, storage, hasConsent: false, sendTo: SEND_TO }
+    );
+    expect(gtag).not.toHaveBeenCalled();
+    expect(storage.values.has("lpd_ga_purchase_p6")).toBe(false);
+  });
+});
+
 describe("sendBookingConversion", () => {
   beforeEach(() => {
     resetBookingConversionMemory();
@@ -56,7 +146,7 @@ describe("sendBookingConversion", () => {
       { bookingId: "b1", value: 60 },
       { gtag, storage, hasConsent: false, sendTo: SEND_TO }
     );
-    expect(result).toEqual({ lead: false, ads: false });
+    expect(result).toEqual({ purchase: false, lead: false, ads: false });
     expect(gtag).not.toHaveBeenCalled();
     expect(storage.values.size).toBe(0);
   });
@@ -130,7 +220,7 @@ function createFlowDeps({
   storage = createPendingStorage(),
   verify = vi
     .fn<(bookingId: string) => Promise<BookingConversionVerification>>()
-    .mockResolvedValue({ status: "paid", value: 120 }),
+    .mockResolvedValue({ status: "paid", value: 120, serviceType: "BOARDING" }),
 }: {
   consent?: { value: boolean };
   storage?: PendingStorageMock;
@@ -249,6 +339,7 @@ describe("conversion en attente de consentement", () => {
 
   it("n'envoie pas de second envoi si un marqueur existant est présent", async () => {
     const storage = createPendingStorage();
+    storage.setItem("lpd_ga_purchase_b16", "1");
     storage.setItem("lpd_ga_lead_b16", "1");
     storage.setItem("lpd_ads_conv_b16", "1");
     const { deps, gtag, verify } = createFlowDeps({ storage, consent: { value: true } });
@@ -291,6 +382,83 @@ describe("conversion en attente de consentement", () => {
     expect(gtag).not.toHaveBeenCalled();
   });
 
+  it("avec consentement : un seul purchase, valeur serveur, items conformes", async () => {
+    const { deps, gtag } = createFlowDeps({
+      consent: { value: true },
+      verify: vi.fn().mockResolvedValue({
+        status: "paid",
+        value: 210,
+        serviceType: "HOUSE_SITTING",
+      }),
+    });
+    await expect(processBookingConversion("b40", deps)).resolves.toBe("sent");
+    expect(purchaseCalls(gtag)).toHaveLength(1);
+    expect(purchaseCalls(gtag)[0][2]).toEqual({
+      transaction_id: "b40",
+      value: 210,
+      currency: "EUR",
+      items: [
+        {
+          item_id: "HOUSE_SITTING",
+          item_name: "Garde à votre domicile",
+          item_category: "reservation",
+          price: 210,
+          quantity: 1,
+        },
+      ],
+    });
+  });
+
+  it("rechargement de la page success : aucun second purchase", async () => {
+    const storage = createPendingStorage();
+    const first = createFlowDeps({ storage, consent: { value: true } });
+    await processBookingConversion("b41", first.deps);
+
+    resetBookingConversionMemory();
+    const reloaded = createFlowDeps({ storage, consent: { value: true } });
+    await expect(processBookingConversion("b41", reloaded.deps)).resolves.toBe("already-sent");
+    expect(purchaseCalls(first.gtag)).toHaveLength(1);
+    expect(reloaded.gtag).not.toHaveBeenCalled();
+    expect(reloaded.verify).not.toHaveBeenCalled();
+  });
+
+  it("double effet React ou page success + bandeau en parallèle : un seul purchase", async () => {
+    const { deps, gtag } = createFlowDeps({ consent: { value: true } });
+    await Promise.all([
+      processBookingConversion("b42", deps),
+      processBookingConversion("b42", deps),
+      processBookingConversion("b42", deps),
+    ]);
+    expect(purchaseCalls(gtag)).toHaveLength(1);
+  });
+
+  it("sans consentement puis consentement tardif : un seul purchase", async () => {
+    const storage = createPendingStorage();
+    const before = createFlowDeps({ storage });
+    await expect(processBookingConversion("b43", before.deps)).resolves.toBe("pending");
+    expect(before.gtag).not.toHaveBeenCalled();
+    expect(storage.values.has("lpd_ga_purchase_b43")).toBe(false);
+
+    resetBookingConversionMemory();
+    const after = createFlowDeps({ storage, consent: { value: true } });
+    for (const bookingId of getPendingBookingConversions(storage, 1_000_000)) {
+      await processBookingConversion(bookingId, after.deps);
+    }
+    for (const bookingId of getPendingBookingConversions(storage, 1_000_000)) {
+      await processBookingConversion(bookingId, after.deps);
+    }
+    expect(purchaseCalls(after.gtag)).toHaveLength(1);
+    expect(purchaseCalls(after.gtag)[0][2]).toMatchObject({ transaction_id: "b43", value: 120 });
+  });
+
+  it("refus du consentement : aucun purchase", async () => {
+    const { deps, gtag, storage } = createFlowDeps();
+    await processBookingConversion("b44", deps);
+    forgetPendingBookingConversions(storage);
+    expect(gtag).not.toHaveBeenCalled();
+    expect(storage.values.has("lpd_ga_purchase_b44")).toBe(false);
+  });
+
   it("ignore les identifiants invalides et les entrées expirées", () => {
     const storage = createPendingStorage();
     rememberPendingBookingConversion("../evil", storage, 0);
@@ -316,6 +484,17 @@ describe("verifyBookingConversion", () => {
     expect(fetchImpl).toHaveBeenCalledWith("/api/bookings/b30/conversion", {
       cache: "no-store",
       credentials: "same-origin",
+    });
+  });
+
+  it("lit serviceType renvoyé par le serveur", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, { paid: true, value: 99, serviceType: "BOARDING" })
+    );
+    await expect(verifyBookingConversion("b30", { fetchImpl, sleep })).resolves.toEqual({
+      status: "paid",
+      value: 99,
+      serviceType: "BOARDING",
     });
   });
 

@@ -28,6 +28,7 @@ export async function GET(
       where: { id: bookingId },
       select: {
         clientId: true,
+        serviceType: true,
         totalPrice: true,
         depositPaid: true,
         payment: {
@@ -41,7 +42,13 @@ export async function GET(
     if (!isBookingPaidForConversion(booking)) return json({ paid: false }, 409);
 
     return json(
-      { paid: true, bookingId, value: getBookingConversionValue(booking), currency: "EUR" },
+      {
+        paid: true,
+        bookingId,
+        value: getBookingConversionValue(booking),
+        currency: "EUR",
+        serviceType: booking.serviceType,
+      },
       200
     );
   } catch (error) {
