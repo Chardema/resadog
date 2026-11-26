@@ -284,10 +284,6 @@ const catalogue: Record<string, Translation> = {
   },
   "Premium": { en: "Premium", es: "Premium" },
   "Premium ✨": { en: "Premium ✨", es: "Premium ✨" },
-  "100 % de la prestation est due.": {
-    en: "100% of the service fee is due.",
-    es: "Se debe abonar el 100 % del importe de la prestación.",
-  },
   "Sortie individuelle": { en: "Individual outing", es: "Salida individual" },
   "Un supplément peut être appliqué les jours fériés et pour les demandes de dernière minute.": {
     en: "A surcharge may apply on public holidays and for last-minute requests.",
