@@ -49,7 +49,7 @@ export default function CGVPage() {
             <p className="mt-3">
               Contact : <a className="font-semibold text-orange-700 underline" href={`mailto:${LEGAL_INFORMATION.contactEmail}`}>{LEGAL_INFORMATION.contactEmail}</a>
               {" · "}
-              <a className="font-semibold text-orange-700 underline" href={`tel:${LEGAL_INFORMATION.phone.replace(/\D/g, "")}`}>{LEGAL_INFORMATION.phone}</a>.
+              <a className="font-semibold text-orange-700 underline" href={`tel:${LEGAL_INFORMATION.phoneE164}`}>{LEGAL_INFORMATION.phone}</a>.
             </p>
           </section>
 

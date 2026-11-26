@@ -58,7 +58,7 @@ export async function POST(
     });
 
     if (!booking) return NextResponse.json({ error: "Réservation introuvable" }, { status: 404 });
-    if (isDirectPayment(booking.payment?.paymentMethod)) return NextResponse.json({ error: "Pour annuler une réservation directe, contactez Mégane au 07 71 59 30 16." }, { status: 409 });
+    if (isDirectPayment(booking.payment?.paymentMethod)) return NextResponse.json({ error: "Pour annuler une réservation directe, contactez Mégane au 07 64 46 12 70." }, { status: 409 });
     if (booking.status === "CANCELLED") return NextResponse.json({ success: true, unchanged: true });
     if (!(["PENDING", "CONFIRMED"] as string[]).includes(booking.status)) {
       return NextResponse.json({ error: "Cette réservation ne peut plus être annulée en ligne" }, { status: 409 });

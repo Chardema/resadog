@@ -6453,9 +6453,9 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "To display the rating and a selection of public reviews associated with La Patte Dorée. Opening a profile or review, or loading an author's photo, may connect your browser to Google services.",
     "es": "Para mostrar la valoración y una selección de reseñas públicas asociadas a La Patte Dorée. Abrir un perfil o una reseña, o cargar la foto de un autor, puede conectar su navegador con los servicios de Google."
   },
-  "Pour annuler une réservation directe, contactez Mégane au 07 71 59 30 16.": {
-    "en": "To cancel a direct booking, contact Mégane on 07 71 59 30 16.",
-    "es": "Para cancelar una reserva directa, contacte con Mégane al 07 71 59 30 16."
+  "Pour annuler une réservation directe, contactez Mégane au 07 64 46 12 70.": {
+    "en": "To cancel a direct booking, contact Mégane on 07 64 46 12 70.",
+    "es": "Para cancelar una reserva directa, contacte con Mégane al 07 64 46 12 70."
   },
   "pour l’hébergement et l’exécution du site ;": {
     "en": "for hosting and running the site;",

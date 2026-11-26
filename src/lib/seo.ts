@@ -743,7 +743,7 @@ export function getLocalBusinessJsonLd() {
     name: SITE_NAME,
     alternateName: LEGAL_INFORMATION.commercialName,
     url: getSiteUrl(),
-    telephone: "+33771593016",
+    telephone: LEGAL_INFORMATION.phoneE164,
     email: LEGAL_INFORMATION.contactEmail,
     hasMap: GOOGLE_MAPS_PLACE_URL,
     image: absoluteUrl("/og-image.jpg"),
@@ -809,7 +809,7 @@ export function getLocalServiceJsonLd(page: LocalSeoPage) {
       "@type": "LocalBusiness",
       name: SITE_NAME,
       image: absoluteUrl("/og-image.jpg"),
-      telephone: "+33771593016",
+      telephone: LEGAL_INFORMATION.phoneE164,
       address: {
         "@type": "PostalAddress",
         streetAddress: "29 boulevard des 100 Arpents",

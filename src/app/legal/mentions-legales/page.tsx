@@ -48,7 +48,7 @@ export default function LegalNoticePage() {
             </p>
             <p>
               <strong>Téléphone :</strong>{" "}
-              <a className="font-semibold text-orange-700 underline" href={`tel:${LEGAL_INFORMATION.phone.replace(/\D/g, "")}`}>{LEGAL_INFORMATION.phone}</a>
+              <a className="font-semibold text-orange-700 underline" href={`tel:${LEGAL_INFORMATION.phoneE164}`}>{LEGAL_INFORMATION.phone}</a>
             </p>
             <p><strong>TVA :</strong> {LEGAL_INFORMATION.vatMention}.</p>
           </section>

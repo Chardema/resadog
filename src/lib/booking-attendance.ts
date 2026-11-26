@@ -63,7 +63,7 @@ export function reminderMessage(b: AttendanceBooking, event: ReturnType<typeof r
     `Hello ${b.client.name || ""}, this is a reminder for tomorrow (${event.date}) at ${event.schedule}, Paris time${event.kind === "PICKUP" ? ", to pick up your pet" : ""}.`,
     attendanceDetailsEnglish(b),
     isDropOffService(b.serviceType) ? "Please bring food and feeding instructions, a leash, a bed or blanket, health records and any treatment agreed with us." : "Please confirm access arrangements, keys and care instructions. Your pet and their supplies must be accessible at the agreed time.",
-    "If you expect a delay, contact us immediately on +33 7 71 59 30 16. Any change of time requires our agreement. The terms accepted when you booked remain applicable.",
+    "If you expect a delay, contact us immediately on +33 7 64 46 12 70. Any change of time requires our agreement. The terms accepted when you booked remain applicable.",
   ].join("\n\n") };
 }
 export function noShowMessage(b: AttendanceBooking, retainedAmount: number, recordedAt: Date) {
@@ -78,7 +78,7 @@ export function noShowMessage(b: AttendanceBooking, retainedAmount: number, reco
     `Hello ${b.client.name || ""}, you were expected on ${b.startDate.toISOString().slice(0,10)} at ${b.startTime} (Paris time). You did not arrive or respond to our written reminder within the stated deadline. No alternative time was agreed, so your booking has been cancelled for non-attendance.`,
     attendanceDetailsEnglish(b),
     `The ${retainedAmount.toFixed(2)} EUR already collected is retained as compensation for non-attendance under the accepted terms and the loss associated with the reserved slot. No refund is being initiated and no additional payment is being collected.`,
-    "If you had notified our team, if force majeure or a statutory right applies, or if you dispute this decision or amount, please reply with the relevant information so we can review your situation. Your statutory rights remain unaffected. Contact: +33 7 71 59 30 16 — contact@lapatte-doree.fr.",
+    "If you had notified our team, if force majeure or a statutory right applies, or if you dispute this decision or amount, please reply with the relevant information so we can review your situation. Your statutory rights remain unaffected. Contact: +33 7 64 46 12 70 — contact@lapatte-doree.fr.",
   ].join("\n\n") };
 }
 
@@ -109,7 +109,7 @@ function attendanceDetailsEnglish(b: AttendanceBooking) {
     `End: ${b.endDate.toISOString().slice(0,10)} at ${b.endTime || "time to be agreed"}`,
     "All times are Paris local time. For day care and care at your home, these hours apply each day.",
     `Service address: ${address}`,
-    `Our phone: +33 7 71 59 30 16 — ${LEGAL_INFORMATION.contactEmail}`,
+    `Our phone: +33 7 64 46 12 70 — ${LEGAL_INFORMATION.contactEmail}`,
     `Your phone: ${b.client.phone || "not provided — please send us a number where we can reach you"}`,
     `Booking amount: ${b.totalPrice.toFixed(2)} EUR`,
   ].join("\n");
