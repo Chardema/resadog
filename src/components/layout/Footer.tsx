@@ -62,7 +62,7 @@ export function Footer() {
               <li>
                 <a
                   data-no-translate
-                  href={`tel:${LEGAL_INFORMATION.phone.replace(/\D/g, "")}`}
+                  href={`tel:${LEGAL_INFORMATION.phoneE164}`}
                   className="inline-flex items-center gap-2 font-medium text-gray-700 transition-colors hover:text-orange-700"
                 >
                   <Phone className="h-4 w-4 shrink-0 text-orange-700" aria-hidden="true" />

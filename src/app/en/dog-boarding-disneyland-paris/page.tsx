@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { LocaleBookingLink, LocaleSync } from "@/components/seo/LocaleSync";
+import { LEGAL_INFORMATION } from "@/lib/legal";
 import { absoluteUrl, buildMetadata, getSiteUrl, SITE_NAME } from "@/lib/seo";
 
 const EN_PATH = "/en/dog-boarding-disneyland-paris";
@@ -235,7 +236,7 @@ function getEnglishJsonLd() {
         "@type": "LocalBusiness",
         name: SITE_NAME,
         image: absoluteUrl("/og-image.jpg"),
-        telephone: "+33771593016",
+        telephone: LEGAL_INFORMATION.phoneE164,
         address: {
           "@type": "PostalAddress",
           streetAddress: "29 boulevard des 100 Arpents",

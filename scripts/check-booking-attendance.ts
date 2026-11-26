@@ -17,7 +17,7 @@ assert.deepEqual(reminderEvents(b,eve),reminderEvents(b,new Date("2026-09-11T16:
 assert.equal(reminderEvents(b,new Date("2026-09-12T16:00:00Z"))[0].date,"2026-09-13");
 assert.equal(reminderEvents(b,new Date("2026-09-14T16:00:00Z")).length,0);
 const text = reminderMessage(b,event).text;
-for(const fragment of ["08:00","18:00","29 boulevard","07.71.59.30.16","Rex, Luna","nourriture","non renseigné"]) assert.ok(text.includes(fragment),fragment);
+for(const fragment of ["08:00","18:00","29 boulevard","07 64 46 12 70","Rex, Luna","nourriture","non renseigné"]) assert.ok(text.includes(fragment),fragment);
 const boarding = {...b,serviceType:"BOARDING"};
 assert.equal(reminderEvents(boarding,new Date("2026-09-12T16:00:00Z")).length,0);
 assert.equal(reminderEvents(boarding,new Date("2026-09-13T16:00:00Z"))[0].kind,"PICKUP");
