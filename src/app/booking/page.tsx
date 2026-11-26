@@ -56,6 +56,14 @@ import {
 import { ATTENDANCE_SUMMARY } from "@/lib/booking-attendance";
 import { SIMULATOR_PET_CARDS } from "@/components/booking/simulatorPetCards";
 import { LEGAL_DOCUMENT_VERSION, LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+import { PAYMENT_PLAN_ENABLED, type BalanceMandateTerms } from "@/lib/payment-plan";
+import { resolveCheckoutDepositPlan } from "@/lib/checkout-payment-plan";
+import {
+  getBalanceMandateLabel,
+  getBalanceMandateRequiredError,
+  getPaymentPlanSummary,
+  toPaymentPlanLocale,
+} from "@/lib/payment-plan-text";
 import {
   formatPetAge,
   getPetProfileCompletion,
@@ -809,7 +817,7 @@ function BookingHeader({ t }: { t: (value: string) => string }) {
 export default function BookingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   // États
   const [step, setStep] = useState(1);
@@ -832,6 +840,16 @@ export default function BookingPage() {
 
   // Validation légale
   const [legalAccepted, setLegalAccepted] = useState(false);
+  // Plan acompte + solde (spec 07) : clé des conditions dont le client a
+  // autorisé le prélèvement du solde ; tout changement de conditions décoche.
+  const [acceptedMandateKey, setAcceptedMandateKey] = useState<string | null>(null);
+  // Conditions renvoyées par le serveur quand elles diffèrent de l'aperçu,
+  // avec la réservation déjà créée pour ne pas la dupliquer au nouvel essai.
+  const [serverDepositPlan, setServerDepositPlan] = useState<{
+    formKey: string;
+    bookingIds: string[];
+    terms: BalanceMandateTerms;
+  } | null>(null);
   const [priceIssueOpen, setPriceIssueOpen] = useState(false);
   const [priceIssueDescription, setPriceIssueDescription] = useState("");
   const [priceIssueSending, setPriceIssueSending] = useState(false);
@@ -1723,6 +1741,10 @@ export default function BookingPage() {
       setError("Vous devez accepter les conditions contractuelles avant de continuer.");
       return;
     }
+    if (balanceMandateMissing) {
+      setError(getBalanceMandateRequiredError(planLocale));
+      return;
+    }
     setIsLoading(true);
     setError("");
 
@@ -1795,8 +1817,8 @@ export default function BookingPage() {
     }
 
     try {
-        const createdBookingIds = [];
-        for (const bookingData of bookingsToCreate) {
+        const createdBookingIds: string[] = pendingDepositPlan ? [...pendingDepositPlan.bookingIds] : [];
+        for (const bookingData of pendingDepositPlan ? [] : bookingsToCreate) {
              const res = await fetch("/api/bookings", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1815,9 +1837,32 @@ export default function BookingPage() {
               promoCode: formData.promoCode || undefined,
               legalAccepted: true,
               legalVersion: LEGAL_DOCUMENT_VERSION,
+              ...(depositTerms ? {
+                balanceMandate: {
+                  accepted: balanceMandateAccepted,
+                  balanceAmount: depositTerms.balanceAmount,
+                  balanceDueDate: depositTerms.balanceDueDate,
+                },
+              } : {}),
             }),
         });
         const dataCheckout = await resCheckout.json();
+        if (!resCheckout.ok && dataCheckout.code === "BALANCE_MANDATE_REQUIRED" && dataCheckout.paymentPlan) {
+          // Conditions recalculées par le serveur : on les affiche et on
+          // redemande l'autorisation, sans recréer la réservation.
+          setServerDepositPlan({
+            formKey: depositFormKey,
+            bookingIds: createdBookingIds,
+            terms: {
+              depositAmount: dataCheckout.paymentPlan.depositAmount,
+              balanceAmount: dataCheckout.paymentPlan.balanceAmount,
+              balanceDueDate: dataCheckout.paymentPlan.balanceDueDate,
+            },
+          });
+          setError(dataCheckout.error);
+          setIsLoading(false);
+          return;
+        }
         if (!resCheckout.ok) throw new Error(dataCheckout.error);
         window.location.href = dataCheckout.checkoutUrl;
 
@@ -1879,6 +1924,26 @@ export default function BookingPage() {
     Math.max(0, standardPricing.finalAmount + lastMinuteTotal - premiumPreviewTotal) * 100
   ) / 100;
   const premiumPreviewPaws = calculatePawsEarned(premiumPreviewTotal, true);
+
+  // Aperçu du plan acompte + solde ; le serveur recalcule et fait foi.
+  const planLocale = toPaymentPlanLocale(locale);
+  const depositFormKey = PAYMENT_PLAN_ENABLED
+    ? JSON.stringify({ formData, visitSlots, total: finalDisplayedTotal })
+    : "";
+  const depositPreviewStartDate = isHourlyService(formData.serviceType)
+    ? getUniqueVisitDates(visitSlots)[0] || formData.startDate
+    : formData.startDate;
+  const previewDepositPlan = PAYMENT_PLAN_ENABLED && depositPreviewStartDate
+    ? resolveCheckoutDepositPlan(
+        { totalPrice: finalDisplayedTotal, serviceType: formData.serviceType, startDate: depositPreviewStartDate },
+        pricingNow,
+      )
+    : null;
+  const pendingDepositPlan = serverDepositPlan?.formKey === depositFormKey ? serverDepositPlan : null;
+  const depositTerms = pendingDepositPlan?.terms ?? previewDepositPlan?.terms ?? null;
+  const depositTermsKey = depositTerms ? JSON.stringify(depositTerms) : null;
+  const balanceMandateAccepted = depositTermsKey !== null && acceptedMandateKey === depositTermsKey;
+  const balanceMandateMissing = depositTerms !== null && !balanceMandateAccepted;
 
   // Navigation helpers
   const goNext = () => { setDirection(1); setStep(step + 1); };
@@ -2845,9 +2910,33 @@ export default function BookingPage() {
                             </label>
                         </div>
 
+                        {depositTerms && depositTermsKey && (() => {
+                          const summary = getPaymentPlanSummary(depositTerms, planLocale);
+                          return (
+                            <div data-no-translate className="space-y-3 p-4 bg-orange-50 rounded-xl border border-orange-200">
+                              <p className="font-bold text-gray-900">{summary.title}</p>
+                              <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
+                                {summary.lines.map((line) => <li key={line}>{line}</li>)}
+                              </ul>
+                              <div className="flex items-start gap-3">
+                                <input
+                                  type="checkbox"
+                                  id="balance-mandate-checkbox"
+                                  checked={balanceMandateAccepted}
+                                  onChange={(e) => setAcceptedMandateKey(e.target.checked ? depositTermsKey : null)}
+                                  className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
+                                />
+                                <label htmlFor="balance-mandate-checkbox" className="text-sm text-gray-700 cursor-pointer">
+                                  {getBalanceMandateLabel(depositTerms, planLocale)}
+                                </label>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                         <div className="flex gap-4">
                           <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-14 rounded-xl">Retour</Button>
-                          <Button type="submit" disabled={isLoading || !legalAccepted} className="flex-1 h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg">
+                          <Button type="submit" disabled={isLoading || !legalAccepted || balanceMandateMissing} className="flex-1 h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg">
                               {isLoading ? "Chargement..." : "Payer et Confirmer 💳"}
                           </Button>
                         </div>
@@ -2924,7 +3013,7 @@ export default function BookingPage() {
                 <Button
                   type="button"
                   onClick={() => void handleSubmit()}
-                  disabled={isLoading || !legalAccepted}
+                  disabled={isLoading || !legalAccepted || balanceMandateMissing}
                   className="h-11 rounded-xl bg-green-600 px-4 text-sm font-bold text-white hover:bg-green-700"
                 >
                   {isLoading ? "Chargement..." : "Payer & confirmer"}

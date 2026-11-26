@@ -18,8 +18,36 @@ import {
   LEGAL_INFORMATION,
 } from "@/lib/legal";
 import { getServiceLabel } from "@/lib/services";
+import { PAYMENT_PLAN_ENABLED, isBalanceMandateConsentValid, type BalanceMandateTerms } from "@/lib/payment-plan";
+import {
+  getBalanceMandateMetadata,
+  getDepositPlanTermsMetadata,
+  readDepositPlanTerms,
+  resolveCheckoutDepositPlan,
+  toStripeCents,
+} from "@/lib/checkout-payment-plan";
+import {
+  getBalanceMandateRequiredError,
+  getCheckoutSubmitMessage,
+  getDepositLineItemDetail,
+  toPaymentPlanLocale,
+  type PaymentPlanLocale,
+} from "@/lib/payment-plan-text";
 
 const BOOKING_CHECKOUT_MINUTES = 31;
+
+// Sans la case d'autorisation du solde (ou avec des conditions qui ne sont plus
+// celles du serveur), le Checkout de l'acompte est refusé : le navigateur
+// réaffiche les conditions renvoyées et redemande le consentement.
+const balanceMandateRequired = (terms: BalanceMandateTerms, locale: PaymentPlanLocale) =>
+  NextResponse.json(
+    {
+      error: getBalanceMandateRequiredError(locale),
+      code: "BALANCE_MANDATE_REQUIRED",
+      paymentPlan: { plan: "DEPOSIT_BALANCE", ...terms },
+    },
+    { status: 400 }
+  );
 
 export async function POST(request: NextRequest) {
   let checkoutSession: Stripe.Checkout.Session | null = null;
@@ -137,7 +165,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Plan acompte + solde (spec 07), décidé par le serveur au moment de la demande.
+    const planLocale = toPaymentPlanLocale(getStripeCheckoutLocale(request));
+    const depositPlan = PAYMENT_PLAN_ENABLED
+      ? resolveCheckoutDepositPlan(bookings[0], new Date())
+      : null;
+    const balanceMandateMetadata = getBalanceMandateMetadata({
+      acceptedAt: legalAcceptedAt,
+      legalVersion: LEGAL_DOCUMENT_VERSION,
+    });
+
     const checkoutAttempt = await claimCheckoutAttempt(bookings[0].id);
+    if (checkoutAttempt.kind === "REUSE" && PAYMENT_PLAN_ENABLED) {
+      // La session ouverte fait foi : ses conditions ont été fixées à sa création.
+      const openSession = await stripe.checkout.sessions.retrieve(checkoutAttempt.sessionId);
+      const sessionTerms = readDepositPlanTerms(openSession.metadata);
+      if (sessionTerms && !isBalanceMandateConsentValid(body.balanceMandate, sessionTerms)) {
+        return balanceMandateRequired(sessionTerms, planLocale);
+      }
+      await stripe.checkout.sessions.update(checkoutAttempt.sessionId, {
+        metadata: {
+          legalAccepted: "true",
+          legalAcceptedAt,
+          legalVersion: LEGAL_DOCUMENT_VERSION,
+          provider: LEGAL_INFORMATION.commercialName,
+          providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
+          ...(sessionTerms ? balanceMandateMetadata : {}),
+        },
+      });
+      return NextResponse.json({
+        checkoutUrl: checkoutAttempt.checkoutUrl,
+        sessionId: checkoutAttempt.sessionId,
+        reused: true,
+      });
+    }
     if (checkoutAttempt.kind === "REUSE") {
       await stripe.checkout.sessions.update(checkoutAttempt.sessionId, {
         metadata: {
@@ -155,6 +216,13 @@ export async function POST(request: NextRequest) {
       });
     }
     checkoutAttemptClaim = checkoutAttempt.claim;
+
+    // Nouvelle session : le consentement doit porter sur les conditions du jour.
+    if (depositPlan && !isBalanceMandateConsentValid(body.balanceMandate, depositPlan.terms)) {
+      await failCheckoutAttempt(checkoutAttemptClaim, new Error("Autorisation de prélèvement du solde absente"));
+      checkoutAttemptClaim = null;
+      return balanceMandateRequired(depositPlan.terms, planLocale);
+    }
 
     const client = bookings[0].client;
 
@@ -205,9 +273,13 @@ export async function POST(request: NextRequest) {
                 `Réservation ${bookingReference}`,
                 `Prestation prévue ${servicePeriod}`,
                 pricingDetail,
+                depositPlan ? getDepositLineItemDetail(depositPlan.terms, planLocale) : null,
               ].filter(Boolean).join(" · "),
             },
-            unit_amount: Math.round(booking.totalPrice * 100),
+            // Plan acompte : seul l'acompte est autorisé ; le solde est prélevé à J-7.
+            unit_amount: depositPlan
+              ? toStripeCents(depositPlan.terms.depositAmount)
+              : Math.round(booking.totalPrice * 100),
           },
           quantity: 1,
         };
@@ -220,6 +292,9 @@ export async function POST(request: NextRequest) {
     const returnBaseUrl = getStripeReturnBaseUrl(request);
     // La valeur de conversion Google Ads / GA4 n'est plus passée dans l'URL :
     // /booking/success la récupère via /api/bookings/[id]/conversion.
+    const depositPlanMetadata = depositPlan
+      ? { ...getDepositPlanTermsMetadata(depositPlan), ...balanceMandateMetadata }
+      : {};
 
     // Créer la Checkout Session avec setup_future_usage
     checkoutSession = await stripe.checkout.sessions.create(
@@ -248,8 +323,12 @@ export async function POST(request: NextRequest) {
             bookingInvoiceVersion: BOOKING_INVOICE_VERSION,
             provider: LEGAL_INFORMATION.commercialName,
             providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
+            ...depositPlanMetadata,
           },
         },
+        ...(depositPlan
+          ? { custom_text: { submit: { message: getCheckoutSubmitMessage(depositPlan.terms, planLocale) } } }
+          : {}),
         success_url: `${returnBaseUrl}/booking/success?bookingId=${bookingIds[0]}`,
         cancel_url: `${returnBaseUrl}/booking?cancelled=true`,
         // Toutes les demandes expirent rapidement : tant que Checkout n'est pas
@@ -265,6 +344,7 @@ export async function POST(request: NextRequest) {
           bookingInvoiceVersion: BOOKING_INVOICE_VERSION,
           provider: LEGAL_INFORMATION.commercialName,
           providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
+          ...depositPlanMetadata,
         },
       },
       { idempotencyKey: checkoutAttemptClaim.idempotencyKey }
@@ -272,10 +352,12 @@ export async function POST(request: NextRequest) {
 
     await prisma.$transaction(async (tx) => {
       for (const booking of bookings) {
+        // Plan acompte : le paiement Stripe de la réservation porte l'acompte seul.
+        const authorizedAmount = depositPlan ? depositPlan.terms.depositAmount : booking.totalPrice;
         await tx.payment.upsert({
           where: { bookingId: booking.id },
           update: {
-            amount: booking.totalPrice,
+            amount: authorizedAmount,
             capturedAmount: 0,
             refundAmount: null,
             refundedAt: null,
@@ -287,7 +369,7 @@ export async function POST(request: NextRequest) {
           },
           create: {
             bookingId: booking.id,
-            amount: booking.totalPrice,
+            amount: authorizedAmount,
             capturedAmount: 0,
             currency: "eur",
             status: "PROCESSING",

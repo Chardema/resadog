@@ -18,6 +18,7 @@ import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { awardBookingLoyalty } from "@/lib/loyalty-ledger";
 import { getBookingEmailDetails } from "@/lib/booking-email-details";
+import { readCheckoutDepositRecord } from "@/lib/checkout-payment-plan";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -630,6 +631,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     },
   });
 
+  await storeCheckoutDepositPlan(session, paymentIntentId, bookingIds);
+
   // Incrémenter le coupon si utilisé (le code est stocké dans les metadata)
   const promoCode = session.metadata?.promoCode;
   if (promoCode) {
@@ -691,6 +694,47 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       }
   }
 
+}
+
+// Plan acompte + solde (spec 07) : la session porte les conditions acceptées.
+// On les fige sur la réservation avec la carte enregistrée pour le solde.
+// Sans métadonnées de plan (FULL, ou drapeau désactivé), rien ne change.
+async function storeCheckoutDepositPlan(
+  session: Stripe.Checkout.Session,
+  paymentIntentId: string,
+  bookingIds: string[],
+) {
+  const record = readCheckoutDepositRecord(session.metadata);
+  if (!record) return;
+  if (bookingIds.length !== 1) {
+    throw new Error(`Plan acompte sur ${bookingIds.length} réservations pour la session ${session.id}`);
+  }
+
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  const paymentMethodId = typeof paymentIntent.payment_method === "string"
+    ? paymentIntent.payment_method
+    : paymentIntent.payment_method?.id;
+  if (!paymentMethodId) {
+    throw new Error(`Carte absente du PaymentIntent ${paymentIntentId} (plan acompte)`);
+  }
+
+  await prisma.$transaction([
+    prisma.payment.updateMany({
+      where: { bookingId: bookingIds[0], stripePaymentId: paymentIntentId },
+      data: { stripePaymentMethodId: paymentMethodId },
+    }),
+    prisma.booking.updateMany({
+      where: { id: bookingIds[0] },
+      data: {
+        paymentPlan: "DEPOSIT_BALANCE",
+        depositAmount: record.terms.depositAmount,
+        balanceAmount: record.terms.balanceAmount,
+        balanceDueAt: record.balanceDueAt,
+        mandateAcceptedAt: record.mandateAcceptedAt,
+        mandateLegalVersion: record.mandateLegalVersion,
+      },
+    }),
+  ]);
 }
 
 async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {

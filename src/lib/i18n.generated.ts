@@ -9260,5 +9260,17 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Statut": {
     "en": "Status",
     "es": "Estatus"
+  },
+  "Autorisation de prélèvement du solde absente": {
+    "en": "Balance payment authorisation missing",
+    "es": "Falta la autorización de cobro del saldo"
+  },
+  "Carte absente du PaymentIntent": {
+    "en": "Card missing from PaymentIntent",
+    "es": "Falta la tarjeta en el PaymentIntent"
+  },
+  "réservations pour la session": {
+    "en": "bookings for session",
+    "es": "reservas para la sesión"
   }
 } as const;
