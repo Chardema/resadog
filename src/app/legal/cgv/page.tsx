@@ -4,6 +4,7 @@ import {
   LAST_MINUTE_DESCRIPTION,
   CAT_VISIT_PRICING_DESCRIPTION,
   OTHER_ANIMAL_PRICING_DESCRIPTION,
+  EXTENDED_DAY_CARE_NOTICE,
   EXTRA_DURATION,
   getServiceDisplayPrice,
   HOUSE_SITTING_DURATION_TIERS,
@@ -113,7 +114,7 @@ export default function CGVPage() {
             </p>
             <ul className="list-disc space-y-2 pl-5">
               <li><strong>Hébergement par période de 24 h commencée :</strong> chien {boarding.dogPrice} €, chat {boarding.catPrice} €.</li>
-              <li><strong>Garderie jusqu’à 10 h par jour :</strong> chien {dayCare.dogPrice} €, chat {dayCare.catPrice} €.</li>
+              <li><strong>Garderie jusqu’à 10 h par jour :</strong> chien {dayCare.dogPrice} €, chat {dayCare.catPrice} €. {EXTENDED_DAY_CARE_NOTICE}</li>
               <li><strong>Garde au domicile du client, par jour :</strong> chien {HOUSE_SITTING_DURATION_TIERS[0].prices.DOG} € jusqu’à 6 h, {HOUSE_SITTING_DURATION_TIERS[1].prices.DOG} € au-delà de 6 h et jusqu’à 10 h, puis {HOUSE_SITTING_DURATION_TIERS[2].prices.DOG} € au-delà ; chat {HOUSE_SITTING_DURATION_TIERS[0].prices.CAT} €, {HOUSE_SITTING_DURATION_TIERS[1].prices.CAT} € puis {HOUSE_SITTING_DURATION_TIERS[2].prices.CAT} € selon les mêmes tranches.</li>
               <li><strong>Visite à domicile :</strong> chien {dropIn.dogPrice} € et chat {dropIn.catPrice} € pour 30 minutes, puis {EXTRA_DURATION.DROP_IN.extraRate} € par tranche supplémentaire de {EXTRA_DURATION.DROP_IN.increment} minutes commencée.</li>
               <li><strong>Promenade de chien :</strong> {walking.dogPrice} € les 30 premières minutes, puis {EXTRA_DURATION.DOG_WALKING.extraRate} € par tranche supplémentaire de 30 minutes commencée. Promenade de chat sur demande.</li>

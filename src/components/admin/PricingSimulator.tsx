@@ -12,6 +12,8 @@ import {
   DOG_CARE_PERIOD_MINUTES,
   DOG_DAY_CARE_MAX_MINUTES,
   DOG_DAY_CARE_RATE,
+  EXTENDED_DAY_CARE_NOTICE,
+  isExtendedDayCareDuration,
   isValidDayCareSchedule,
   YOUNG_ANIMAL_SURCHARGE,
 } from "@/lib/pricing";
@@ -67,7 +69,7 @@ const simulatorExamples: readonly SimulatorExample[] = [
     endTime: "18:00",
   },
   {
-    label: "10 h 01 · refusé",
+    label: "10 h 01 adulte · 45 €",
     serviceType: "DAY_CARE",
     birthDate: "2020-05-10",
     startDate: "2026-09-29",
@@ -130,7 +132,8 @@ export function PricingSimulator() {
   const isPuppy = canCalculate
     ? isPetUnderOneYearOn(birthDate, `${startDate}T12:00:00.000Z`)
     : false;
-  const unitBasePrice = serviceType === "DAY_CARE" ? DOG_DAY_CARE_RATE : DOG_24_HOUR_RATE;
+  const extendedDayCare = serviceType === "DAY_CARE" && isExtendedDayCareDuration(dayCareDurationMinutes);
+  const unitBasePrice = serviceType === "DAY_CARE" && !extendedDayCare ? DOG_DAY_CARE_RATE : DOG_24_HOUR_RATE;
   const billedQuantity = quote?.quantity || 0;
   const discountTotal = quote?.pets[0]?.rateGroups
     .filter((group) => group.type === "discount")
@@ -147,8 +150,6 @@ export function PricingSimulator() {
     invalidMessage = "La dernière date doit être identique ou postérieure à la première.";
   } else if (hasAllValues && serviceType === "DAY_CARE" && dayCareDurationMinutes <= 0) {
     invalidMessage = "L’heure de départ quotidienne doit être postérieure à l’heure d’arrivée.";
-  } else if (hasAllValues && serviceType === "DAY_CARE" && dayCareDurationMinutes > DOG_DAY_CARE_MAX_MINUTES) {
-    invalidMessage = `Une journée de garde ne peut pas dépasser ${DOG_DAY_CARE_MAX_MINUTES / 60} h.`;
   } else if (hasAllValues && serviceType === "BOARDING" && boardingDurationMinutes <= 0) {
     invalidMessage = "La reprise doit être postérieure au dépôt.";
   }
@@ -199,7 +200,7 @@ export function PricingSimulator() {
           <p className="mt-3 text-2xl font-extrabold">{DOG_DAY_CARE_RATE} €</p>
           <p className="mt-1 font-bold">Par journée de garde</p>
           <p className="mt-1 text-sm leading-5 text-amber-900">
-            Jusqu’à {DOG_DAY_CARE_MAX_MINUTES / 60} h par jour, avec les mêmes horaires sur toute la plage.
+            Jusqu’à {DOG_DAY_CARE_MAX_MINUTES / 60} h par jour, avec les mêmes horaires sur toute la plage. Au-delà, {DOG_24_HOUR_RATE} € par journée (tarif 24 h).
           </p>
         </div>
         <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-indigo-950">
@@ -336,7 +337,7 @@ export function PricingSimulator() {
           ) : (
             <p className="mt-5 rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-600">
               {serviceType === "DAY_CARE"
-                ? "Chaque date sélectionnée compte comme une journée de garde, avec 10 h maximum par jour."
+                ? `Chaque date sélectionnée compte comme une journée de garde, sans nuit. ${EXTENDED_DAY_CARE_NOTICE}`
                 : "L’hébergement est calculé sur la durée réelle entre dépôt et reprise, par périodes de 24 h commencées."}
             </p>
           )}
@@ -354,7 +355,7 @@ export function PricingSimulator() {
                 <div className="flex items-center justify-between gap-4">
                   <dt className="text-gray-400">Formule</dt>
                   <dd className="text-right font-bold">
-                    {serviceType === "DAY_CARE" ? "Garde de jour" : "Hébergement / nuit"}
+                    {serviceType === "DAY_CARE" ? (extendedDayCare ? "Garde de jour de plus de 10 h (tarif 24 h)" : "Garde de jour") : "Hébergement / nuit"}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-4">

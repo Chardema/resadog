@@ -81,6 +81,7 @@ describe("Pricing engine (src/lib/pricing.ts)", () => {
         endTime: "18:00",
       })
     ).toBe(true);
+    // Au-delà de 10 h par jour, la garderie reste possible (tarif 24 h).
     expect(
       isValidDayCareSchedule({
         startDate: "2026-09-29",
@@ -88,7 +89,7 @@ describe("Pricing engine (src/lib/pricing.ts)", () => {
         startTime: "08:00",
         endTime: "18:01",
       })
-    ).toBe(false);
+    ).toBe(true);
 
     const upTo10hQuote = calculateDogCareQuote({
       startDate: "2026-09-10",

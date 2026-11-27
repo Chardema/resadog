@@ -31,11 +31,12 @@ import {
   CAT_VISIT_PRICING_DESCRIPTION,
   calculateSameDayDurationMinutes,
   calculateServiceDurationMinutes,
-  DOG_DAY_CARE_MAX_MINUTES,
   DOG_CARE_PERIOD_MINUTES,
+  EXTENDED_DAY_CARE_NOTICE,
   getHouseSittingDurationTier,
   getServiceDisplayPrice,
   getServiceDisplayPriceForDuration,
+  isExtendedDayCareDuration,
   isValidDayCareSchedule,
   EXTRA_DURATION,
   HOUSE_SITTING_DURATION_TIERS,
@@ -109,7 +110,7 @@ const serviceTypes: ServiceOption[] = [
     unit: "jour",
     description: "Déposez votre compagnon le matin et récupérez-le le soir. Repas, jeux, repos et promenades selon ses habitudes. Soumise à disponibilité et à compatibilité avec les animaux déjà présents.",
     icon: "☀️",
-    maxHours: 10,
+    maxHours: 24,
     maxPets: 3,
   },
   {
@@ -593,7 +594,7 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig; o
     const durationMinutes = calculateSameDayDurationMinutes(config);
     const timeRangeValid = isPositiveSameDayTimeRange(config.startTime, config.endTime);
     const datesValid = dayCount > 0;
-    const dayCareTooLong = durationMinutes > DOG_DAY_CARE_MAX_MINUTES;
+    const extendedDayCare = isExtendedDayCareDuration(durationMinutes);
     const schedulePresets = [
       { label: "Dépose tôt", helper: "08:00–18:00", startTime: "08:00", endTime: "18:00" },
       { label: "Journée standard", helper: "09:00–18:00", startTime: "09:00", endTime: "18:00" },
@@ -654,13 +655,16 @@ const DateSelector = ({ config, onChange, serviceType }: { config: DateConfig; o
             </div>
           </div>
         </section>
-        {datesValid && timeRangeValid && !dayCareTooLong ? (
-          <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 sm:flex-row sm:items-center sm:justify-between">
-            <span className="flex items-center gap-2"><CheckCircle2 className="size-4" /><strong>{dayCount} {t(dayCount > 1 ? "journées sélectionnées" : "journée sélectionnée")}</strong></span>
-            <span className="font-semibold">{formatElapsedDuration(durationMinutes)} {t("par jour")}</span>
+        {datesValid && timeRangeValid ? (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <span className="flex items-center gap-2"><CheckCircle2 className="size-4" /><strong>{dayCount} {t(dayCount > 1 ? "journées sélectionnées" : "journée sélectionnée")}</strong></span>
+              <span className="font-semibold">{formatElapsedDuration(durationMinutes)} {t("par jour")}</span>
+            </div>
+            {extendedDayCare && <p className="mt-2 flex gap-2 text-amber-900"><AlertCircle className="mt-0.5 size-4 shrink-0" /><span>{t(EXTENDED_DAY_CARE_NOTICE)}</span></p>}
           </div>
-        ) : (config.startDate || config.endDate) && (!timeRangeValid || dayCareTooLong) ? (
-          <div className="flex gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><AlertCircle className="mt-0.5 size-4 shrink-0" /><span>{t(dayCareTooLong ? "La garderie est limitée à 10 heures par jour. Ajustez l’heure de début ou de fin." : "L’heure de fin doit être postérieure à l’heure de début.")}</span></div>
+        ) : (config.startDate || config.endDate) && !timeRangeValid ? (
+          <div className="flex gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><AlertCircle className="mt-0.5 size-4 shrink-0" /><span>{t("L’heure de fin doit être postérieure à l’heure de début.")}</span></div>
         ) : null}
         <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-orange-900">
           {t("Chaque date correspond à une garde en journée aux horaires choisis. Pour une présence pendant la nuit, choisissez l’hébergement.")}
@@ -2243,7 +2247,7 @@ export default function BookingPage() {
                         )}
                         {s.value === "DAY_CARE" && (
                           <p className="mt-2 text-xs leading-5 text-gray-600">
-                            Maximum {DOG_DAY_CARE_MAX_MINUTES / 60} h par journée. Chiot de moins d’un an : +{YOUNG_ANIMAL_SURCHARGE} € par jour. Au-delà de 10 h, choisissez l’hébergement.
+                            {EXTENDED_DAY_CARE_NOTICE} Chiot de moins d’un an : +{YOUNG_ANIMAL_SURCHARGE} € par jour.
                           </p>
                         )}
                         {s.value === "DROP_IN" && (
@@ -2471,6 +2475,7 @@ export default function BookingPage() {
                             <div className="mb-4 rounded-xl border border-emerald-200 bg-white/80 px-4 py-3 text-sm text-gray-700">
                               <p><span className="font-bold text-gray-900">{t("Journées :")}</span> {dayCount} · {formData.startDate}{dayCount > 1 ? ` au ${formData.endDate}` : ""}</p>
                               <p className="mt-1"><span className="font-bold text-gray-900">{t("Horaires quotidiens :")}</span> {formData.startTime}–{formData.endTime} · {formatElapsedDuration(durationMinutes)}</p>
+                              {isExtendedDayCareDuration(durationMinutes) && <p className="mt-1 text-xs font-semibold text-amber-800">{t(EXTENDED_DAY_CARE_NOTICE)}</p>}
                               <p className="mt-1 text-xs text-gray-500">{t("Aucune nuitée incluse.")}</p>
                             </div>
                           );

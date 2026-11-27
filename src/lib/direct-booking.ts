@@ -31,7 +31,7 @@ export const directBookingSchema = z.object({
   if (data.startDate < getTodayDateKey()) issue("La garde doit commencer aujourd’hui ou plus tard.", "startDate");
   const start = parisAppointment(data.startDate, data.startTime), end = parisAppointment(data.endDate, data.endTime);
   if (!start || !end || end <= start || end.getTime() - start.getTime() > 90 * 86400000) issue("Vérifiez les dates et horaires (90 jours maximum).", "endDate");
-  if (data.serviceType === "DAY_CARE" && !isValidDayCareSchedule(data)) issue("La garderie est limitée à 10 h par jour. Au-delà, choisissez Hébergement.", "endTime");
+  if (data.serviceType === "DAY_CARE" && !isValidDayCareSchedule(data)) issue("Le départ doit suivre l’arrivée chaque jour.", "endTime");
   if (data.serviceType === "HOUSE_SITTING" && calculateSameDayDurationMinutes(data) <= 0) issue("Le départ doit suivre l’arrivée chaque jour.", "endTime");
   if (isHourlyServiceType(data.serviceType)) {
     const duration = calculateSameDayDurationMinutes(data);

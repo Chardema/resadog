@@ -1,5 +1,8 @@
 import { generatedCatalogue } from "@/lib/i18n.generated";
 import {
+  CAT_24_HOUR_RATE,
+  DOG_24_HOUR_RATE,
+  EXTENDED_DAY_CARE_NOTICE,
   PUPPY_AGE_LABEL,
   PUPPY_SURCHARGE_NOTICE,
   YOUNG_ANIMAL_AGE_LABEL,
@@ -1769,6 +1772,10 @@ const catalogue: Record<string, Translation> = {
   [PUPPY_SURCHARGE_NOTICE]: {
     en: `Puppy supplement (under one year old): +€${YOUNG_ANIMAL_SURCHARGE} for day care and boarding.`,
     es: `Suplemento cachorro (menos de un año): +${YOUNG_ANIMAL_SURCHARGE} € en guardería y alojamiento.`,
+  },
+  [EXTENDED_DAY_CARE_NOTICE]: {
+    en: `Beyond 10 hours on the same day, the day is billed at the 24-hour rate: €${DOG_24_HOUR_RATE} for a dog, €${CAT_24_HOUR_RATE} for a cat.`,
+    es: `Más allá de 10 h el mismo día, la jornada pasa a la tarifa de 24 h: ${DOG_24_HOUR_RATE} € para un perro, ${CAT_24_HOUR_RATE} € para un gato.`,
   },
   "Afficher la carte": {
     en: "Show the map",

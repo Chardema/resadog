@@ -230,7 +230,7 @@ export default function PricingPage() {
                 dog={dayCare.dogPrice}
                 cat={dayCare.catPrice}
                 unit={`Par jour, jusqu’à ${DOG_DAY_CARE_MAX_MINUTES / 60} h`}
-                note="Plusieurs jours peuvent être réservés : chaque journée respecte les mêmes horaires et reste limitée à 10 h."
+                note="Plusieurs jours peuvent être réservés avec les mêmes horaires chaque jour. Au-delà de 10 h, chaque journée est facturée au tarif 24 h, sans nuit."
               />
 
               <div className="mt-5 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm leading-6 text-orange-950">

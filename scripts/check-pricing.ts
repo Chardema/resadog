@@ -211,13 +211,48 @@ assert(
 );
 
 assert(
-  !isValidDayCareSchedule({
+  isValidDayCareSchedule({
     startDate: "2026-09-29",
     endDate: "2026-10-01",
     startTime: "08:00",
     endTime: "18:01",
   }),
-  "Une plage de garderie dépassant 10 h par jour doit être refusée"
+  "Une plage de garderie dépassant 10 h par jour doit être acceptée"
+);
+
+assert(
+  !isValidDayCareSchedule({
+    startDate: "2027-01-06",
+    endDate: "2027-01-06",
+    startTime: "21:45",
+    endTime: "09:00",
+  }),
+  "Une garderie dont la fin précède le début doit être refusée"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "DAY_CARE",
+    pets: [dog],
+    startDate: "2027-01-06",
+    endDate: "2027-01-06",
+    startTime: "09:00",
+    endTime: "21:45",
+    requestedAt: new Date("2026-11-01T12:00:00.000Z"),
+  }).total === 45,
+  "Une garderie de 9 h à 21 h 45 le même jour doit être facturée au tarif 24 h (45 €)"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "DAY_CARE",
+    pets: [dog],
+    startDate: "2026-09-29",
+    endDate: "2026-10-01",
+    startTime: "08:00",
+    endTime: "18:01",
+  }).total === 135,
+  "Trois garderies de plus de 10 h doivent être facturées 3 × 45 €"
 );
 
 assert(

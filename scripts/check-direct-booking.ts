@@ -7,7 +7,10 @@ const input = { requestId: "bff3cbf5-5c51-4b68-840c-63dc5d7f536a", client: { nam
 assert(directBookingSchema.safeParse(input).success);
 const pets = [{ id: "dog", species: "DOG" as const, birthDate: "2014-09-06" }];
 for (const endTime of ["22:30", "23:00"]) assert.equal(calculateDirectPrice({ ...input, endTime }, pets).total, 45);
-assert(!directBookingSchema.safeParse({ ...input, serviceType: "DAY_CARE" }).success);
+// Garderie de plus de 10 h le même jour : acceptée et facturée au tarif 24 h.
+assert(directBookingSchema.safeParse({ ...input, serviceType: "DAY_CARE" }).success);
+assert.equal(calculateDirectPrice({ ...input, serviceType: "DAY_CARE" }, pets).total, 45);
+assert(!directBookingSchema.safeParse({ ...input, serviceType: "DAY_CARE", startTime: "23:00", endTime: "08:00" }).success);
 assert(!directBookingSchema.safeParse({ ...input, endDate: "2026-02-31" }).success);
 assert(!directBookingSchema.safeParse({ ...input, paid: true }).success);
 assert(!directBookingSchema.safeParse({ ...input, clientId: "existing" }).success);

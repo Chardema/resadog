@@ -56,8 +56,16 @@ export const YOUNG_ANIMAL_SURCHARGE = 5;
 export const PUPPY_SURCHARGE_NOTICE = `Supplément chiot (moins d’un an) : +${YOUNG_ANIMAL_SURCHARGE} € en garderie et hébergement.`;
 export const YOUNG_ANIMAL_AGE_LABEL = "Moins d'1 an";
 export const PUPPY_AGE_LABEL = `Moins d'1 an (+${YOUNG_ANIMAL_SURCHARGE} € en garderie et hébergement)`;
+// Seuil de la garderie : au-delà, une journée (même sans nuit) passe au tarif 24 h.
 export const DOG_DAY_CARE_MAX_MINUTES = 10 * 60;
 export const DOG_CARE_PERIOD_MINUTES = 24 * 60;
+export const CAT_24_HOUR_RATE = 23;
+export const EXTENDED_DAY_CARE_LABEL = "journée de plus de 10 h, tarif 24 h";
+export const EXTENDED_DAY_CARE_NOTICE = `Au-delà de 10 h le même jour, la journée passe au tarif 24 h : ${DOG_24_HOUR_RATE} € pour un chien, ${CAT_24_HOUR_RATE} € pour un chat.`;
+
+export function isExtendedDayCareDuration(dailyDurationMinutes: number) {
+  return dailyDurationMinutes > DOG_DAY_CARE_MAX_MINUTES;
+}
 export const LONG_BOARDING_MIN_PERIODS = 14;
 export const LONG_BOARDING_DISCOUNT_RATE = 0.1;
 export const CAT_VISIT_INCLUDED_CATS = 2;
@@ -88,7 +96,7 @@ export const HOUSE_SITTING_DURATION_TIERS: readonly DurationPriceTier[] = [
 const PRICING: Record<string, Record<Species, PriceEntry>> = {
   BOARDING: {
     DOG: { base: DOG_24_HOUR_RATE, additional: DOG_24_HOUR_RATE },
-    CAT: { base: 23, additional: 23 },
+    CAT: { base: CAT_24_HOUR_RATE, additional: CAT_24_HOUR_RATE },
   },
   HOUSE_SITTING: {
     DOG: { base: 45, additional: 45 },
@@ -170,10 +178,16 @@ function getUnitPrice(
   const durationTier = serviceType === "HOUSE_SITTING" && typeof durationMinutes === "number"
     ? getHouseSittingDurationTier(durationMinutes)
     : null;
+  // Une journée de garderie de plus de 10 h, même sans nuit, est facturée au tarif 24 h.
+  const extendedDayCare = serviceType === "DAY_CARE"
+    && typeof durationMinutes === "number"
+    && isExtendedDayCareDuration(durationMinutes);
+  const rates = extendedDayCare ? PRICING.BOARDING[pet.species] : prices;
   let baseLabel = pet.isAdditional ? "Animal supplémentaire" : `Tarif ${pet.species === "CAT" ? "chat" : "chien"}`;
+  if (extendedDayCare) baseLabel = `${baseLabel} · ${EXTENDED_DAY_CARE_LABEL}`;
   let price = durationTier
     ? durationTier.prices[pet.species]
-    : (pet.isAdditional ? prices.additional : prices.base);
+    : (pet.isAdditional ? rates.additional : rates.base);
   if (serviceType === "DROP_IN" && pet.species === "CAT" && catVisitIndex !== undefined) {
     price = catVisitIndex === 0 ? prices.base : catVisitIndex < CAT_VISIT_INCLUDED_CATS ? 0 : prices.additional;
     baseLabel = catVisitIndex === 0 ? "Tarif visite chats"
@@ -383,7 +397,8 @@ export function calculateSameDayDurationMinutes(input: {
 
 /**
  * A day-care booking may span several calendar days, but each occurrence uses
- * the same daytime hours and must stay within the 10-hour daily limit.
+ * the same daytime hours and ends the same day. Beyond 10 hours a day, the day
+ * stays a day-care booking (no night) and is billed at the 24-hour rate.
  */
 export function isValidDayCareSchedule(input: {
   startDate: string;
@@ -395,8 +410,7 @@ export function isValidDayCareSchedule(input: {
     return false;
   }
 
-  const dailyDurationMinutes = calculateSameDayDurationMinutes(input);
-  return dailyDurationMinutes > 0 && dailyDurationMinutes <= DOG_DAY_CARE_MAX_MINUTES;
+  return calculateSameDayDurationMinutes(input) > 0;
 }
 
 export function getHouseSittingDurationTier(durationMinutes: number) {
@@ -462,7 +476,7 @@ export function calculateBookingPrice(input: {
   const sameVisitCats = input.pets.filter((pet) => pet.species === "CAT");
   const hourly = isHourlyServiceType(input.serviceType);
   const slots = input.visitSlots || [];
-  const serviceDurationMinutes = input.serviceType === "HOUSE_SITTING"
+  const serviceDurationMinutes = input.serviceType === "HOUSE_SITTING" || input.serviceType === "DAY_CARE"
     ? calculateSameDayDurationMinutes(input)
     : input.serviceType === "BOARDING"
       ? calculateServiceDurationMinutes(input)
