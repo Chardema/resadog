@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { groupNearbyBookings } from "@/lib/booking-completion";
 import { prisma } from "@/lib/db/prisma";
 import { getBookingCompletionDate, sendGoogleReviewForBookings } from "@/lib/google-review-requests";
+import { scanBookingAuthorizations } from "@/lib/authorization-expiry";
 
 const REVIEW_REQUEST_DELAY_MS = 24 * 60 * 60 * 1000;
 const ABANDONED_CHECKOUT_DELAY_MS = 60 * 60 * 1000;
@@ -112,12 +113,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Autorisations expirées avant acceptation (spec 07, lot 4) : null quand
+    // isPaymentPlanEnabled() est faux (production), la réponse reste alors identique.
+    const authorizationExpiry = await scanBookingAuthorizations({ now });
+
     return NextResponse.json({
       success: true,
       deletedPending: deletedAbandoned,
       deletedAbandoned,
       completedBookings,
       reviewEmailErrors,
+      ...(authorizationExpiry ? { authorizationExpiry } : {}),
       message: `Nettoyage effectué : ${deletedAbandoned} réservation(s) abandonnée(s) supprimée(s), ${completedBookings} prestation(s) terminée(s).`
     });
   } catch (error) {

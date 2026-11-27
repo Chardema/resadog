@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { calculatePremiumSubscriptionPlan } from "@/lib/subscription-pricing";
-import { LEGAL_DOCUMENT_VERSION, LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+import { getLegalDocumentVersion, getLegalDocumentVersionLabel, LEGAL_INFORMATION } from "@/lib/legal";
 
 const SUBSCRIPTION_PHOTOS = [
   {
@@ -98,7 +98,7 @@ export default function SubscriptionPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           legalAccepted: true,
-          legalVersion: LEGAL_DOCUMENT_VERSION,
+          legalVersion: getLegalDocumentVersion(),
         }),
       });
       const result = await response.json();
@@ -244,7 +244,7 @@ export default function SubscriptionPage() {
                     className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500"
                   />
                   <span>
-                    J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="font-semibold text-orange-300 underline">CGV de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, l&apos;engagement initial de 3 mois facturé 9,99 € par mois (montant minimum total : 29,97 €), et je demande l&apos;activation immédiate de Premium.
+                    J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="font-semibold text-orange-300 underline">CGV de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {getLegalDocumentVersionLabel()}, l&apos;engagement initial de 3 mois facturé 9,99 € par mois (montant minimum total : 29,97 €), et je demande l&apos;activation immédiate de Premium.
                   </span>
                 </label>
               )}

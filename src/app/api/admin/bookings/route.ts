@@ -191,7 +191,20 @@ export async function GET(request: NextRequest) {
             refundFailureReason: true,
           },
         },
-
+        // Plan acompte + solde (spec 07) : vide pour les réservations FULL.
+        installments: {
+          where: { kind: "BALANCE" },
+          select: {
+            status: true,
+            amount: true,
+            dueAt: true,
+            attempts: true,
+            lastErrorCode: true,
+            paidAt: true,
+            refundedAmount: true,
+            stripePaymentIntentId: true,
+          },
+        },
       },
       orderBy: {
         startDate: "asc", // Les plus proches en premier

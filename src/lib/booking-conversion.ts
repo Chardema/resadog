@@ -22,8 +22,13 @@ export function isBookingPaidForConversion(booking: BookingConversionCandidate) 
   return payment.status === "PROCESSING" && Boolean(payment.stripePaymentId?.trim());
 }
 
+// Plan acompte (spec 07) : la demande compte dès que l'acompte est autorisé
+// (PROCESSING + stripePaymentId), comme en plan FULL ; une autorisation
+// expirée (EXPIRED) ne compte pas.
+
 // Valeur transmise à Google : montant de la réservation en base, à défaut
-// le montant du paiement. Jamais la valeur fournie dans l'URL.
+// le montant du paiement. Jamais la valeur fournie dans l'URL. En plan
+// acompte, payment.amount ne porte que l'acompte : le total prime toujours.
 export function getBookingConversionValue(booking: BookingConversionCandidate) {
   const candidates = [booking.totalPrice, booking.payment?.amount];
   for (const candidate of candidates) {

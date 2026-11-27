@@ -4,6 +4,23 @@ import { prisma } from "@/lib/db/prisma";
 import { GOOGLE_REVIEW_URL } from "@/lib/google-reviews";
 import { getServiceDisplayPrice } from "@/lib/pricing";
 import { LEGAL_INFORMATION } from "@/lib/legal";
+import type { BalanceMandateTerms } from "@/lib/payment-plan";
+import {
+  AUTHORIZATION_EXPIRED_SUBJECT,
+  BALANCE_EMAIL_SUBJECTS,
+  DEPOSIT_CONFIRMATION_SUBJECT,
+  PAYMENT_PLAN_LOCALES,
+  getAuthorizationExpiredSection,
+  getBalanceEmailSection,
+  getDepositConfirmationSection,
+  getDepositRequestPaymentRow,
+  getDepositRequestSchedule,
+  type BalanceEmailInput,
+  type BalanceEmailKind,
+  type DepositConfirmationSchedule,
+  type PaymentPlanLocale,
+  type PlanEmailSection,
+} from "@/lib/payment-plan-text";
 import { isProductionDeployment } from "@/lib/runtime-env";
 
 let resend: Resend | null | undefined;
@@ -544,34 +561,41 @@ export const sendBookingConfirmationEmail = async (
   }
 };
 
-export const sendBookingInvoiceEmail = async (
-  email: string,
+type BookingInvoiceEmailDetails = {
+  petName: string;
+  startDate: string;
+  endDate: string;
+  // Période avec une seule mention du fuseau (formatServicePeriod). Absente
+  // chez les appelants plus anciens : repli sur « début – fin ».
+  period?: string;
+  totalPrice: number;
+  serviceLabel?: string;
+  bookingId?: string;
+};
+
+type BookingInvoiceEmailInvoice = {
+  number: string;
+  amountPaid: number;
+  hostedUrl: string;
+  pdfUrl?: string;
+};
+
+// Contenu de l'e-mail de facture, sans envoi (testable sans Resend).
+export function buildBookingInvoiceEmail(
   userName: string,
-  bookingDetails: {
-    petName: string;
-    startDate: string;
-    endDate: string;
-    totalPrice: number;
-    serviceLabel?: string;
-    bookingId?: string;
-  },
-  invoice: {
-    number: string;
-    amountPaid: number;
-    hostedUrl: string;
-    pdfUrl?: string;
-  },
-  options?: { idempotencyKey?: string }
-) => {
+  bookingDetails: BookingInvoiceEmailDetails,
+  invoice: BookingInvoiceEmailInvoice
+) {
   const bookingReference = bookingDetails.bookingId
     ? `#${bookingDetails.bookingId.slice(-8).toUpperCase()}`
     : "";
+  const period = bookingDetails.period || `${bookingDetails.startDate} – ${bookingDetails.endDate}`;
   const rows = [
     { label: "Facture", value: invoice.number },
     ...(bookingReference ? [{ label: "Réservation", value: bookingReference }] : []),
     ...(bookingDetails.serviceLabel ? [{ label: "Prestation", value: bookingDetails.serviceLabel }] : []),
     { label: "Animal", value: bookingDetails.petName },
-    { label: "Période", value: `${bookingDetails.startDate} – ${bookingDetails.endDate}` },
+    { label: "Période", value: period },
     { label: "Montant acquitté", value: `${formatCurrency(invoice.amountPaid)} €` },
   ];
   const rowsEn = [
@@ -579,13 +603,11 @@ export const sendBookingInvoiceEmail = async (
     ...(bookingReference ? [{ label: "Booking", value: bookingReference }] : []),
     ...(bookingDetails.serviceLabel ? [{ label: "Service", value: bookingDetails.serviceLabel }] : []),
     { label: "Pet", value: bookingDetails.petName },
-    { label: "Period", value: `${bookingDetails.startDate} – ${bookingDetails.endDate}` },
+    { label: "Period", value: period },
     { label: "Amount paid", value: `€${formatCurrency(invoice.amountPaid)}` },
   ];
 
-  await sendTransactionalEmail({
-    from: EMAIL_FROM,
-    to: email,
+  return {
     subject: `Votre facture ${invoice.number} / Your invoice - La Patte Dorée`,
     text: bilingualPlainTextEmail({
       fr: {
@@ -632,6 +654,20 @@ export const sendBookingInvoiceEmail = async (
         ${actionButton("View and download my invoice", invoice.hostedUrl, "#15803d")}
       `,
     }),
+  };
+}
+
+export const sendBookingInvoiceEmail = async (
+  email: string,
+  userName: string,
+  bookingDetails: BookingInvoiceEmailDetails,
+  invoice: BookingInvoiceEmailInvoice,
+  options?: { idempotencyKey?: string }
+) => {
+  await sendTransactionalEmail({
+    from: EMAIL_FROM,
+    to: email,
+    ...buildBookingInvoiceEmail(userName, bookingDetails, invoice),
     replyTo: SUPPORT_EMAIL,
   }, options?.idempotencyKey);
 };
@@ -646,10 +682,13 @@ export const sendBookingRequestEmail = async (
     totalPrice?: number;
     serviceLabel?: string;
     bookingId?: string;
+    // Plan acompte + solde (spec 07) : absent pour un paiement en une fois.
+    depositPlan?: BalanceMandateTerms | null;
   },
   options?: { idempotencyKey?: string }
 ) => {
   try {
+    const depositPlan = bookingDetails?.depositPlan ?? null;
     const rows = [
       ...(bookingDetails?.bookingId ? [{ label: "Réservation", value: `#${bookingDetails.bookingId.slice(-8).toUpperCase()}` }] : []),
       { label: "Animal", value: petName },
@@ -657,9 +696,11 @@ export const sendBookingRequestEmail = async (
       { label: "Statut", value: "En attente de validation" },
       ...(bookingDetails?.startDate ? [{ label: "Début", value: bookingDetails.startDate }] : []),
       ...(bookingDetails?.endDate ? [{ label: "Fin", value: bookingDetails.endDate }] : []),
-      ...(typeof bookingDetails?.totalPrice === "number"
-        ? [{ label: "Paiement", value: `${formatCurrency(bookingDetails.totalPrice)} € en attente de validation` }]
-        : []),
+      ...(depositPlan
+        ? [{ label: "Paiement", value: getDepositRequestPaymentRow(depositPlan, "fr") }]
+        : typeof bookingDetails?.totalPrice === "number"
+          ? [{ label: "Paiement", value: `${formatCurrency(bookingDetails.totalPrice)} € en attente de validation` }]
+          : []),
     ];
     const rowsEn = [
       ...(bookingDetails?.bookingId ? [{ label: "Booking", value: `#${bookingDetails.bookingId.slice(-8).toUpperCase()}` }] : []),
@@ -668,10 +709,14 @@ export const sendBookingRequestEmail = async (
       { label: "Status", value: "Awaiting confirmation" },
       ...(bookingDetails?.startDate ? [{ label: "Start", value: bookingDetails.startDate }] : []),
       ...(bookingDetails?.endDate ? [{ label: "End", value: bookingDetails.endDate }] : []),
-      ...(typeof bookingDetails?.totalPrice === "number"
-        ? [{ label: "Payment", value: `€${formatCurrency(bookingDetails.totalPrice)} awaiting confirmation` }]
-        : []),
+      ...(depositPlan
+        ? [{ label: "Payment", value: getDepositRequestPaymentRow(depositPlan, "en") }]
+        : typeof bookingDetails?.totalPrice === "number"
+          ? [{ label: "Payment", value: `€${formatCurrency(bookingDetails.totalPrice)} awaiting confirmation` }]
+          : []),
     ];
+    const depositScheduleFr = depositPlan ? getDepositRequestSchedule(depositPlan, "fr") : null;
+    const depositScheduleEn = depositPlan ? getDepositRequestSchedule(depositPlan, "en") : null;
 
     await sendTransactionalEmail({
       from: EMAIL_FROM,
@@ -685,6 +730,7 @@ export const sendBookingRequestEmail = async (
             `Nous avons bien reçu votre demande pour ${petName}.`,
             "Elle est en attente de validation par l'équipe La Patte Dorée.",
             "Votre carte n'est pas débitée tant que la réservation n'est pas validée.",
+            ...(depositScheduleFr ? [depositScheduleFr] : []),
             "Vous recevrez un second email dès que la réservation sera acceptée.",
           ],
           rows,
@@ -697,6 +743,7 @@ export const sendBookingRequestEmail = async (
             `We have received your request for ${petName}.`,
             "It is awaiting confirmation by the La Patte Dorée team.",
             "Your card is not charged until the booking is confirmed.",
+            ...(depositScheduleEn ? [depositScheduleEn] : []),
             "You will receive another email as soon as the booking is accepted.",
           ],
           rows: rowsEn,
@@ -718,6 +765,7 @@ export const sendBookingRequestEmail = async (
           <p style="margin:20px 0 0; color:#344054; font-size:15px; line-height:1.7;">
             Votre carte n'est pas débitée tant que la réservation n'est pas validée.
           </p>
+          ${depositScheduleFr ? `<p style="margin:12px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(depositScheduleFr)}</p>` : ""}
           <p style="margin:22px 0 0; color:#344054; font-size:15px; line-height:1.7;">
             Vous recevrez un second email dès que la réservation sera acceptée.
           </p>
@@ -731,6 +779,7 @@ export const sendBookingRequestEmail = async (
           <p style="margin:20px 0 0; color:#344054; font-size:15px; line-height:1.7;">
             Your card is not charged until the booking is confirmed.
           </p>
+          ${depositScheduleEn ? `<p style="margin:12px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(depositScheduleEn)}</p>` : ""}
           <p style="margin:22px 0 0; color:#344054; font-size:15px; line-height:1.7;">
             You will receive another email as soon as the booking is accepted.
           </p>
@@ -1810,3 +1859,287 @@ export function buildGoogleReviewEmail(userName: string, petName: string) {
 export async function sendGoogleReviewEmail(email: string, userName: string, petName: string, idempotencyKey: string) {
   return sendTransactionalEmail({ from: EMAIL_FROM, to: email, replyTo: SUPPORT_EMAIL, ...buildGoogleReviewEmail(userName, petName) }, idempotencyKey);
 }
+
+// ---------------------------------------------------------------------------
+// Plan acompte + solde (spec 07) : e-mails trilingues FR / EN / ES
+// ---------------------------------------------------------------------------
+
+const PLAN_GREETING: Record<PaymentPlanLocale, (name: string) => string> = {
+  fr: (name) => `Bonjour ${name},`,
+  en: (name) => `Hello ${name},`,
+  es: (name) => `Hola ${name}:`,
+};
+const PLAN_SUPPORT_LINE: Record<PaymentPlanLocale, string> = {
+  fr: `Pour toute question, répondez à cet email ou écrivez à ${SUPPORT_EMAIL}.`,
+  en: `If you have any questions, reply to this email or write to ${SUPPORT_EMAIL}.`,
+  es: `Si tiene alguna pregunta, responda a este correo o escriba a ${SUPPORT_EMAIL}.`,
+};
+const PLAN_SECTION_HEADER: Record<PaymentPlanLocale, string> = { fr: "", en: "ENGLISH", es: "ESPAÑOL" };
+
+export function buildPaymentPlanEmail({
+  subject,
+  userName,
+  sections,
+  url,
+  accent = "#15803d",
+}: {
+  subject: string;
+  userName: string;
+  sections: Record<PaymentPlanLocale, PlanEmailSection>;
+  url: string;
+  accent?: string;
+}) {
+  const text = PAYMENT_PLAN_LOCALES.map((locale) => {
+    const section = sections[locale];
+    return [
+      ...(PLAN_SECTION_HEADER[locale] ? [`────────── ${PLAN_SECTION_HEADER[locale]} ──────────`, ""] : ["La Patte Dorée"]),
+      section.title,
+      "",
+      PLAN_GREETING[locale](userName),
+      "",
+      section.subtitle,
+      ...section.paragraphs.flatMap((line) => ["", line]),
+      ...(section.rows.length > 0 ? ["", ...section.rows.map((row) => `${row.label} : ${row.value}`)] : []),
+      "",
+      `${section.buttonLabel} : ${url}`,
+      "",
+      PLAN_SUPPORT_LINE[locale],
+    ].join("\n");
+  }).join("\n\n");
+
+  const sectionHtml = (locale: PaymentPlanLocale) => {
+    const section = sections[locale];
+    const heading = locale === "fr" ? "" : `
+      <h2 style="margin:0; color:#171717; font-size:22px; line-height:1.3;">${escapeHtml(section.title)}</h2>
+      <p style="margin:10px 0 22px; color:#5f6b76; font-size:16px; line-height:1.6;">${escapeHtml(section.subtitle)}</p>
+    `;
+    return `
+      <section lang="${locale}">
+        ${heading}
+        <p style="margin:0; color:#344054; font-size:16px; line-height:1.7;">${escapeHtml(PLAN_GREETING[locale](userName))}</p>
+        ${section.rows.length > 0 ? detailRows(section.rows) : ""}
+        ${section.paragraphs.map((line) => `<p style="margin:16px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(line)}</p>`).join("")}
+        ${actionButton(section.buttonLabel, url, accent)}
+      </section>
+    `;
+  };
+
+  const html = emailLayout({
+    preview: sections.fr.subtitle,
+    title: sections.fr.title,
+    subtitle: `${sections.fr.subtitle} · English and Spanish below`,
+    accent,
+    bilingualFooter: true,
+    children: PAYMENT_PLAN_LOCALES.map(sectionHtml).join(`<div style="margin:32px 0; border-top:2px solid #eadfce;"></div>`),
+  });
+
+  return {
+    subject,
+    text: `${text}\n\nLa Patte Dorée · activité de ${LEGAL_INFORMATION.commercialName}, EI · SIREN ${LEGAL_INFORMATION.siren}`,
+    html,
+  };
+}
+
+const planSections = <T,>(build: (input: T, locale: PaymentPlanLocale) => PlanEmailSection, input: T) =>
+  Object.fromEntries(PAYMENT_PLAN_LOCALES.map((locale) => [locale, build(input, locale)])) as Record<PaymentPlanLocale, PlanEmailSection>;
+
+// Confirmation d'une réservation en plan acompte + solde, avec le calendrier.
+export const sendBookingDepositConfirmationEmail = async (
+  email: string,
+  userName: string,
+  schedule: DepositConfirmationSchedule,
+  options?: { idempotencyKey?: string }
+) => sendTransactionalEmail({
+  from: EMAIL_FROM,
+  to: email,
+  replyTo: SUPPORT_EMAIL,
+  ...buildPaymentPlanEmail({
+    subject: DEPOSIT_CONFIRMATION_SUBJECT,
+    userName,
+    sections: planSections(getDepositConfirmationSection, schedule),
+    url: `${APP_URL}/dashboard`,
+  }),
+}, options?.idempotencyKey);
+
+// Demande dont l'autorisation bancaire a expiré avant acceptation (rien n'est débité).
+export const sendBookingAuthorizationExpiredEmail = async (
+  email: string,
+  userName: string,
+  petName: string,
+  options?: { idempotencyKey?: string }
+) => sendTransactionalEmail({
+  from: EMAIL_FROM,
+  to: email,
+  replyTo: SUPPORT_EMAIL,
+  ...buildPaymentPlanEmail({
+    subject: AUTHORIZATION_EXPIRED_SUBJECT,
+    userName,
+    sections: planSections(getAuthorizationExpiredSection, petName),
+    url: `${APP_URL}/booking`,
+    accent: "#c66a2d",
+  }),
+}, options?.idempotencyKey);
+
+export type AuthorizationAlertDetails = {
+  bookingId: string;
+  petName: string;
+  userName: string;
+  userEmail: string;
+  startDate: string;
+  endDate: string;
+  authorizedAmount: number;
+  serviceLabel?: string;
+  expiresAt?: string;
+  clientNotified?: boolean;
+};
+
+// Alerte équipe : autorisation expirée (demande passée en « Demande expirée »)
+// ou sur le point d'expirer (dernier moment pour accepter ou refuser).
+export const sendBookingAuthorizationAlertAdminEmail = async (
+  kind: "EXPIRED" | "EXPIRING",
+  details: AuthorizationAlertDetails,
+  options?: { idempotencyKey?: string }
+) => {
+  const reference = `#${details.bookingId.slice(-8).toUpperCase()}`;
+  const rows = [
+    { label: "Réservation", value: reference },
+    { label: "Client", value: `${details.userName} (${details.userEmail})` },
+    { label: "Animal", value: details.petName },
+    ...(details.serviceLabel ? [{ label: "Prestation", value: details.serviceLabel }] : []),
+    { label: "Début", value: details.startDate },
+    { label: "Fin", value: details.endDate },
+    { label: "Montant autorisé", value: `${formatCurrency(details.authorizedAmount)} €` },
+    ...(details.expiresAt ? [{ label: "Expiration de l'autorisation", value: details.expiresAt }] : []),
+  ];
+  const title = kind === "EXPIRED" ? "Autorisation bancaire expirée" : "Autorisation bancaire bientôt expirée";
+  const body = kind === "EXPIRED"
+    ? [
+        `L'autorisation de la demande ${reference} a expiré avant acceptation : la demande est passée en « Demande expirée » et ne peut plus être acceptée.`,
+        details.clientNotified
+          ? "Le client a été prévenu par email et invité à refaire une demande."
+          : "Le client n'a pas été prévenu automatiquement (demande ancienne ou date passée).",
+      ]
+    : [
+        `L'autorisation de la demande ${reference} expire bientôt. Acceptez ou refusez la demande avant son expiration, sinon elle passera en « Demande expirée ».`,
+      ];
+
+  return sendTransactionalEmail({
+    from: EMAIL_FROM,
+    to: ADMIN_EMAIL,
+    replyTo: details.userEmail,
+    subject: `${title} - ${details.userName} - ${details.petName}`,
+    text: plainTextEmail({ title, greeting: "Bonjour,", body, rows, url: `${APP_URL}/admin/bookings` }),
+    html: emailLayout({
+      preview: body[0],
+      title,
+      subtitle: body[0],
+      accent: kind === "EXPIRED" ? "#b42318" : "#c66a2d",
+      children: `
+        ${detailRows(rows)}
+        ${body.slice(1).map((line) => `<p style="margin:16px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(line)}</p>`).join("")}
+        ${actionButton("Ouvrir les réservations", `${APP_URL}/admin/bookings`)}
+      `,
+    }),
+  }, options?.idempotencyKey);
+};
+
+// Solde du plan acompte (lot 5) : rappel J-14, échec avec lien de reprise,
+// relances J-5 / J-3, solde réglé, annulation pour défaut de paiement.
+// Le lien de reprise mène à une page authentifiée qui crée une session
+// Checkout fraîche à la demande (jamais de lien Checkout dans l'e-mail).
+export const getBalancePaymentUrl = (bookingId: string) => `${APP_URL}/dashboard/bookings/${bookingId}/pay`;
+
+export const sendBookingBalanceEmail = async (
+  kind: BalanceEmailKind,
+  email: string,
+  userName: string,
+  input: BalanceEmailInput & { bookingId: string },
+  options?: { idempotencyKey?: string }
+) => sendTransactionalEmail({
+  from: EMAIL_FROM,
+  to: email,
+  replyTo: SUPPORT_EMAIL,
+  ...buildPaymentPlanEmail({
+    subject: BALANCE_EMAIL_SUBJECTS[kind],
+    userName,
+    sections: planSections((value: BalanceEmailInput, locale) => getBalanceEmailSection(kind, value, locale), input),
+    url: kind === "FAILED" || kind === "REMINDER" ? getBalancePaymentUrl(input.bookingId) : `${APP_URL}/dashboard`,
+    accent: kind === "PAID" || kind === "NOTICE" ? "#15803d" : kind === "DEFAULT_CANCELLED" ? "#b42318" : "#c66a2d",
+  }),
+}, options?.idempotencyKey);
+
+export type BalanceAlertKind = "REMINDER" | "DEFAULT_CANCELLED" | "ANOMALY";
+
+export type BalanceAlertDetails = {
+  bookingId: string;
+  petName: string;
+  userName: string;
+  userEmail: string;
+  startDate: string;
+  amount: number;
+  attempts: number;
+  lastErrorCode?: string | null;
+  deadline: string;
+  // Étape de relance (J-5, J-3) ou description de l'anomalie.
+  note?: string;
+};
+
+// Alerte équipe sur le solde : impayé à J-5 / J-3, annulation automatique à J-2,
+// ou anomalie à traiter à la main (aucun remboursement automatique).
+export const sendBookingBalanceAlertAdminEmail = async (
+  kind: BalanceAlertKind,
+  details: BalanceAlertDetails,
+  options?: { idempotencyKey?: string }
+) => {
+  const reference = `#${details.bookingId.slice(-8).toUpperCase()}`;
+  const rows = [
+    { label: "Réservation", value: reference },
+    { label: "Client", value: `${details.userName} (${details.userEmail})` },
+    { label: "Animal", value: details.petName },
+    { label: "Début", value: details.startDate },
+    { label: "Solde", value: `${formatCurrency(details.amount)} €` },
+    { label: "Tentatives", value: String(details.attempts) },
+    ...(details.lastErrorCode ? [{ label: "Dernière erreur Stripe", value: details.lastErrorCode }] : []),
+    { label: "Limite de paiement", value: details.deadline },
+  ];
+  const titles: Record<BalanceAlertKind, string> = {
+    REMINDER: "Solde impayé",
+    DEFAULT_CANCELLED: "Réservation annulée : solde impayé",
+    ANOMALY: "Anomalie sur le solde",
+  };
+  const bodies: Record<BalanceAlertKind, string[]> = {
+    REMINDER: [
+      `Le solde de la réservation ${reference} n'est toujours pas réglé${details.note ? ` (${details.note})` : ""}. Le client a reçu une relance avec le lien de paiement.`,
+      "Sans paiement à la limite, la réservation sera annulée automatiquement et l'acompte conservé. Contactez le client si besoin.",
+    ],
+    DEFAULT_CANCELLED: [
+      `Le solde de la réservation ${reference} n'a pas été réglé à la limite : la réservation est annulée automatiquement, l'acompte est conservé et le créneau est libéré.`,
+      "Le client a été prévenu par e-mail.",
+    ],
+    ANOMALY: [
+      `Anomalie sur le solde de la réservation ${reference} : ${details.note || "à vérifier"}.`,
+      "Aucun remboursement automatique n'a été fait : vérifiez dans Stripe et remboursez à la main si nécessaire.",
+    ],
+  };
+  const title = titles[kind];
+  const body = bodies[kind];
+
+  return sendTransactionalEmail({
+    from: EMAIL_FROM,
+    to: ADMIN_EMAIL,
+    replyTo: details.userEmail,
+    subject: `${title} - ${details.userName} - ${details.petName}`,
+    text: plainTextEmail({ title, greeting: "Bonjour,", body, rows, url: `${APP_URL}/admin/bookings` }),
+    html: emailLayout({
+      preview: body[0],
+      title,
+      subtitle: body[0],
+      accent: kind === "REMINDER" ? "#c66a2d" : "#b42318",
+      children: `
+        ${detailRows(rows)}
+        ${body.slice(1).map((line) => `<p style="margin:16px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(line)}</p>`).join("")}
+        ${actionButton("Ouvrir les réservations", `${APP_URL}/admin/bookings`)}
+      `,
+    }),
+  }, options?.idempotencyKey);
+};

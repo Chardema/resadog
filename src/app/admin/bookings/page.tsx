@@ -29,8 +29,9 @@ import { Button } from "@/components/ui/button";
 import { BookingAttendanceActions } from "@/components/admin/BookingAttendanceActions";
 import { FinanceBreakdown } from "@/components/admin/FinanceBreakdown";
 import type { BookingFinance } from "@/lib/finance";
+import { DepositPlanDetails, getDepositPaymentLabel, type AdminBalanceInstallment } from "@/components/admin/DepositPlanDetails";
 
-type BookingStatus = "PENDING" | "ACCEPTING" | "CANCELLING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+type BookingStatus = "PENDING" | "ACCEPTING" | "CANCELLING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "EXPIRED";
 type BookingFilter = "all" | "pending" | "confirmed" | "completed" | "cancelled";
 type AdminAction = "CONFIRMED" | "CANCELLED" | "COMPLETED";
 
@@ -71,7 +72,7 @@ interface Booking {
   serviceType: string;
   priceBreakdown?: PriceBreakdown | null;
   cancellationReason?: string | null;
-  cancellationOrigin?: "CLIENT" | "TEAM" | null;
+  cancellationOrigin?: "CLIENT" | "TEAM" | "PAYMENT_DEFAULT" | null;
   cancelledAt?: string | null;
   serviceDetails?: {
     serviceAddress?: string;
@@ -113,6 +114,14 @@ interface Booking {
     refundFailureReason?: string | null;
   } | null;
   googleReviewSentAt?: string | null;
+  // Plan acompte + solde (spec 07).
+  paymentPlan?: "FULL" | "DEPOSIT_BALANCE";
+  depositAmount?: number | null;
+  balanceAmount?: number | null;
+  balanceDueAt?: string | null;
+  mandateAcceptedAt?: string | null;
+  mandateLegalVersion?: string | null;
+  installments?: AdminBalanceInstallment[];
 }
 
 const FILTERS: { id: BookingFilter; label: string }[] = [
@@ -131,6 +140,7 @@ const STATUS_META: Record<BookingStatus, { label: string; className: string }> =
   IN_PROGRESS: { label: "En cours", className: "bg-blue-50 text-blue-800 ring-blue-200" },
   COMPLETED: { label: "Terminée", className: "bg-gray-100 text-gray-700 ring-gray-200" },
   CANCELLED: { label: "Refusée / annulée", className: "bg-red-50 text-red-800 ring-red-200" },
+  EXPIRED: { label: "Demande expirée", className: "bg-gray-100 text-gray-700 ring-gray-200" },
 };
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -148,6 +158,7 @@ const PAYMENT_META: Record<string, { label: string; className: string }> = {
   FAILED: { label: "Échoué", className: "bg-red-50 text-red-800" },
   REFUNDED: { label: "Libéré / remboursé", className: "bg-purple-50 text-purple-800" },
   PARTIALLY_REFUNDED: { label: "Remboursé partiel", className: "bg-purple-50 text-purple-800" },
+  EXPIRED: { label: "Empreinte expirée", className: "bg-gray-100 text-gray-700" },
 };
 
 const REFUND_META: Record<string, { label: string; className: string }> = {
@@ -206,6 +217,24 @@ const getFilterStatus = (filter: BookingFilter): BookingStatus | null => {
   if (filter === "completed") return "COMPLETED";
   if (filter === "cancelled") return "CANCELLED";
   return null;
+};
+
+const isDepositPlan = (booking: Booking) => booking.paymentPlan === "DEPOSIT_BALANCE";
+
+// Annulation par l'équipe d'une réservation en deux fois : remboursement
+// intégral de l'acompte et du solde déjà encaissés (barème §5.6).
+const getDepositTeamCancellationNotice = (booking: Booking) => {
+  const depositCaptured = booking.payment?.status === "SUCCEEDED" || (booking.payment?.capturedAmount || 0) > 0;
+  const deposit = booking.payment?.capturedAmount || booking.payment?.amount || booking.depositAmount || 0;
+  const balance = booking.installments?.find((installment) => installment.status === "SUCCEEDED");
+  if (!depositCaptured) {
+    return booking.payment?.stripePaymentId
+      ? `L'autorisation de l'acompte de ${formatMoney(booking.payment?.amount || deposit)} € sera libérée, sans débit pour le client.`
+      : "Aucun paiement n'est rattaché à cette réservation.";
+  }
+  return balance
+    ? `L'acompte de ${formatMoney(deposit)} € et le solde de ${formatMoney(balance.amount)} € seront remboursés intégralement sur la carte d'origine.`
+    : `L'acompte de ${formatMoney(deposit)} € sera remboursé intégralement sur la carte d'origine ; le solde ne sera pas prélevé.`;
 };
 
 const getPaymentLabel = (booking: Booking) => {
@@ -294,7 +323,7 @@ export default function AdminBookingsPage() {
       if (["PENDING", "ACCEPTING", "CANCELLING"].includes(booking.status)) base.pending += 1;
       if (booking.status === "CONFIRMED") base.confirmed += 1;
       if (booking.status === "COMPLETED") base.completed += 1;
-      if (booking.status === "CANCELLED") base.cancelled += 1;
+      if (booking.status === "CANCELLED" || booking.status === "EXPIRED") base.cancelled += 1;
     });
     return base;
   }, [bookings]);
@@ -307,7 +336,8 @@ export default function AdminBookingsPage() {
       if (
         statusFilter &&
         booking.status !== statusFilter &&
-        !(filter === "pending" && ["ACCEPTING", "CANCELLING"].includes(booking.status))
+        !(filter === "pending" && ["ACCEPTING", "CANCELLING"].includes(booking.status)) &&
+        !(filter === "cancelled" && booking.status === "EXPIRED")
       ) return false;
       if (!query) return true;
 
@@ -593,7 +623,7 @@ export default function AdminBookingsPage() {
                         </span>
                         {booking.status === "CANCELLED" && booking.cancellationOrigin && (
                           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700 ring-1 ring-gray-200">
-                            {booking.noShow ? "Non-présentation" : booking.cancellationOrigin === "TEAM" ? "Annulée par l'équipe" : "Annulée par le client"}
+                            {booking.noShow ? "Non-présentation" : booking.cancellationOrigin === "TEAM" ? "Annulée par l'équipe" : booking.cancellationOrigin === "PAYMENT_DEFAULT" ? "Annulée : solde impayé" : "Annulée par le client"}
                           </span>
                         )}
                         <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
@@ -727,9 +757,10 @@ export default function AdminBookingsPage() {
                         <p className="mt-2 text-2xl font-bold text-gray-950">{getPaymentLabel(booking)}</p>
                         {paymentMeta && (
                           <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${paymentMeta.className}`}>
-                            {direct && booking.payment?.status === "PENDING" ? "À recevoir" : paymentMeta.label}
+                            {direct && booking.payment?.status === "PENDING" ? "À recevoir" : (isDepositPlan(booking) && getDepositPaymentLabel(booking.payment?.status, booking.installments?.[0]?.status)) || paymentMeta.label}
                           </span>
                         )}
+                        {isDepositPlan(booking) && <DepositPlanDetails booking={booking} />}
                         {refundMeta && (
                           <div className="mt-2">
                             <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${refundMeta.className}`}>
@@ -978,7 +1009,9 @@ export default function AdminBookingsPage() {
                       : "Cette annulation traite immédiatement le paiement."}
                   </p>
                   <p className="mt-1 leading-6">
-                    {(actionDialog.booking.payment?.capturedAmount || 0) > 0 || actionDialog.booking.payment?.status === "SUCCEEDED"
+                    {isDepositPlan(actionDialog.booking)
+                      ? getDepositTeamCancellationNotice(actionDialog.booking)
+                      : (actionDialog.booking.payment?.capturedAmount || 0) > 0 || actionDialog.booking.payment?.status === "SUCCEEDED"
                       ? `Un remboursement intégral de ${formatMoney(actionDialog.booking.payment?.capturedAmount || actionDialog.booking.totalPrice)} € sera demandé sur la carte d'origine.`
                       : actionDialog.booking.payment?.stripePaymentId
                         ? `L'autorisation bancaire de ${formatMoney(actionDialog.booking.totalPrice)} € sera libérée, sans débit pour le client.`
@@ -1031,7 +1064,9 @@ export default function AdminBookingsPage() {
               <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
                 <p className="font-bold">Cette action confirme la prestation.</p>
                 <p className="mt-1 leading-6">
-                  Si une empreinte Stripe est présente, elle sera capturée. Un email de confirmation sera envoyé au client.
+                  {isDepositPlan(actionDialog.booking)
+                    ? `Paiement en deux fois : seul l'acompte de ${formatMoney(actionDialog.booking.payment?.amount || actionDialog.booking.depositAmount || 0)} € sera capturé. Le solde de ${formatMoney(actionDialog.booking.balanceAmount ?? Math.max(0, actionDialog.booking.totalPrice - (actionDialog.booking.payment?.amount || actionDialog.booking.depositAmount || 0)))} € sera prélevé automatiquement 7 jours avant le début, sur la carte enregistrée par le client. Un email de confirmation avec ce calendrier sera envoyé au client.`
+                    : "Si une empreinte Stripe est présente, elle sera capturée. Un email de confirmation sera envoyé au client."}
                 </p>
               </div>
             )}

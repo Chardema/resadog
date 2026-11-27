@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { LEGAL_INFORMATION } from "@/lib/legal";
 import { CAT_VISIT_PRICING_DESCRIPTION } from "@/lib/pricing";
-import { CAT_VISIT_ACCEPTANCE_TERMS, CAT_VISIT_PAYMENT_TERMS, formatQuoteAmount, formatVisitDate, type CatVisitQuote, type CatVisitQuoteDetails } from "@/lib/cat-visit-quote";
+import { CAT_VISIT_ACCEPTANCE_TERMS, getCatVisitPaymentTerms, formatQuoteAmount, formatVisitDate, type CatVisitQuote, type CatVisitQuoteDetails } from "@/lib/cat-visit-quote";
 
 const ink = "#182b35", gold = "#ad711c", muted = "#65717a";
 const styles = {
@@ -90,7 +90,7 @@ export async function renderCatVisitQuotePdf(quote: CatVisitQuote, details: CatV
       </View>
       {details.notes ? <View style={s.notes}><Text style={s.eyebrow}>Précisions convenues</Text><Text style={s.paragraph}>{details.notes}</Text></View> : null}
       <View style={s.agreement} wrap={false}>
-        <View style={s.terms}><Text style={s.eyebrow}>Modalités</Text><Text style={s.paragraph}>{CAT_VISIT_PAYMENT_TERMS}</Text><Text style={s.paragraph}>{CAT_VISIT_ACCEPTANCE_TERMS}</Text><Text style={s.paragraph}>Devis établi gratuitement.</Text></View>
+        <View style={s.terms}><Text style={s.eyebrow}>Modalités</Text><Text style={s.paragraph}>{getCatVisitPaymentTerms()}</Text><Text style={s.paragraph}>{CAT_VISIT_ACCEPTANCE_TERMS}</Text><Text style={s.paragraph}>Devis établi gratuitement.</Text></View>
         <View style={s.signature}><Text style={s.signatureTitle}>Bon pour accord</Text><Text style={[s.muted, s.paragraph]}>Je reconnais avoir pris connaissance de ce devis et des conditions générales de vente.</Text><Text style={s.signatureLabel}>Date et signature du client</Text></View>
       </View>
       <View style={s.footer} fixed><Text>La Patte Dorée · MM Services · {details.reference}</Text><Text render={({ pageNumber, totalPages }) => `www.lapatte-doree.fr · ${pageNumber}/${totalPages}`} /></View>

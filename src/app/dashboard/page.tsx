@@ -41,6 +41,8 @@ interface Booking {
     imageUrl?: string | null;
   } | null;
   totalPrice: number;
+  // Plan acompte + solde (spec 07) : absent pour une réservation payée en une fois.
+  balance?: { state: string } | null;
 }
 
 interface DashboardData {
@@ -103,6 +105,11 @@ const statusLabels: Record<string, { label: string; className: string; icon: typ
     label: "Annulée",
     className: "bg-red-100 text-red-800",
     icon: X,
+  },
+  EXPIRED: {
+    label: "Demande expirée",
+    className: "bg-gray-100 text-gray-700",
+    icon: AlertCircle,
   },
 };
 
@@ -242,6 +249,8 @@ function DashboardContent() {
   const hasCanceledSub = data?.subscription?.status === "CANCELED";
   const nextBooking = data?.upcomingBookings[0] || null;
   const pendingBookings = data?.upcomingBookings.filter((booking) => booking.status === "PENDING").length || 0;
+  // Solde en échec encore payable en ligne (plan acompte + solde).
+  const balanceDueBooking = data?.upcomingBookings.find((booking) => booking.balance?.state === "PAYABLE") || null;
   const firstName = session?.user?.name?.split(" ")[0] || "bonjour";
   const premiumReferenceAmount = nextBooking?.totalPrice || 81;
   const premiumQuote = calculatePremiumDiscount(premiumReferenceAmount);
@@ -346,6 +355,25 @@ function DashboardContent() {
             </div>
             <Link href="/profile#subscription" className="rounded-md bg-yellow-700 px-4 py-2 text-sm font-bold text-white hover:bg-yellow-800">
               Gérer
+            </Link>
+          </motion.div>
+        )}
+
+        {balanceDueBooking && (
+          <motion.div
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            role="alert"
+            className="mb-6 flex flex-col items-start justify-between gap-4 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-red-900 shadow-sm md:flex-row md:items-center"
+          >
+            <div>
+              <p className="font-bold">Solde de réservation à régler</p>
+              <p className="text-sm text-red-800">
+                Le prélèvement automatique du solde de la garde de {getPetNames(balanceDueBooking)} n&apos;a pas abouti. Réglez-le en ligne pour conserver la réservation.
+              </p>
+            </div>
+            <Link href={`/dashboard/bookings/${balanceDueBooking.id}/pay`} className="rounded-md bg-red-700 px-4 py-2 text-sm font-bold text-white hover:bg-red-800">
+              Régler le solde
             </Link>
           </motion.div>
         )}
@@ -600,7 +628,16 @@ function BookingRow({ booking }: { booking: Booking }) {
               {formatDate(booking.startDate) !== formatDate(booking.endDate) ? ` - ${formatDate(booking.endDate)}` : ""}
             </p>
           </div>
-          <StatusPill status={booking.status} />
+          {booking.balance?.state === "PAYABLE" ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href={`/dashboard/bookings/${booking.id}/pay`} className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-bold text-white hover:bg-red-800">
+                Régler le solde
+              </Link>
+              <StatusPill status={booking.status} />
+            </div>
+          ) : (
+            <StatusPill status={booking.status} />
+          )}
         </div>
       </div>
     </div>

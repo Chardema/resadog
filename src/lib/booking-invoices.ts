@@ -1,12 +1,12 @@
 import type Stripe from "stripe";
 import { prisma } from "@/lib/db/prisma";
 import { sendBookingInvoiceEmail } from "@/lib/email";
-import { getBookingEmailDetails } from "@/lib/booking-email-details";
+import { formatServicePeriod, getBookingEmailDetails } from "@/lib/booking-email-details";
 import { stripe } from "@/lib/stripe/config";
 import {
   BOOKING_INVOICE_VERSION,
   getInvoiceLegalFooter,
-  LEGAL_DOCUMENT_VERSION,
+  getLegalDocumentVersion,
   LEGAL_INFORMATION,
 } from "@/lib/legal";
 
@@ -38,9 +38,69 @@ function getInvoiceLineDescription(booking: {
   return [
     `${details.serviceLabel} – ${details.petName}`,
     `Réservation ${reference}`,
-    `Prestation prévue du ${details.startDate}${booking.startTime ? ` à ${booking.startTime}` : ""} au ${details.endDate}${booking.endTime ? ` à ${booking.endTime}` : ""}`,
+    `Prestation prévue ${formatServicePeriod(booking)}`,
     pricingDetail,
   ].filter(Boolean).join(" · ");
+}
+
+// PaymentIntent de l'acompte (Checkout en plan DEPOSIT_BALANCE).
+export const isDepositPaymentIntent = (paymentIntent: Pick<Stripe.PaymentIntent, "metadata">) =>
+  paymentIntent.metadata?.paymentPlan === "DEPOSIT_BALANCE" && paymentIntent.metadata?.type !== "booking_balance";
+
+// PaymentIntent du solde (prélèvement hors session ou reprise sur session, lot 5).
+export const isBalancePaymentIntent = (paymentIntent: Pick<Stripe.PaymentIntent, "metadata">) =>
+  paymentIntent.metadata?.type === "booking_balance";
+
+export type BalanceInvoiceLine = { key: "service" | "deposit" | "interest"; amount: number; description: string };
+
+// Incohérence durable de la facture finale du plan acompte (montants, acompte
+// absent) : un rejeu Stripe ne la corrigerait pas. L'appelant alerte l'équipe
+// au lieu de faire échouer le webhook. Le plan FULL n'en lève jamais.
+export class BookingInvoiceAnomalyError extends Error {
+  constructor(message: string, public readonly bookingId: string) {
+    super(message);
+    this.name = "BookingInvoiceAnomalyError";
+  }
+}
+
+const formatInvoiceDate = (date: Date) =>
+  date.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris", day: "2-digit", month: "2-digit", year: "numeric" });
+
+// Lignes de la facture finale, en centimes : total de la prestation, puis
+// l'acompte déjà encaissé et les intérêts L214-2 déduits du solde (montant
+// porté par la métadonnée balanceInterest du PaymentIntent du solde).
+export function getBalanceInvoiceLines(input: {
+  bookingId: string;
+  totalPrice: number;
+  depositCaptured: number;
+  depositPaidAt: Date | null;
+  interest?: string | null;
+  description: string;
+}): BalanceInvoiceLine[] {
+  const depositCents = Math.round(input.depositCaptured * 100);
+  if (!(depositCents > 0)) {
+    throw new BookingInvoiceAnomalyError(`Acompte encaissé introuvable pour la facture finale de ${input.bookingId}`, input.bookingId);
+  }
+  const interestCents = input.interest ? Math.round(Number(input.interest) * 100) : 0;
+  if (!Number.isFinite(interestCents) || interestCents < 0) {
+    throw new BookingInvoiceAnomalyError(`Intérêts invalides pour la facture finale de ${input.bookingId}`, input.bookingId);
+  }
+  const lines: BalanceInvoiceLine[] = [
+    { key: "service", amount: Math.round(input.totalPrice * 100), description: input.description },
+    {
+      key: "deposit",
+      amount: -depositCents,
+      description: `Acompte déjà versé${input.depositPaidAt ? ` le ${formatInvoiceDate(input.depositPaidAt)}` : ""}`,
+    },
+  ];
+  if (interestCents > 0) {
+    lines.push({
+      key: "interest",
+      amount: -interestCents,
+      description: "Intérêts au taux légal sur l'acompte (art. L214-2 du Code de la consommation), déduits du solde",
+    });
+  }
+  return lines;
 }
 
 async function findExistingInvoice(paymentIntentId: string) {
@@ -57,6 +117,9 @@ async function findExistingInvoice(paymentIntentId: string) {
  */
 export async function ensureBookingInvoice(paymentIntent: Stripe.PaymentIntent) {
   if (paymentIntent.metadata.bookingInvoiceVersion !== BOOKING_INVOICE_VERSION) return null;
+  // Plan acompte (spec 07) : pas de facture à l'acompte. La facture finale est
+  // émise au paiement du solde, acompte déduit (voir getBalanceInvoiceLines).
+  if (isDepositPaymentIntent(paymentIntent)) return null;
   if (paymentIntent.status !== "succeeded") {
     throw new Error(`Facture impossible avant encaissement (${paymentIntent.id}: ${paymentIntent.status})`);
   }
@@ -66,9 +129,10 @@ export async function ensureBookingInvoice(paymentIntent: Stripe.PaymentIntent) 
     throw new Error(`La facturation automatique attend exactement une réservation (${paymentIntent.id})`);
   }
 
+  const isBalance = isBalancePaymentIntent(paymentIntent);
   const booking = await prisma.booking.findUnique({
     where: { id: bookingIds[0] },
-    include: { client: true, pets: true, pet: true },
+    include: { client: true, pets: true, pet: true, payment: true },
   });
   if (!booking) throw new Error(`Réservation ${bookingIds[0]} introuvable pour ${paymentIntent.id}`);
 
@@ -77,11 +141,26 @@ export async function ensureBookingInvoice(paymentIntent: Stripe.PaymentIntent) 
     : paymentIntent.customer?.id;
   if (!customerId) throw new Error(`Client Stripe absent de ${paymentIntent.id}`);
 
-  const expectedAmount = Math.round(booking.totalPrice * 100);
+  // Solde : facture finale du total, acompte (et intérêts L214-2) déduits ;
+  // la facture est acquittée par le PaymentIntent du solde.
+  const balanceLines = isBalance
+    ? getBalanceInvoiceLines({
+        bookingId: booking.id,
+        totalPrice: booking.totalPrice,
+        depositCaptured: booking.payment?.capturedAmount ?? 0,
+        depositPaidAt: booking.payment?.paidAt ?? null,
+        interest: paymentIntent.metadata.balanceInterest,
+        description: getInvoiceLineDescription(booking),
+      })
+    : null;
+
+  const expectedAmount = balanceLines
+    ? balanceLines.reduce((sum, line) => sum + line.amount, 0)
+    : Math.round(booking.totalPrice * 100);
   if (paymentIntent.amount_received !== expectedAmount) {
-    throw new Error(
-      `Montant encaissé incohérent pour ${booking.id}: ${paymentIntent.amount_received} au lieu de ${expectedAmount}`
-    );
+    const message = `Montant encaissé incohérent pour ${booking.id}: ${paymentIntent.amount_received} au lieu de ${expectedAmount}`;
+    if (balanceLines) throw new BookingInvoiceAnomalyError(message, booking.id);
+    throw new Error(message);
   }
 
   const idempotencyPrefix = `booking-invoice:${BOOKING_INVOICE_VERSION}:${paymentIntent.id}`;
@@ -105,7 +184,7 @@ export async function ensureBookingInvoice(paymentIntent: Stripe.PaymentIntent) 
         metadata: {
           bookingIds: booking.id,
           bookingInvoiceVersion: BOOKING_INVOICE_VERSION,
-          legalVersion: LEGAL_DOCUMENT_VERSION,
+          legalVersion: getLegalDocumentVersion(),
           paymentIntentId: paymentIntent.id,
           providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
         },
@@ -117,6 +196,45 @@ export async function ensureBookingInvoice(paymentIntent: Stripe.PaymentIntent) 
       paymentIntent.id,
       { metadata: { bookingInvoiceId: invoice.id } },
       { idempotencyKey: `${idempotencyPrefix}:link` }
+    );
+  }
+
+  if (invoice.status === "draft" && balanceLines) {
+    const draft = await stripe.invoices.retrieve(invoice.id, { expand: ["lines"] });
+    // Chaque ligne est repérée par sa métadonnée : un rejeu interrompu ne
+    // recrée que les lignes manquantes.
+    const existingLines = new Set(draft.lines.data.map((line) => line.metadata?.invoiceLine).filter(Boolean));
+    for (const line of balanceLines) {
+      if (existingLines.has(line.key)) continue;
+      await stripe.invoiceItems.create(
+        {
+          customer: customerId,
+          invoice: draft.id,
+          amount: line.amount,
+          currency: paymentIntent.currency,
+          description: line.description,
+          ...(line.key === "service"
+            ? {
+                period: {
+                  start: Math.floor(booking.startDate.getTime() / 1000),
+                  end: Math.floor(booking.endDate.getTime() / 1000),
+                },
+              }
+            : {}),
+          metadata: {
+            bookingId: booking.id,
+            bookingInvoiceVersion: BOOKING_INVOICE_VERSION,
+            invoiceLine: line.key,
+          },
+        },
+        { idempotencyKey: `${idempotencyPrefix}:item:${line.key}` }
+      );
+    }
+
+    invoice = await stripe.invoices.finalizeInvoice(
+      invoice.id,
+      { auto_advance: false },
+      { idempotencyKey: `${idempotencyPrefix}:finalize` }
     );
   }
 

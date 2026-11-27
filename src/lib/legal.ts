@@ -1,3 +1,5 @@
+import { isPaymentPlanEnabled } from "@/lib/payment-plan";
+
 export const LEGAL_INFORMATION = {
   brandName: "La Patte Dorée",
   commercialName: "MM Services",
@@ -32,10 +34,23 @@ export const LEGAL_INFORMATION = {
   },
 } as const;
 
-export const LEGAL_DOCUMENT_VERSION = "2026-09-13";
-export const LEGAL_DOCUMENT_VERSION_LABEL = "13 septembre 2026";
+// CGV du plan acompte + solde (spec 07) : publiées seulement quand
+// isPaymentPlanEnabled() est vrai. Mettre la date à jour le jour de l'activation
+// en production, après relecture juridique. Plan fermé : version actuelle inchangée.
+export const PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION = "2026-11-27";
+export const PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION_LABEL = "27 novembre 2026";
+export const STANDARD_LEGAL_DOCUMENT_VERSION = "2026-09-13";
+export const STANDARD_LEGAL_DOCUMENT_VERSION_LABEL = "13 septembre 2026";
+// Fonctions (et non constantes) : la version suit l'environnement à l'appel.
+export const getLegalDocumentVersion = () =>
+  isPaymentPlanEnabled() ? PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION : STANDARD_LEGAL_DOCUMENT_VERSION;
+export const getLegalDocumentVersionLabel = () =>
+  isPaymentPlanEnabled() ? PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION_LABEL : STANDARD_LEGAL_DOCUMENT_VERSION_LABEL;
+// Version des CGV qui a introduit l'engagement Premium de trois mois : ne suit
+// pas les versions ultérieures des CGV.
+export const PREMIUM_COMMITMENT_VERSION_LABEL = "13 septembre 2026";
 // Version propre à la politique cookies : la mettre à jour ne change pas la
-// version des CGV acceptée lors des paiements (LEGAL_DOCUMENT_VERSION).
+// version des CGV acceptée lors des paiements (getLegalDocumentVersion()).
 export const COOKIES_POLICY_VERSION_LABEL = "16 novembre 2026";
 // Seules les sessions Checkout créées avec cette version déclenchent l'envoi
 // automatique d'une facture de réservation. Les anciennes restent intactes.

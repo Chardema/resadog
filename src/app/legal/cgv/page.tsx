@@ -12,7 +12,8 @@ import {
   LONG_BOARDING_MIN_PERIODS,
   YOUNG_ANIMAL_SURCHARGE,
 } from "@/lib/pricing";
-import { LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+import { getLegalDocumentVersionLabel, LEGAL_INFORMATION, PREMIUM_COMMITMENT_VERSION_LABEL } from "@/lib/legal";
+import { isPaymentPlanEnabled } from "@/lib/payment-plan";
 import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
 
 export const metadata = buildMetadata({
@@ -30,12 +31,14 @@ export default function CGVPage() {
   const mediatorName = process.env.CONSUMER_MEDIATOR_NAME;
   const mediatorAddress = process.env.CONSUMER_MEDIATOR_ADDRESS;
   const mediatorUrl = process.env.CONSUMER_MEDIATOR_URL;
+  // Clauses du paiement en deux fois (spec 07) : publiées seulement avec le plan.
+  const depositPlan = isPaymentPlanEnabled();
 
   return (
     <div data-no-translate className="min-h-screen bg-[#FDFbf7] py-20">
       <div className="container mx-auto max-w-4xl px-6">
         <h1 className="mb-3 text-4xl font-extrabold text-gray-900">Conditions générales de vente (CGV)</h1>
-        <p className="mb-8 text-sm text-gray-500">Version en vigueur au {LEGAL_DOCUMENT_VERSION_LABEL}</p>
+        <p className="mb-8 text-sm text-gray-500">Version en vigueur au {getLegalDocumentVersionLabel()}</p>
 
         <div className="space-y-8 rounded-[2rem] bg-white p-8 text-gray-700 shadow-sm md:p-12">
           <section>
@@ -62,6 +65,21 @@ export default function CGVPage() {
             <p className="mt-3">
               Avant le paiement, le client reçoit un récapitulatif des dates, horaires, animaux, prestations, remises et du montant total. Il doit vérifier ces informations et accepter la version en vigueur des présentes CGV.
             </p>
+            {depositPlan && (
+              <div id="acompte-solde" className="mt-5">
+                <h3 className="mb-3 text-xl font-bold text-gray-900">Paiement en deux fois : acompte et solde</h3>
+                <p>
+                  Pour une réservation d’hébergement, de garde au domicile, de garderie ou de visites dont le montant total atteint au moins 100 € et dont le début intervient au moins 14 jours après la demande, le paiement s’effectue en deux fois. Les autres réservations sont réglées en une fois, comme indiqué ci-dessus. Le mode de paiement applicable, le montant de l’acompte, le montant du solde et la date de son prélèvement sont affichés avant l’envoi de la demande.
+                </p>
+                <ul className="mt-3 list-disc space-y-2 pl-5">
+                  <li><strong>Acompte :</strong> 30 % du montant total, arrondi à l’euro supérieur. Il fait l’objet d’une autorisation bancaire lors de la demande et n’est débité qu’après acceptation de la réservation. Si la demande est refusée ou n’est pas acceptée à temps, l’autorisation est libérée sans frais. La somme versée constitue un acompte et non des arrhes : son sort en cas d’annulation est fixé à l’article 3.</li>
+                  <li><strong>Solde :</strong> montant total diminué de l’acompte et, le cas échéant, des intérêts légaux mentionnés à l’article 3. Il est prélevé automatiquement 7 jours avant le début de la prestation, sur la carte enregistrée lors de la demande. Un rappel est adressé par e-mail environ 14 jours avant le début.</li>
+                  <li><strong>Autorisation de prélèvement du solde :</strong> en cochant la case dédiée avant le paiement, le client autorise {LEGAL_INFORMATION.commercialName} à prélever le solde, au montant et à la date affichés, sur la carte enregistrée, sans autre action de sa part. Cette autorisation porte sur ce seul prélèvement. Sa date et son heure, le montant, la date prévue et la version des CGV acceptée sont conservés comme preuve. Le client y met fin en annulant la réservation selon l’article 3 ; aucun autre débit n’est effectué sur cette carte sans son accord.</li>
+                  <li><strong>Échec du prélèvement :</strong> si la banque refuse le paiement ou demande une authentification, le client est prévenu par e-mail et peut régler le solde en ligne depuis son espace client. De nouvelles tentatives et des rappels peuvent avoir lieu. À défaut de paiement 2 jours avant le début, à 12 h (heure de Paris), la réservation est annulée et l’acompte reste acquis, sous réserve des droits légaux du client.</li>
+                  <li><strong>Facture :</strong> une facture unique est émise après le paiement du solde ; elle mentionne l’acompte déduit.</li>
+                </ul>
+              </div>
+            )}
           </section>
 
           <section>
@@ -76,6 +94,26 @@ export default function CGVPage() {
               <li><strong>Avantage Premium de report :</strong> le client Premium peut demander en priorité un report sans frais au moins 24 h avant le début. Le report dépend des disponibilités et ne constitue pas une annulation remboursable. Si aucun nouveau créneau n’est accepté, les règles d’annulation ci-dessus restent applicables.</li>
               <li><strong>Non-présentation :</strong> une indemnité correspondant au préjudice justifié (créneau immobilisé, temps mobilisé et impossibilité de réattribuer la place), déduction faite des coûts économisés et des sommes obtenues par une réattribution, peut être retenue dans la limite du prix réservé. Aucun remboursement n’est effectué si cette indemnité justifiée couvre la totalité du montant encaissé. Sinon, la différence est remboursée. Aucun prélèvement supplémentaire n’est automatique.</li>
             </ul>
+            {depositPlan && (
+              <div id="annulation-acompte" className="mt-6">
+                <h3 className="mb-3 text-xl font-bold text-gray-900">Réservations payées en deux fois (acompte et solde)</h3>
+                <p>Les règles ci-dessus concernent les réservations réglées en une fois. Pour une réservation payée en deux fois, l’annulation par le client suit le barème suivant :</p>
+                <ul className="mt-3 list-disc space-y-2 pl-5">
+                  <li><strong>Au moins 7 jours avant le début :</strong> annulation gratuite. L’autorisation de l’acompte est libérée ou l’acompte est remboursé intégralement ; le solde n’est pas prélevé.</li>
+                  <li><strong>Entre 7 jours et 48 h avant le début :</strong> l’acompte est conservé. Le solde, s’il a déjà été prélevé, est remboursé.</li>
+                  <li><strong>Moins de 48 h avant le début :</strong> 50 % du montant total est retenu, acompte compris. Le surplus déjà encaissé est remboursé.</li>
+                  <li><strong>Annulation par {LEGAL_INFORMATION.commercialName} :</strong> l’acompte et le solde éventuellement prélevé sont remboursés intégralement. La somme versée étant un acompte et non des arrhes, elle n’est pas restituée au double.</li>
+                  <li><strong>Solde impayé à la date limite :</strong> la réservation est annulée dans les conditions de l’article 2 et l’acompte reste acquis.</li>
+                  <li><strong>Non-présentation :</strong> la règle de non-présentation ci-dessus s’applique, dans la limite des sommes encaissées (acompte et, le cas échéant, solde). Aucun prélèvement supplémentaire n’est automatique.</li>
+                </ul>
+                <p className="mt-3">
+                  <strong>Intérêts sur l’acompte :</strong> conformément à l’article L214-2 du Code de la consommation, lorsque la prestation est exécutée plus de trois mois après le versement de l’acompte, celui-ci porte intérêt au taux légal à compter de l’expiration de ce délai de trois mois et jusqu’à l’exécution de la prestation. Ces intérêts sont déduits du solde.
+                </p>
+                <p className="mt-3">
+                  <strong>Rétractation :</strong> ce barème s’applique sans préjudice du droit de rétractation décrit ci-dessous. Si le client se rétracte dans le délai légal de quatorze jours, l’acompte et toute somme versée lui sont remboursés intégralement, au plus tard quatorze jours après la rétractation, sous réserve du montant proportionnel au service déjà exécuté à sa demande.
+                </p>
+              </div>
+            )}
             <p className="mt-4">
               Cette politique commerciale s’applique sans préjudice du droit légal de rétractation lorsqu’il est applicable. Pour un contrat conclu à distance, le consommateur dispose en principe de quatorze jours à compter de sa conclusion. S’il demande que la prestation commence avant la fin de ce délai, un montant proportionnel au service déjà exécuté peut rester dû. Le droit de rétractation ne disparaît après exécution complète qu’avec l’accord préalable exprès du consommateur et sa reconnaissance expresse de cette perte.
             </p>
@@ -87,6 +125,7 @@ export default function CGVPage() {
             <p className="mt-3"><strong>Au dépôt chez MM Services :</strong> une attente de 30 minutes est prévue à compter de l’heure convenue. En l’absence de présentation et de nouvelles, l’équipe adresse une relance écrite demandant au client de se présenter ou de la contacter dans un délai raisonnable, indiqué dans le message et adapté aux circonstances. Cette relance précise qu’à défaut la réservation pourra être annulée pour non-présentation. L’expiration des 30 minutes ne suffit pas à elle seule : le délai de la relance doit aussi être écoulé. L’annulation est décidée manuellement, après vérification des échanges et notification écrite de la décision et de ses motifs.</p>
             <p className="mt-3">Si un nouvel horaire est accepté, la prestation se termine à l’heure initialement prévue sauf prolongation expressément convenue. Le retard du client ne décale pas automatiquement le départ et ne réduit pas le prix du créneau réservé, sous réserve de ses droits légaux. Pour un séjour ou plusieurs journées, les prestations restantes et les possibilités de report ou de réattribution sont examinées séparément ; 30 minutes de retard ne rendent pas automatiquement exigible la totalité d’un séjour non exécuté.</p>
             <p className="mt-3"><strong>À la récupération :</strong> une tolérance de 15 minutes est accordée sans supplément. Au-delà, le propriétaire contacte l’équipe pour convenir d’une heure de récupération. Toute prolongation payante fait l’objet d’un montant détaillé, proportionné à la garde supplémentaire, communiqué puis accepté expressément avant facturation. Aucun forfait punitif, nouvelle journée entière ou débit de carte ne s’applique automatiquement. L’équipe continue à assurer la sécurité et le bien-être de l’animal et contacte, si nécessaire, la personne de confiance désignée par le propriétaire.</p>
+            {depositPlan && <p className="mt-3">Un supplément accepté est réglé au moyen d’un lien de paiement sécurisé envoyé au client. La carte enregistrée pour le solde d’une réservation payée en deux fois n’est jamais débitée d’un supplément.</p>}
             <p className="mt-3"><strong>Visites et prestations chez le client :</strong> les modalités d’accès et les horaires sont convenus à l’avance. Un problème d’accès donne lieu à une tentative de contact et à un examen de la situation ; il n’est pas assimilé automatiquement à une absence au dépôt.</p>
             <p className="mt-3"><strong>Droits et réciprocité :</strong> ces règles ne limitent ni le droit de rétractation lorsqu’il s’applique, ni les conséquences d’un cas de force majeure, ni le droit de contester une retenue. Si MM Services annule de son fait une prestation non exécutée, les sommes correspondantes sont remboursées intégralement, sans préjudice du droit du client de demander réparation d’un préjudice justifié. Les retards imputables à MM Services ne sont pas facturés au client.</p>
             <p className="mt-3"><strong>Application dans le temps :</strong> ces règles détaillées s’appliquent aux réservations conclues après acceptation de cette version des CGV. Les réservations antérieures restent régies par les conditions acceptées à leur conclusion ; un nouveau délai ne leur est pas imposé rétroactivement.</p>
@@ -138,7 +177,7 @@ export default function CGVPage() {
               <li>Son prix est de {PREMIUM_SUBSCRIPTION.monthlyPrice.toFixed(2).replace(".", ",")} € par mois.</li>
               <li><strong>Engagement initial : trois mois, soit un montant minimum total de {PREMIUM_SUBSCRIPTION.minimumCommitmentTotal.toFixed(2).replace(".", ",")} €.</strong> Premium reste facturé mensuellement à raison de {PREMIUM_SUBSCRIPTION.monthlyPrice.toFixed(2).replace(".", ",")} € au début de chaque période.</li>
               <li>La résiliation peut être demandée à tout moment depuis le profil. Pendant l’engagement initial, elle est programmée pour sa date de fin et les échéances mensuelles prévues restent dues. Après ces trois mois, l’abonnement est renouvelé mensuellement sans engagement et la résiliation prend effet à la fin de la période déjà payée.</li>
-              <li>Les abonnements souscrits avant la version du {LEGAL_DOCUMENT_VERSION_LABEL} conservent la durée d’engagement acceptée lors de leur souscription.</li>
+              <li>Les abonnements souscrits avant la version du {PREMIUM_COMMITMENT_VERSION_LABEL} conservent la durée d’engagement acceptée lors de leur souscription.</li>
               <li>Toute période commencée est due, sauf droit légal contraire ou remboursement exceptionnel accordé par {LEGAL_INFORMATION.commercialName}.</li>
               <li>Les Pattes fidélité restent visibles après la résiliation Premium.</li>
             </ul>
@@ -168,6 +207,7 @@ export default function CGVPage() {
             <p>
               Les conditions de traitement des données personnelles sont décrites dans la <Link href="/legal/confidentialite" className="font-semibold text-orange-700 underline">politique de confidentialité</Link>. Les paiements sont traités par Stripe. Les notes, avis et profils identifiés comme provenant de Google Maps sont fournis par Google Maps Platform et restent soumis aux conditions et à la politique de confidentialité de Google.
             </p>
+            {depositPlan && <p className="mt-3">Pour une réservation payée en deux fois, la carte utilisée pour l’acompte est enregistrée par Stripe afin de prélever le solde à la date convenue. {LEGAL_INFORMATION.commercialName} n’a pas accès au numéro complet de la carte.</p>}
           </section>
 
           <section>

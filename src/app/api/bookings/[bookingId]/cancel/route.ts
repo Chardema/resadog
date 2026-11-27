@@ -5,6 +5,15 @@ import { prisma } from "@/lib/db/prisma";
 import { stripe } from "@/lib/stripe/config";
 import { reverseBookingLoyalty } from "@/lib/loyalty-ledger";
 import { STANDARD_FREE_CANCELLATION_HOURS } from "@/lib/subscription-pricing";
+import { isDepositBalanceBooking } from "@/lib/booking-balance";
+import {
+  claimBalanceForCancellation,
+  DepositCancellationError,
+  processDepositPlanCancellation,
+  restoreBalanceAfterFailedCancellation,
+  type BalanceCancellationClaim,
+} from "@/lib/deposit-cancellation";
+import { DEPOSIT_FREE_CANCELLATION_HOURS } from "@/lib/payment-plan";
 import { z } from "zod";
 import type { RefundStatus } from "@prisma/client";
 
@@ -40,6 +49,7 @@ export async function POST(
     bookingId: string;
     previousStatus: "PENDING" | "CONFIRMED";
   } | null = null;
+  let balanceClaim: BalanceCancellationClaim | null = null;
 
   try {
     const session = await auth();
@@ -111,7 +121,46 @@ export async function POST(
           { status: 409 }
         );
       }
+    }
 
+    // Plan acompte (spec 07, §5.6) : barème J-7 / 48 h, acompte et solde
+    // traités chacun sur leur PaymentIntent. Le plan FULL continue ci-dessous.
+    if (isDepositBalanceBooking(booking)) {
+      balanceClaim = await claimBalanceForCancellation(booking.id);
+      const result = await processDepositPlanCancellation({ booking, balance: balanceClaim, actor: "CLIENT" });
+      await prisma.$transaction(async (tx) => {
+        if (booking.payment && result.paymentUpdate) {
+          await tx.payment.update({ where: { id: booking.payment.id }, data: result.paymentUpdate });
+        }
+        if (result.installmentUpdate) {
+          await tx.bookingInstallment.update({ where: { id: result.installmentUpdate.id }, data: result.installmentUpdate.data });
+        }
+        const cancelled = await tx.booking.updateMany({
+          where: { id: booking.id, status: "CANCELLING", cancellationOrigin: "CLIENT" },
+          data: {
+            status: "CANCELLED",
+            cancellationReason: reason || "Annulation demandée par le client",
+            cancellationOrigin: "CLIENT",
+            cancelledAt: new Date(),
+          },
+        });
+        if (cancelled.count !== 1) throw new Error(`Verrou d'annulation perdu pour ${booking.id}`);
+        await reverseBookingLoyalty(booking.id, "Réservation annulée par le client", tx);
+      });
+      cancellationClaim = null;
+      balanceClaim = null;
+      return NextResponse.json({
+        success: true,
+        policy: result.tier === "FREE" ? "FREE" : "LATE",
+        tier: result.tier,
+        freeCancellationWindowHours: DEPOSIT_FREE_CANCELLATION_HOURS,
+        amountRefunded: result.amountRefunded,
+        amountReleased: result.amountReleased,
+        amountRetained: result.amountRetained,
+      });
+    }
+
+    if (booking.payment) {
       if (booking.payment.stripePaymentId) {
         const paymentIntent = await stripe.paymentIntents.retrieve(booking.payment.stripePaymentId);
 
@@ -226,8 +275,21 @@ export async function POST(
         data: { status: cancellationClaim.previousStatus, cancellationOrigin: null },
       }).catch((recoveryError) => console.error("Annulation non restaurée:", recoveryError));
     }
+    if (balanceClaim) await restoreBalanceAfterFailedCancellation(balanceClaim);
     console.error("Erreur annulation client:", error);
     if (error instanceof z.ZodError) return NextResponse.json({ error: "Confirmation invalide" }, { status: 400 });
+    if (error instanceof DepositCancellationError && error.balanceBusy) {
+      return NextResponse.json(
+        { error: "Un paiement du solde est en cours de traitement. Revenez dans quelques minutes." },
+        { status: 409 }
+      );
+    }
+    if (error instanceof DepositCancellationError && error.statusCode === 409) {
+      return NextResponse.json(
+        { error: "Paiement encaissé sans identifiant Stripe : remboursement manuel requis." },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: "Impossible d'annuler la réservation" }, { status: 500 });
   }
 }

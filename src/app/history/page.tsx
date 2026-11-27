@@ -24,6 +24,13 @@ interface Booking {
   pets: { name: string; breed?: string }[];
   totalPrice: number;
   createdAt: string;
+  // Plan acompte + solde (spec 07) : absents pour une réservation payée en une fois.
+  paymentPlan?: "DEPOSIT_BALANCE";
+  balance?: {
+    amountDue: number;
+    dueAt: string;
+    state: "PAYABLE" | "PAID" | "SCHEDULED" | "IN_PROGRESS" | "CLOSED";
+  } | null;
 }
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -42,6 +49,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   IN_PROGRESS: { label: "En cours", color: "bg-blue-100 text-blue-700" },
   COMPLETED: { label: "Terminée", color: "bg-gray-100 text-gray-700" },
   CANCELLED: { label: "Annulée", color: "bg-red-100 text-red-700" },
+  EXPIRED: { label: "Demande expirée", color: "bg-gray-100 text-gray-700" },
 };
 
 function getRescheduleMailto(booking: Booking) {
@@ -88,7 +96,7 @@ export default function HistoryPage() {
 
   const filteredBookings = bookings.filter((b) => {
     if (filter === "all") return true;
-    if (filter === "past") return ["COMPLETED", "CANCELLED"].includes(b.status);
+    if (filter === "past") return ["COMPLETED", "CANCELLED", "EXPIRED"].includes(b.status);
     if (filter === "active") return ["PENDING", "ACCEPTING", "CANCELLING", "CONFIRMED", "IN_PROGRESS"].includes(b.status);
     return b.status === filter;
   });
@@ -213,6 +221,19 @@ export default function HistoryPage() {
                         {booking.serviceDetails?.serviceAddress && (
                           <p className="mt-1 text-xs text-gray-600">Adresse : {booking.serviceDetails.serviceAddress}</p>
                         )}
+                        {booking.balance?.state === "SCHEDULED" && (
+                          <p className="mt-1 text-xs text-gray-600">
+                            Solde de {booking.balance.amountDue.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € prélevé automatiquement le {new Date(booking.balance.dueAt).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}
+                          </p>
+                        )}
+                        {booking.balance?.state === "PAYABLE" && (
+                          <Link
+                            href={`/dashboard/bookings/${booking.id}/pay`}
+                            className="mt-2 inline-flex rounded-md bg-orange-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-800"
+                          >
+                            Régler le solde
+                          </Link>
+                        )}
                       </div>
                     </div>
 
@@ -258,11 +279,20 @@ export default function HistoryPage() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
             <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-2xl">
               <h2 className="text-xl font-bold text-gray-900">Annuler cette réservation ?</h2>
-              <p className="mt-3 text-sm text-gray-600">
-                Au moins 48 h avant la prestation, le paiement est restitué intégralement.
-                En dessous de ce délai, 50% du paiement est retenu. Une non-présentation reste due en totalité.
-                Si vous êtes Premium, vous pouvez demander en priorité un report au moins 24 h avant, sous réserve de disponibilité ; ce report n’est pas une annulation remboursable.
-              </p>
+              {bookingToCancel.paymentPlan === "DEPOSIT_BALANCE" ? (
+                <p className="mt-3 text-sm text-gray-600">
+                  Réservation payée en deux fois : au moins 7 jours avant le début, l’acompte est libéré ou remboursé intégralement et le solde n’est pas prélevé.
+                  Entre 7 jours et 48 h avant, l’acompte est conservé et le solde déjà prélevé est remboursé. À moins de 48 h, 50 % du montant total est retenu.
+                  Ces règles s’appliquent sous réserve de vos droits légaux, dont la rétractation de 14 jours.
+                  Si vous êtes Premium, vous pouvez demander en priorité un report au moins 24 h avant, sous réserve de disponibilité ; ce report n’est pas une annulation remboursable.
+                </p>
+              ) : (
+                <p className="mt-3 text-sm text-gray-600">
+                  Au moins 48 h avant la prestation, le paiement est restitué intégralement.
+                  En dessous de ce délai, 50% du paiement est retenu. Une non-présentation reste due en totalité.
+                  Si vous êtes Premium, vous pouvez demander en priorité un report au moins 24 h avant, sous réserve de disponibilité ; ce report n’est pas une annulation remboursable.
+                </p>
+              )}
               <a
                 href={getRescheduleMailto(bookingToCancel)}
                 className="mt-3 inline-flex text-sm font-bold text-blue-700 underline underline-offset-4"

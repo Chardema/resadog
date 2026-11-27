@@ -23,6 +23,19 @@ import {
   TeamCancellationPaymentError,
   type TeamCancellationPaymentResult,
 } from "@/lib/team-booking-cancellation";
+import {
+  ensureBalanceInstallment,
+  isDepositBalanceBooking,
+  sendDepositConfirmationEmail,
+} from "@/lib/booking-balance";
+import { expireBookingAuthorization, isAuthorizationExpiryEnabled } from "@/lib/authorization-expiry";
+import { assertPaymentPlanStripeTestMode } from "@/lib/payment-plan-stripe-guard";
+import {
+  claimBalanceForCancellation,
+  DepositCancellationError,
+  restoreBalanceAfterFailedCancellation,
+  type BalanceCancellationClaim,
+} from "@/lib/deposit-cancellation";
 
 const statusUpdateSchema = z.object({
   status: z.enum(["CONFIRMED", "CANCELLED", "COMPLETED"]),
@@ -44,6 +57,7 @@ export async function PATCH(
   { params }: { params: Promise<{ bookingId: string }> }
 ) {
   let cancellationClaim: { bookingId: string; previousStatus: BookingStatus } | null = null;
+  let balanceClaim: BalanceCancellationClaim | null = null;
 
   try {
     const session = await auth();
@@ -143,6 +157,19 @@ export async function PATCH(
       );
     }
 
+    // Capture de l'acompte : jamais avec une clé Stripe autre que de test.
+    // Refus avant le verrou de confirmation : la demande reste intacte.
+    if (status === "CONFIRMED" && isDepositBalanceBooking(booking)) {
+      try {
+        assertPaymentPlanStripeTestMode("capture-acompte");
+      } catch {
+        return NextResponse.json(
+          { error: "Capture de l'acompte refusée : la clé Stripe n'est pas une clé de test. Aucune opération Stripe n'a été faite." },
+          { status: 503 }
+        );
+      }
+    }
+
     if (status === "CONFIRMED") {
       try {
         const claim = await claimBookingForConfirmation(bookingId);
@@ -178,10 +205,26 @@ export async function PATCH(
         paymentIntent = await stripe.paymentIntents.retrieve(booking.payment.stripePaymentId);
         
         if (paymentIntent.status === 'requires_capture') {
+          // Plan acompte : le PaymentIntent n'autorise que l'acompte, c'est lui seul qui est capturé.
           paymentIntent = await stripe.paymentIntents.capture(
             booking.payment.stripePaymentId,
             {},
             { idempotencyKey: `booking:${booking.id}:confirmation-capture` }
+          );
+        } else if (paymentIntent.status === "canceled" && isAuthorizationExpiryEnabled()) {
+          // Autorisation expirée : la demande ne peut plus être acceptée, elle
+          // passe en « Demande expirée » et le client est prévenu.
+          await releaseBookingConfirmationClaim(booking.id);
+          const expiry = await expireBookingAuthorization(paymentIntent);
+          if (expiry.notifyErrors.length > 0) {
+            console.error(`Demande ${booking.id} expirée, e-mails non envoyés :`, expiry.notifyErrors);
+          }
+          return NextResponse.json(
+            {
+              error: "L'autorisation bancaire de cette demande a expiré : elle ne peut plus être acceptée. La demande est passée en « Demande expirée ».",
+              expired: expiry.outcome === "EXPIRED" || expiry.outcome === "ALREADY_EXPIRED",
+            },
+            { status: 409 }
           );
         } else if (paymentIntent.status !== 'succeeded') {
           await releaseBookingConfirmationClaim(booking.id);
@@ -220,6 +263,8 @@ export async function PATCH(
         if (confirmedBooking.count !== 1) {
           throw new Error(`Verrou de confirmation perdu pour ${booking.id}`);
         }
+        // Plan acompte : le solde devient une échéance programmée à J-7.
+        await ensureBalanceInstallment(tx, booking);
         return tx.booking.findUniqueOrThrow({ where: { id: booking.id } });
       });
     }
@@ -239,7 +284,20 @@ export async function PATCH(
     }
 
     if (status === "CANCELLED") {
-      cancellationPayment = await processTeamCancellationPayment(booking.id, booking.payment);
+      // Plan acompte : l'échéance du solde est fermée avant tout appel Stripe
+      // (ni cron ni reprise Checkout pendant l'annulation), puis acompte et
+      // solde encaissé sont remboursés chacun sur leur PaymentIntent.
+      let depositPlan: { booking: typeof booking; balance: BalanceCancellationClaim } | undefined;
+      if (isDepositBalanceBooking(booking)) {
+        try {
+          balanceClaim = await claimBalanceForCancellation(booking.id);
+        } catch (error) {
+          if (error instanceof DepositCancellationError) throw new TeamCancellationPaymentError(error.message, error.statusCode);
+          throw error;
+        }
+        depositPlan = { booking, balance: balanceClaim };
+      }
+      cancellationPayment = await processTeamCancellationPayment(booking.id, booking.payment, depositPlan);
     }
 
     if (!updatedBooking && status === "CANCELLED") {
@@ -248,6 +306,12 @@ export async function PATCH(
           await tx.payment.update({
             where: { id: booking.payment.id },
             data: cancellationPayment.paymentUpdate,
+          });
+        }
+        if (cancellationPayment?.installmentUpdate) {
+          await tx.bookingInstallment.update({
+            where: { id: cancellationPayment.installmentUpdate.id },
+            data: cancellationPayment.installmentUpdate.data,
           });
         }
 
@@ -266,6 +330,7 @@ export async function PATCH(
         return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
       });
       cancellationClaim = null;
+      balanceClaim = null;
     } else if (!updatedBooking) {
       updatedBooking = await prisma.booking.update({
         where: { id: bookingId },
@@ -281,13 +346,17 @@ export async function PATCH(
     if (status === "CONFIRMED") {
       await awardBookingLoyalty(bookingId);
       try {
-        const bookingDetails = getBookingEmailDetails(booking);
-        await sendBookingConfirmationEmail(
-          booking.client.email,
-          booking.client.name || "Client",
-          bookingDetails,
-          { idempotencyKey: `booking-confirmation-${booking.id}` }
-        );
+        if (isDepositBalanceBooking(booking)) {
+          await sendDepositConfirmationEmail(booking);
+        } else {
+          const bookingDetails = getBookingEmailDetails(booking);
+          await sendBookingConfirmationEmail(
+            booking.client.email,
+            booking.client.name || "Client",
+            bookingDetails,
+            { idempotencyKey: `booking-confirmation-${booking.id}` }
+          );
+        }
         confirmationEmailSent = true;
       } catch (emailError) {
         confirmationEmailSent = false;
@@ -378,6 +447,7 @@ export async function PATCH(
         data: { status: cancellationClaim.previousStatus, cancellationOrigin: null },
       }).catch((recoveryError) => console.error("Annulation admin non restaurée:", recoveryError));
     }
+    if (balanceClaim) await restoreBalanceAfterFailedCancellation(balanceClaim);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0]?.message || "Données invalides" },

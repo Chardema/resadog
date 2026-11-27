@@ -18,6 +18,24 @@ import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { awardBookingLoyalty } from "@/lib/loyalty-ledger";
 import { getBookingEmailDetails } from "@/lib/booking-email-details";
+import { readCheckoutDepositRecord } from "@/lib/checkout-payment-plan";
+import {
+  ensureBalanceInstallment,
+  isDepositBalanceBooking,
+  sendDepositConfirmationEmail,
+} from "@/lib/booking-balance";
+import {
+  assertExpiryNotified,
+  expireAuthorizationFromCharge,
+  expireBookingAuthorization,
+} from "@/lib/authorization-expiry";
+import {
+  handleBalancePaymentFailed,
+  isBalancePaymentIntentMetadata,
+  releaseExpiredBalanceCheckout,
+  settleBalanceSucceeded,
+} from "@/lib/balance-collection";
+import { getDepositPlanTeamRefundState, syncBalanceRefund } from "@/lib/deposit-cancellation";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -57,6 +75,15 @@ export async function POST(request: NextRequest) {
 
       case "payment_intent.payment_failed":
         await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+        break;
+
+      // Expiration d'une autorisation non capturée (spec 07, lot 4).
+      case "payment_intent.canceled":
+        assertExpiryNotified(await expireBookingAuthorization(event.data.object as Stripe.PaymentIntent));
+        break;
+
+      case "charge.expired":
+        assertExpiryNotified(await expireAuthorizationFromCharge(event.data.object as Stripe.Charge));
         break;
 
       case "refund.created":
@@ -299,6 +326,13 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     return;
   }
 
+  // Solde du plan acompte (spec 07, lot 5) : seule l'échéance passe SUCCEEDED,
+  // puis la facture finale. Ni confirmation, ni fidélité, ni e-mail d'acompte.
+  if (isBalancePaymentIntentMetadata(paymentIntent.metadata)) {
+    await settleBalanceSucceeded(paymentIntent, { invoice: true });
+    return;
+  }
+
   const bookingIds = getBookingIds(paymentIntent.metadata);
 
   if (bookingIds.length === 0) {
@@ -355,16 +389,24 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     if (repaired.count === 1) {
       const booking = await prisma.booking.findUnique({
         where: { id: bookingId },
-        include: { client: true, pets: true, pet: true },
+        include: { client: true, pets: true, pet: true, payment: true },
       });
+      // Plan acompte : la validation interrompue n'a peut-être pas créé l'échéance du solde.
+      if (booking && isDepositBalanceBooking(booking)) {
+        await ensureBalanceInstallment(prisma, booking);
+      }
       if (booking) {
         try {
-          await sendBookingConfirmationEmail(
-            booking.client.email,
-            booking.client.name || "Client",
-            getBookingEmailDetails(booking),
-            { idempotencyKey: `booking-confirmation-${booking.id}` }
-          );
+          if (isDepositBalanceBooking(booking)) {
+            await sendDepositConfirmationEmail(booking);
+          } else {
+            await sendBookingConfirmationEmail(
+              booking.client.email,
+              booking.client.name || "Client",
+              getBookingEmailDetails(booking),
+              { idempotencyKey: `booking-confirmation-${booking.id}` }
+            );
+          }
         } catch (emailError) {
           console.error(`Email de confirmation non envoyé pour ${booking.id}:`, emailError);
         }
@@ -386,6 +428,13 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
         : { stripePaymentId: paymentIntent.id },
       data: { stripePaymentId: paymentIntent.id, status: "FAILED" },
     });
+    return;
+  }
+
+  // Échec du solde : le paiement de l'acompte et la réservation ne bougent pas.
+  if (isBalancePaymentIntentMetadata(paymentIntent.metadata)) {
+    // Lève une erreur si l'e-mail d'échec n'est pas parti : Stripe rejoue.
+    await handleBalancePaymentFailed(paymentIntent);
     return;
   }
 
@@ -452,6 +501,7 @@ async function handleRefundChanged(refund: Stripe.Refund) {
           status: true,
           cancellationOrigin: true,
           cancellationReason: true,
+          paymentPlan: true,
           client: { select: { name: true, email: true } },
           pets: { select: { name: true } },
           pet: { select: { name: true } },
@@ -459,6 +509,12 @@ async function handleRefundChanged(refund: Stripe.Refund) {
       },
     },
   });
+  // Plan acompte : le remboursement du solde porte sur le PaymentIntent de
+  // l'échéance, jamais sur celui de l'acompte (Payment).
+  if (payments.length === 0) {
+    await handleBalanceRefundChanged(refund);
+    return;
+  }
   const refunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
   const activeRefunds = refunds.data.filter((item) =>
     item.status === "pending" || item.status === "requires_action" || item.status === "succeeded"
@@ -533,6 +589,12 @@ async function handleRefundChanged(refund: Stripe.Refund) {
       }
       if (payment.booking.status !== "CANCELLED") continue;
 
+      if (payment.booking.paymentPlan === "DEPOSIT_BALANCE") {
+        // Acompte et solde remboursés tous deux : e-mails avec le cumul.
+        await sendDepositPlanTeamRefundEmails(payment.bookingId, refund.id);
+        continue;
+      }
+
       const bookingDetails = getBookingEmailDetails(payment.booking);
       if (!payment.refundStartedEmailSentAt) {
         await sendBookingTeamCancellationEmail(
@@ -568,6 +630,75 @@ async function handleRefundChanged(refund: Stripe.Refund) {
   }
 }
 
+// Remboursement du solde (plan acompte) : cumul sur l'échéance, alerte en cas
+// d'échec, e-mails de fin de remboursement d'une annulation par l'équipe.
+async function handleBalanceRefundChanged(refund: Stripe.Refund) {
+  const sync = await syncBalanceRefund(refund);
+  if (!sync) return;
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: sync.bookingId },
+    select: { status: true, cancellationOrigin: true, client: { select: { name: true, email: true } } },
+  });
+  if (!booking) return;
+
+  if (sync.failed) {
+    await sendBookingRefundFailedAdminEmail(
+      {
+        bookingId: sync.bookingId,
+        clientName: booking.client.name || "Client",
+        clientEmail: booking.client.email,
+        refundId: refund.id,
+        amount: refund.amount / 100,
+        failureReason: refund.failure_reason || "Remboursement refusé par Stripe",
+      },
+      { idempotencyKey: `refund-failed-${refund.id}` }
+    );
+    return;
+  }
+
+  if (booking.cancellationOrigin !== "TEAM") return;
+  if (booking.status === "CANCELLING") {
+    throw new Error(`Annulation ${sync.bookingId} encore en cours pendant la confirmation du remboursement du solde`);
+  }
+  if (booking.status === "CANCELLED") await sendDepositPlanTeamRefundEmails(sync.bookingId, refund.id);
+}
+
+async function sendDepositPlanTeamRefundEmails(bookingId: string, refundId: string) {
+  const state = await getDepositPlanTeamRefundState(bookingId);
+  if (!state.complete) return;
+  const payment = await prisma.payment.findUnique({
+    where: { bookingId },
+    include: { booking: { include: { client: true, pets: true, pet: true } } },
+  });
+  if (!payment) return;
+  const bookingDetails = getBookingEmailDetails(payment.booking);
+
+  if (!payment.refundStartedEmailSentAt) {
+    await sendBookingTeamCancellationEmail(
+      payment.booking.client.email,
+      payment.booking.client.name || "Client",
+      payment.booking.cancellationReason || "Annulation par La Patte Dorée",
+      bookingDetails,
+      {
+        idempotencyKey: `booking-team-cancellation-${bookingId}`,
+        paymentAction: "REFUND_PENDING",
+        amountRefunded: state.amount,
+      }
+    );
+    await prisma.payment.update({ where: { id: payment.id }, data: { refundStartedEmailSentAt: new Date() } });
+  }
+  if (payment.refundCompletedEmailSentAt) return;
+  await sendBookingRefundCompletedEmail(
+    payment.booking.client.email,
+    payment.booking.client.name || "Client",
+    bookingDetails,
+    { amount: state.amount, refundId },
+    { idempotencyKey: `booking-refund-completed-${bookingId}` }
+  );
+  await prisma.payment.update({ where: { id: payment.id }, data: { refundCompletedEmailSentAt: new Date() } });
+}
+
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   // Gestion ABONNEMENT
   if (session.mode === "subscription") {
@@ -598,6 +729,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
       return;
   }
+
+  // Session de reprise du solde (lot 5) : payment_intent.succeeded fait le
+  // reste. Elle ne doit jamais toucher le paiement de l'acompte.
+  if (isBalancePaymentIntentMetadata(session.metadata)) return;
 
   // Gestion RÉSERVATION (existant)
   const bookingIds = getBookingIds(session.metadata);
@@ -630,6 +765,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     },
   });
 
+  await storeCheckoutDepositPlan(session, paymentIntentId, bookingIds);
+
   // Incrémenter le coupon si utilisé (le code est stocké dans les metadata)
   const promoCode = session.metadata?.promoCode;
   if (promoCode) {
@@ -647,6 +784,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     });
   }
 
+  // Conditions du paiement en deux fois rappelées dans l'e-mail « demande reçue ».
+  const depositPlanTerms = readCheckoutDepositRecord(session.metadata)?.terms ?? null;
+
   // Boucler pour envoyer les emails pour CHAQUE réservation
   for (const id of bookingIds) {
       const booking = await prisma.booking.findUnique({
@@ -662,7 +802,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
             booking.client.email,
             booking.client.name || "Client",
             bookingDetails.petName,
-            bookingDetails,
+            depositPlanTerms ? { ...bookingDetails, depositPlan: depositPlanTerms } : bookingDetails,
             { idempotencyKey: `booking-request-${booking.id}` }
           );
         } catch (emailError) {
@@ -693,7 +833,53 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
 }
 
+// Plan acompte + solde (spec 07) : la session porte les conditions acceptées.
+// On les fige sur la réservation avec la carte enregistrée pour le solde.
+// Sans métadonnées de plan (FULL, ou drapeau désactivé), rien ne change.
+async function storeCheckoutDepositPlan(
+  session: Stripe.Checkout.Session,
+  paymentIntentId: string,
+  bookingIds: string[],
+) {
+  const record = readCheckoutDepositRecord(session.metadata);
+  if (!record) return;
+  if (bookingIds.length !== 1) {
+    throw new Error(`Plan acompte sur ${bookingIds.length} réservations pour la session ${session.id}`);
+  }
+
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  const paymentMethodId = typeof paymentIntent.payment_method === "string"
+    ? paymentIntent.payment_method
+    : paymentIntent.payment_method?.id;
+  if (!paymentMethodId) {
+    throw new Error(`Carte absente du PaymentIntent ${paymentIntentId} (plan acompte)`);
+  }
+
+  await prisma.$transaction([
+    prisma.payment.updateMany({
+      where: { bookingId: bookingIds[0], stripePaymentId: paymentIntentId },
+      data: { stripePaymentMethodId: paymentMethodId },
+    }),
+    prisma.booking.updateMany({
+      where: { id: bookingIds[0] },
+      data: {
+        paymentPlan: "DEPOSIT_BALANCE",
+        depositAmount: record.terms.depositAmount,
+        balanceAmount: record.terms.balanceAmount,
+        balanceDueAt: record.balanceDueAt,
+        mandateAcceptedAt: record.mandateAcceptedAt,
+        mandateLegalVersion: record.mandateLegalVersion,
+      },
+    }),
+  ]);
+}
+
 async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
+  if (isBalancePaymentIntentMetadata(session.metadata)) {
+    await releaseExpiredBalanceCheckout(session);
+    return;
+  }
+
   const bookingIds = getBookingIds(session.metadata);
   if (bookingIds.length === 0) return;
 

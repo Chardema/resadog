@@ -1,6 +1,13 @@
 import type { Payment, Prisma, RefundStatus } from "@prisma/client";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe/config";
+import {
+  DepositCancellationError,
+  processDepositPlanCancellation,
+  type BalanceCancellationClaim,
+  type DepositPlanCancellationBooking,
+  type DepositPlanCancellationResult,
+} from "@/lib/deposit-cancellation";
 
 export type TeamCancellationPaymentAction =
   | "NO_PAYMENT"
@@ -14,6 +21,8 @@ export type TeamCancellationPaymentResult = {
   refundId: string | null;
   refundStatus: RefundStatus | null;
   paymentUpdate: Prisma.PaymentUpdateInput | null;
+  // Plan acompte uniquement : remboursement du solde encaissé.
+  installmentUpdate?: DepositPlanCancellationResult["installmentUpdate"];
 };
 
 export class TeamCancellationPaymentError extends Error {
@@ -189,14 +198,40 @@ async function processTeamCancellationPaymentInternal(
   };
 }
 
+// Plan acompte (spec 07, lot 6) : remboursement intégral de l'acompte et du
+// solde encaissé, chacun sur son PaymentIntent. L'échéance du solde a été
+// fermée au préalable (claimBalanceForCancellation).
+async function processTeamDepositPlanCancellation(
+  booking: DepositPlanCancellationBooking,
+  balance: BalanceCancellationClaim | null
+): Promise<TeamCancellationPaymentResult> {
+  const result = await processDepositPlanCancellation({ booking, balance, actor: "TEAM" });
+  const action: TeamCancellationPaymentAction = result.amountRefunded > 0
+    ? result.refundStatus === "SUCCEEDED" ? "REFUND_SUCCEEDED" : "REFUND_PENDING"
+    : booking.payment ? "AUTHORIZATION_RELEASED" : "NO_PAYMENT";
+  return {
+    action,
+    amountRefunded: result.amountRefunded,
+    refundId: result.refundId,
+    refundStatus: result.refundStatus,
+    paymentUpdate: result.paymentUpdate,
+    installmentUpdate: result.installmentUpdate,
+  };
+}
+
 export async function processTeamCancellationPayment(
   bookingId: string,
-  payment: Payment | null
+  payment: Payment | null,
+  depositPlan?: { booking: DepositPlanCancellationBooking; balance: BalanceCancellationClaim | null }
 ): Promise<TeamCancellationPaymentResult> {
   try {
+    if (depositPlan) return await processTeamDepositPlanCancellation(depositPlan.booking, depositPlan.balance);
     return await processTeamCancellationPaymentInternal(bookingId, payment);
   } catch (error) {
     if (error instanceof TeamCancellationPaymentError) throw error;
+    if (error instanceof DepositCancellationError) {
+      throw new TeamCancellationPaymentError(error.message, error.statusCode);
+    }
     console.error("Erreur Stripe pendant l'annulation par l'équipe:", error);
     throw new TeamCancellationPaymentError(
       "Impossible de libérer ou rembourser le paiement Stripe. Réessayez dans quelques instants."
