@@ -7069,6 +7069,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Refuse",
     "es": "Rechazar"
   },
+  "Règle chat à retenir": {
+    "en": "Cat pricing rule",
+    "es": "Regla de precio para gatos"
+  },
   "Règle chien à retenir": {
     "en": "dog rule to remember",
     "es": "perro regla para recordar"
@@ -7884,6 +7888,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Téléphone :": {
     "en": "Phone :",
     "es": "Teléfono :"
+  },
+  "Téléversement désactivé sur les environnements de test": {
+    "en": "Uploads are disabled on test environments",
+    "es": "La carga de archivos está desactivada en los entornos de prueba"
   },
   "Temps calme ou interaction selon le tempérament du chat.": {
     "en": "Calm time or interaction depending on the temperament of the cat.",
@@ -9348,5 +9356,37 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "Une page de paiement est déjà en cours d'ouverture. Réessayez dans quelques minutes.": {
     "en": "A payment page is already being opened. Please try again in a few minutes.",
     "es": "Ya se está abriendo una página de pago. Vuelva a intentarlo en unos minutos."
+  },
+  "Au-delà de 10 h le même jour, la journée passe au tarif 24 h :": {
+    "en": "Beyond 10 hours on the same day, the day is billed at the 24-hour rate:",
+    "es": "Más allá de 10 h el mismo día, la jornada pasa a la tarifa de 24 h:"
+  },
+  "€ pour un chien,": {
+    "en": "€ for a dog,",
+    "es": "€ para un perro,"
+  },
+  "€ pour un chat.": {
+    "en": "€ for a cat.",
+    "es": "€ para un gato."
+  },
+  "journée de plus de 10 h, tarif 24 h": {
+    "en": "day of more than 10 hours, 24-hour rate",
+    "es": "jornada de más de 10 h, tarifa de 24 h"
+  },
+  "La garderie doit se terminer le même jour, avec une heure de fin après l’heure de début": {
+    "en": "Day care must end on the same day, with an end time after the start time",
+    "es": "La guardería debe terminar el mismo día, con una hora de fin posterior a la hora de inicio"
+  },
+  "Plusieurs jours peuvent être réservés avec les mêmes horaires chaque jour. Au-delà de 10 h, chaque journée est facturée au tarif 24 h, sans nuit.": {
+    "en": "Several days can be booked with the same hours each day. Beyond 10 hours, each day is billed at the 24-hour rate, with no overnight stay.",
+    "es": "Se pueden reservar varios días con el mismo horario cada día. Más allá de 10 h, cada jornada se factura a la tarifa de 24 h, sin noche."
+  },
+  "Chiot de moins d’un an : +": {
+    "en": "Puppy under one year old: +",
+    "es": "Cachorro de menos de un año: +"
+  },
+  "€ par jour.": {
+    "en": "€ per day.",
+    "es": "€ por día."
   }
 } as const;

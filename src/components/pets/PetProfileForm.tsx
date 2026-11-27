@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
+import { isProductionDeployment } from "@/lib/runtime-env";
 
 export type PetFormData = {
   name: string;
@@ -88,6 +89,9 @@ export function PetProfileForm({
   birthDateProofRequired = true,
 }: PetProfileFormProps) {
   const birthDateLocked = birthDateVerified && birthDateProofRequired;
+  // Hors production, le middleware UploadThing refuse tout envoi : on masque
+  // les boutons, le profil s'enregistre sans photo ni justificatif.
+  const uploadsEnabled = isProductionDeployment();
   const updateField = <K extends keyof PetFormData>(field: K, value: PetFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -126,20 +130,24 @@ export function PetProfileForm({
             </div>
 
             <div className="mt-4 space-y-2">
-              <UploadButton<OurFileRouter, "petImage">
-                endpoint="petImage"
-                onClientUploadComplete={(res) => res?.[0] && updateField("imageUrl", res[0].url)}
-                onUploadError={() => alert("Erreur upload")}
-                appearance={{
-                  container: "w-full",
-                  button: "w-full rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white after:bg-orange-800 hover:bg-orange-800",
-                  allowedContent: "text-xs text-gray-500",
-                }}
-                content={{
-                  button: uploadButtonLabel,
-                  allowedContent: "Image JPG, PNG ou WebP",
-                }}
-              />
+              {uploadsEnabled ? (
+                <UploadButton<OurFileRouter, "petImage">
+                  endpoint="petImage"
+                  onClientUploadComplete={(res) => res?.[0] && updateField("imageUrl", res[0].url)}
+                  onUploadError={() => alert("Erreur upload")}
+                  appearance={{
+                    container: "w-full",
+                    button: "w-full rounded-md bg-gray-950 px-4 py-2 text-sm font-bold text-white after:bg-orange-800 hover:bg-orange-800",
+                    allowedContent: "text-xs text-gray-500",
+                  }}
+                  content={{
+                    button: uploadButtonLabel,
+                    allowedContent: "Image JPG, PNG ou WebP",
+                  }}
+                />
+              ) : (
+                <UploadsDisabledNotice />
+              )}
               {formData.imageUrl && (
                 <button
                   type="button"
@@ -300,6 +308,10 @@ export function PetProfileForm({
                           </button>
                         )}
                       </div>
+                    ) : !uploadsEnabled ? (
+                      <div className="mt-3">
+                        <UploadsDisabledNotice />
+                      </div>
                     ) : (
                       <div className="mt-3">
                         <UploadButton<OurFileRouter, "petAgeProof">
@@ -385,6 +397,17 @@ export function PetProfileForm({
         </div>
       </section>
     </div>
+  );
+}
+
+function UploadsDisabledNotice() {
+  return (
+    <p
+      role="status"
+      className="rounded-md border border-dashed border-gray-300 bg-white px-3 py-2 text-center text-xs font-semibold text-gray-600"
+    >
+      Téléversement désactivé sur les environnements de test
+    </p>
   );
 }
 

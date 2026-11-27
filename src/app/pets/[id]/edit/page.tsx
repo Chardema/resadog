@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { getPetProfileCompletion, requiresPetBirthDateProof } from "@/lib/pets";
+import { getPetProfileCompletion, isPetBirthDateProofRequired } from "@/lib/pets";
 import {
   emptyPetFormData,
   PetProfileForm,
@@ -26,7 +26,7 @@ export default function EditPetPage() {
   const [error, setError] = useState("");
   const [birthDateVerified, setBirthDateVerified] = useState(false);
   const [formData, setFormData] = useState<PetFormData>(emptyPetFormData);
-  const birthDateProofRequired = requiresPetBirthDateProof(session?.user?.role);
+  const birthDateProofRequired = isPetBirthDateProofRequired(session?.user?.role);
 
   useEffect(() => {
     const fetchPet = async () => {

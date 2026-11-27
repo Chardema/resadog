@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 import { sendPetBirthDateProofSubmittedAdminEmail } from "@/lib/email";
-import { calculatePetAge, isValidPetBirthDate, requiresPetBirthDateProof } from "@/lib/pets";
+import { calculatePetAge, isValidPetBirthDate, isPetBirthDateProofRequired } from "@/lib/pets";
 
 const birthDateSchema = z.string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "La date de naissance est requise")
@@ -130,7 +130,7 @@ export async function PUT(
 
     const body = await request.json();
     const validatedData = updatePetSchema.parse(body);
-    const birthDateProofRequired = requiresPetBirthDateProof(session.user.role);
+    const birthDateProofRequired = isPetBirthDateProofRequired(session.user.role);
     if (birthDateProofRequired && validatedData.birthDateProofUrl === "") {
       return NextResponse.json(
         { error: "Le justificatif de naissance est requis" },

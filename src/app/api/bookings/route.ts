@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       && !isValidDayCareSchedule({ startDate, endDate, startTime, endTime })
     ) {
       return NextResponse.json(
-        { error: "La garderie doit durer entre quelques minutes et 10 heures maximum, avec une fin après le début" },
+        { error: "La garderie doit se terminer le même jour, avec une heure de fin après l’heure de début" },
         { status: 400 }
       );
     }
