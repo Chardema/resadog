@@ -35,10 +35,44 @@ const parisDate = (value: Date | string) =>
 const parisDateTime = (value: Date | string) =>
   new Date(value).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
 
-export function getDepositPaymentLabel(status: string | undefined) {
+// Libellé du badge de paiement : état de l'acompte, complété par celui de
+// l'échéance BALANCE une fois l'acompte encaissé.
+export function getDepositPaymentLabel(status: string | undefined, balanceStatus?: AdminBalanceInstallment["status"] | null) {
   if (status === "PROCESSING") return "Acompte autorisé (non débité)";
-  if (status === "SUCCEEDED") return "Acompte encaissé";
-  return null;
+  if (status !== "SUCCEEDED") return null;
+  switch (balanceStatus) {
+    case "SUCCEEDED":
+      return "Acompte et solde encaissés";
+    case "PROCESSING":
+      return "Acompte encaissé · solde en cours";
+    case "FAILED":
+      return "Acompte encaissé · solde impayé";
+    case "REFUNDED":
+      return "Acompte encaissé · solde remboursé";
+    case "CANCELED":
+      return "Acompte encaissé · solde annulé";
+    default:
+      return "Acompte encaissé";
+  }
+}
+
+// État court du solde, affiché à côté de son montant.
+export function getBalanceShortLabel(installment: Pick<AdminBalanceInstallment, "status" | "dueAt" | "paidAt"> | null) {
+  if (!installment) return "à programmer à l'acceptation";
+  switch (installment.status) {
+    case "SCHEDULED":
+      return `programmé le ${parisDate(installment.dueAt)}`;
+    case "PROCESSING":
+      return "prélèvement en cours";
+    case "SUCCEEDED":
+      return installment.paidAt ? `payé le ${parisDate(installment.paidAt)}` : "payé";
+    case "FAILED":
+      return "en échec";
+    case "CANCELED":
+      return "annulé";
+    case "REFUNDED":
+      return "remboursé";
+  }
 }
 
 function getBalanceStatus(installment: AdminBalanceInstallment, finalDeadlineAt: Date) {
@@ -48,7 +82,7 @@ function getBalanceStatus(installment: AdminBalanceInstallment, finalDeadlineAt:
     case "PROCESSING":
       return { label: "Prélèvement en cours", className: "text-blue-800" };
     case "SUCCEEDED":
-      return { label: `Encaissé${installment.paidAt ? ` le ${parisDate(installment.paidAt)}` : ""}`, className: "text-emerald-800" };
+      return { label: `Acompte et solde encaissés${installment.paidAt ? ` · solde payé le ${parisDate(installment.paidAt)}` : ""}`, className: "text-emerald-800" };
     case "FAILED":
       return {
         label: `Échec${installment.lastErrorCode ? ` (${installment.lastErrorCode})` : ""} · ${installment.attempts} tentative(s) · paiement en ligne possible jusqu'au ${parisDateTime(finalDeadlineAt)}`,
@@ -80,7 +114,7 @@ export function DepositPlanDetails({ booking }: { booking: DepositPlanBooking })
         </div>
         <div className="flex justify-between gap-3">
           <dt>Solde</dt>
-          <dd className="font-semibold tabular-nums">{money(balance)}</dd>
+          <dd className="font-semibold tabular-nums">{money(balance)} · {getBalanceShortLabel(installment)}</dd>
         </div>
       </dl>
       <p className={`font-semibold ${balanceStatus?.className ?? "text-gray-600"}`}>

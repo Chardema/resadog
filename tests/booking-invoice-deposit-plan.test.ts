@@ -97,6 +97,8 @@ describe("facture : plan acompte + solde", () => {
       ["service", 30000],
       ["deposit", -9000],
     ]);
+    expect(items[0].description).toContain("Prestation prévue du 26 avril 2027 à 10:00 au 01 mai 2027 à 18:00 (heure de Paris)");
+    expect(items[0].description).not.toContain("(Paris)");
     expect(items[1].description).toBe("Acompte déjà versé le 27/11/2026");
     expect(stripeMock.invoiceItems.create.mock.calls.map(([, options]) => options.idempotencyKey)).toEqual([
       `booking-invoice:${BOOKING_INVOICE_VERSION}:pi_balance:item:service`,

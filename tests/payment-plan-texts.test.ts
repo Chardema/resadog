@@ -251,6 +251,58 @@ describe("admin : détail du paiement en deux fois", () => {
     expect(getDepositPaymentLabel("SUCCEEDED")).toBe("Acompte encaissé");
     expect(getDepositPaymentLabel("FAILED")).toBeNull();
   });
+
+  it("libellé du badge selon l'échéance BALANCE, tous les états", async () => {
+    const { getDepositPaymentLabel } = await import("@/components/admin/DepositPlanDetails");
+    expect(getDepositPaymentLabel("SUCCEEDED", "SUCCEEDED")).toBe("Acompte et solde encaissés");
+    expect(getDepositPaymentLabel("SUCCEEDED", "SCHEDULED")).toBe("Acompte encaissé");
+    expect(getDepositPaymentLabel("SUCCEEDED", null)).toBe("Acompte encaissé");
+    expect(getDepositPaymentLabel("SUCCEEDED", "PROCESSING")).toBe("Acompte encaissé · solde en cours");
+    expect(getDepositPaymentLabel("SUCCEEDED", "FAILED")).toBe("Acompte encaissé · solde impayé");
+    expect(getDepositPaymentLabel("SUCCEEDED", "REFUNDED")).toBe("Acompte encaissé · solde remboursé");
+    expect(getDepositPaymentLabel("SUCCEEDED", "CANCELED")).toBe("Acompte encaissé · solde annulé");
+    expect(getDepositPaymentLabel("PROCESSING", "SCHEDULED")).toBe("Acompte autorisé (non débité)");
+    expect(getDepositPaymentLabel("REFUNDED", "REFUNDED")).toBeNull();
+  });
+
+  it("état court du solde, tous les états", async () => {
+    const { getBalanceShortLabel } = await import("@/components/admin/DepositPlanDetails");
+    const dueAt = "2027-04-18T22:00:00.000Z";
+    expect(getBalanceShortLabel(null)).toBe("à programmer à l'acceptation");
+    expect(getBalanceShortLabel({ status: "SCHEDULED", dueAt })).toBe("programmé le 19/04/2027");
+    expect(getBalanceShortLabel({ status: "PROCESSING", dueAt })).toBe("prélèvement en cours");
+    expect(getBalanceShortLabel({ status: "SUCCEEDED", dueAt, paidAt: "2027-04-18T22:05:00.000Z" })).toBe("payé le 19/04/2027");
+    expect(getBalanceShortLabel({ status: "SUCCEEDED", dueAt, paidAt: null })).toBe("payé");
+    expect(getBalanceShortLabel({ status: "FAILED", dueAt })).toBe("en échec");
+    expect(getBalanceShortLabel({ status: "CANCELED", dueAt })).toBe("annulé");
+    expect(getBalanceShortLabel({ status: "REFUNDED", dueAt })).toBe("remboursé");
+  });
+
+  it("solde réglé : acompte encaissé ET solde payé, avec la date du paiement", async () => {
+    const html = await render({
+      mandateAcceptedAt: "2026-11-27T10:00:00.000Z",
+      installments: [{ status: "SUCCEEDED", amount: 210, dueAt: "2027-04-18T22:00:00.000Z", attempts: 1, paidAt: "2027-04-18T22:05:00.000Z" }],
+    });
+    expect(html).toContain("encaissé");
+    expect(html).toContain("payé le 19/04/2027");
+    expect(html).toContain("Acompte et solde encaissés · solde payé le 19/04/2027");
+  });
+
+  it("conserve les états intermédiaires du solde", async () => {
+    const refunded = await render({
+      installments: [{ status: "REFUNDED", amount: 210, dueAt: "2027-04-18T22:00:00.000Z", attempts: 1, refundedAmount: 210 }],
+    });
+    expect(refunded).toContain("Remboursé (210,00");
+    expect(refunded).not.toContain("Acompte et solde encaissés");
+    const processing = await render({
+      installments: [{ status: "PROCESSING", amount: 210, dueAt: "2027-04-18T22:00:00.000Z", attempts: 1 }],
+    });
+    expect(processing).toContain("Prélèvement en cours");
+    const canceled = await render({
+      installments: [{ status: "CANCELED", amount: 210, dueAt: "2027-04-18T22:00:00.000Z", attempts: 0 }],
+    });
+    expect(canceled).toContain("Annulé, non prélevé");
+  });
 });
 
 describe("traductions EN / ES des nouveaux textes visibles", () => {

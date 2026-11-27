@@ -757,7 +757,7 @@ export default function AdminBookingsPage() {
                         <p className="mt-2 text-2xl font-bold text-gray-950">{getPaymentLabel(booking)}</p>
                         {paymentMeta && (
                           <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${paymentMeta.className}`}>
-                            {direct && booking.payment?.status === "PENDING" ? "À recevoir" : (isDepositPlan(booking) && getDepositPaymentLabel(booking.payment?.status)) || paymentMeta.label}
+                            {direct && booking.payment?.status === "PENDING" ? "À recevoir" : (isDepositPlan(booking) && getDepositPaymentLabel(booking.payment?.status, booking.installments?.[0]?.status)) || paymentMeta.label}
                           </span>
                         )}
                         {isDepositPlan(booking) && <DepositPlanDetails booking={booking} />}

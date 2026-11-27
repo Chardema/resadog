@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import { prisma } from "@/lib/db/prisma";
 import { sendBookingInvoiceEmail } from "@/lib/email";
-import { getBookingEmailDetails } from "@/lib/booking-email-details";
+import { formatServicePeriod, getBookingEmailDetails } from "@/lib/booking-email-details";
 import { stripe } from "@/lib/stripe/config";
 import {
   BOOKING_INVOICE_VERSION,
@@ -38,7 +38,7 @@ function getInvoiceLineDescription(booking: {
   return [
     `${details.serviceLabel} – ${details.petName}`,
     `Réservation ${reference}`,
-    `Prestation prévue du ${details.startDate}${booking.startTime ? ` à ${booking.startTime}` : ""} au ${details.endDate}${booking.endTime ? ` à ${booking.endTime}` : ""}`,
+    `Prestation prévue ${formatServicePeriod(booking)}`,
     pricingDetail,
   ].filter(Boolean).join(" · ");
 }

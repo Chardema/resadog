@@ -18,6 +18,7 @@ import {
   LEGAL_INFORMATION,
 } from "@/lib/legal";
 import { getServiceLabel } from "@/lib/services";
+import { formatServicePeriod } from "@/lib/booking-email-details";
 import { isBalanceMandateConsentValid, isPaymentPlanEnabled, type BalanceMandateTerms } from "@/lib/payment-plan";
 import { assertPaymentPlanStripeTestMode, PaymentPlanStripeGuardError } from "@/lib/payment-plan-stripe-guard";
 import {
@@ -275,10 +276,7 @@ export async function POST(request: NextRequest) {
             ? booking.pets.map(p => p.name).join(", ") 
             : (booking.pet?.name || "Animal");
         const bookingReference = `#${booking.id.slice(-8).toUpperCase()}`;
-        const servicePeriod = [
-          `du ${new Date(booking.startDate).toLocaleDateString("fr-FR", { timeZone: "UTC" })}${booking.startTime ? ` à ${booking.startTime}` : ""}`,
-          `au ${new Date(booking.endDate).toLocaleDateString("fr-FR", { timeZone: "UTC" })}${booking.endTime ? ` à ${booking.endTime}` : ""}`,
-        ].join(" ");
+        const servicePeriod = formatServicePeriod(booking, "short");
         const pricingDetail = booking.notes
           ?.split("\n")
           .find((line) => line.startsWith("Détail facturation:"));
