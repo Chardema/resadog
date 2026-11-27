@@ -6,8 +6,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DepositPlanBooking } from "@/components/admin/DepositPlanDetails";
 
 // Textes du lot 7 (spec 07, §5.8) : publiés seulement quand isPaymentPlanEnabled()
-// est vrai (aperçus Vercel, local). En production (VERCEL_ENV=production), plan
-// fermé : CGV, confidentialité, devis et version des CGV inchangés.
+// est vrai (aperçus Vercel, local et, depuis la PR d'activation, production).
+// Plan fermé (coupe-circuit PAYMENT_PLAN_ENABLED_IN_PRODUCTION à false, simulé
+// ici) : CGV, confidentialité, devis et version des CGV identiques à main.
+const closedPlan = vi.hoisted(() => ({ value: false }));
+vi.mock("@/lib/payment-plan", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/payment-plan")>();
+  return { ...actual, isPaymentPlanEnabled: () => !closedPlan.value && actual.isPaymentPlanEnabled() };
+});
 
 // Rendu hors Next.js : un lien simple suffit pour lire le texte des pages.
 vi.mock("next/link", async () => {
@@ -18,9 +24,13 @@ vi.mock("next/link", async () => {
   };
 });
 
-// Le plan suit l'environnement à l'appel : production = fermé, aperçu = ouvert.
-// Les modules ne sont jamais rechargés : aucune valeur n'est figée au chargement.
-const setPlan = (enabled: boolean) => vi.stubEnv("VERCEL_ENV", enabled ? "preview" : "production");
+// Le plan suit l'environnement à l'appel : aperçu = ouvert ; fermé = production
+// avec le coupe-circuit simulé. Les modules ne sont jamais rechargés : aucune
+// valeur n'est figée au chargement.
+const setPlan = (enabled: boolean) => {
+  vi.stubEnv("VERCEL_ENV", enabled ? "preview" : "production");
+  closedPlan.value = !enabled;
+};
 
 async function renderPage(enabled: boolean, load: () => Promise<{ default: () => ReactElement }>) {
   setPlan(enabled);
@@ -32,10 +42,19 @@ const readSource = (relativePath: string) => fs.readFileSync(path.join(process.c
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  closedPlan.value = false;
 });
 
 describe("version des CGV", () => {
-  it("production (plan fermé) : version du 13 septembre 2026 inchangée", async () => {
+  it("production (plan activé) : version des CGV du plan", async () => {
+    const legal = await import("@/lib/legal");
+    vi.stubEnv("VERCEL_ENV", "production");
+    expect(legal.getLegalDocumentVersion()).toBe(legal.PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION);
+    expect(legal.getLegalDocumentVersionLabel()).toBe(legal.PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION_LABEL);
+    expect(legal.getLegalDocumentVersion()).not.toBe(legal.STANDARD_LEGAL_DOCUMENT_VERSION);
+  });
+
+  it("plan fermé (coupe-circuit) : version du 13 septembre 2026 inchangée", async () => {
     const legal = await import("@/lib/legal");
     setPlan(false);
     expect(legal.getLegalDocumentVersion()).toBe("2026-09-13");
@@ -61,7 +80,7 @@ describe("version des CGV", () => {
 });
 
 describe("/legal/cgv", () => {
-  it("production (plan fermé) : aucune clause d'acompte", async () => {
+  it("plan fermé (coupe-circuit) : aucune clause d'acompte", async () => {
     const html = await renderPage(false, () => import("@/app/legal/cgv/page"));
     expect(html).toContain("Version en vigueur au 13 septembre 2026");
     expect(html).not.toContain('id="acompte-solde"');
@@ -97,7 +116,7 @@ describe("/legal/cgv", () => {
 });
 
 describe("/legal/confidentialite", () => {
-  it("production (plan fermé) : liste des données et prestataires inchangée", async () => {
+  it("plan fermé (coupe-circuit) : liste des données et prestataires inchangée", async () => {
     const html = await renderPage(false, () => import("@/app/legal/confidentialite/page"));
     expect(html).not.toContain("Carte enregistrée et autorisation de prélèvement");
     expect(html).toContain("pour les paiements, remboursements, abonnements et documents de facturation associés ;");
@@ -115,7 +134,7 @@ describe("/legal/confidentialite", () => {
 });
 
 describe("devis visites chat", () => {
-  it("production (plan fermé) : conditions de paiement identiques à main", async () => {
+  it("plan fermé (coupe-circuit) : conditions de paiement identiques à main", async () => {
     const quote = await import("@/lib/cat-visit-quote");
     setPlan(false);
     expect(quote.getCatVisitPaymentTerms()).toBe(

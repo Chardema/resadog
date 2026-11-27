@@ -15,7 +15,11 @@ import {
   isPaymentPlanEnabled,
   splitDepositBalance,
 } from "../src/lib/payment-plan";
-import { assertPaymentPlanStripeTestMode, isStripeTestSecretKey } from "../src/lib/payment-plan-stripe-guard";
+import {
+  assertPaymentPlanStripeTestMode,
+  isPaymentPlanStripeKeyAllowed,
+  isStripeTestSecretKey,
+} from "../src/lib/payment-plan-stripe-guard";
 
 const assertEqual = (actual: number, expected: number, message: string) => {
   if (actual !== expected) {
@@ -55,9 +59,8 @@ const assert = (condition: boolean, message: string) => {
 };
 const cents = (amount: number) => Math.round(amount * 100);
 
-// Le plan est fermé en production tant que le propriétaire n'a pas validé
-// l'activation, quel que soit le drapeau des aperçus.
-assert(PAYMENT_PLAN_ENABLED_IN_PRODUCTION === false, "Le plan acompte doit rester fermé en production");
+// PR d'activation (accord du propriétaire) : plan ouvert en production.
+assert(PAYMENT_PLAN_ENABLED_IN_PRODUCTION === true, "Le plan acompte doit être activé en production");
 assert(PAYMENT_PLAN_PREVIEW_ENABLED === true, "Le plan acompte doit être actif sur les aperçus");
 
 const withEnv = <T>(env: Record<string, string | undefined>, run: () => T): T => {
@@ -76,16 +79,23 @@ const withEnv = <T>(env: Record<string, string | undefined>, run: () => T): T =>
   }
 };
 
-assert(withEnv({ VERCEL_ENV: "production" }, isPaymentPlanEnabled) === false, "VERCEL_ENV=production doit fermer le plan");
+assert(withEnv({ VERCEL_ENV: "production" }, isPaymentPlanEnabled) === true, "VERCEL_ENV=production doit ouvrir le plan");
 assert(withEnv({ VERCEL_ENV: "preview" }, isPaymentPlanEnabled) === true, "VERCEL_ENV=preview doit ouvrir le plan");
 assert(withEnv({ VERCEL_ENV: undefined }, isPaymentPlanEnabled) === true, "Le plan doit être ouvert en local");
 
-// Garde Stripe du plan : seules les clés de test passent.
+// Garde Stripe du plan : sk_test_ partout, sk_live_ seulement en production
+// avec les deux constantes à true, tout le reste refusé.
 assert(isStripeTestSecretKey("sk_test_factice"), "Une clé sk_test_ doit autoriser le plan");
-assert(!isStripeTestSecretKey("sk_live_factice"), "Une clé sk_live_ doit être refusée pour le plan");
-assert(!isStripeTestSecretKey(undefined), "Une clé absente doit être refusée pour le plan");
-assert(!isStripeTestSecretKey("rk_test_factice"), "Seules les clés secrètes sk_test_ sont acceptées");
-const guardRefuses = (key: string | undefined) => withEnv({ STRIPE_SECRET_KEY: key }, () => {
+assert(!isStripeTestSecretKey("sk_live_factice"), "sk_live_ n'est pas une clé de test");
+assert(!isStripeTestSecretKey(undefined), "Une clé absente n'est pas une clé de test");
+assert(!isStripeTestSecretKey("rk_test_factice"), "Seules les clés secrètes sk_test_ sont des clés de test");
+const liveOpen = { isProduction: true, planEnabledInProduction: true, liveAllowed: true };
+assert(isPaymentPlanStripeKeyAllowed("sk_live_factice", liveOpen), "sk_live_ en production, plan et clés live autorisés : acceptée");
+assert(!isPaymentPlanStripeKeyAllowed("sk_live_factice", { ...liveOpen, isProduction: false }), "sk_live_ hors production : refusée");
+assert(!isPaymentPlanStripeKeyAllowed("sk_live_factice", { ...liveOpen, planEnabledInProduction: false }), "sk_live_ plan fermé : refusée");
+assert(!isPaymentPlanStripeKeyAllowed("sk_live_factice", { ...liveOpen, liveAllowed: false }), "sk_live_ coupe-circuit : refusée");
+assert(!isPaymentPlanStripeKeyAllowed(undefined, liveOpen) && !isPaymentPlanStripeKeyAllowed("rk_live_factice", liveOpen), "Clé absente ou restreinte : refusée");
+const guardRefuses = (key: string | undefined, vercelEnv?: string) => withEnv({ STRIPE_SECRET_KEY: key, VERCEL_ENV: vercelEnv }, () => {
   const log = console.error;
   console.error = () => {};
   try {
@@ -97,7 +107,8 @@ const guardRefuses = (key: string | undefined) => withEnv({ STRIPE_SECRET_KEY: k
     console.error = log;
   }
 });
-assert(guardRefuses("sk_live_factice") && guardRefuses(undefined) && !guardRefuses("sk_test_factice"), "Garde sk_test_ du plan acompte");
+assert(guardRefuses("sk_live_factice") && guardRefuses("sk_live_factice", "preview") && guardRefuses(undefined, "production"), "Garde : sk_live_ hors production et clé absente refusées");
+assert(!guardRefuses("sk_test_factice") && !guardRefuses("sk_live_factice", "production"), "Garde : sk_test_ partout et sk_live_ en production acceptées");
 
 assertEqual(DEPOSIT_RATE, 0.3, "Taux d'acompte");
 assertEqual(DEPOSIT_MIN_TOTAL, 100, "Seuil minimal du plan acompte");
@@ -108,10 +119,13 @@ assertEqual(BALANCE_FINAL_DEADLINE_DAYS_BEFORE, 2, "Limite de paiement du solde"
 const requestedAt = new Date("2026-11-26T10:00:00Z");
 const farStart = "2027-04-26";
 
-// Production (plan fermé) : toujours FULL, total intégral.
-const disabled = withEnv({ VERCEL_ENV: "production" }, () =>
+// Production (plan activé) : réservation éligible en acompte + solde.
+const production = withEnv({ VERCEL_ENV: "production" }, () =>
   getPaymentPlanSplit({ totalPrice: 300, serviceType: "BOARDING", startDate: farStart, requestedAt }));
-assert(disabled.plan === "FULL" && disabled.depositAmount === 300 && disabled.balanceAmount === 0, "FULL doit autoriser 100 % en production");
+assert(production.plan === "DEPOSIT_BALANCE" && production.depositAmount === 90 && production.balanceAmount === 210, "Acompte de 30 % en production");
+// Plan fermé (drapeau forcé) : toujours FULL, total intégral.
+const disabled = getPaymentPlanSplit({ totalPrice: 300, serviceType: "BOARDING", startDate: farStart, requestedAt, enabled: false });
+assert(disabled.plan === "FULL" && disabled.depositAmount === 300 && disabled.balanceAmount === 0, "FULL doit autoriser 100 % plan fermé");
 
 // Somme exacte au centime sur une grille de totaux décimaux.
 for (let totalCents = 10_000; totalCents <= 200_000; totalCents += 37) {

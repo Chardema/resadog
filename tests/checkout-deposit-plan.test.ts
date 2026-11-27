@@ -312,6 +312,9 @@ describe("Checkout de réservation : garde sk_test_ du plan acompte", () => {
       expires_at: Math.floor(NOW.getTime() / 1000) + 31 * 60,
     }));
     txMock.checkoutAttempt.updateMany.mockResolvedValue({ count: 1 });
+    // Hors production explicite : sk_live_ doit y être refusée, quel que soit le
+    // VERCEL_ENV du shell qui lance Vitest.
+    vi.stubEnv("VERCEL_ENV", "preview");
   });
 
   afterEach(() => {

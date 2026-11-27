@@ -552,6 +552,11 @@ describe("capture partielle de l'acompte (demande non acceptée, < 48 h)", () =>
 });
 
 describe("garde sk_test_ de la retenue du barème acompte", () => {
+  // Hors production explicite : sk_live_ doit y être refusée, quel que soit le
+  // VERCEL_ENV du shell qui lance Vitest.
+  beforeEach(() => {
+    vi.stubEnv("VERCEL_ENV", "preview");
+  });
   afterEach(() => vi.unstubAllEnvs());
 
   it("clé live : aucune capture, demande restaurée", async () => {

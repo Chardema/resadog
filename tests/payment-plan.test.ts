@@ -27,19 +27,12 @@ describe("isPaymentPlanEnabled", () => {
     vi.unstubAllGlobals();
   });
 
-  it("drapeaux de code : ouvert sur les aperçus, fermé en production", () => {
+  it("drapeaux de code : ouvert sur les aperçus et en production", () => {
     expect(PAYMENT_PLAN_PREVIEW_ENABLED).toBe(true);
-    expect(PAYMENT_PLAN_ENABLED_IN_PRODUCTION).toBe(false);
+    expect(PAYMENT_PLAN_ENABLED_IN_PRODUCTION).toBe(true);
   });
 
-  it("VERCEL_ENV=production : fermé malgré PAYMENT_PLAN_PREVIEW_ENABLED, toute réservation reste en paiement intégral", () => {
-    vi.stubEnv("VERCEL_ENV", "production");
-    expect(isPaymentPlanEnabled()).toBe(false);
-    expect(getPaymentPlanSplit({ totalPrice: 300, serviceType: "BOARDING", startDate: farStart, requestedAt }))
-      .toEqual({ plan: "FULL", totalAmount: 300, depositAmount: 300, balanceAmount: 0 });
-  });
-
-  it.each(["preview", "development", undefined])("VERCEL_ENV=%s : ouvert", (vercelEnv) => {
+  it.each(["production", "preview", "development", undefined])("VERCEL_ENV=%s : ouvert", (vercelEnv) => {
     vi.stubEnv("VERCEL_ENV", vercelEnv);
     expect(isPaymentPlanEnabled()).toBe(true);
     expect(getPaymentPlanSplit({ totalPrice: 300, serviceType: "BOARDING", startDate: farStart, requestedAt }).plan)
@@ -56,16 +49,16 @@ describe("isPaymentPlanEnabled", () => {
     vi.stubEnv("VERCEL_ENV", "preview");
     expect(isPaymentPlanEnabled()).toBe(true);
     vi.stubEnv("VERCEL_ENV", "production");
-    expect(isPaymentPlanEnabled()).toBe(false);
+    expect(isPaymentPlanEnabled()).toBe(PAYMENT_PLAN_ENABLED_IN_PRODUCTION);
   });
 
-  it("navigateur : NEXT_PUBLIC_VERCEL_ENV=production ferme le plan (VERCEL_ENV ignoré)", () => {
+  it("navigateur : NEXT_PUBLIC_VERCEL_ENV=production suit le drapeau de production (VERCEL_ENV ignoré)", () => {
     vi.stubGlobal("window", {});
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "production");
-    expect(isPaymentPlanEnabled()).toBe(false);
+    expect(isPaymentPlanEnabled()).toBe(PAYMENT_PLAN_ENABLED_IN_PRODUCTION);
     vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "preview");
-    expect(isPaymentPlanEnabled()).toBe(true);
+    expect(isPaymentPlanEnabled()).toBe(PAYMENT_PLAN_PREVIEW_ENABLED);
   });
 });
 
