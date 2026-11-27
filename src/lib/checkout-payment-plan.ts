@@ -1,8 +1,8 @@
 import { parisAppointment } from "@/lib/booking-dates";
 import {
-  PAYMENT_PLAN_ENABLED,
   getBalanceMandateTerms,
   getPaymentPlanSplit,
+  isPaymentPlanEnabled,
   type BalanceMandateTerms,
   type PaymentPlanSplit,
 } from "@/lib/payment-plan";
@@ -26,7 +26,7 @@ export type CheckoutPlanBooking = {
 export function resolveCheckoutDepositPlan(
   booking: CheckoutPlanBooking,
   requestedAt: Date,
-  enabled: boolean = PAYMENT_PLAN_ENABLED,
+  enabled: boolean = isPaymentPlanEnabled(),
 ): CheckoutDepositPlan | null {
   if (!enabled || !(booking.totalPrice > 0)) return null;
   const split = getPaymentPlanSplit({

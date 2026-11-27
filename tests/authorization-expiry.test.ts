@@ -29,9 +29,7 @@ vi.mock("@/lib/payment-plan", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/payment-plan")>();
   return {
     ...original,
-    get PAYMENT_PLAN_ENABLED() {
-      return flags.enabled;
-    },
+    isPaymentPlanEnabled: () => flags.enabled,
   };
 });
 vi.mock("@/lib/db/prisma", () => ({ prisma: prismaMock }));

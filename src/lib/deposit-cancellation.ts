@@ -9,6 +9,7 @@ import {
   type DepositCancellationOutcome,
   type DepositCancellationTier,
 } from "@/lib/payment-plan";
+import { assertPaymentPlanStripeTestMode } from "@/lib/payment-plan-stripe-guard";
 import { stripe } from "@/lib/stripe/config";
 
 // Lot 6 de la spec 07 : annulation d'une réservation DEPOSIT_BALANCE.
@@ -336,6 +337,13 @@ export async function processDepositPlanCancellation(input: {
   } else if (depositIntent?.status === "requires_capture") {
     const retainedCents = toCents(outcome.deposit.retained);
     if (retainedCents > 0) {
+      // Retenue du barème : première écriture Stripe de cette branche, refusée
+      // avec une clé autre que de test (rien n'a encore été capturé ni libéré).
+      try {
+        assertPaymentPlanStripeTestMode("retenue-acompte");
+      } catch {
+        throw new DepositCancellationError("Retenue de l'acompte refusée : la clé Stripe n'est pas une clé de test.", 502);
+      }
       const captured = await stripe.paymentIntents.capture(
         depositIntent.id,
         { amount_to_capture: retainedCents },

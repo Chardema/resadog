@@ -5,7 +5,7 @@ import {
   sendBookingAuthorizationAlertAdminEmail,
   sendBookingAuthorizationExpiredEmail,
 } from "@/lib/email";
-import { PAYMENT_PLAN_ENABLED } from "@/lib/payment-plan";
+import { isPaymentPlanEnabled } from "@/lib/payment-plan";
 import { stripe } from "@/lib/stripe/config";
 
 // Lot 4 de la spec 07 : une autorisation carte non capturée expire (7 jours,
@@ -13,11 +13,11 @@ import { stripe } from "@/lib/stripe/config";
 // une « Empreinte active » morte que l'équipe ne peut plus accepter.
 //
 // Le traitement couvre les deux plans (FULL et DEPOSIT_BALANCE) mais reste
-// derrière PAYMENT_PLAN_ENABLED : drapeau à false, rien ne change par rapport
-// à main (pas de nouveau statut, pas d'e-mail, pas d'appel Stripe).
+// derrière isPaymentPlanEnabled() : plan fermé (production), rien ne change par
+// rapport à main (pas de nouveau statut, pas d'e-mail, pas d'appel Stripe).
 // Le parcours nominal (acceptation avant l'expiration) n'est jamais touché.
 
-export const isAuthorizationExpiryEnabled = () => PAYMENT_PLAN_ENABLED;
+export const isAuthorizationExpiryEnabled = () => isPaymentPlanEnabled();
 
 // Le cron relit Stripe pour les demandes en attente depuis plus de 48 h ...
 export const AUTHORIZATION_SCAN_MIN_AGE_HOURS = 48;

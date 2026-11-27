@@ -4833,6 +4833,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Payment for this reservation is already authorized and awaiting validation from the team.",
     "es": "El pago de esta reserva ya está autorizado y pendiente de validación por parte del equipo."
   },
+  "Le paiement en deux fois est momentanément indisponible. Merci de réessayer plus tard ou de nous contacter.": {
+    "en": "Two-instalment payment is temporarily unavailable. Please try again later or contact us.",
+    "es": "El pago en dos veces no está disponible temporalmente. Vuelve a intentarlo más tarde o contáctanos."
+  },
   "Le paiement est bloqué tant que la date de naissance n'est pas vérifiée pour :": {
     "en": "Payment is blocked until the date of birth is verified for:",
     "es": "El pago está bloqueado hasta que se verifique la fecha de nacimiento de:"

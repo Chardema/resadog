@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { calculateCouponDiscount } from "@/lib/coupon-pricing";
 import {
-  PAYMENT_PLAN_ENABLED,
+  PAYMENT_PLAN_ENABLED_IN_PRODUCTION,
+  PAYMENT_PLAN_PREVIEW_ENABLED,
   calculateAdvanceInterest,
   choosePaymentPlan,
   getBalanceAmountDue,
@@ -12,6 +13,7 @@ import {
   getLeadDays,
   getPaymentPlanSplit,
   isBalanceMandateConsentValid,
+  isPaymentPlanEnabled,
   splitDepositBalance,
 } from "@/lib/payment-plan";
 
@@ -19,11 +21,51 @@ const cents = (amount: number) => Math.round(amount * 100);
 const requestedAt = new Date("2026-11-26T10:00:00Z");
 const farStart = "2027-04-26";
 
-describe("PAYMENT_PLAN_ENABLED", () => {
-  it("est désactivé par défaut : toute réservation reste en paiement intégral", () => {
-    expect(PAYMENT_PLAN_ENABLED).toBe(false);
+describe("isPaymentPlanEnabled", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("drapeaux de code : ouvert sur les aperçus, fermé en production", () => {
+    expect(PAYMENT_PLAN_PREVIEW_ENABLED).toBe(true);
+    expect(PAYMENT_PLAN_ENABLED_IN_PRODUCTION).toBe(false);
+  });
+
+  it("VERCEL_ENV=production : fermé malgré PAYMENT_PLAN_PREVIEW_ENABLED, toute réservation reste en paiement intégral", () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    expect(isPaymentPlanEnabled()).toBe(false);
     expect(getPaymentPlanSplit({ totalPrice: 300, serviceType: "BOARDING", startDate: farStart, requestedAt }))
       .toEqual({ plan: "FULL", totalAmount: 300, depositAmount: 300, balanceAmount: 0 });
+  });
+
+  it.each(["preview", "development", undefined])("VERCEL_ENV=%s : ouvert", (vercelEnv) => {
+    vi.stubEnv("VERCEL_ENV", vercelEnv);
+    expect(isPaymentPlanEnabled()).toBe(true);
+    expect(getPaymentPlanSplit({ totalPrice: 300, serviceType: "BOARDING", startDate: farStart, requestedAt }).plan)
+      .toBe("DEPOSIT_BALANCE");
+  });
+
+  it("NODE_ENV=production sans VERCEL_ENV=production : reste un aperçu", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    expect(isPaymentPlanEnabled()).toBe(true);
+  });
+
+  it("évaluée à l'appel : suit un changement d'environnement sans rechargement", () => {
+    vi.stubEnv("VERCEL_ENV", "preview");
+    expect(isPaymentPlanEnabled()).toBe(true);
+    vi.stubEnv("VERCEL_ENV", "production");
+    expect(isPaymentPlanEnabled()).toBe(false);
+  });
+
+  it("navigateur : NEXT_PUBLIC_VERCEL_ENV=production ferme le plan (VERCEL_ENV ignoré)", () => {
+    vi.stubGlobal("window", {});
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "production");
+    expect(isPaymentPlanEnabled()).toBe(false);
+    vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "preview");
+    expect(isPaymentPlanEnabled()).toBe(true);
   });
 });
 

@@ -6,7 +6,7 @@ import { stripe } from "@/lib/stripe/config";
 import {
   BOOKING_INVOICE_VERSION,
   getInvoiceLegalFooter,
-  LEGAL_DOCUMENT_VERSION,
+  getLegalDocumentVersion,
   LEGAL_INFORMATION,
 } from "@/lib/legal";
 
@@ -184,7 +184,7 @@ export async function ensureBookingInvoice(paymentIntent: Stripe.PaymentIntent) 
         metadata: {
           bookingIds: booking.id,
           bookingInvoiceVersion: BOOKING_INVOICE_VERSION,
-          legalVersion: LEGAL_DOCUMENT_VERSION,
+          legalVersion: getLegalDocumentVersion(),
           paymentIntentId: paymentIntent.id,
           providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
         },

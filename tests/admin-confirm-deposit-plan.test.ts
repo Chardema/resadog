@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 // Stripe, Prisma, l'authentification et Resend sont simulés : aucun appel réseau.
@@ -37,9 +37,7 @@ vi.mock("@/lib/payment-plan", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/payment-plan")>();
   return {
     ...original,
-    get PAYMENT_PLAN_ENABLED() {
-      return flags.enabled;
-    },
+    isPaymentPlanEnabled: () => flags.enabled,
   };
 });
 vi.mock("@/lib/auth", () => ({ auth: vi.fn(async () => ({ user: { id: "admin_1", role: "ADMIN" } })) }));
@@ -248,6 +246,52 @@ describe("acceptation d'une réservation : capture de l'acompte seul (lot 3)", (
     });
     expect(emailMock.sendBookingAuthorizationExpiredEmail).toHaveBeenCalledTimes(1);
     expect(emailMock.sendBookingAuthorizationAlertAdminEmail).toHaveBeenCalledWith("EXPIRED", expect.anything(), expect.anything());
+  });
+});
+
+describe("acceptation : garde sk_test_ de la capture de l'acompte", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    flags.enabled = true;
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    txMock.payment.update.mockResolvedValue({});
+    txMock.booking.updateMany.mockResolvedValue({ count: 1 });
+    txMock.bookingInstallment.upsert.mockResolvedValue({ id: "inst_1" });
+    stripeMock.paymentMethods.retrieve.mockResolvedValue({ id: "pm_saved", card: { last4: "4242" } });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    ["clé live", "sk_live_factice_0000"],
+    ["clé absente", undefined],
+  ])("DEPOSIT_BALANCE, %s : 503, ni lecture ni capture Stripe, demande intacte", async (_label, key) => {
+    vi.stubEnv("STRIPE_SECRET_KEY", key);
+    setup(makeBooking(), 9000);
+
+    const response = await confirm();
+
+    expect(response.status).toBe(503);
+    expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
+    expect(confirmationMock.claimBookingForConfirmation).not.toHaveBeenCalled();
+    expect(txMock.bookingInstallment.upsert).not.toHaveBeenCalled();
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("sk_live_factice");
+  });
+
+  it("FULL avec une clé live : capture du total inchangée", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
+    setup(fullBooking(), 30000);
+
+    const response = await confirm();
+
+    expect(response.status).toBe(200);
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
+    expect(txMock.payment.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ capturedAmount: 300 }),
+    }));
   });
 });
 

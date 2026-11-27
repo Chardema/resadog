@@ -30,9 +30,7 @@ vi.mock("@/lib/payment-plan", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/payment-plan")>();
   return {
     ...original,
-    get PAYMENT_PLAN_ENABLED() {
-      return flags.enabled;
-    },
+    isPaymentPlanEnabled: () => flags.enabled,
   };
 });
 vi.mock("@/lib/auth", () => ({ auth: vi.fn(async () => ({ user: { id: "user_1" } })) }));
@@ -48,7 +46,7 @@ vi.mock("@/lib/pets", () => ({
 }));
 
 import { POST } from "@/app/api/stripe/checkout/route";
-import { LEGAL_DOCUMENT_VERSION } from "@/lib/legal";
+import { getLegalDocumentVersion } from "@/lib/legal";
 import {
   getDepositPlanTermsMetadata,
   isSameMandateTerms,
@@ -84,7 +82,7 @@ const post = (body: Record<string, unknown>) =>
     body: JSON.stringify({
       bookingId: "booking_cuid_00000001",
       legalAccepted: true,
-      legalVersion: LEGAL_DOCUMENT_VERSION,
+      legalVersion: getLegalDocumentVersion(),
       ...body,
     }),
   }));
@@ -189,8 +187,8 @@ describe("Checkout de réservation : plan acompte + solde", () => {
       balanceDueDate: "2027-04-19",
       balanceMandateAccepted: "true",
       balanceMandateAcceptedAt: NOW.toISOString(),
-      balanceMandateLegalVersion: LEGAL_DOCUMENT_VERSION,
-      legalVersion: LEGAL_DOCUMENT_VERSION,
+      balanceMandateLegalVersion: getLegalDocumentVersion(),
+      legalVersion: getLegalDocumentVersion(),
     };
     expect(params.metadata).toMatchObject(expectedPlanMetadata);
     expect(params.payment_intent_data.metadata).toMatchObject(expectedPlanMetadata);
@@ -245,7 +243,7 @@ describe("Checkout de réservation : plan acompte + solde", () => {
       metadata: expect.objectContaining({
         balanceMandateAccepted: "true",
         balanceMandateAcceptedAt: NOW.toISOString(),
-        balanceMandateLegalVersion: LEGAL_DOCUMENT_VERSION,
+        balanceMandateLegalVersion: getLegalDocumentVersion(),
       }),
     });
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
@@ -287,6 +285,97 @@ describe("Checkout de réservation : plan acompte + solde", () => {
   });
 });
 
+describe("Checkout de réservation : garde sk_test_ du plan acompte", () => {
+  const stripeCalls = () => [
+    stripeMock.customers.create,
+    stripeMock.checkout.sessions.create,
+    stripeMock.checkout.sessions.update,
+    stripeMock.checkout.sessions.retrieve,
+  ].reduce((total, fn) => total + fn.mock.calls.length, 0);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    flags.enabled = true;
+    prismaMock.booking.findMany.mockResolvedValue([makeBooking({ client: { ...makeBooking().client, stripeCustomerId: null } })]);
+    attemptsMock.claimCheckoutAttempt.mockResolvedValue({
+      kind: "CLAIMED",
+      claim: { bookingId: "booking_cuid_00000001", attemptToken: "token", idempotencyKey: "booking-checkout:key" },
+    });
+    stripeMock.customers.create.mockResolvedValue({ id: "cus_new" });
+    stripeMock.checkout.sessions.create.mockImplementation(async () => ({
+      id: "cs_test_1",
+      url: "https://checkout.stripe.test/cs_test_1",
+      status: "open",
+      expires_at: Math.floor(NOW.getTime() / 1000) + 31 * 60,
+    }));
+    txMock.checkoutAttempt.updateMany.mockResolvedValue({ count: 1 });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+  });
+
+  it.each([
+    ["clé live", "sk_live_factice_0000"],
+    ["clé absente", undefined],
+  ])("%s : acompte refusé (503), aucun appel Stripe, aucune tentative réservée", async (_label, key) => {
+    vi.stubEnv("STRIPE_SECRET_KEY", key);
+
+    const response = await post({ balanceMandate: validMandate });
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ code: "PAYMENT_PLAN_UNAVAILABLE" });
+    expect(stripeCalls()).toBe(0);
+    expect(attemptsMock.claimCheckoutAttempt).not.toHaveBeenCalled();
+    expect(txMock.payment.upsert).not.toHaveBeenCalled();
+    // Journalisé sans jamais afficher la clé.
+    const logged = vi.mocked(console.error).mock.calls.flat().join(" ");
+    expect(logged).toContain("checkout-acompte");
+    expect(logged).not.toContain("sk_live_factice");
+  });
+
+  it("session acompte réutilisée avec une clé live : refusée sans mise à jour Stripe", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
+    prismaMock.booking.findMany.mockResolvedValue([makeBooking({ serviceType: "DOG_WALKING" })]);
+    attemptsMock.claimCheckoutAttempt.mockResolvedValue({ kind: "REUSE", checkoutUrl: "https://checkout.stripe.test/cs_open", sessionId: "cs_open" });
+    const plan = resolveCheckoutDepositPlan(makeBooking(), NOW, true)!;
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_open", metadata: getDepositPlanTermsMetadata(plan) });
+
+    const response = await post({ balanceMandate: validMandate });
+
+    expect(response.status).toBe(503);
+    expect(stripeMock.checkout.sessions.update).not.toHaveBeenCalled();
+  });
+
+  it("clé de test : l'acompte est autorisé normalement", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_factice_0000");
+    const response = await post({ balanceMandate: validMandate });
+    expect(response.status).toBe(200);
+    expect(stripeMock.checkout.sessions.create.mock.calls[0][0].line_items[0].price_data.unit_amount).toBe(9000);
+  });
+
+  it.each([
+    ["plan fermé", false, {}],
+    ["plan ouvert, réservation hors acompte", true, { serviceType: "DOG_WALKING" }],
+  ])("paiement intégral avec une clé live (%s) : jamais bloqué", async (_label, enabled, overrides) => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
+    flags.enabled = enabled;
+    prismaMock.booking.findMany.mockResolvedValue([makeBooking(overrides)]);
+
+    const response = await post({});
+
+    expect(response.status).toBe(200);
+    const params = stripeMock.checkout.sessions.create.mock.calls[0][0];
+    expect(params.line_items[0].price_data.unit_amount).toBe(30000);
+    expect(params.metadata).not.toHaveProperty("paymentPlan");
+    expect(params.payment_intent_data).toMatchObject({ capture_method: "manual", setup_future_usage: "off_session" });
+  });
+});
+
 describe("métadonnées du plan acompte + solde", () => {
   it("relit exactement les conditions écrites sur la session", () => {
     const plan = resolveCheckoutDepositPlan(makeBooking({ totalPrice: 333.33 }), NOW, true)!;
@@ -316,7 +405,7 @@ describe("métadonnées du plan acompte + solde", () => {
       ...getDepositPlanTermsMetadata(plan),
       balanceMandateAccepted: "true",
       balanceMandateAcceptedAt: NOW.toISOString(),
-      balanceMandateLegalVersion: LEGAL_DOCUMENT_VERSION,
+      balanceMandateLegalVersion: getLegalDocumentVersion(),
     })!;
     expect(record.balanceDueAt.toISOString()).toBe("2027-04-18T22:00:00.000Z");
     expect(record.mandateAcceptedAt.toISOString()).toBe(NOW.toISOString());

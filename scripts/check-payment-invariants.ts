@@ -5,14 +5,17 @@ import {
   DEPOSIT_MIN_LEAD_DAYS,
   DEPOSIT_MIN_TOTAL,
   DEPOSIT_RATE,
-  PAYMENT_PLAN_ENABLED,
+  PAYMENT_PLAN_ENABLED_IN_PRODUCTION,
+  PAYMENT_PLAN_PREVIEW_ENABLED,
   choosePaymentPlan,
   getBalanceSchedule,
   getBookingStartsAt,
   getDepositCancellationOutcome,
   getPaymentPlanSplit,
+  isPaymentPlanEnabled,
   splitDepositBalance,
 } from "../src/lib/payment-plan";
+import { assertPaymentPlanStripeTestMode, isStripeTestSecretKey } from "../src/lib/payment-plan-stripe-guard";
 
 const assertEqual = (actual: number, expected: number, message: string) => {
   if (actual !== expected) {
@@ -52,7 +55,50 @@ const assert = (condition: boolean, message: string) => {
 };
 const cents = (amount: number) => Math.round(amount * 100);
 
-assert(PAYMENT_PLAN_ENABLED === false, "Le plan acompte doit rester désactivé par défaut");
+// Le plan est fermé en production tant que le propriétaire n'a pas validé
+// l'activation, quel que soit le drapeau des aperçus.
+assert(PAYMENT_PLAN_ENABLED_IN_PRODUCTION === false, "Le plan acompte doit rester fermé en production");
+assert(PAYMENT_PLAN_PREVIEW_ENABLED === true, "Le plan acompte doit être actif sur les aperçus");
+
+const withEnv = <T>(env: Record<string, string | undefined>, run: () => T): T => {
+  const previous = Object.fromEntries(Object.keys(env).map((key) => [key, process.env[key]]));
+  const apply = (values: Record<string, string | undefined>) => {
+    for (const [key, value] of Object.entries(values)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  };
+  apply(env);
+  try {
+    return run();
+  } finally {
+    apply(previous);
+  }
+};
+
+assert(withEnv({ VERCEL_ENV: "production" }, isPaymentPlanEnabled) === false, "VERCEL_ENV=production doit fermer le plan");
+assert(withEnv({ VERCEL_ENV: "preview" }, isPaymentPlanEnabled) === true, "VERCEL_ENV=preview doit ouvrir le plan");
+assert(withEnv({ VERCEL_ENV: undefined }, isPaymentPlanEnabled) === true, "Le plan doit être ouvert en local");
+
+// Garde Stripe du plan : seules les clés de test passent.
+assert(isStripeTestSecretKey("sk_test_factice"), "Une clé sk_test_ doit autoriser le plan");
+assert(!isStripeTestSecretKey("sk_live_factice"), "Une clé sk_live_ doit être refusée pour le plan");
+assert(!isStripeTestSecretKey(undefined), "Une clé absente doit être refusée pour le plan");
+assert(!isStripeTestSecretKey("rk_test_factice"), "Seules les clés secrètes sk_test_ sont acceptées");
+const guardRefuses = (key: string | undefined) => withEnv({ STRIPE_SECRET_KEY: key }, () => {
+  const log = console.error;
+  console.error = () => {};
+  try {
+    assertPaymentPlanStripeTestMode("check");
+    return false;
+  } catch {
+    return true;
+  } finally {
+    console.error = log;
+  }
+});
+assert(guardRefuses("sk_live_factice") && guardRefuses(undefined) && !guardRefuses("sk_test_factice"), "Garde sk_test_ du plan acompte");
+
 assertEqual(DEPOSIT_RATE, 0.3, "Taux d'acompte");
 assertEqual(DEPOSIT_MIN_TOTAL, 100, "Seuil minimal du plan acompte");
 assertEqual(DEPOSIT_MIN_LEAD_DAYS, 14, "Délai minimal du plan acompte");
@@ -62,9 +108,10 @@ assertEqual(BALANCE_FINAL_DEADLINE_DAYS_BEFORE, 2, "Limite de paiement du solde"
 const requestedAt = new Date("2026-11-26T10:00:00Z");
 const farStart = "2027-04-26";
 
-// Drapeau désactivé : toujours FULL, total intégral.
-const disabled = getPaymentPlanSplit({ totalPrice: 300, serviceType: "BOARDING", startDate: farStart, requestedAt });
-assert(disabled.plan === "FULL" && disabled.depositAmount === 300 && disabled.balanceAmount === 0, "FULL doit autoriser 100 % quand le drapeau est désactivé");
+// Production (plan fermé) : toujours FULL, total intégral.
+const disabled = withEnv({ VERCEL_ENV: "production" }, () =>
+  getPaymentPlanSplit({ totalPrice: 300, serviceType: "BOARDING", startDate: farStart, requestedAt }));
+assert(disabled.plan === "FULL" && disabled.depositAmount === 300 && disabled.balanceAmount === 0, "FULL doit autoriser 100 % en production");
 
 // Somme exacte au centime sur une grille de totaux décimaux.
 for (let totalCents = 10_000; totalCents <= 200_000; totalCents += 37) {

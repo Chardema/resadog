@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { directBookingSchema, calculateDirectPrice, directVisitSlots } from "@/lib/direct-booking";
 import { buildSpecialRequests } from "@/lib/booking-details";
 import { assertBookingCapacity, BookingConfirmationError } from "@/lib/booking-confirmation";
-import { LEGAL_DOCUMENT_VERSION } from "@/lib/legal";
+import { getLegalDocumentVersion } from "@/lib/legal";
 
 export async function GET() {
   const session = await auth();
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       if (price.total <= 0) throw new Error("Tarif non disponible pour cette prestation.");
       const candidate = { id, serviceType: input.serviceType, startDate: new Date(`${input.startDate}T12:00:00Z`), endDate: new Date(`${input.endDate}T12:00:00Z`), startTime: input.startTime, endTime: input.endTime, specialRequests: buildSpecialRequests(input.notes, { visitSlots: directVisitSlots(input), serviceAddress: input.serviceAddress }) };
       await assertBookingCapacity(tx, candidate);
-      const audit = [`Réservation directe enregistrée par ${session.user.id} le ${new Date().toISOString()}`, `Accord client / CGV ${LEGAL_DOCUMENT_VERSION} : ${input.agreementEvidence}`, `Paiement : ${input.paymentMethod}. Référence : ${input.paymentReference || "à recevoir"}`, `Dernière minute : ${price.lastMinuteFee.toFixed(2)} EUR inclus.`].join("\n");
+      const audit = [`Réservation directe enregistrée par ${session.user.id} le ${new Date().toISOString()}`, `Accord client / CGV ${getLegalDocumentVersion()} :${input.agreementEvidence}`, `Paiement : ${input.paymentMethod}. Référence : ${input.paymentReference || "à recevoir"}`, `Dernière minute : ${price.lastMinuteFee.toFixed(2)} EUR inclus.`].join("\n");
       return tx.booking.create({ data: { ...candidate, clientId: client.id, petId: pets[0].id, pets: { connect: pets.map(pet => ({ id: pet.id })) }, status: "CONFIRMED", totalPrice: price.total, notes: audit,
         payment: { create: { amount: price.total, capturedAmount: input.paid ? price.total : 0, status: input.paid ? "SUCCEEDED" : "PENDING", paymentMethod: input.paymentMethod, paidAt: input.paid ? new Date(`${input.paidOn}T12:00:00Z`) : null } },
       } });

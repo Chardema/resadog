@@ -9,13 +9,14 @@ import { BOOKING_INVOICE_VERSION } from "@/lib/legal";
 import { reverseBookingLoyalty } from "@/lib/loyalty-ledger";
 import {
   BALANCE_REMINDER_DAYS_BEFORE,
-  PAYMENT_PLAN_ENABLED,
   getBalanceAmountDue,
   getBalancePaymentStateFor,
   getBalanceSchedule,
+  isPaymentPlanEnabled,
   type BalancePaymentState,
   type BalanceSchedule,
 } from "@/lib/payment-plan";
+import { assertPaymentPlanStripeTestMode } from "@/lib/payment-plan-stripe-guard";
 import { stripe } from "@/lib/stripe/config";
 
 // Lot 5 de la spec 07 : prélèvement hors session du solde à J-7, reprise par
@@ -33,7 +34,7 @@ import { stripe } from "@/lib/stripe/config";
 // - le succès du solde ne touche ni la confirmation, ni la fidélité, ni
 //   l'e-mail d'acompte : seule l'échéance passe SUCCEEDED, puis la facture finale.
 
-export const isBalanceCollectionEnabled = () => PAYMENT_PLAN_ENABLED;
+export const isBalanceCollectionEnabled = () => isPaymentPlanEnabled();
 
 export const BALANCE_PAYMENT_INTENT_TYPE = "booking_balance";
 export const BALANCE_COLLECTION_BATCH_SIZE = 20;
@@ -485,6 +486,8 @@ export async function createBalanceCheckoutSession(input: {
   locale: Stripe.Checkout.SessionCreateParams.Locale;
   now?: Date;
 }): Promise<BalanceCheckoutResult> {
+  // Avant toute lecture ou écriture : la route redirige vers /pay?error=STRIPE.
+  assertPaymentPlanStripeTestMode("checkout-reprise-solde");
   const now = input.now ?? new Date();
   const installment = await findClientBalanceInstallment(input.bookingId, input.userId);
   if (!installment) return { ok: false, reason: "NOT_FOUND" };
@@ -598,6 +601,8 @@ async function chargeBalance(
   now: Date,
   { reuseAttempt = false } = {}
 ): Promise<{ outcome: ChargeOutcome; firstFailure?: boolean; errors: string[] }> {
+  // Avant le verrou PROCESSING : un refus laisse l'échéance intacte.
+  assertPaymentPlanStripeTestMode("prelevement-solde");
   const errors: string[] = [];
   const lock = await releaseCheckoutLock(installment, now);
   if (lock !== "FREE") return { outcome: "SKIPPED", errors };
@@ -855,6 +860,14 @@ export async function collectBalances({
   }
   // dryRun : aucun appel Stripe, aucune écriture, aucun e-mail.
   if (dryRun) return report;
+  // Clé Stripe hors mode test : rien n'est exécuté (ni prélèvement, ni e-mail
+  // annonçant un prélèvement), le cron répond en erreur.
+  try {
+    assertPaymentPlanStripeTestMode("collect-balances");
+  } catch (error) {
+    report.errors.push(errorMessage(error));
+    return report;
+  }
 
   const byId = new Map(installments.map((installment) => [installment.id, installment]));
   let stripeCalls = 0;

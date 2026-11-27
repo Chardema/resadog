@@ -2,22 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { createElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DepositPlanBooking } from "@/components/admin/DepositPlanDetails";
 
-// Textes du lot 7 (spec 07, §5.8) : publiés seulement avec PAYMENT_PLAN_ENABLED.
-// Drapeau désactivé : CGV, confidentialité, devis et version des CGV inchangés.
-const flags = vi.hoisted(() => ({ enabled: false }));
-
-vi.mock("@/lib/payment-plan", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/lib/payment-plan")>();
-  return {
-    ...original,
-    get PAYMENT_PLAN_ENABLED() {
-      return flags.enabled;
-    },
-  };
-});
+// Textes du lot 7 (spec 07, §5.8) : publiés seulement quand isPaymentPlanEnabled()
+// est vrai (aperçus Vercel, local). En production (VERCEL_ENV=production), plan
+// fermé : CGV, confidentialité, devis et version des CGV inchangés.
 
 // Rendu hors Next.js : un lien simple suffit pour lire le texte des pages.
 vi.mock("next/link", async () => {
@@ -28,42 +18,50 @@ vi.mock("next/link", async () => {
   };
 });
 
-// Les constantes (version des CGV, conditions du devis) sont calculées au
-// chargement du module : on recharge les modules pour chaque valeur du drapeau.
-async function withFlag<T>(enabled: boolean, load: () => Promise<T>) {
-  flags.enabled = enabled;
-  vi.resetModules();
-  return load();
-}
+// Le plan suit l'environnement à l'appel : production = fermé, aperçu = ouvert.
+// Les modules ne sont jamais rechargés : aucune valeur n'est figée au chargement.
+const setPlan = (enabled: boolean) => vi.stubEnv("VERCEL_ENV", enabled ? "preview" : "production");
 
 async function renderPage(enabled: boolean, load: () => Promise<{ default: () => ReactElement }>) {
-  const page = await withFlag(enabled, load);
+  setPlan(enabled);
+  const page = await load();
   return renderToStaticMarkup(createElement(page.default));
 }
 
 const readSource = (relativePath: string) => fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
 
-beforeEach(() => {
-  flags.enabled = false;
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("version des CGV", () => {
-  it("drapeau désactivé : version du 13 septembre 2026 inchangée", async () => {
-    const legal = await withFlag(false, () => import("@/lib/legal"));
-    expect(legal.LEGAL_DOCUMENT_VERSION).toBe("2026-09-13");
-    expect(legal.LEGAL_DOCUMENT_VERSION_LABEL).toBe("13 septembre 2026");
+  it("production (plan fermé) : version du 13 septembre 2026 inchangée", async () => {
+    const legal = await import("@/lib/legal");
+    setPlan(false);
+    expect(legal.getLegalDocumentVersion()).toBe("2026-09-13");
+    expect(legal.getLegalDocumentVersionLabel()).toBe("13 septembre 2026");
   });
 
-  it("drapeau activé : nouvelle version, engagement Premium toujours daté du 13 septembre 2026", async () => {
-    const legal = await withFlag(true, () => import("@/lib/legal"));
-    expect(legal.LEGAL_DOCUMENT_VERSION).toBe(legal.PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION);
-    expect(legal.LEGAL_DOCUMENT_VERSION).not.toBe("2026-09-13");
+  it("aperçu (plan ouvert) : nouvelle version, engagement Premium toujours daté du 13 septembre 2026", async () => {
+    const legal = await import("@/lib/legal");
+    setPlan(true);
+    expect(legal.getLegalDocumentVersion()).toBe(legal.PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION);
+    expect(legal.getLegalDocumentVersion()).not.toBe("2026-09-13");
     expect(legal.PREMIUM_COMMITMENT_VERSION_LABEL).toBe("13 septembre 2026");
+  });
+
+  it("la version suit l'environnement sans rechargement du module", async () => {
+    const legal = await import("@/lib/legal");
+    setPlan(true);
+    const preview = legal.getLegalDocumentVersion();
+    setPlan(false);
+    expect(legal.getLegalDocumentVersion()).toBe("2026-09-13");
+    expect(preview).not.toBe("2026-09-13");
   });
 });
 
 describe("/legal/cgv", () => {
-  it("drapeau désactivé : aucune clause d'acompte", async () => {
+  it("production (plan fermé) : aucune clause d'acompte", async () => {
     const html = await renderPage(false, () => import("@/app/legal/cgv/page"));
     expect(html).toContain("Version en vigueur au 13 septembre 2026");
     expect(html).not.toContain('id="acompte-solde"');
@@ -75,7 +73,7 @@ describe("/legal/cgv", () => {
     expect(html).toContain("Les abonnements souscrits avant la version du 13 septembre 2026");
   });
 
-  it("drapeau activé : acompte, mandat, barème, intérêts, rétractation et carte enregistrée", async () => {
+  it("aperçu (plan ouvert) : acompte, mandat, barème, intérêts, rétractation et carte enregistrée", async () => {
     const html = await renderPage(true, () => import("@/app/legal/cgv/page"));
     expect(html).toContain('id="acompte-solde"');
     expect(html).toContain('id="annulation-acompte"');
@@ -99,14 +97,14 @@ describe("/legal/cgv", () => {
 });
 
 describe("/legal/confidentialite", () => {
-  it("drapeau désactivé : liste des données et prestataires inchangée", async () => {
+  it("production (plan fermé) : liste des données et prestataires inchangée", async () => {
     const html = await renderPage(false, () => import("@/app/legal/confidentialite/page"));
     expect(html).not.toContain("Carte enregistrée et autorisation de prélèvement");
     expect(html).toContain("pour les paiements, remboursements, abonnements et documents de facturation associés ;");
     expect(html).not.toContain("conservation de la carte enregistrée");
   });
 
-  it("drapeau activé : carte conservée chez Stripe, finalité et durée", async () => {
+  it("aperçu (plan ouvert) : carte conservée chez Stripe, finalité et durée", async () => {
     const html = await renderPage(true, () => import("@/app/legal/confidentialite/page"));
     expect(html).toContain("Carte enregistrée et autorisation de prélèvement :");
     expect(html).toContain("enregistrée et conservée par Stripe");
@@ -117,24 +115,26 @@ describe("/legal/confidentialite", () => {
 });
 
 describe("devis visites chat", () => {
-  it("drapeau désactivé : conditions de paiement identiques à main", async () => {
-    const quote = await withFlag(false, () => import("@/lib/cat-visit-quote"));
-    expect(quote.CAT_VISIT_PAYMENT_TERMS).toBe(
+  it("production (plan fermé) : conditions de paiement identiques à main", async () => {
+    const quote = await import("@/lib/cat-visit-quote");
+    setPlan(false);
+    expect(quote.getCatVisitPaymentTerms()).toBe(
       "Règlement par carte bancaire via le site. Autorisation bancaire à la demande, débit après confirmation de la disponibilité."
     );
   });
 
-  it("drapeau activé : acompte de 30 % et solde à J-7", async () => {
-    const quote = await withFlag(true, () => import("@/lib/cat-visit-quote"));
-    expect(quote.CAT_VISIT_PAYMENT_TERMS).toContain("acompte de 30 %");
-    expect(quote.CAT_VISIT_PAYMENT_TERMS).toContain("7 jours avant le premier passage");
+  it("aperçu (plan ouvert) : acompte de 30 % et solde à J-7", async () => {
+    const quote = await import("@/lib/cat-visit-quote");
+    setPlan(true);
+    expect(quote.getCatVisitPaymentTerms()).toContain("acompte de 30 %");
+    expect(quote.getCatVisitPaymentTerms()).toContain("7 jours avant le premier passage");
   });
 });
 
 describe("textes conditionnels des pages client (source)", () => {
-  it("/tarifs : lignes d'acompte derrière PAYMENT_PLAN_ENABLED, ligne standard intacte", () => {
+  it("/tarifs : lignes d'acompte derrière isPaymentPlanEnabled(), ligne standard intacte", () => {
     const source = readSource("src/app/tarifs/page.tsx");
-    const gate = source.indexOf("{PAYMENT_PLAN_ENABLED && (");
+    const gate = source.indexOf("{isPaymentPlanEnabled() && (");
     expect(gate).toBeGreaterThan(-1);
     expect(source.indexOf("Paiement en deux fois :")).toBeGreaterThan(gate);
     expect(source.indexOf("Réservation avec acompte :")).toBeGreaterThan(gate);

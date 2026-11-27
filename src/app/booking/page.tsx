@@ -56,8 +56,8 @@ import {
 } from "@/lib/services";
 import { ATTENDANCE_SUMMARY } from "@/lib/booking-attendance";
 import { SIMULATOR_PET_CARDS } from "@/components/booking/simulatorPetCards";
-import { LEGAL_DOCUMENT_VERSION, LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
-import { PAYMENT_PLAN_ENABLED, type BalanceMandateTerms } from "@/lib/payment-plan";
+import { getLegalDocumentVersion, getLegalDocumentVersionLabel, LEGAL_INFORMATION } from "@/lib/legal";
+import { isPaymentPlanEnabled, type BalanceMandateTerms } from "@/lib/payment-plan";
 import { resolveCheckoutDepositPlan } from "@/lib/checkout-payment-plan";
 import {
   getBalanceMandateLabel,
@@ -1845,7 +1845,7 @@ export default function BookingPage() {
               bookingIds: createdBookingIds,
               promoCode: formData.promoCode || undefined,
               legalAccepted: true,
-              legalVersion: LEGAL_DOCUMENT_VERSION,
+              legalVersion: getLegalDocumentVersion(),
               ...(depositTerms ? {
                 balanceMandate: {
                   accepted: balanceMandateAccepted,
@@ -1936,16 +1936,18 @@ export default function BookingPage() {
 
   // Aperçu du plan acompte + solde ; le serveur recalcule et fait foi.
   const planLocale = toPaymentPlanLocale(locale);
-  const depositFormKey = PAYMENT_PLAN_ENABLED
-    ? JSON.stringify({ formData, visitSlots, total: finalDisplayedTotal })
+  const paymentPlanEnabled = isPaymentPlanEnabled();
+  const depositFormKey = paymentPlanEnabled
+    ?JSON.stringify({ formData, visitSlots, total: finalDisplayedTotal })
     : "";
   const depositPreviewStartDate = isHourlyService(formData.serviceType)
     ? getUniqueVisitDates(visitSlots)[0] || formData.startDate
     : formData.startDate;
-  const previewDepositPlan = PAYMENT_PLAN_ENABLED && depositPreviewStartDate
+  const previewDepositPlan = paymentPlanEnabled && depositPreviewStartDate
     ? resolveCheckoutDepositPlan(
         { totalPrice: finalDisplayedTotal, serviceType: formData.serviceType, startDate: depositPreviewStartDate },
         pricingNow,
+        paymentPlanEnabled,
       )
     : null;
   const pendingDepositPlan = serverDepositPlan?.formKey === depositFormKey ? serverDepositPlan : null;
@@ -2916,7 +2918,7 @@ export default function BookingPage() {
                                 className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
                             />
                             <label data-no-translate htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
-                                J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-700 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-700 hover:text-orange-800">Politique de confidentialité</Link>. {depositTerms ? DEPOSIT_CANCELLATION_SUMMARY : FULL_CANCELLATION_SUMMARY} {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
+                                J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-700 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {getLegalDocumentVersionLabel()}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-700 hover:text-orange-800">Politique de confidentialité</Link>. {depositTerms ? DEPOSIT_CANCELLATION_SUMMARY : FULL_CANCELLATION_SUMMARY} {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
                             </label>
                         </div>
 

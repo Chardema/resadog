@@ -14,11 +14,12 @@ import {
 import { getPetProfileCompletion, isPetBirthDateVerified } from "@/lib/pets";
 import {
   BOOKING_INVOICE_VERSION,
-  LEGAL_DOCUMENT_VERSION,
+  getLegalDocumentVersion,
   LEGAL_INFORMATION,
 } from "@/lib/legal";
 import { getServiceLabel } from "@/lib/services";
-import { PAYMENT_PLAN_ENABLED, isBalanceMandateConsentValid, type BalanceMandateTerms } from "@/lib/payment-plan";
+import { isBalanceMandateConsentValid, isPaymentPlanEnabled, type BalanceMandateTerms } from "@/lib/payment-plan";
+import { assertPaymentPlanStripeTestMode, PaymentPlanStripeGuardError } from "@/lib/payment-plan-stripe-guard";
 import {
   getBalanceMandateMetadata,
   getDepositPlanTermsMetadata,
@@ -49,6 +50,17 @@ const balanceMandateRequired = (terms: BalanceMandateTerms, locale: PaymentPlanL
     { status: 400 }
   );
 
+// Garde sk_test_ refusée : aucune session n'est créée. Le plan n'est jamais
+// remplacé en silence par un paiement intégral que le client n'a pas vu.
+const paymentPlanUnavailable = () =>
+  NextResponse.json(
+    {
+      error: "Le paiement en deux fois est momentanément indisponible. Merci de réessayer plus tard ou de nous contacter.",
+      code: "PAYMENT_PLAN_UNAVAILABLE",
+    },
+    { status: 503 }
+  );
+
 export async function POST(request: NextRequest) {
   let checkoutSession: Stripe.Checkout.Session | null = null;
   let checkoutAttemptClaim: CheckoutAttemptClaim | null = null;
@@ -64,7 +76,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    if (body.legalAccepted !== true || body.legalVersion !== LEGAL_DOCUMENT_VERSION) {
+    const legalVersion = getLegalDocumentVersion();
+    const paymentPlanEnabled = isPaymentPlanEnabled();
+    if (body.legalAccepted !== true || body.legalVersion !== legalVersion) {
       return NextResponse.json(
         { error: "Vous devez accepter la version en vigueur des conditions générales de vente." },
         { status: 400 }
@@ -166,20 +180,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Plan acompte + solde (spec 07), décidé par le serveur au moment de la demande.
+    // Plan fermé (production) : le plan FULL s'applique, même si le navigateur
+    // envoie un consentement au prélèvement du solde.
     const planLocale = toPaymentPlanLocale(getStripeCheckoutLocale(request));
-    const depositPlan = PAYMENT_PLAN_ENABLED
+    const depositPlan = paymentPlanEnabled
       ? resolveCheckoutDepositPlan(bookings[0], new Date())
       : null;
+    // Autorisation de l'acompte : jamais avec une clé Stripe autre que de test.
+    if (depositPlan) assertPaymentPlanStripeTestMode("checkout-acompte");
     const balanceMandateMetadata = getBalanceMandateMetadata({
       acceptedAt: legalAcceptedAt,
-      legalVersion: LEGAL_DOCUMENT_VERSION,
+      legalVersion,
     });
 
     const checkoutAttempt = await claimCheckoutAttempt(bookings[0].id);
-    if (checkoutAttempt.kind === "REUSE" && PAYMENT_PLAN_ENABLED) {
+    if (checkoutAttempt.kind === "REUSE" && paymentPlanEnabled) {
       // La session ouverte fait foi : ses conditions ont été fixées à sa création.
       const openSession = await stripe.checkout.sessions.retrieve(checkoutAttempt.sessionId);
       const sessionTerms = readDepositPlanTerms(openSession.metadata);
+      if (sessionTerms) assertPaymentPlanStripeTestMode("checkout-acompte");
       if (sessionTerms && !isBalanceMandateConsentValid(body.balanceMandate, sessionTerms)) {
         return balanceMandateRequired(sessionTerms, planLocale);
       }
@@ -187,7 +206,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           legalAccepted: "true",
           legalAcceptedAt,
-          legalVersion: LEGAL_DOCUMENT_VERSION,
+          legalVersion,
           provider: LEGAL_INFORMATION.commercialName,
           providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
           ...(sessionTerms ? balanceMandateMetadata : {}),
@@ -204,7 +223,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           legalAccepted: "true",
           legalAcceptedAt,
-          legalVersion: LEGAL_DOCUMENT_VERSION,
+          legalVersion,
           provider: LEGAL_INFORMATION.commercialName,
           providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
         },
@@ -319,7 +338,7 @@ export async function POST(request: NextRequest) {
             promoCode,
             legalAccepted: "true",
             legalAcceptedAt,
-            legalVersion: LEGAL_DOCUMENT_VERSION,
+            legalVersion,
             bookingInvoiceVersion: BOOKING_INVOICE_VERSION,
             provider: LEGAL_INFORMATION.commercialName,
             providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
@@ -340,7 +359,7 @@ export async function POST(request: NextRequest) {
           promoCode,
           legalAccepted: "true",
           legalAcceptedAt,
-          legalVersion: LEGAL_DOCUMENT_VERSION,
+          legalVersion,
           bookingInvoiceVersion: BOOKING_INVOICE_VERSION,
           provider: LEGAL_INFORMATION.commercialName,
           providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
@@ -417,6 +436,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof CheckoutAttemptBusyError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
+    if (error instanceof PaymentPlanStripeGuardError) return paymentPlanUnavailable();
     console.error("Erreur lors de la création de la session Stripe:", error);
     return NextResponse.json(
       { error: "Une erreur est survenue" },

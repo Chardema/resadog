@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 // Lot 5 (spec 07) : prélèvement du solde, reprise Checkout, relances, J-2.
@@ -106,9 +106,7 @@ vi.mock("@/lib/payment-plan", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/payment-plan")>();
   return {
     ...original,
-    get PAYMENT_PLAN_ENABLED() {
-      return flags.enabled;
-    },
+    isPaymentPlanEnabled: () => flags.enabled,
   };
 });
 vi.mock("@/lib/db/prisma", () => ({ prisma: prismaMock }));
@@ -631,5 +629,91 @@ describe("route /api/cron/collect-balances", () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+describe("garde sk_test_ du solde (prélèvement, reprise, cron)", () => {
+  const stripeCalls = () => [
+    stripeMock.paymentIntents.create,
+    stripeMock.paymentIntents.search,
+    stripeMock.paymentMethods.retrieve,
+    stripeMock.checkout.sessions.create,
+    stripeMock.checkout.sessions.retrieve,
+    stripeMock.checkout.sessions.expire,
+  ].reduce((total, fn) => total + fn.mock.calls.length, 0);
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    ["clé live", "sk_live_factice_0000"],
+    ["clé absente", undefined],
+  ])("%s : aucun prélèvement, aucun e-mail, échéance intacte, erreur remontée", async (_label, key) => {
+    vi.stubEnv("STRIPE_SECRET_KEY", key);
+    seed();
+
+    const report = await collectBalances({ now: AT.due });
+
+    expect(stripeCalls()).toBe(0);
+    expect(emailMock.sendBookingBalanceEmail).not.toHaveBeenCalled();
+    expect(installment()).toMatchObject({ status: "SCHEDULED", attempts: 0 });
+    expect(report.charged).toBe(0);
+    expect(report.errors.join(" ")).toContain("hors mode test");
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("sk_live_factice");
+  });
+
+  it("clé live, rappel J-14 : rien n'est annoncé au client", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
+    seed();
+    await collectBalances({ now: AT.notice });
+    expect(emailMock.sendBookingBalanceEmail).not.toHaveBeenCalled();
+    expect(stripeCalls()).toBe(0);
+  });
+
+  it("clé de test : le prélèvement part normalement", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_factice_0000");
+    seed();
+    const report = await collectBalances({ now: AT.due });
+    expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(1);
+    expect(report).toMatchObject({ charged: 1, succeeded: 1, errors: [] });
+  });
+
+  it("cron avec une clé live : 502, aucun appel Stripe", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
+    process.env.CRON_SECRET = "cron_secret";
+    seed();
+    const response = await cronGet(new NextRequest("http://localhost:3000/api/cron/collect-balances", {
+      headers: { authorization: "Bearer cron_secret" },
+    }));
+    expect(response.status).toBe(502);
+    expect(stripeCalls()).toBe(0);
+  });
+
+  it("reprise par Checkout avec une clé live : refusée avant toute lecture Stripe, verrou intact", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
+    seed({ status: "FAILED", attempts: 1, lastErrorCode: "authentication_required", stripeCheckoutSessionId: "cs_old" });
+
+    await expect(createBalanceCheckoutSession({
+      bookingId: "booking_1", userId: "user_1", returnBaseUrl: "https://example.test", locale: "fr", now: AT.j6,
+    })).rejects.toThrow(/hors mode test/);
+
+    expect(stripeCalls()).toBe(0);
+    expect(installment().stripeCheckoutSessionId).toBe("cs_old");
+  });
+
+  it("route de reprise avec une clé live : redirection vers /pay?error=STRIPE", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
+    authMock.auth.mockResolvedValue({ user: { id: "user_1" } });
+    seed({ status: "FAILED", attempts: 1, lastErrorCode: "authentication_required" });
+
+    const response = await balanceCheckoutPost(
+      new NextRequest("http://localhost:3000/api/bookings/booking_1/balance-checkout", { method: "POST" }),
+      { params: Promise.resolve({ bookingId: "booking_1" }) },
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toContain("/dashboard/bookings/booking_1/pay?error=STRIPE");
+    expect(stripeCalls()).toBe(0);
   });
 });

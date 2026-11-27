@@ -1,5 +1,5 @@
 import { buildMetadata } from "@/lib/seo";
-import { LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+import { getLegalDocumentVersionLabel, LEGAL_INFORMATION } from "@/lib/legal";
 
 export const metadata = buildMetadata({
   title: "Mentions légales",
@@ -100,7 +100,7 @@ export default function LegalNoticePage() {
           </section>
 
           <p className="border-t border-gray-100 pt-6 text-sm text-gray-500">
-            Dernière mise à jour : {LEGAL_DOCUMENT_VERSION_LABEL}.
+            Dernière mise à jour : {getLegalDocumentVersionLabel()}.
           </p>
         </div>
       </div>

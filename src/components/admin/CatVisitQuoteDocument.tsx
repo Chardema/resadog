@@ -2,7 +2,7 @@ import Image from "next/image";
 import { LEGAL_INFORMATION } from "@/lib/legal";
 import { CAT_VISIT_PRICING_DESCRIPTION } from "@/lib/pricing";
 import {
-  CAT_VISIT_ACCEPTANCE_TERMS, CAT_VISIT_PAYMENT_TERMS,
+  CAT_VISIT_ACCEPTANCE_TERMS, getCatVisitPaymentTerms,
   formatQuoteAmount, formatVisitDate,
   type CatVisitQuote, type CatVisitQuoteDetails,
 } from "@/lib/cat-visit-quote";
@@ -86,7 +86,7 @@ export function CatVisitQuoteDocument({ quote, details }: { quote: CatVisitQuote
       <div className={styles.agreement}>
         <section className={styles.terms}>
           <h3 className={styles.eyebrow}>Modalités</h3>
-          <p>{CAT_VISIT_PAYMENT_TERMS}</p>
+          <p>{getCatVisitPaymentTerms()}</p>
           <p>{CAT_VISIT_ACCEPTANCE_TERMS}</p>
           <p>Devis établi gratuitement.</p>
         </section>

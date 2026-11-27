@@ -1,13 +1,23 @@
 import { addCalendarDays, getCalendarDayDifference, getTodayDateKey, parisAppointment } from "@/lib/booking-dates";
+import { isProductionDeployment } from "@/lib/runtime-env";
 
 // Acompte à la réservation et solde prélevé avant la garde (spec 07).
 // Tout ce module est pur : aucun accès base, Stripe ou horloge implicite.
 // Les montants sont calculés en centimes entiers pour garantir
 // acompte + solde = total exact, quel que soit le prix décimal.
 
-// Drapeau de code (pas une variable Vercel) : tant qu'il vaut false, toutes
-// les réservations restent en paiement intégral, comme sur main.
-export const PAYMENT_PLAN_ENABLED = false;
+// Drapeaux de code (pas des variables Vercel). Le plan est actif sur les
+// aperçus Vercel, en local et en test ; en production il reste fermé, toutes
+// les réservations y restent en paiement intégral, comme sur main.
+export const PAYMENT_PLAN_PREVIEW_ENABLED = true;
+// À ne passer à true qu'avec l'accord du propriétaire, au déploiement.
+export const PAYMENT_PLAN_ENABLED_IN_PRODUCTION = false;
+
+// Évaluée à chaque appel (jamais au chargement du module) : serveur selon
+// VERCEL_ENV, navigateur selon NEXT_PUBLIC_VERCEL_ENV. Le serveur fait foi.
+export function isPaymentPlanEnabled(): boolean {
+  return isProductionDeployment() ? PAYMENT_PLAN_ENABLED_IN_PRODUCTION : PAYMENT_PLAN_PREVIEW_ENABLED;
+}
 
 export const DEPOSIT_RATE = 0.3;
 export const DEPOSIT_MIN_TOTAL = 100;
@@ -89,7 +99,7 @@ export function isDepositEligibleService(serviceType: string) {
 }
 
 export function choosePaymentPlan(input: PaymentPlanInput): PaymentPlanKind {
-  const enabled = input.enabled ?? PAYMENT_PLAN_ENABLED;
+  const enabled = input.enabled ?? isPaymentPlanEnabled();
   if (!enabled) return "FULL";
   if (!isDepositEligibleService(input.serviceType)) return "FULL";
   if (toCents(input.totalPrice) < toCents(DEPOSIT_MIN_TOTAL)) return "FULL";

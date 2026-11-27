@@ -12,8 +12,8 @@ import {
   LONG_BOARDING_MIN_PERIODS,
   YOUNG_ANIMAL_SURCHARGE,
 } from "@/lib/pricing";
-import { LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION, PREMIUM_COMMITMENT_VERSION_LABEL } from "@/lib/legal";
-import { PAYMENT_PLAN_ENABLED } from "@/lib/payment-plan";
+import { getLegalDocumentVersionLabel, LEGAL_INFORMATION, PREMIUM_COMMITMENT_VERSION_LABEL } from "@/lib/legal";
+import { isPaymentPlanEnabled } from "@/lib/payment-plan";
 import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
 
 export const metadata = buildMetadata({
@@ -32,13 +32,13 @@ export default function CGVPage() {
   const mediatorAddress = process.env.CONSUMER_MEDIATOR_ADDRESS;
   const mediatorUrl = process.env.CONSUMER_MEDIATOR_URL;
   // Clauses du paiement en deux fois (spec 07) : publiées seulement avec le plan.
-  const depositPlan = PAYMENT_PLAN_ENABLED;
+  const depositPlan = isPaymentPlanEnabled();
 
   return (
     <div data-no-translate className="min-h-screen bg-[#FDFbf7] py-20">
       <div className="container mx-auto max-w-4xl px-6">
         <h1 className="mb-3 text-4xl font-extrabold text-gray-900">Conditions générales de vente (CGV)</h1>
-        <p className="mb-8 text-sm text-gray-500">Version en vigueur au {LEGAL_DOCUMENT_VERSION_LABEL}</p>
+        <p className="mb-8 text-sm text-gray-500">Version en vigueur au {getLegalDocumentVersionLabel()}</p>
 
         <div className="space-y-8 rounded-[2rem] bg-white p-8 text-gray-700 shadow-sm md:p-12">
           <section>

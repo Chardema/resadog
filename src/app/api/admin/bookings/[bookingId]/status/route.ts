@@ -29,6 +29,7 @@ import {
   sendDepositConfirmationEmail,
 } from "@/lib/booking-balance";
 import { expireBookingAuthorization, isAuthorizationExpiryEnabled } from "@/lib/authorization-expiry";
+import { assertPaymentPlanStripeTestMode } from "@/lib/payment-plan-stripe-guard";
 import {
   claimBalanceForCancellation,
   DepositCancellationError,
@@ -154,6 +155,19 @@ export async function PATCH(
         { error: "Aucune autorisation Stripe n'est rattachée à cette réservation" },
         { status: 409 }
       );
+    }
+
+    // Capture de l'acompte : jamais avec une clé Stripe autre que de test.
+    // Refus avant le verrou de confirmation : la demande reste intacte.
+    if (status === "CONFIRMED" && isDepositBalanceBooking(booking)) {
+      try {
+        assertPaymentPlanStripeTestMode("capture-acompte");
+      } catch {
+        return NextResponse.json(
+          { error: "Capture de l'acompte refusée : la clé Stripe n'est pas une clé de test. Aucune opération Stripe n'a été faite." },
+          { status: 503 }
+        );
+      }
     }
 
     if (status === "CONFIRMED") {

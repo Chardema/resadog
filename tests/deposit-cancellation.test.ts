@@ -550,3 +550,30 @@ describe("capture partielle de l'acompte (demande non acceptée, < 48 h)", () =>
     );
   });
 });
+
+describe("garde sk_test_ de la retenue du barème acompte", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("clé live : aucune capture, demande restaurée", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
+    seed({ bookingStatus: "PENDING", deposit: "requires_capture", balance: null });
+    parisNow(H24);
+
+    const response = await cancel();
+
+    expect(response.ok).toBe(false);
+    expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+    expect(booking()).toMatchObject({ status: "PENDING", cancellationOrigin: null });
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("sk_live_factice");
+  });
+
+  it("FULL avec une clé live : capture partielle historique inchangée", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
+    seed({ plan: "FULL", bookingStatus: "PENDING", deposit: "requires_capture" });
+    parisNow(H24);
+    const body = await (await cancel()).json();
+    expect(body).toMatchObject({ policy: "LATE", amountRetained: 150 });
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
+  });
+});

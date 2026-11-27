@@ -7,7 +7,7 @@ import Stripe from "stripe";
 import { getStripeCheckoutLocale, getStripeReturnBaseUrl } from "@/lib/stripe/checkout";
 import {
   getInvoiceLegalFooter,
-  LEGAL_DOCUMENT_VERSION,
+  getLegalDocumentVersion,
   LEGAL_INFORMATION,
 } from "@/lib/legal";
 
@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => null);
-    if (body?.legalAccepted !== true || body?.legalVersion !== LEGAL_DOCUMENT_VERSION) {
+    const legalVersion = getLegalDocumentVersion();
+    if (body?.legalAccepted !== true || body?.legalVersion !== legalVersion) {
       return NextResponse.json(
         { error: "Vous devez accepter la version en vigueur des conditions générales de vente." },
         { status: 400 }
@@ -195,7 +196,7 @@ export async function POST(request: NextRequest) {
         maximumDiscountPerBooking: plan.maximumDiscountPerBooking.toFixed(2),
         legalAccepted: "true",
         legalAcceptedAt,
-        legalVersion: LEGAL_DOCUMENT_VERSION,
+        legalVersion,
         provider: LEGAL_INFORMATION.commercialName,
         providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
       },
@@ -209,7 +210,7 @@ export async function POST(request: NextRequest) {
           maximumDiscountPerBooking: plan.maximumDiscountPerBooking.toFixed(2),
           legalAccepted: "true",
           legalAcceptedAt,
-          legalVersion: LEGAL_DOCUMENT_VERSION,
+          legalVersion,
           provider: LEGAL_INFORMATION.commercialName,
           providerSiren: LEGAL_INFORMATION.siren.replace(/\s/g, ""),
         },

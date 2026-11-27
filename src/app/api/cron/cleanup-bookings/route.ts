@@ -113,8 +113,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Autorisations expirées avant acceptation (spec 07, lot 4) : null tant
-    // que PAYMENT_PLAN_ENABLED est désactivé, la réponse reste alors identique.
+    // Autorisations expirées avant acceptation (spec 07, lot 4) : null quand
+    // isPaymentPlanEnabled() est faux (production), la réponse reste alors identique.
     const authorizationExpiry = await scanBookingAuthorizations({ now });
 
     return NextResponse.json({
