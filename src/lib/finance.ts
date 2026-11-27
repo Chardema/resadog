@@ -88,6 +88,35 @@ export type FinanceSource = {
   paymentIntentId: string | null;
 };
 
+// Plan acompte (spec 07) : le solde est un second PaymentIntent, suivi par
+// l'échéance BookingInstallment. Il devient une source « BOOKING » distincte
+// de l'acompte (Payment) : encaissement à sa propre date, projection tant
+// qu'il est à prélever, remboursement sur son propre PaymentIntent.
+export type BalanceFinanceInstallment = {
+  id: string; bookingId: string; amount: number; status: string;
+  stripePaymentIntentId: string | null; paidAt: Date | null; refundedAmount: number | null;
+  createdAt: Date; updatedAt: Date;
+};
+export function toBalanceFinanceSource(
+  installment: BalanceFinanceInstallment,
+  booking: Pick<FinanceSource, "clientName" | "pets" | "serviceType" | "bookingStatus" | "startsAt" | "endsAt">,
+): FinanceSource {
+  const collected = installment.status === "SUCCEEDED" || installment.status === "REFUNDED";
+  const status = collected ? installment.status
+    : installment.status === "PROCESSING" ? "PROCESSING"
+    : installment.status === "CANCELED" ? "CANCELED"
+    : "PENDING";
+  const refundCents = cents(installment.refundedAmount || 0);
+  return {
+    ...booking, id: installment.id, bookingId: installment.bookingId, kind: "BOOKING",
+    amountCents: cents(installment.amount), capturedCents: collected ? cents(installment.amount) : 0, refundCents,
+    paidAt: installment.paidAt?.toISOString() || null, refundedAt: refundCents > 0 ? installment.updatedAt.toISOString() : null,
+    createdAt: installment.createdAt.toISOString(), updatedAt: installment.updatedAt.toISOString(), status,
+    // Un échec laisse un PaymentIntent non payé : le solde reste « à encaisser ».
+    paymentIntentId: collected || status === "PROCESSING" ? installment.stripePaymentIntentId : null,
+  };
+}
+
 export type FinanceAmounts = {
   grossCents: number;
   refundCents: number;

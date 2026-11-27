@@ -6,6 +6,12 @@ import { stripe } from "@/lib/stripe/config";
 import { ATTENDANCE_POLICY_VERSION, noShowMessage, noShowTimingError, parisAppointment } from "@/lib/booking-attendance";
 import { deliverBookingNotice } from "@/lib/booking-notices";
 import { reverseBookingLoyalty } from "@/lib/loyalty-ledger";
+import { isDepositBalanceBooking } from "@/lib/booking-balance";
+import {
+  DepositCancellationError,
+  getNoShowBalance,
+  restoreBalanceAfterFailedCancellation as restoreNoShowBalance,
+} from "@/lib/deposit-cancellation";
 
 const inputSchema = z.object({
   confirmed: z.literal(true),
@@ -19,6 +25,7 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest, { params }: { params: Promise<{ bookingId: string }> }) {
   const session = await auth();
   if (!session?.user?.id || !["ADMIN", "SITTER"].includes(session.user.role)) return NextResponse.json({ error: "Accès non autorisé" }, { status: 403 });
+  let balance: Awaited<ReturnType<typeof getNoShowBalance>> | null = null;
   try {
     const input = inputSchema.parse(await request.json());
     const { bookingId } = await params;
@@ -41,8 +48,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const version = checkout.metadata?.legalVersion;
     if (checkout.metadata?.legalAccepted !== "true" || !version || version < "2026-09-08") return NextResponse.json({ error: "Preuve des CGV acceptées insuffisante : traiter cette situation individuellement." }, { status: 409 });
     if (version < ATTENDANCE_POLICY_VERSION && !input.legacyDeadlineAgreed) return NextResponse.json({ error: "Anciennes CGV : le délai de 30 minutes ne peut pas être appliqué rétroactivement. Consignez un délai supplémentaire expressément convenu avec le client." }, { status: 409 });
-    const retainedAmount = intent.amount_received / 100;
-    if (intent.status !== "succeeded" || intent.currency !== "eur" || refunds.data.some(r => !["failed", "canceled"].includes(r.status || "")) || Math.abs(retainedAmount - booking.totalPrice) > 0.01) return NextResponse.json({ error: "Le paiement Stripe nécessite une vérification ; aucune annulation effectuée." }, { status: 409 });
+    const depositPlan = isDepositBalanceBooking(booking);
+    // Plan acompte : la retenue se limite à l'acompte et au solde réellement
+    // encaissés ; le solde non prélevé n'est jamais débité (échéance fermée).
+    if (depositPlan) balance = await getNoShowBalance(booking.id, now);
+    const retainedAmount = (intent.amount_received + (balance?.collectedCents ?? 0)) / 100;
+    const amountMatches = depositPlan
+      ? retainedAmount <= booking.totalPrice + 0.01
+      : Math.abs(retainedAmount - booking.totalPrice) <= 0.01;
+    if (intent.status !== "succeeded" || intent.currency !== "eur" || refunds.data.some(r => !["failed", "canceled"].includes(r.status || "")) || !amountMatches) {
+      await restoreNoShowBalance(balance);
+      balance = null;
+      return NextResponse.json({ error: "Le paiement Stripe nécessite une vérification ; aucune annulation effectuée." }, { status: 409 });
+    }
     const message = noShowMessage(booking, retainedAmount, now);
     await prisma.$transaction(async tx => {
       const result = await tx.booking.updateMany({ where: { id: bookingId, status: "CONFIRMED", updatedAt: booking.updatedAt, payment: { is: { status: "SUCCEEDED", refundStatus: null, stripeRefundId: null } } }, data: {
@@ -53,9 +71,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       await reverseBookingLoyalty(bookingId, "Non-présentation", tx);
       await tx.bookingNotice.create({ data: { id: noticeId, bookingId, kind: "NO_SHOW", to: booking.client.email, ...message } });
     });
+    balance = null;
     return NextResponse.json({ cancelled: true, ...await deliverBookingNotice(noticeId) });
   } catch (error) {
+    await restoreNoShowBalance(balance);
     if (error instanceof z.ZodError) return NextResponse.json({ error: "Confirmez la vérification des droits du client et renseignez la relance ainsi que le préjudice." }, { status: 400 });
+    if (error instanceof DepositCancellationError) return NextResponse.json({ error: error.message }, { status: 409 });
     console.error("Non-présentation :", error);
     return NextResponse.json({ error: "Traitement non confirmé. Rechargez la réservation ; si elle est annulée pour absence, utilisez Réessayer l’envoi." }, { status: 502 });
   }

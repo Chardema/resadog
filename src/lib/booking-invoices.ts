@@ -53,6 +53,16 @@ export const isBalancePaymentIntent = (paymentIntent: Pick<Stripe.PaymentIntent,
 
 export type BalanceInvoiceLine = { key: "service" | "deposit" | "interest"; amount: number; description: string };
 
+// Incohérence durable de la facture finale du plan acompte (montants, acompte
+// absent) : un rejeu Stripe ne la corrigerait pas. L'appelant alerte l'équipe
+// au lieu de faire échouer le webhook. Le plan FULL n'en lève jamais.
+export class BookingInvoiceAnomalyError extends Error {
+  constructor(message: string, public readonly bookingId: string) {
+    super(message);
+    this.name = "BookingInvoiceAnomalyError";
+  }
+}
+
 const formatInvoiceDate = (date: Date) =>
   date.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris", day: "2-digit", month: "2-digit", year: "numeric" });
 
@@ -69,11 +79,11 @@ export function getBalanceInvoiceLines(input: {
 }): BalanceInvoiceLine[] {
   const depositCents = Math.round(input.depositCaptured * 100);
   if (!(depositCents > 0)) {
-    throw new Error(`Acompte encaissé introuvable pour la facture finale de ${input.bookingId}`);
+    throw new BookingInvoiceAnomalyError(`Acompte encaissé introuvable pour la facture finale de ${input.bookingId}`, input.bookingId);
   }
   const interestCents = input.interest ? Math.round(Number(input.interest) * 100) : 0;
   if (!Number.isFinite(interestCents) || interestCents < 0) {
-    throw new Error(`Intérêts invalides pour la facture finale de ${input.bookingId}`);
+    throw new BookingInvoiceAnomalyError(`Intérêts invalides pour la facture finale de ${input.bookingId}`, input.bookingId);
   }
   const lines: BalanceInvoiceLine[] = [
     { key: "service", amount: Math.round(input.totalPrice * 100), description: input.description },
@@ -148,9 +158,9 @@ export async function ensureBookingInvoice(paymentIntent: Stripe.PaymentIntent) 
     ? balanceLines.reduce((sum, line) => sum + line.amount, 0)
     : Math.round(booking.totalPrice * 100);
   if (paymentIntent.amount_received !== expectedAmount) {
-    throw new Error(
-      `Montant encaissé incohérent pour ${booking.id}: ${paymentIntent.amount_received} au lieu de ${expectedAmount}`
-    );
+    const message = `Montant encaissé incohérent pour ${booking.id}: ${paymentIntent.amount_received} au lieu de ${expectedAmount}`;
+    if (balanceLines) throw new BookingInvoiceAnomalyError(message, booking.id);
+    throw new Error(message);
   }
 
   const idempotencyPrefix = `booking-invoice:${BOOKING_INVOICE_VERSION}:${paymentIntent.id}`;

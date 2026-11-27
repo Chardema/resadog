@@ -2,7 +2,7 @@ import type Stripe from "stripe";
 import type { Prisma } from "@prisma/client";
 import { getTodayDateKey } from "@/lib/booking-dates";
 import { getBookingEmailDetails } from "@/lib/booking-email-details";
-import { ensureBookingInvoice } from "@/lib/booking-invoices";
+import { BookingInvoiceAnomalyError, ensureBookingInvoice } from "@/lib/booking-invoices";
 import { prisma } from "@/lib/db/prisma";
 import { sendBookingBalanceAlertAdminEmail, sendBookingBalanceEmail } from "@/lib/email";
 import { BOOKING_INVOICE_VERSION } from "@/lib/legal";
@@ -265,7 +265,7 @@ export async function settleBalanceSucceeded(
   if (updated.count !== 1) {
     const current = (await loadInstallment(installment.id)) ?? installment;
     if (current.status === "SUCCEEDED" && current.stripePaymentIntentId === paymentIntent.id) {
-      if (invoice) await ensureBookingInvoice(paymentIntent);
+      if (invoice) await issueFinalInvoice(paymentIntent, current);
       return "ALREADY_SUCCEEDED";
     }
     // Solde payé deux fois, ou payé après l'annulation : jamais de
@@ -292,8 +292,28 @@ export async function settleBalanceSucceeded(
     console.error(`E-mail « solde réglé » non envoyé pour ${installment.bookingId}:`, error);
   }
 
-  if (invoice) await ensureBookingInvoice(paymentIntent);
+  if (invoice) await issueFinalInvoice(paymentIntent, installment);
   return "SUCCEEDED";
+}
+
+/**
+ * Facture finale du solde. Une erreur transitoire (Stripe, réseau) remonte
+ * pour que le webhook soit rejoué ; une incohérence durable de montants
+ * n'interrompt jamais le webhook : l'équipe est alertée et facture à la main.
+ */
+async function issueFinalInvoice(paymentIntent: Stripe.PaymentIntent, installment: BalanceInstallment) {
+  try {
+    await ensureBookingInvoice(paymentIntent);
+  } catch (error) {
+    if (!(error instanceof BookingInvoiceAnomalyError)) throw error;
+    console.error(`Facture finale ${bookingReference(installment.bookingId)} non émise :`, error.message);
+    await sendBookingBalanceAlertAdminEmail(
+      "ANOMALY",
+      getAlertDetails(installment, `facture finale non émise (${error.message}) : à établir manuellement`),
+      // Un échec d'envoi de l'alerte (transitoire) fait rejouer le webhook.
+      { idempotencyKey: `booking-balance-invoice-anomaly-${paymentIntent.id}` }
+    );
+  }
 }
 
 export type BalanceFailureRecord = { recorded: boolean; retryAt: Date | null; notifyErrors: string[] };
@@ -397,13 +417,14 @@ const isStalePendingCheckout = (value: string, now: Date) => {
   return !Number.isFinite(startedAt) || now.getTime() - startedAt >= CHECKOUT_PENDING_STALE_MINUTES * MINUTE_MS;
 };
 
-type CheckoutLock = "FREE" | "OPEN" | "COMPLETE";
+export type CheckoutLock = "FREE" | "OPEN" | "COMPLETE";
 
 /**
  * Libère la session de reprise si elle ne peut plus être payée. Avec
- * expireOpen (annulation J-2), une session encore ouverte est expirée d'abord.
+ * expireOpen (annulation J-2, annulation client ou équipe, non-présentation),
+ * une session encore ouverte est expirée d'abord.
  */
-async function releaseCheckoutLock(
+export async function releaseCheckoutLock(
   installment: Pick<BalanceInstallment, "id" | "stripeCheckoutSessionId">,
   now: Date,
   { expireOpen = false } = {}
@@ -745,7 +766,7 @@ async function cancelForPaymentDefault(installment: BalanceInstallment, now: Dat
       data: {
         status: "CANCELLED",
         cancelledAt: now,
-        cancellationOrigin: "CLIENT",
+        cancellationOrigin: "PAYMENT_DEFAULT",
         cancellationReason: BALANCE_DEFAULT_CANCELLATION_REASON,
       },
     });

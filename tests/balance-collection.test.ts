@@ -89,7 +89,14 @@ const { flags, store, prismaMock, stripeMock, emailMock, invoiceMock, loyaltyMoc
       sendBookingBalanceEmail: vi.fn(),
       sendBookingBalanceAlertAdminEmail: vi.fn(),
     },
-    invoiceMock: { ensureBookingInvoice: vi.fn() },
+    invoiceMock: {
+      ensureBookingInvoice: vi.fn(),
+      BookingInvoiceAnomalyError: class BookingInvoiceAnomalyError extends Error {
+        constructor(message: string, public readonly bookingId: string) {
+          super(message);
+        }
+      },
+    },
     loyaltyMock: { reverseBookingLoyalty: vi.fn() },
     authMock: { auth: vi.fn() },
   };
@@ -395,7 +402,7 @@ describe("collectBalances : échec, relances et annulation J-2", () => {
 
     expect(report.cancelled).toBe(1);
     expect(installment()).toMatchObject({ status: "CANCELED", nextAttemptAt: null });
-    expect(booking()).toMatchObject({ status: "CANCELLED", cancellationOrigin: "CLIENT" });
+    expect(booking()).toMatchObject({ status: "CANCELLED", cancellationOrigin: "PAYMENT_DEFAULT" });
     expect(booking().cancelledAt).toEqual(AT.j2Noon);
     expect(loyaltyMock.reverseBookingLoyalty).toHaveBeenCalledWith("booking_1", expect.any(String), prismaMock);
     expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
@@ -484,6 +491,22 @@ describe("webhooks booking_balance", () => {
     expect(await settleBalanceSucceeded(intent, { now: AT.j6, invoice: true })).toBe("ALREADY_SUCCEEDED");
     expect(emailKinds()).toEqual(["PAID"]);
     expect(invoiceMock.ensureBookingInvoice).toHaveBeenCalledTimes(2);
+  });
+
+  it("lot 6 : facture finale incohérente = alerte équipe, le webhook ne lève pas ; erreur transitoire = rejeu", async () => {
+    seed({ status: "PROCESSING", attempts: 1 });
+    invoiceMock.ensureBookingInvoice.mockRejectedValueOnce(
+      new invoiceMock.BookingInvoiceAnomalyError("Montant encaissé incohérent", "booking_1")
+    );
+    expect(await settleBalanceSucceeded(succeededIntent("pi_balance_1") as never, { now: AT.j6, invoice: true })).toBe("SUCCEEDED");
+    expect(alertKinds()).toEqual(["ANOMALY"]);
+    expect(emailMock.sendBookingBalanceAlertAdminEmail.mock.calls[0][2]).toEqual({
+      idempotencyKey: "booking-balance-invoice-anomaly-pi_balance_1",
+    });
+
+    invoiceMock.ensureBookingInvoice.mockRejectedValueOnce(new Error("Stripe indisponible"));
+    await expect(settleBalanceSucceeded(succeededIntent("pi_balance_1") as never, { now: AT.j6, invoice: true }))
+      .rejects.toThrow(/Stripe indisponible/);
   });
 
   it("second paiement du même solde : alerte équipe, aucun remboursement automatique", async () => {

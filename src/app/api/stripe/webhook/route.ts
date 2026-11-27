@@ -35,6 +35,7 @@ import {
   releaseExpiredBalanceCheckout,
   settleBalanceSucceeded,
 } from "@/lib/balance-collection";
+import { getDepositPlanTeamRefundState, syncBalanceRefund } from "@/lib/deposit-cancellation";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -500,6 +501,7 @@ async function handleRefundChanged(refund: Stripe.Refund) {
           status: true,
           cancellationOrigin: true,
           cancellationReason: true,
+          paymentPlan: true,
           client: { select: { name: true, email: true } },
           pets: { select: { name: true } },
           pet: { select: { name: true } },
@@ -507,6 +509,12 @@ async function handleRefundChanged(refund: Stripe.Refund) {
       },
     },
   });
+  // Plan acompte : le remboursement du solde porte sur le PaymentIntent de
+  // l'échéance, jamais sur celui de l'acompte (Payment).
+  if (payments.length === 0) {
+    await handleBalanceRefundChanged(refund);
+    return;
+  }
   const refunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
   const activeRefunds = refunds.data.filter((item) =>
     item.status === "pending" || item.status === "requires_action" || item.status === "succeeded"
@@ -581,6 +589,12 @@ async function handleRefundChanged(refund: Stripe.Refund) {
       }
       if (payment.booking.status !== "CANCELLED") continue;
 
+      if (payment.booking.paymentPlan === "DEPOSIT_BALANCE") {
+        // Acompte et solde remboursés tous deux : e-mails avec le cumul.
+        await sendDepositPlanTeamRefundEmails(payment.bookingId, refund.id);
+        continue;
+      }
+
       const bookingDetails = getBookingEmailDetails(payment.booking);
       if (!payment.refundStartedEmailSentAt) {
         await sendBookingTeamCancellationEmail(
@@ -614,6 +628,75 @@ async function handleRefundChanged(refund: Stripe.Refund) {
       });
     }
   }
+}
+
+// Remboursement du solde (plan acompte) : cumul sur l'échéance, alerte en cas
+// d'échec, e-mails de fin de remboursement d'une annulation par l'équipe.
+async function handleBalanceRefundChanged(refund: Stripe.Refund) {
+  const sync = await syncBalanceRefund(refund);
+  if (!sync) return;
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: sync.bookingId },
+    select: { status: true, cancellationOrigin: true, client: { select: { name: true, email: true } } },
+  });
+  if (!booking) return;
+
+  if (sync.failed) {
+    await sendBookingRefundFailedAdminEmail(
+      {
+        bookingId: sync.bookingId,
+        clientName: booking.client.name || "Client",
+        clientEmail: booking.client.email,
+        refundId: refund.id,
+        amount: refund.amount / 100,
+        failureReason: refund.failure_reason || "Remboursement refusé par Stripe",
+      },
+      { idempotencyKey: `refund-failed-${refund.id}` }
+    );
+    return;
+  }
+
+  if (booking.cancellationOrigin !== "TEAM") return;
+  if (booking.status === "CANCELLING") {
+    throw new Error(`Annulation ${sync.bookingId} encore en cours pendant la confirmation du remboursement du solde`);
+  }
+  if (booking.status === "CANCELLED") await sendDepositPlanTeamRefundEmails(sync.bookingId, refund.id);
+}
+
+async function sendDepositPlanTeamRefundEmails(bookingId: string, refundId: string) {
+  const state = await getDepositPlanTeamRefundState(bookingId);
+  if (!state.complete) return;
+  const payment = await prisma.payment.findUnique({
+    where: { bookingId },
+    include: { booking: { include: { client: true, pets: true, pet: true } } },
+  });
+  if (!payment) return;
+  const bookingDetails = getBookingEmailDetails(payment.booking);
+
+  if (!payment.refundStartedEmailSentAt) {
+    await sendBookingTeamCancellationEmail(
+      payment.booking.client.email,
+      payment.booking.client.name || "Client",
+      payment.booking.cancellationReason || "Annulation par La Patte Dorée",
+      bookingDetails,
+      {
+        idempotencyKey: `booking-team-cancellation-${bookingId}`,
+        paymentAction: "REFUND_PENDING",
+        amountRefunded: state.amount,
+      }
+    );
+    await prisma.payment.update({ where: { id: payment.id }, data: { refundStartedEmailSentAt: new Date() } });
+  }
+  if (payment.refundCompletedEmailSentAt) return;
+  await sendBookingRefundCompletedEmail(
+    payment.booking.client.email,
+    payment.booking.client.name || "Client",
+    bookingDetails,
+    { amount: state.amount, refundId },
+    { idempotencyKey: `booking-refund-completed-${bookingId}` }
+  );
+  await prisma.payment.update({ where: { id: payment.id }, data: { refundCompletedEmailSentAt: new Date() } });
 }
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {

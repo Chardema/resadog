@@ -273,6 +273,7 @@ enum BookingStatus {
 enum CancellationOrigin {
   CLIENT
   TEAM
+  PAYMENT_DEFAULT // Solde impayé à la limite J-2 (plan acompte), acompte conservé
 }
 
 enum ServiceType {

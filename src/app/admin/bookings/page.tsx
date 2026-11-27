@@ -71,7 +71,7 @@ interface Booking {
   serviceType: string;
   priceBreakdown?: PriceBreakdown | null;
   cancellationReason?: string | null;
-  cancellationOrigin?: "CLIENT" | "TEAM" | null;
+  cancellationOrigin?: "CLIENT" | "TEAM" | "PAYMENT_DEFAULT" | null;
   cancelledAt?: string | null;
   serviceDetails?: {
     serviceAddress?: string;
@@ -596,7 +596,7 @@ export default function AdminBookingsPage() {
                         </span>
                         {booking.status === "CANCELLED" && booking.cancellationOrigin && (
                           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700 ring-1 ring-gray-200">
-                            {booking.noShow ? "Non-présentation" : booking.cancellationOrigin === "TEAM" ? "Annulée par l'équipe" : "Annulée par le client"}
+                            {booking.noShow ? "Non-présentation" : booking.cancellationOrigin === "TEAM" ? "Annulée par l'équipe" : booking.cancellationOrigin === "PAYMENT_DEFAULT" ? "Annulée : solde impayé" : "Annulée par le client"}
                           </span>
                         )}
                         <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">

@@ -29,6 +29,12 @@ import {
   sendDepositConfirmationEmail,
 } from "@/lib/booking-balance";
 import { expireBookingAuthorization, isAuthorizationExpiryEnabled } from "@/lib/authorization-expiry";
+import {
+  claimBalanceForCancellation,
+  DepositCancellationError,
+  restoreBalanceAfterFailedCancellation,
+  type BalanceCancellationClaim,
+} from "@/lib/deposit-cancellation";
 
 const statusUpdateSchema = z.object({
   status: z.enum(["CONFIRMED", "CANCELLED", "COMPLETED"]),
@@ -50,6 +56,7 @@ export async function PATCH(
   { params }: { params: Promise<{ bookingId: string }> }
 ) {
   let cancellationClaim: { bookingId: string; previousStatus: BookingStatus } | null = null;
+  let balanceClaim: BalanceCancellationClaim | null = null;
 
   try {
     const session = await auth();
@@ -263,7 +270,20 @@ export async function PATCH(
     }
 
     if (status === "CANCELLED") {
-      cancellationPayment = await processTeamCancellationPayment(booking.id, booking.payment);
+      // Plan acompte : l'échéance du solde est fermée avant tout appel Stripe
+      // (ni cron ni reprise Checkout pendant l'annulation), puis acompte et
+      // solde encaissé sont remboursés chacun sur leur PaymentIntent.
+      let depositPlan: { booking: typeof booking; balance: BalanceCancellationClaim } | undefined;
+      if (isDepositBalanceBooking(booking)) {
+        try {
+          balanceClaim = await claimBalanceForCancellation(booking.id);
+        } catch (error) {
+          if (error instanceof DepositCancellationError) throw new TeamCancellationPaymentError(error.message, error.statusCode);
+          throw error;
+        }
+        depositPlan = { booking, balance: balanceClaim };
+      }
+      cancellationPayment = await processTeamCancellationPayment(booking.id, booking.payment, depositPlan);
     }
 
     if (!updatedBooking && status === "CANCELLED") {
@@ -272,6 +292,12 @@ export async function PATCH(
           await tx.payment.update({
             where: { id: booking.payment.id },
             data: cancellationPayment.paymentUpdate,
+          });
+        }
+        if (cancellationPayment?.installmentUpdate) {
+          await tx.bookingInstallment.update({
+            where: { id: cancellationPayment.installmentUpdate.id },
+            data: cancellationPayment.installmentUpdate.data,
           });
         }
 
@@ -290,6 +316,7 @@ export async function PATCH(
         return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
       });
       cancellationClaim = null;
+      balanceClaim = null;
     } else if (!updatedBooking) {
       updatedBooking = await prisma.booking.update({
         where: { id: bookingId },
@@ -406,6 +433,7 @@ export async function PATCH(
         data: { status: cancellationClaim.previousStatus, cancellationOrigin: null },
       }).catch((recoveryError) => console.error("Annulation admin non restaurée:", recoveryError));
     }
+    if (balanceClaim) await restoreBalanceAfterFailedCancellation(balanceClaim);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0]?.message || "Données invalides" },

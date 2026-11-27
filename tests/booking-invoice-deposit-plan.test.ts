@@ -25,7 +25,7 @@ vi.mock("@/lib/db/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/stripe/config", () => ({ stripe: stripeMock }));
 vi.mock("@/lib/email", () => emailMock);
 
-import { ensureBookingInvoice, getBalanceInvoiceLines } from "@/lib/booking-invoices";
+import { BookingInvoiceAnomalyError, ensureBookingInvoice, getBalanceInvoiceLines } from "@/lib/booking-invoices";
 import { BOOKING_INVOICE_VERSION } from "@/lib/legal";
 
 const booking = {
@@ -147,6 +147,23 @@ describe("facture : plan acompte + solde", () => {
       metadata: { type: "booking_balance", bookingId: booking.id, bookingInvoiceVersion: BOOKING_INVOICE_VERSION },
     }))).rejects.toThrow(/Montant encaissé incohérent/);
     expect(stripeMock.invoices.create).not.toHaveBeenCalled();
+  });
+
+  it("lot 6 : l'incohérence du solde est une anomalie typée (alerte équipe, pas de rejeu Stripe)", async () => {
+    const error = await ensureBookingInvoice(intent({
+      id: "pi_balance",
+      amount_received: 30000,
+      metadata: { type: "booking_balance", bookingId: booking.id, bookingInvoiceVersion: BOOKING_INVOICE_VERSION },
+    })).catch((caught) => caught);
+    expect(error).toBeInstanceOf(BookingInvoiceAnomalyError);
+    expect(error.bookingId).toBe(booking.id);
+  });
+
+  it("FULL : un montant incohérent reste une erreur ordinaire, comme sur main", async () => {
+    const error = await ensureBookingInvoice(intent({ amount_received: 15000 })).catch((caught) => caught);
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(BookingInvoiceAnomalyError);
+    expect(error.message).toMatch(/Montant encaissé incohérent/);
   });
 
   it("FULL : une seule ligne du montant encaissé, comme sur main", async () => {

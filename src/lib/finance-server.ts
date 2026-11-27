@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   buildFinanceReport, cents, DEFAULT_FINANCE_SETTINGS, financeSettingsSchema,
-  type FinanceSource, type StripeFinanceSnapshot,
+  toBalanceFinanceSource, type FinanceSource, type StripeFinanceSnapshot,
 } from "@/lib/finance";
 
 export async function getFinanceSettings() {
@@ -39,9 +39,11 @@ export async function loadFinanceReport(force = false) {
     pets: { select: { name: true } }, pet: { select: { name: true } },
   } as const;
   // Tout l'historique alimente les totaux ; le filtrage mensuel se fait ensuite.
-  const [payments, charges, settings] = await Promise.all([
+  const [payments, charges, installments, settings] = await Promise.all([
     prisma.payment.findMany({ include: { booking: { select: bookingSelect } } }),
     prisma.additionalCharge.findMany({ include: { booking: { select: bookingSelect } } }),
+    // Plan acompte : le solde a son propre PaymentIntent (aucune ligne en plan FULL).
+    prisma.bookingInstallment.findMany({ where: { kind: "BALANCE" }, include: { booking: { select: bookingSelect } } }),
     getFinanceSettings(),
   ]);
   const sources: FinanceSource[] = [
@@ -66,6 +68,12 @@ export async function loadFinanceReport(force = false) {
       createdAt: charge.createdAt.toISOString(), updatedAt: charge.updatedAt.toISOString(),
       status: charge.status, bookingStatus: charge.booking.status, paymentIntentId: charge.stripePaymentId,
       startsAt: charge.booking.startDate.toISOString(), endsAt: charge.booking.endDate.toISOString(),
+    })),
+    ...installments.map((installment) => toBalanceFinanceSource(installment, {
+      clientName: installment.booking.client.name || installment.booking.client.email,
+      pets: installment.booking.pets.length ? installment.booking.pets.map((pet) => pet.name) : installment.booking.pet ? [installment.booking.pet.name] : [],
+      serviceType: installment.booking.serviceType, bookingStatus: installment.booking.status,
+      startsAt: installment.booking.startDate.toISOString(), endsAt: installment.booking.endDate.toISOString(),
     })),
   ];
   const groups = new Map<string, FinanceSource[]>();
