@@ -37,6 +37,7 @@ export const LEGAL_INFORMATION = {
 // CGV du plan acompte + solde (spec 07) : publiées seulement quand
 // isPaymentPlanEnabled() est vrai. Mettre la date à jour le jour de l'activation
 // en production, après relecture juridique. Plan fermé : version actuelle inchangée.
+// À ajuster au jour de la fusion de l'activation (avec le libellé ci-dessous).
 export const PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION = "2026-11-27";
 export const PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION_LABEL = "27 novembre 2026";
 export const STANDARD_LEGAL_DOCUMENT_VERSION = "2026-09-13";

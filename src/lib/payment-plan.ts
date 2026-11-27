@@ -7,11 +7,12 @@ import { isProductionDeployment } from "@/lib/runtime-env";
 // acompte + solde = total exact, quel que soit le prix décimal.
 
 // Drapeaux de code (pas des variables Vercel). Le plan est actif sur les
-// aperçus Vercel, en local et en test ; en production il reste fermé, toutes
-// les réservations y restent en paiement intégral, comme sur main.
+// aperçus Vercel, en local et en test, et en production.
 export const PAYMENT_PLAN_PREVIEW_ENABLED = true;
-// À ne passer à true qu'avec l'accord du propriétaire, au déploiement.
-export const PAYMENT_PLAN_ENABLED_IN_PRODUCTION = false;
+// Activé en production avec l'accord du propriétaire (PR d'activation,
+// docs/GO_LIVE_PAYMENT_PLAN.md). Repasser à false referme le plan : toutes les
+// nouvelles réservations reviennent en paiement intégral.
+export const PAYMENT_PLAN_ENABLED_IN_PRODUCTION = true;
 
 // Évaluée à chaque appel (jamais au chargement du module) : serveur selon
 // VERCEL_ENV, navigateur selon NEXT_PUBLIC_VERCEL_ENV. Le serveur fait foi.

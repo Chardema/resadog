@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 // Activation du plan acompte selon l'environnement, sans simuler le drapeau :
-// isPaymentPlanEnabled() lit vraiment VERCEL_ENV. Stripe, Prisma et
+// isPaymentPlanEnabled() et la garde Stripe lisent vraiment VERCEL_ENV. Stripe, Prisma et
 // l'authentification sont simulés : aucun appel réseau.
 const { prismaMock, stripeMock, attemptsMock, txMock } = vi.hoisted(() => {
   process.env.STRIPE_SECRET_KEY = "sk_test_dummy";
@@ -46,11 +46,16 @@ vi.mock("@/lib/loyalty-ledger", () => ({ reverseBookingLoyalty: vi.fn() }));
 
 import { POST as checkoutPost } from "@/app/api/stripe/checkout/route";
 import { GET as collectBalancesGet } from "@/app/api/cron/collect-balances/route";
-import { getLegalDocumentVersion } from "@/lib/legal";
+import { getLegalDocumentVersion, PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION, STANDARD_LEGAL_DOCUMENT_VERSION } from "@/lib/legal";
+import { isPaymentPlanEnabled, PAYMENT_PLAN_ENABLED_IN_PRODUCTION } from "@/lib/payment-plan";
 import {
+  assertPaymentPlanStripeAllowed,
   assertPaymentPlanStripeTestMode,
+  isPaymentPlanStripeAllowed,
+  isPaymentPlanStripeKeyAllowed,
   isPaymentPlanStripeTestMode,
   isStripeTestSecretKey,
+  PAYMENT_PLAN_LIVE_STRIPE_ALLOWED,
   PaymentPlanStripeGuardError,
 } from "@/lib/payment-plan-stripe-guard";
 
@@ -115,44 +120,49 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("VERCEL_ENV=production : plan fermé, comportement de main", () => {
+describe("VERCEL_ENV=production : plan actif (PR d'activation)", () => {
   beforeEach(() => {
     vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
   });
 
-  it("checkout d'une réservation éligible : paiement intégral, même avec un consentement envoyé par le navigateur", async () => {
+  it("isPaymentPlanEnabled() est vrai en production", () => {
+    expect(isPaymentPlanEnabled()).toBe(true);
+  });
+
+  it("checkout d'une réservation éligible avec la clé live : seul l'acompte est autorisé", async () => {
     const response = await postCheckout({ balanceMandate: validMandate });
 
     expect(response.status).toBe(200);
     const params = stripeMock.checkout.sessions.create.mock.calls[0][0];
-    expect(params.line_items[0].price_data.unit_amount).toBe(30000);
-    expect(params).not.toHaveProperty("custom_text");
-    expect(params.metadata).not.toHaveProperty("paymentPlan");
-    expect(params.metadata).not.toHaveProperty("balanceMandateAccepted");
-    expect(params.metadata.legalVersion).toBe("2026-09-13");
-    expect(txMock.payment.upsert.mock.calls[0][0].create.amount).toBe(300);
+    expect(params.line_items[0].price_data.unit_amount).toBe(9000);
+    expect(params.metadata).toMatchObject({ paymentPlan: "DEPOSIT_BALANCE", legalVersion: PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION });
   });
 
-  it("checkout en production avec une clé live : le paiement intégral n'est pas bloqué", async () => {
-    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
+  it("checkout d'une réservation hors acompte avec la clé live : paiement intégral, garde non sollicitée", async () => {
+    prismaMock.booking.findMany.mockResolvedValue([{ ...booking, serviceType: "DOG_WALKING" }]);
     const response = await postCheckout();
+
     expect(response.status).toBe(200);
-    expect(stripeMock.checkout.sessions.create.mock.calls[0][0].line_items[0].price_data.unit_amount).toBe(30000);
+    const params = stripeMock.checkout.sessions.create.mock.calls[0][0];
+    expect(params.line_items[0].price_data.unit_amount).toBe(30000);
+    expect(params.metadata).not.toHaveProperty("paymentPlan");
+    expect(vi.mocked(console.error).mock.calls.flat().join(" ")).not.toContain("[plan acompte]");
   });
 
-  it("la version des CGV de l'acompte est refusée en production", async () => {
-    const response = await postCheckout({ legalVersion: "2026-11-27" });
+  it("la version des CGV est celle du plan ; la version standard est refusée", async () => {
+    expect(getLegalDocumentVersion()).toBe(PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION);
+    const response = await postCheckout({ legalVersion: STANDARD_LEGAL_DOCUMENT_VERSION });
     expect(response.status).toBe(400);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
-  it("cron collect-balances : { enabled: false }, aucune lecture, aucun appel Stripe", async () => {
+  it("cron collect-balances : actif avec la clé live", async () => {
     const response = await callCron();
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ success: true, enabled: false });
-    expect(prismaMock.bookingInstallment.findMany).not.toHaveBeenCalled();
-    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(await response.json()).toMatchObject({ success: true, enabled: true });
+    expect(prismaMock.bookingInstallment.findMany).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -186,35 +196,92 @@ describe("VERCEL_ENV=preview : plan actif", () => {
   });
 });
 
-describe("garde assertPaymentPlanStripeTestMode", () => {
-  it("clé sk_test_ : autorisée", () => {
-    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_factice_0000");
-    expect(() => assertPaymentPlanStripeTestMode("test")).not.toThrow();
+describe("garde Stripe du plan (assertPaymentPlanStripeAllowed)", () => {
+  const LIVE = "sk_live_factice_0000";
+  const allOpen = { isProduction: true, planEnabledInProduction: true, liveAllowed: true };
+
+  it("constantes de la PR d'activation : plan ouvert en production, clés live autorisées", () => {
+    expect(PAYMENT_PLAN_ENABLED_IN_PRODUCTION).toBe(true);
+    expect(PAYMENT_PLAN_LIVE_STRIPE_ALLOWED).toBe(true);
+  });
+
+  it("anciens noms : alias des nouvelles fonctions", () => {
+    expect(assertPaymentPlanStripeTestMode).toBe(assertPaymentPlanStripeAllowed);
+    expect(isPaymentPlanStripeTestMode).toBe(isPaymentPlanStripeAllowed);
+  });
+
+  it("production + sk_live_ : acceptée", () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("STRIPE_SECRET_KEY", LIVE);
+    expect(isPaymentPlanStripeAllowed()).toBe(true);
+    expect(() => assertPaymentPlanStripeAllowed("test")).not.toThrow();
   });
 
   it.each([
-    ["clé live", "sk_live_factice_0000"],
+    ["aperçu", "preview"],
+    ["développement", "development"],
+    ["local (VERCEL_ENV absent)", undefined],
+  ])("%s + sk_live_ : refusée, sans afficher la clé", (_label, vercelEnv) => {
+    vi.stubEnv("VERCEL_ENV", vercelEnv);
+    vi.stubEnv("STRIPE_SECRET_KEY", LIVE);
+    expect(isPaymentPlanStripeAllowed()).toBe(false);
+    expect(() => assertPaymentPlanStripeAllowed("test")).toThrow(PaymentPlanStripeGuardError);
+    const logged = vi.mocked(console.error).mock.calls.flat().join(" ");
+    expect(logged).toContain("clé Stripe live");
+    expect(logged).not.toContain(LIVE);
+  });
+
+  it.each(["production", "preview", undefined])("VERCEL_ENV=%s + sk_test_ : acceptée", (vercelEnv) => {
+    vi.stubEnv("VERCEL_ENV", vercelEnv);
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_factice_0000");
+    expect(() => assertPaymentPlanStripeAllowed("test")).not.toThrow();
+  });
+
+  it.each([
+    ["clé restreinte live", "rk_live_factice_0000"],
     ["clé restreinte de test", "rk_test_factice_0000"],
+    ["clé publique live", "pk_live_factice_0000"],
     ["clé vide", ""],
     ["clé absente", undefined],
-  ])("%s : refusée, sans afficher la clé", (_label, key) => {
+  ])("production + %s : refusée, sans afficher la clé", (_label, key) => {
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("STRIPE_SECRET_KEY", key);
-    expect(() => assertPaymentPlanStripeTestMode("test")).toThrow(PaymentPlanStripeGuardError);
+    expect(() => assertPaymentPlanStripeAllowed("test")).toThrow(PaymentPlanStripeGuardError);
     const logged = vi.mocked(console.error).mock.calls.flat().join(" ");
     expect(logged).toContain("aucun appel Stripe");
     if (key) expect(logged).not.toContain(key);
   });
 
-  it("lecture pure de la clé", () => {
+  it("décision pure : sk_live_ exige la production et les deux constantes", () => {
+    expect(isPaymentPlanStripeKeyAllowed(LIVE, allOpen)).toBe(true);
+    expect(isPaymentPlanStripeKeyAllowed(LIVE, { ...allOpen, isProduction: false })).toBe(false);
+    expect(isPaymentPlanStripeKeyAllowed(LIVE, { ...allOpen, planEnabledInProduction: false })).toBe(false);
+    expect(isPaymentPlanStripeKeyAllowed(LIVE, { ...allOpen, liveAllowed: false })).toBe(false);
+  });
+
+  it("décision pure : sk_test_ toujours acceptée, tout le reste refusé", () => {
+    const closed = { isProduction: false, planEnabledInProduction: false, liveAllowed: false };
+    expect(isPaymentPlanStripeKeyAllowed("sk_test_x", closed)).toBe(true);
+    expect(isPaymentPlanStripeKeyAllowed("sk_test_x", allOpen)).toBe(true);
+    for (const key of [undefined, "", "rk_live_x", "rk_test_x", "pk_live_x", "live_sk_live_x"]) {
+      expect(isPaymentPlanStripeKeyAllowed(key, allOpen)).toBe(false);
+    }
+  });
+
+  it("lecture pure de la clé de test", () => {
     expect(isStripeTestSecretKey("sk_test_x")).toBe(true);
     expect(isStripeTestSecretKey("sk_live_x")).toBe(false);
     expect(isStripeTestSecretKey(undefined)).toBe(false);
   });
 
-  it("lecture de STRIPE_SECRET_KEY à l'appel", () => {
-    vi.stubEnv("STRIPE_SECRET_KEY", "sk_live_factice_0000");
-    expect(isPaymentPlanStripeTestMode()).toBe(false);
+  it("lecture de VERCEL_ENV et STRIPE_SECRET_KEY à l'appel", () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", LIVE);
+    vi.stubEnv("VERCEL_ENV", "preview");
+    expect(isPaymentPlanStripeAllowed()).toBe(false);
+    vi.stubEnv("VERCEL_ENV", "production");
+    expect(isPaymentPlanStripeAllowed()).toBe(true);
+    vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_factice_0000");
-    expect(isPaymentPlanStripeTestMode()).toBe(true);
+    expect(isPaymentPlanStripeAllowed()).toBe(true);
   });
 });

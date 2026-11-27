@@ -596,8 +596,15 @@ describe("route /api/cron/collect-balances", () => {
       headers: { authorization: `Bearer ${secret}` },
     }));
 
+  // Hors production explicite : la date de référence n'y est acceptée qu'ainsi,
+  // quel que soit le VERCEL_ENV du shell qui lance Vitest.
   beforeEach(() => {
     process.env.CRON_SECRET = "cron_secret";
+    vi.stubEnv("VERCEL_ENV", "preview");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("protégée par CRON_SECRET", async () => {
@@ -641,6 +648,12 @@ describe("garde sk_test_ du solde (prélèvement, reprise, cron)", () => {
     stripeMock.checkout.sessions.retrieve,
     stripeMock.checkout.sessions.expire,
   ].reduce((total, fn) => total + fn.mock.calls.length, 0);
+
+  // Hors production explicite : sk_live_ doit y être refusée, quel que soit le
+  // VERCEL_ENV du shell qui lance Vitest.
+  beforeEach(() => {
+    vi.stubEnv("VERCEL_ENV", "preview");
+  });
 
   afterEach(() => {
     vi.unstubAllEnvs();

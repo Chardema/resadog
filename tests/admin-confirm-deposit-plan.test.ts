@@ -258,6 +258,9 @@ describe("acceptation : garde sk_test_ de la capture de l'acompte", () => {
     txMock.booking.updateMany.mockResolvedValue({ count: 1 });
     txMock.bookingInstallment.upsert.mockResolvedValue({ id: "inst_1" });
     stripeMock.paymentMethods.retrieve.mockResolvedValue({ id: "pm_saved", card: { last4: "4242" } });
+    // Hors production explicite : sk_live_ doit y être refusée, quel que soit le
+    // VERCEL_ENV du shell qui lance Vitest.
+    vi.stubEnv("VERCEL_ENV", "preview");
   });
 
   afterEach(() => {
