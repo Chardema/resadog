@@ -1,11 +1,11 @@
-import { parisAppointment } from "./booking-dates";
+import { parisAppointment } from "@/lib/booking-dates";
 import {
   PAYMENT_PLAN_ENABLED,
   getBalanceMandateTerms,
   getPaymentPlanSplit,
   type BalanceMandateTerms,
   type PaymentPlanSplit,
-} from "./payment-plan";
+} from "@/lib/payment-plan";
 
 // Lot 2 de la spec 07 : plan acompte + solde au moment du Checkout.
 // Pur (pas de Prisma ni de Stripe) pour rester testable et utilisable côté

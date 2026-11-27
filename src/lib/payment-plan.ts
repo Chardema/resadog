@@ -1,4 +1,4 @@
-import { addCalendarDays, getCalendarDayDifference, getTodayDateKey, parisAppointment } from "./booking-dates";
+import { addCalendarDays, getCalendarDayDifference, getTodayDateKey, parisAppointment } from "@/lib/booking-dates";
 
 // Acompte à la réservation et solde prélevé avant la garde (spec 07).
 // Tout ce module est pur : aucun accès base, Stripe ou horloge implicite.

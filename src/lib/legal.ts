@@ -1,4 +1,4 @@
-import { PAYMENT_PLAN_ENABLED } from "./payment-plan";
+import { PAYMENT_PLAN_ENABLED } from "@/lib/payment-plan";
 
 export const LEGAL_INFORMATION = {
   brandName: "La Patte Dorée",

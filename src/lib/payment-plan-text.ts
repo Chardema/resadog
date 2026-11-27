@@ -1,4 +1,4 @@
-import { formatPlanDate, type BalanceMandateTerms } from "./payment-plan";
+import { formatPlanDate, type BalanceMandateTerms } from "@/lib/payment-plan";
 
 // Textes du plan acompte + solde, rédigés directement en FR/EN/ES : ils portent
 // des montants et une date (consentement MIT) qui ne doivent pas passer par la
