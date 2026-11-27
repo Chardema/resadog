@@ -218,3 +218,237 @@ export const AUTHORIZATION_EXPIRED_SUBJECT = "Demande expirée / Request expired
 
 export const getAuthorizationExpiredSection = (petName: string, locale: PaymentPlanLocale) =>
   AUTHORIZATION_EXPIRED[locale](petName);
+
+// ---------------------------------------------------------------------------
+// Solde (lot 5) : rappel J-14, échec + lien de reprise, relances, solde réglé,
+// annulation pour défaut de paiement
+// ---------------------------------------------------------------------------
+
+export type BalanceEmailInput = {
+  petName: string;
+  // Montant prélevé ou à régler (intérêts L214-2 déjà déduits).
+  amount: number;
+  // Dates calendaires (AAAA-MM-JJ, heure de Paris) : prélèvement prévu,
+  // limite de paiement (J-2) et début de la garde.
+  dueDate: string;
+  deadlineDate: string;
+  startDate: string;
+  cardLast4?: string | null;
+  depositAmount?: number;
+};
+
+type BalanceValues = { pet: string; amount: string; due: string; deadline: string; start: string; card: string; deposit: string };
+
+const balanceValues = (input: BalanceEmailInput, locale: PaymentPlanLocale): BalanceValues => ({
+  pet: input.petName,
+  amount: formatPlanAmount(input.amount, locale),
+  due: formatPlanDate(input.dueDate),
+  deadline: formatPlanDate(input.deadlineDate),
+  start: formatPlanDate(input.startDate),
+  card: SAVED_CARD[locale](input.cardLast4),
+  deposit: formatPlanAmount(input.depositAmount ?? 0, locale),
+});
+
+const BALANCE_NOTICE: Record<PaymentPlanLocale, (v: BalanceValues) => PlanEmailSection> = {
+  fr: (v) => ({
+    title: "Prélèvement du solde à venir",
+    subtitle: `Le solde de ${v.amount} pour la garde de ${v.pet} sera prélevé le ${v.due}.`,
+    paragraphs: [
+      `Comme vous l'avez autorisé lors de la réservation, le solde sera prélevé automatiquement sur ${v.card}. Vous n'avez rien à faire.`,
+      `Annulation gratuite jusqu'au ${v.due} : l'acompte est alors remboursé et le solde n'est pas prélevé.`,
+    ],
+    rows: [
+      { label: "Solde", value: v.amount },
+      { label: "Date du prélèvement", value: v.due },
+      { label: "Début de la garde", value: v.start },
+    ],
+    buttonLabel: "Voir ma réservation",
+  }),
+  en: (v) => ({
+    title: "Upcoming balance payment",
+    subtitle: `The balance of ${v.amount} for ${v.pet}'s stay will be charged on ${v.due}.`,
+    paragraphs: [
+      `As you authorised when booking, the balance will be charged automatically to ${v.card}. You do not need to do anything.`,
+      `Free cancellation until ${v.due}: the deposit is then refunded and the balance is not charged.`,
+    ],
+    rows: [
+      { label: "Balance", value: v.amount },
+      { label: "Payment date", value: v.due },
+      { label: "Start of the stay", value: v.start },
+    ],
+    buttonLabel: "View my booking",
+  }),
+  es: (v) => ({
+    title: "Próximo cobro del saldo",
+    subtitle: `El saldo de ${v.amount} para el cuidado de ${v.pet} se cobrará el ${v.due}.`,
+    paragraphs: [
+      `Tal como autorizó al reservar, el saldo se cobrará automáticamente en ${v.card}. No tiene que hacer nada.`,
+      `Cancelación gratuita hasta el ${v.due}: en ese caso se reembolsa el anticipo y no se cobra el saldo.`,
+    ],
+    rows: [
+      { label: "Saldo", value: v.amount },
+      { label: "Fecha del cobro", value: v.due },
+      { label: "Inicio del cuidado", value: v.start },
+    ],
+    buttonLabel: "Ver mi reserva",
+  }),
+};
+
+const BALANCE_FAILED: Record<PaymentPlanLocale, (v: BalanceValues) => PlanEmailSection> = {
+  fr: (v) => ({
+    title: "Le solde n'a pas pu être prélevé",
+    subtitle: `Le prélèvement du solde de ${v.amount} pour la garde de ${v.pet} a échoué.`,
+    paragraphs: [
+      "Votre banque a refusé le paiement ou demande une confirmation de votre part. Vous pouvez régler le solde en ligne en quelques instants, par carte, avec le bouton ci-dessous (connexion à votre compte requise).",
+      `Sans paiement avant le ${v.deadline} à 12 h (heure de Paris), la réservation sera annulée et l'acompte conservé, conformément aux conditions générales de vente.`,
+    ],
+    rows: [
+      { label: "Solde à régler", value: v.amount },
+      { label: "Date limite", value: `${v.deadline} à 12 h` },
+      { label: "Début de la garde", value: v.start },
+    ],
+    buttonLabel: "Régler le solde",
+  }),
+  en: (v) => ({
+    title: "The balance could not be charged",
+    subtitle: `The ${v.amount} balance payment for ${v.pet}'s stay failed.`,
+    paragraphs: [
+      "Your bank declined the payment or needs you to confirm it. You can pay the balance online in a few moments by card using the button below (you will need to sign in to your account).",
+      `Without payment before ${v.deadline} at 12:00 (Paris time), the booking will be cancelled and the deposit kept, in accordance with the terms and conditions of sale.`,
+    ],
+    rows: [
+      { label: "Balance due", value: v.amount },
+      { label: "Deadline", value: `${v.deadline} at 12:00` },
+      { label: "Start of the stay", value: v.start },
+    ],
+    buttonLabel: "Pay the balance",
+  }),
+  es: (v) => ({
+    title: "No se ha podido cobrar el saldo",
+    subtitle: `El cobro del saldo de ${v.amount} para el cuidado de ${v.pet} ha fallado.`,
+    paragraphs: [
+      "Su banco ha rechazado el pago o necesita que lo confirme. Puede pagar el saldo en línea en unos instantes, con tarjeta, mediante el botón de abajo (debe iniciar sesión en su cuenta).",
+      `Si no se paga antes del ${v.deadline} a las 12:00 (hora de París), la reserva se cancelará y se conservará el anticipo, de acuerdo con las condiciones generales de venta.`,
+    ],
+    rows: [
+      { label: "Saldo pendiente", value: v.amount },
+      { label: "Fecha límite", value: `${v.deadline} a las 12:00` },
+      { label: "Inicio del cuidado", value: v.start },
+    ],
+    buttonLabel: "Pagar el saldo",
+  }),
+};
+
+const BALANCE_REMINDER: Record<PaymentPlanLocale, (v: BalanceValues) => PlanEmailSection> = {
+  fr: (v) => ({
+    ...BALANCE_FAILED.fr(v),
+    title: "Rappel : solde de votre réservation à régler",
+    subtitle: `Le solde de ${v.amount} pour la garde de ${v.pet} n'est toujours pas réglé.`,
+  }),
+  en: (v) => ({
+    ...BALANCE_FAILED.en(v),
+    title: "Reminder: your booking balance is still due",
+    subtitle: `The ${v.amount} balance for ${v.pet}'s stay has still not been paid.`,
+  }),
+  es: (v) => ({
+    ...BALANCE_FAILED.es(v),
+    title: "Recordatorio: saldo de su reserva pendiente",
+    subtitle: `El saldo de ${v.amount} para el cuidado de ${v.pet} sigue sin pagarse.`,
+  }),
+};
+
+const BALANCE_PAID: Record<PaymentPlanLocale, (v: BalanceValues) => PlanEmailSection> = {
+  fr: (v) => ({
+    title: "Solde réglé",
+    subtitle: `Le solde de ${v.amount} pour la garde de ${v.pet} est réglé. Votre réservation est entièrement payée.`,
+    paragraphs: ["La facture finale (acompte déduit) vous est envoyée dans un e-mail séparé. À très bientôt !"],
+    rows: [
+      { label: "Solde réglé", value: v.amount },
+      { label: "Début de la garde", value: v.start },
+    ],
+    buttonLabel: "Voir ma réservation",
+  }),
+  en: (v) => ({
+    title: "Balance paid",
+    subtitle: `The ${v.amount} balance for ${v.pet}'s stay has been paid. Your booking is now fully paid.`,
+    paragraphs: ["The final invoice (deposit deducted) is sent to you in a separate email. See you soon!"],
+    rows: [
+      { label: "Balance paid", value: v.amount },
+      { label: "Start of the stay", value: v.start },
+    ],
+    buttonLabel: "View my booking",
+  }),
+  es: (v) => ({
+    title: "Saldo pagado",
+    subtitle: `El saldo de ${v.amount} para el cuidado de ${v.pet} está pagado. Su reserva está totalmente pagada.`,
+    paragraphs: ["La factura final (anticipo deducido) se le envía en un correo aparte. ¡Hasta pronto!"],
+    rows: [
+      { label: "Saldo pagado", value: v.amount },
+      { label: "Inicio del cuidado", value: v.start },
+    ],
+    buttonLabel: "Ver mi reserva",
+  }),
+};
+
+const BALANCE_DEFAULT_CANCELLED: Record<PaymentPlanLocale, (v: BalanceValues) => PlanEmailSection> = {
+  fr: (v) => ({
+    title: "Réservation annulée : solde impayé",
+    subtitle: `Le solde de ${v.amount} pour la garde de ${v.pet} n'a pas été réglé avant la date limite du ${v.deadline} à 12 h.`,
+    paragraphs: [
+      `Conformément aux conditions générales de vente, la réservation est annulée et l'acompte de ${v.deposit} est conservé. Aucune autre somme ne sera prélevée.`,
+      "Si vous pensez qu'il s'agit d'une erreur, répondez à cet e-mail : nous reviendrons vers vous rapidement.",
+    ],
+    rows: [
+      { label: "Acompte conservé", value: v.deposit },
+      { label: "Solde non prélevé", value: v.amount },
+    ],
+    buttonLabel: "Voir mes réservations",
+  }),
+  en: (v) => ({
+    title: "Booking cancelled: balance unpaid",
+    subtitle: `The ${v.amount} balance for ${v.pet}'s stay was not paid before the deadline of ${v.deadline} at 12:00.`,
+    paragraphs: [
+      `In accordance with the terms and conditions of sale, the booking is cancelled and the ${v.deposit} deposit is kept. No other amount will be charged.`,
+      "If you think this is a mistake, reply to this email and we will get back to you quickly.",
+    ],
+    rows: [
+      { label: "Deposit kept", value: v.deposit },
+      { label: "Balance not charged", value: v.amount },
+    ],
+    buttonLabel: "View my bookings",
+  }),
+  es: (v) => ({
+    title: "Reserva cancelada: saldo impagado",
+    subtitle: `El saldo de ${v.amount} para el cuidado de ${v.pet} no se pagó antes de la fecha límite del ${v.deadline} a las 12:00.`,
+    paragraphs: [
+      `De acuerdo con las condiciones generales de venta, la reserva se cancela y se conserva el anticipo de ${v.deposit}. No se cobrará ningún otro importe.`,
+      "Si cree que se trata de un error, responda a este correo y le contestaremos rápidamente.",
+    ],
+    rows: [
+      { label: "Anticipo conservado", value: v.deposit },
+      { label: "Saldo no cobrado", value: v.amount },
+    ],
+    buttonLabel: "Ver mis reservas",
+  }),
+};
+
+export type BalanceEmailKind = "NOTICE" | "FAILED" | "REMINDER" | "PAID" | "DEFAULT_CANCELLED";
+
+const BALANCE_SECTIONS: Record<BalanceEmailKind, Record<PaymentPlanLocale, (v: BalanceValues) => PlanEmailSection>> = {
+  NOTICE: BALANCE_NOTICE,
+  FAILED: BALANCE_FAILED,
+  REMINDER: BALANCE_REMINDER,
+  PAID: BALANCE_PAID,
+  DEFAULT_CANCELLED: BALANCE_DEFAULT_CANCELLED,
+};
+
+export const BALANCE_EMAIL_SUBJECTS: Record<BalanceEmailKind, string> = {
+  NOTICE: "Prélèvement du solde à venir / Upcoming balance payment / Próximo cobro del saldo - La Patte Dorée",
+  FAILED: "Solde non prélevé : action requise / Balance payment failed / Cobro del saldo fallido - La Patte Dorée",
+  REMINDER: "Rappel : solde à régler / Reminder: balance due / Recordatorio: saldo pendiente - La Patte Dorée",
+  PAID: "Solde réglé / Balance paid / Saldo pagado - La Patte Dorée",
+  DEFAULT_CANCELLED: "Réservation annulée : solde impayé / Booking cancelled / Reserva cancelada - La Patte Dorée",
+};
+
+export const getBalanceEmailSection = (kind: BalanceEmailKind, input: BalanceEmailInput, locale: PaymentPlanLocale) =>
+  BALANCE_SECTIONS[kind][locale](balanceValues(input, locale));

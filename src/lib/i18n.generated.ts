@@ -9276,5 +9276,77 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "réservations pour la session": {
     "en": "bookings for session",
     "es": "reservas para la sesión"
+  },
+  "Date limite": {
+    "en": "Deadline",
+    "es": "Fecha límite"
+  },
+  "Début de la garde": {
+    "en": "Start of the stay",
+    "es": "Inicio del cuidado"
+  },
+  "La date limite de paiement du solde est dépassée.": {
+    "en": "The deadline for paying the balance has passed.",
+    "es": "La fecha límite para pagar el saldo ha pasado."
+  },
+  "Le prélèvement automatique du solde a échoué. Réglez-le par carte avant la date limite : sans paiement, la réservation sera annulée et l'acompte conservé, conformément aux conditions générales de vente.": {
+    "en": "The automatic balance payment failed. Please pay it by card before the deadline: without payment, the booking will be cancelled and the deposit kept, in accordance with the terms and conditions of sale.",
+    "es": "El cobro automático del saldo ha fallado. Páguelo con tarjeta antes de la fecha límite: si no se paga, la reserva se cancelará y se conservará el anticipo, de acuerdo con las condiciones generales de venta."
+  },
+  "Le service de paiement est momentanément indisponible. Réessayez dans quelques minutes.": {
+    "en": "The payment service is temporarily unavailable. Please try again in a few minutes.",
+    "es": "El servicio de pago no está disponible en este momento. Vuelva a intentarlo en unos minutos."
+  },
+  "Le solde de cette réservation est déjà réglé.": {
+    "en": "The balance for this booking has already been paid.",
+    "es": "El saldo de esta reserva ya está pagado."
+  },
+  "Le solde de cette réservation est réglé. Merci !": {
+    "en": "The balance for this booking has been paid. Thank you!",
+    "es": "El saldo de esta reserva está pagado. ¡Gracias!"
+  },
+  "Le solde de cette réservation ne peut pas être réglé en ligne pour le moment.": {
+    "en": "The balance for this booking cannot be paid online at the moment.",
+    "es": "El saldo de esta reserva no se puede pagar en línea por el momento."
+  },
+  "Le solde de cette réservation ne peut plus être réglé en ligne. Contactez-nous si besoin.": {
+    "en": "The balance for this booking can no longer be paid online. Contact us if needed.",
+    "es": "El saldo de esta reserva ya no se puede pagar en línea. Contáctenos si lo necesita."
+  },
+  "Le solde sera prélevé automatiquement à la date prévue : vous n'avez rien à faire.": {
+    "en": "The balance will be charged automatically on the scheduled date: you do not need to do anything.",
+    "es": "El saldo se cobrará automáticamente en la fecha prevista: no tiene que hacer nada."
+  },
+  "Paiement reçu : la confirmation vous est envoyée par e-mail dans quelques instants.": {
+    "en": "Payment received: the confirmation will be emailed to you in a few moments.",
+    "es": "Pago recibido: recibirá la confirmación por correo en unos instantes."
+  },
+  "Payer le solde par carte": {
+    "en": "Pay the balance by card",
+    "es": "Pagar el saldo con tarjeta"
+  },
+  "Régler le solde": {
+    "en": "Pay the balance",
+    "es": "Pagar el saldo"
+  },
+  "Retour à mon espace": {
+    "en": "Back to my account",
+    "es": "Volver a mi cuenta"
+  },
+  "Solde à régler": {
+    "en": "Balance due",
+    "es": "Saldo pendiente"
+  },
+  "Un paiement du solde est déjà en cours de traitement. Réessayez dans quelques minutes.": {
+    "en": "A balance payment is already being processed. Please try again in a few minutes.",
+    "es": "Ya se está procesando un pago del saldo. Vuelva a intentarlo en unos minutos."
+  },
+  "Un paiement du solde est en cours de traitement. Revenez dans quelques minutes.": {
+    "en": "A balance payment is being processed. Please come back in a few minutes.",
+    "es": "Se está procesando un pago del saldo. Vuelva en unos minutos."
+  },
+  "Une page de paiement est déjà en cours d'ouverture. Réessayez dans quelques minutes.": {
+    "en": "A payment page is already being opened. Please try again in a few minutes.",
+    "es": "Ya se está abriendo una página de pago. Vuelva a intentarlo en unos minutos."
   }
 } as const;

@@ -6,10 +6,14 @@ import { getServiceDisplayPrice } from "@/lib/pricing";
 import { LEGAL_INFORMATION } from "@/lib/legal";
 import {
   AUTHORIZATION_EXPIRED_SUBJECT,
+  BALANCE_EMAIL_SUBJECTS,
   DEPOSIT_CONFIRMATION_SUBJECT,
   PAYMENT_PLAN_LOCALES,
   getAuthorizationExpiredSection,
+  getBalanceEmailSection,
   getDepositConfirmationSection,
+  type BalanceEmailInput,
+  type BalanceEmailKind,
   type DepositConfirmationSchedule,
   type PaymentPlanLocale,
   type PlanEmailSection,
@@ -1968,6 +1972,107 @@ export const sendBookingAuthorizationAlertAdminEmail = async (
       title,
       subtitle: body[0],
       accent: kind === "EXPIRED" ? "#b42318" : "#c66a2d",
+      children: `
+        ${detailRows(rows)}
+        ${body.slice(1).map((line) => `<p style="margin:16px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(line)}</p>`).join("")}
+        ${actionButton("Ouvrir les réservations", `${APP_URL}/admin/bookings`)}
+      `,
+    }),
+  }, options?.idempotencyKey);
+};
+
+// Solde du plan acompte (lot 5) : rappel J-14, échec avec lien de reprise,
+// relances J-5 / J-3, solde réglé, annulation pour défaut de paiement.
+// Le lien de reprise mène à une page authentifiée qui crée une session
+// Checkout fraîche à la demande (jamais de lien Checkout dans l'e-mail).
+export const getBalancePaymentUrl = (bookingId: string) => `${APP_URL}/dashboard/bookings/${bookingId}/pay`;
+
+export const sendBookingBalanceEmail = async (
+  kind: BalanceEmailKind,
+  email: string,
+  userName: string,
+  input: BalanceEmailInput & { bookingId: string },
+  options?: { idempotencyKey?: string }
+) => sendTransactionalEmail({
+  from: EMAIL_FROM,
+  to: email,
+  replyTo: SUPPORT_EMAIL,
+  ...buildPaymentPlanEmail({
+    subject: BALANCE_EMAIL_SUBJECTS[kind],
+    userName,
+    sections: planSections((value: BalanceEmailInput, locale) => getBalanceEmailSection(kind, value, locale), input),
+    url: kind === "FAILED" || kind === "REMINDER" ? getBalancePaymentUrl(input.bookingId) : `${APP_URL}/dashboard`,
+    accent: kind === "PAID" || kind === "NOTICE" ? "#15803d" : kind === "DEFAULT_CANCELLED" ? "#b42318" : "#c66a2d",
+  }),
+}, options?.idempotencyKey);
+
+export type BalanceAlertKind = "REMINDER" | "DEFAULT_CANCELLED" | "ANOMALY";
+
+export type BalanceAlertDetails = {
+  bookingId: string;
+  petName: string;
+  userName: string;
+  userEmail: string;
+  startDate: string;
+  amount: number;
+  attempts: number;
+  lastErrorCode?: string | null;
+  deadline: string;
+  // Étape de relance (J-5, J-3) ou description de l'anomalie.
+  note?: string;
+};
+
+// Alerte équipe sur le solde : impayé à J-5 / J-3, annulation automatique à J-2,
+// ou anomalie à traiter à la main (aucun remboursement automatique).
+export const sendBookingBalanceAlertAdminEmail = async (
+  kind: BalanceAlertKind,
+  details: BalanceAlertDetails,
+  options?: { idempotencyKey?: string }
+) => {
+  const reference = `#${details.bookingId.slice(-8).toUpperCase()}`;
+  const rows = [
+    { label: "Réservation", value: reference },
+    { label: "Client", value: `${details.userName} (${details.userEmail})` },
+    { label: "Animal", value: details.petName },
+    { label: "Début", value: details.startDate },
+    { label: "Solde", value: `${formatCurrency(details.amount)} €` },
+    { label: "Tentatives", value: String(details.attempts) },
+    ...(details.lastErrorCode ? [{ label: "Dernière erreur Stripe", value: details.lastErrorCode }] : []),
+    { label: "Limite de paiement", value: details.deadline },
+  ];
+  const titles: Record<BalanceAlertKind, string> = {
+    REMINDER: "Solde impayé",
+    DEFAULT_CANCELLED: "Réservation annulée : solde impayé",
+    ANOMALY: "Anomalie sur le solde",
+  };
+  const bodies: Record<BalanceAlertKind, string[]> = {
+    REMINDER: [
+      `Le solde de la réservation ${reference} n'est toujours pas réglé${details.note ? ` (${details.note})` : ""}. Le client a reçu une relance avec le lien de paiement.`,
+      "Sans paiement à la limite, la réservation sera annulée automatiquement et l'acompte conservé. Contactez le client si besoin.",
+    ],
+    DEFAULT_CANCELLED: [
+      `Le solde de la réservation ${reference} n'a pas été réglé à la limite : la réservation est annulée automatiquement, l'acompte est conservé et le créneau est libéré.`,
+      "Le client a été prévenu par e-mail.",
+    ],
+    ANOMALY: [
+      `Anomalie sur le solde de la réservation ${reference} : ${details.note || "à vérifier"}.`,
+      "Aucun remboursement automatique n'a été fait : vérifiez dans Stripe et remboursez à la main si nécessaire.",
+    ],
+  };
+  const title = titles[kind];
+  const body = bodies[kind];
+
+  return sendTransactionalEmail({
+    from: EMAIL_FROM,
+    to: ADMIN_EMAIL,
+    replyTo: details.userEmail,
+    subject: `${title} - ${details.userName} - ${details.petName}`,
+    text: plainTextEmail({ title, greeting: "Bonjour,", body, rows, url: `${APP_URL}/admin/bookings` }),
+    html: emailLayout({
+      preview: body[0],
+      title,
+      subtitle: body[0],
+      accent: kind === "REMINDER" ? "#c66a2d" : "#b42318",
       children: `
         ${detailRows(rows)}
         ${body.slice(1).map((line) => `<p style="margin:16px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(line)}</p>`).join("")}

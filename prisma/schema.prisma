@@ -315,6 +315,8 @@ model BookingInstallment {
   nextAttemptAt         DateTime?
   lastErrorCode         String?
   stripePaymentIntentId String?           @unique
+  // Dernière session Checkout de reprise ouverte depuis /dashboard/bookings/[id]/pay.
+  stripeCheckoutSessionId String?
   idempotencyKey        String            @unique
   paidAt                DateTime?
   refundedAmount        Float?

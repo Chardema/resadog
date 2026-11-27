@@ -29,6 +29,12 @@ import {
   expireAuthorizationFromCharge,
   expireBookingAuthorization,
 } from "@/lib/authorization-expiry";
+import {
+  handleBalancePaymentFailed,
+  isBalancePaymentIntentMetadata,
+  releaseExpiredBalanceCheckout,
+  settleBalanceSucceeded,
+} from "@/lib/balance-collection";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -319,6 +325,13 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     return;
   }
 
+  // Solde du plan acompte (spec 07, lot 5) : seule l'échéance passe SUCCEEDED,
+  // puis la facture finale. Ni confirmation, ni fidélité, ni e-mail d'acompte.
+  if (isBalancePaymentIntentMetadata(paymentIntent.metadata)) {
+    await settleBalanceSucceeded(paymentIntent, { invoice: true });
+    return;
+  }
+
   const bookingIds = getBookingIds(paymentIntent.metadata);
 
   if (bookingIds.length === 0) {
@@ -414,6 +427,13 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
         : { stripePaymentId: paymentIntent.id },
       data: { stripePaymentId: paymentIntent.id, status: "FAILED" },
     });
+    return;
+  }
+
+  // Échec du solde : le paiement de l'acompte et la réservation ne bougent pas.
+  if (isBalancePaymentIntentMetadata(paymentIntent.metadata)) {
+    // Lève une erreur si l'e-mail d'échec n'est pas parti : Stripe rejoue.
+    await handleBalancePaymentFailed(paymentIntent);
     return;
   }
 
@@ -627,6 +647,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       return;
   }
 
+  // Session de reprise du solde (lot 5) : payment_intent.succeeded fait le
+  // reste. Elle ne doit jamais toucher le paiement de l'acompte.
+  if (isBalancePaymentIntentMetadata(session.metadata)) return;
+
   // Gestion RÉSERVATION (existant)
   const bookingIds = getBookingIds(session.metadata);
 
@@ -765,6 +789,11 @@ async function storeCheckoutDepositPlan(
 }
 
 async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
+  if (isBalancePaymentIntentMetadata(session.metadata)) {
+    await releaseExpiredBalanceCheckout(session);
+    return;
+  }
+
   const bookingIds = getBookingIds(session.metadata);
   if (bookingIds.length === 0) return;
 
