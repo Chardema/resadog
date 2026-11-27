@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import {
   LAST_MINUTE_DESCRIPTION,
+  CAT_24_HOUR_RATE,
   CAT_VISIT_PRICING_DESCRIPTION,
   OTHER_ANIMAL_PRICING_DESCRIPTION,
   DOG_24_HOUR_RATE,
@@ -230,13 +231,19 @@ export default function PricingPage() {
                 dog={dayCare.dogPrice}
                 cat={dayCare.catPrice}
                 unit={`Par jour, jusqu’à ${DOG_DAY_CARE_MAX_MINUTES / 60} h`}
-                note="Plusieurs jours peuvent être réservés : chaque journée respecte les mêmes horaires et reste limitée à 10 h."
+                note="Plusieurs jours peuvent être réservés avec les mêmes horaires chaque jour. Au-delà de 10 h, chaque journée est facturée au tarif 24 h, sans nuit."
               />
 
               <div className="mt-5 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm leading-6 text-orange-950">
                 <p className="font-bold">Règle chien à retenir</p>
                 <p className="mt-1">
                   Jusqu’à 10 h le même jour : <Price amount={DOG_DAY_CARE_RATE} />. De 10 h 01 à 24 h : <Price amount={DOG_24_HOUR_RATE} />. À 24 h 01, une deuxième période commence, soit <Price amount={DOG_24_HOUR_RATE * 2} />.
+                </p>
+              </div>
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                <p className="font-bold">Règle chat à retenir</p>
+                <p className="mt-1">
+                  Jusqu’à 10 h le même jour : <Price amount={dayCare.catPrice} />. De 10 h 01 à 24 h : <Price amount={CAT_24_HOUR_RATE} />.
                 </p>
               </div>
             </article>

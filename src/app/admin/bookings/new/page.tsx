@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { calculateDirectPrice, directBookingSchema, DIRECT_METHODS } from "@/lib/direct-booking";
 import { SERVICE_TYPES, getServiceLabel, type AppServiceType } from "@/lib/services";
 import { getTodayDateKey } from "@/lib/booking-dates";
+import { EXTENDED_DAY_CARE_NOTICE } from "@/lib/pricing";
 
 type Pet = { id: string; name: string; species: "DOG" | "CAT"; birthDate: string | null; age: number | null };
 type Client = { id: string; name: string; email: string; phone: string | null; pets: Pet[] };
@@ -86,7 +87,7 @@ export default function NewDirectBookingPage() {
         </section>
         <section className="space-y-4 rounded-xl border bg-white p-5"><h2 className="text-lg font-bold">2. Prestation et horaires</h2>
           <label className="block text-sm">Prestation<select value={service} onChange={e => setService(e.target.value as AppServiceType)} className={field}>{SERVICE_TYPES.map(s => <option key={s} value={s}>{getServiceLabel(s)}</option>)}</select></label>
-          <p className="text-xs text-gray-500">Garderie : jusqu’à 10 h par jour. Pour une garde plus longue chez Mégane, choisir Hébergement. Visites et promenades : un créneau de 30 à 120 minutes.</p>
+          <p className="text-xs text-gray-500">Garderie : même jour, mêmes horaires chaque jour. {EXTENDED_DAY_CARE_NOTICE} Pour une nuit chez Mégane, choisir Hébergement. Visites et promenades : un créneau de 30 à 120 minutes.</p>
           <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm">Date d’arrivée<input type="date" required min={getTodayDateKey()} value={startDate} onChange={e => { setStartDate(e.target.value); if (e.target.value > endDate) setEndDate(e.target.value); }} className={field}/></label><label className="text-sm">Date de départ<input type="date" required min={startDate} value={endDate} onChange={e => setEndDate(e.target.value)} className={field}/></label><label className="text-sm">Heure d’arrivée<input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)} className={field}/></label><label className="text-sm">Heure de départ<input type="time" required value={endTime} onChange={e => setEndTime(e.target.value)} className={field}/></label></div>
           {["HOUSE_SITTING", "DROP_IN", "DOG_WALKING"].includes(service) && <label className="block text-sm">Adresse de la prestation<input name="address" required className={field}/></label>}
           <label className="block text-sm">Précisions sur la garde<textarea name="notes" className={field}/></label>

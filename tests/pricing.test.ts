@@ -175,14 +175,17 @@ describe("paliers et affichage", () => {
   it("valide les horaires de garderie", () => {
     const days = { startDate: "2026-03-10", endDate: "2026-03-12" };
     expect(isValidDayCareSchedule({ ...days, startTime: "08:00", endTime: "18:00" })).toBe(true);
-    expect(isValidDayCareSchedule({ ...days, startTime: "08:00", endTime: "18:30" })).toBe(false);
+    // Au-delà de 10 h le même jour : valide, facturé au tarif 24 h.
+    expect(isValidDayCareSchedule({ ...days, startTime: "08:00", endTime: "18:30" })).toBe(true);
+    expect(isValidDayCareSchedule({ ...days, startTime: "18:00", endTime: "08:00" })).toBe(false);
+    expect(isValidDayCareSchedule({ ...days, startTime: "08:00", endTime: "08:00" })).toBe(false);
     expect(isValidDayCareSchedule({
       startDate: "2026-03-12", endDate: "2026-03-10", startTime: "08:00", endTime: "18:00",
     })).toBe(false);
   });
 
   it("expose les tarifs affichés", () => {
-    expect(getServiceDisplayPrice("BOARDING")).toMatchObject({ dogPrice: 45, catPrice: 23 });
+    expect(getServiceDisplayPrice("BOARDING")).toMatchObject({ dogPrice: 45, catPrice: 35 });
     expect(getServiceDisplayPrice("DOG_WALKING").catRequestOnly).toBe(true);
     expect(getServiceDisplayPriceForDuration("DROP_IN", "CAT", 60)).toBe(23);
     expect(getServiceDisplayPriceForDuration("DOG_WALKING", "CAT", 30)).toBeNull();

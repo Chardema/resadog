@@ -1,5 +1,8 @@
 import { generatedCatalogue } from "@/lib/i18n.generated";
 import {
+  CAT_24_HOUR_RATE,
+  DOG_24_HOUR_RATE,
+  EXTENDED_DAY_CARE_NOTICE,
   PUPPY_AGE_LABEL,
   PUPPY_SURCHARGE_NOTICE,
   YOUNG_ANIMAL_AGE_LABEL,
@@ -165,7 +168,7 @@ const catalogue: Record<string, Translation> = {
   "€ / période de 24 h": { en: "€ / 24-hour period", es: "€ / periodo de 24 h" },
   "€ / jusqu’à 10 h": { en: "€ / up to 10 hours", es: "€ / hasta 10 h" },
   "45 € / période de 24 h": { en: "€45 / 24-hour period", es: "45 € / periodo de 24 h" },
-  "23 € / période de 24 h": { en: "€23 / 24-hour period", es: "23 € / periodo de 24 h" },
+  "35 € / période de 24 h": { en: "€35 / 24-hour period", es: "35 € / periodo de 24 h" },
   "35 € / jusqu’à 10 h": { en: "€35 / up to 10 hours", es: "35 € / hasta 10 h" },
   "30 € / jusqu’à 10 h": { en: "€30 / up to 10 hours", es: "30 € / hasta 10 h" },
   "16 € / 30 min": { en: "€16 / 30 min", es: "16 € / 30 min" },
@@ -270,6 +273,7 @@ const catalogue: Record<string, Translation> = {
     es: "Los horarios exactos deben indicarse al reservar. Los gastos excepcionales necesarios para el servicio, incluidos el aparcamiento, los peajes o el transporte, se facturan por separado previo acuerdo.",
   },
   "Règle chien à retenir": { en: "Dog pricing rule", es: "Regla de precio para perros" },
+  "Règle chat à retenir": { en: "Cat pricing rule", es: "Regla de precio para gatos" },
   "Jusqu’à 10 h le même jour :": { en: "Up to 10 hours on the same day:", es: "Hasta 10 h el mismo día:" },
   ". De 10 h 01 à 24 h :": { en: ". From 10 hours 1 minute to 24 hours:", es: ". De 10 h 01 a 24 h:" },
   ". À 24 h 01, une deuxième période commence, soit": { en: ". At 24 hours 1 minute, a second period starts, for a total of", es: ". A las 24 h 01 comienza un segundo periodo, con un total de" },
@@ -1769,6 +1773,10 @@ const catalogue: Record<string, Translation> = {
   [PUPPY_SURCHARGE_NOTICE]: {
     en: `Puppy supplement (under one year old): +€${YOUNG_ANIMAL_SURCHARGE} for day care and boarding.`,
     es: `Suplemento cachorro (menos de un año): +${YOUNG_ANIMAL_SURCHARGE} € en guardería y alojamiento.`,
+  },
+  [EXTENDED_DAY_CARE_NOTICE]: {
+    en: `Beyond 10 hours on the same day, the day is billed at the 24-hour rate: €${DOG_24_HOUR_RATE} for a dog, €${CAT_24_HOUR_RATE} for a cat.`,
+    es: `Más allá de 10 h el mismo día, la jornada pasa a la tarifa de 24 h: ${DOG_24_HOUR_RATE} € para un perro, ${CAT_24_HOUR_RATE} € para un gato.`,
   },
   "Afficher la carte": {
     en: "Show the map",

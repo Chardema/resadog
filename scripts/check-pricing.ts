@@ -76,7 +76,7 @@ assert(calculateBookingPrice({
 }).total === 15, "Un chat réservé seul doit payer 15€, même si le contexte client contient un autre chat non réservé");
 assert(calculateBookingPrice({
   serviceType: "BOARDING", pets: [cat, secondCat], startDate: "2026-09-17", endDate: "2026-09-18", startTime: "09:00", endTime: "09:00",
-}).total === 46, "L'inclusion du deuxième chat ne doit pas s'étendre à l'hébergement");
+}).total === 70, "L'inclusion du deuxième chat ne doit pas s'étendre à l'hébergement");
 const visitSlots = [
   { date: "2026-09-10", startTime: "09:00", duration: 30 },
   { date: "2026-09-11", startTime: "18:00", duration: 60 },
@@ -127,7 +127,7 @@ assert(
     endDate: "2026-09-12",
     startTime: "09:00",
     endTime: "15:00",
-  }).total === 69,
+  }).total === 105,
   "Un hébergement chat de 54 h doit compter trois périodes de 24 h commencées"
 );
 
@@ -211,13 +211,48 @@ assert(
 );
 
 assert(
-  !isValidDayCareSchedule({
+  isValidDayCareSchedule({
     startDate: "2026-09-29",
     endDate: "2026-10-01",
     startTime: "08:00",
     endTime: "18:01",
   }),
-  "Une plage de garderie dépassant 10 h par jour doit être refusée"
+  "Une plage de garderie dépassant 10 h par jour doit être acceptée"
+);
+
+assert(
+  !isValidDayCareSchedule({
+    startDate: "2027-01-06",
+    endDate: "2027-01-06",
+    startTime: "21:45",
+    endTime: "09:00",
+  }),
+  "Une garderie dont la fin précède le début doit être refusée"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "DAY_CARE",
+    pets: [dog],
+    startDate: "2027-01-06",
+    endDate: "2027-01-06",
+    startTime: "09:00",
+    endTime: "21:45",
+    requestedAt: new Date("2026-11-01T12:00:00.000Z"),
+  }).total === 45,
+  "Une garderie de 9 h à 21 h 45 le même jour doit être facturée au tarif 24 h (45 €)"
+);
+
+assert(
+  calculateBookingPrice({
+    serviceType: "DAY_CARE",
+    pets: [dog],
+    startDate: "2026-09-29",
+    endDate: "2026-10-01",
+    startTime: "08:00",
+    endTime: "18:01",
+  }).total === 135,
+  "Trois garderies de plus de 10 h doivent être facturées 3 × 45 €"
 );
 
 assert(
@@ -529,7 +564,7 @@ assert(
     endDate: "2026-09-11",
     startTime: "18:00",
     endTime: "18:00",
-  }).total === 23,
+  }).total === 35,
   "Un chat de moins d'un an ne doit pas recevoir le supplément chiot"
 );
 assert(
