@@ -76,7 +76,7 @@ assert(calculateBookingPrice({
 }).total === 15, "Un chat réservé seul doit payer 15€, même si le contexte client contient un autre chat non réservé");
 assert(calculateBookingPrice({
   serviceType: "BOARDING", pets: [cat, secondCat], startDate: "2026-09-17", endDate: "2026-09-18", startTime: "09:00", endTime: "09:00",
-}).total === 46, "L'inclusion du deuxième chat ne doit pas s'étendre à l'hébergement");
+}).total === 70, "L'inclusion du deuxième chat ne doit pas s'étendre à l'hébergement");
 const visitSlots = [
   { date: "2026-09-10", startTime: "09:00", duration: 30 },
   { date: "2026-09-11", startTime: "18:00", duration: 60 },
@@ -127,7 +127,7 @@ assert(
     endDate: "2026-09-12",
     startTime: "09:00",
     endTime: "15:00",
-  }).total === 69,
+  }).total === 105,
   "Un hébergement chat de 54 h doit compter trois périodes de 24 h commencées"
 );
 
@@ -564,7 +564,7 @@ assert(
     endDate: "2026-09-11",
     startTime: "18:00",
     endTime: "18:00",
-  }).total === 23,
+  }).total === 35,
   "Un chat de moins d'un an ne doit pas recevoir le supplément chiot"
 );
 assert(

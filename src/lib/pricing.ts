@@ -59,7 +59,7 @@ export const PUPPY_AGE_LABEL = `Moins d'1 an (+${YOUNG_ANIMAL_SURCHARGE} € en 
 // Seuil de la garderie : au-delà, une journée (même sans nuit) passe au tarif 24 h.
 export const DOG_DAY_CARE_MAX_MINUTES = 10 * 60;
 export const DOG_CARE_PERIOD_MINUTES = 24 * 60;
-export const CAT_24_HOUR_RATE = 23;
+export const CAT_24_HOUR_RATE = 35;
 export const EXTENDED_DAY_CARE_LABEL = "journée de plus de 10 h, tarif 24 h";
 export const EXTENDED_DAY_CARE_NOTICE = `Au-delà de 10 h le même jour, la journée passe au tarif 24 h : ${DOG_24_HOUR_RATE} € pour un chien, ${CAT_24_HOUR_RATE} € pour un chat.`;
 

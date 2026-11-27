@@ -185,7 +185,7 @@ describe("paliers et affichage", () => {
   });
 
   it("expose les tarifs affichés", () => {
-    expect(getServiceDisplayPrice("BOARDING")).toMatchObject({ dogPrice: 45, catPrice: 23 });
+    expect(getServiceDisplayPrice("BOARDING")).toMatchObject({ dogPrice: 45, catPrice: 35 });
     expect(getServiceDisplayPrice("DOG_WALKING").catRequestOnly).toBe(true);
     expect(getServiceDisplayPriceForDuration("DROP_IN", "CAT", 60)).toBe(23);
     expect(getServiceDisplayPriceForDuration("DOG_WALKING", "CAT", 30)).toBeNull();

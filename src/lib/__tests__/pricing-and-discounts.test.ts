@@ -32,7 +32,7 @@ describe("Pricing engine (src/lib/pricing.ts)", () => {
   it("returns expected base display prices and duration-specific prices", () => {
     expect(getServiceDisplayPrice("BOARDING")).toMatchObject({
       dogPrice: 45,
-      catPrice: 23,
+      catPrice: 35,
       unit: "période de 24 h",
     });
     expect(getServiceDisplayPrice("DAY_CARE")).toMatchObject({
@@ -148,7 +148,7 @@ describe("Pricing engine (src/lib/pricing.ts)", () => {
     expect(threePeriodsStarted.quantity).toBe(3);
     expect(threePeriodsStarted.total).toBe(135);
 
-    // 2 cats in BOARDING for 24h: 23€ + 23€ = 46€
+    // 2 cats in BOARDING for 24h: 35€ + 35€ = 70€
     const twoCatsBoarding = calculateBookingPrice({
       serviceType: "BOARDING",
       pets: [cat, secondCat],
@@ -157,7 +157,7 @@ describe("Pricing engine (src/lib/pricing.ts)", () => {
       startTime: "09:00",
       endTime: "09:00",
     });
-    expect(twoCatsBoarding.total).toBe(46);
+    expect(twoCatsBoarding.total).toBe(70);
 
     // 14 periods of 24h for 1 dog: 14 * 45 = 630€, -10% long stay = 567€
     const longStay14Periods = calculateBookingPrice({
@@ -290,7 +290,7 @@ describe("Pricing engine (src/lib/pricing.ts)", () => {
       startTime: "18:00",
       endTime: "18:00",
     });
-    expect(youngCatBoarding.total).toBe(23);
+    expect(youngCatBoarding.total).toBe(35);
 
     // Last-minute fee: +10€ when requested < 24h before start
     expect(

@@ -7065,6 +7065,10 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
     "en": "Refuse",
     "es": "Rechazar"
   },
+  "Règle chat à retenir": {
+    "en": "Cat pricing rule",
+    "es": "Regla de precio para gatos"
+  },
   "Règle chien à retenir": {
     "en": "dog rule to remember",
     "es": "perro regla para recordar"

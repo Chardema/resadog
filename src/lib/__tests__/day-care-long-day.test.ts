@@ -16,9 +16,11 @@ vi.mock("@/lib/db/prisma", () => ({
 
 import { POST as postBooking } from "@/app/api/bookings/route";
 import { calculateDirectPrice, directBookingSchema } from "@/lib/direct-booking";
+import { translateFrenchText } from "@/lib/i18n";
 import {
   calculateBookingPrice,
   calculateDogCareQuote,
+  EXTENDED_DAY_CARE_NOTICE,
   isValidDayCareSchedule,
   LAST_MINUTE_FEE,
 } from "@/lib/pricing";
@@ -64,9 +66,16 @@ describe("garderie de plus de 10 h le même jour", () => {
     expect(calculateDogCareQuote({ ...longDay, isPuppy: true })?.total).toBe(50);
   });
 
-  it("applique le tarif 24 h chat (23 €) au-delà de 10 h et 30 € en deçà", () => {
-    expect(dayCarePrice([adultCat]).total).toBe(23);
+  it("applique le tarif 24 h chat (35 €) au-delà de 10 h et 30 € en deçà", () => {
+    expect(dayCarePrice([adultCat]).total).toBe(35);
+    expect(dayCarePrice([adultCat]).pets[0].lines[0].label).toContain("tarif 24 h");
     expect(dayCarePrice([adultCat], standardDay).total).toBe(30);
+  });
+
+  it("annonce 45 € pour un chien et 35 € pour un chat au-delà de 10 h, en FR, EN et ES", () => {
+    expect(EXTENDED_DAY_CARE_NOTICE).toBe("Au-delà de 10 h le même jour, la journée passe au tarif 24 h : 45 € pour un chien, 35 € pour un chat.");
+    expect(translateFrenchText(EXTENDED_DAY_CARE_NOTICE, "en")).toBe("Beyond 10 hours on the same day, the day is billed at the 24-hour rate: €45 for a dog, €35 for a cat.");
+    expect(translateFrenchText(EXTENDED_DAY_CARE_NOTICE, "es")).toBe("Más allá de 10 h el mismo día, la jornada pasa a la tarifa de 24 h: 45 € para un perro, 35 € para un gato.");
   });
 
   it("garde la majoration de dernière minute inchangée (+10 €)", () => {
@@ -112,12 +121,12 @@ describe("garderie de plus de 10 h le même jour", () => {
   });
 });
 
-describe("pension multi-nuits inchangée", () => {
-  it("facture 2 nuits (48 h) à 2 × 45 € et 24 h 01 à 2 périodes", () => {
+describe("pension multi-nuits", () => {
+  it("facture 2 nuits (48 h) à 2 × 45 € pour un chien, 2 × 35 € pour un chat, et 24 h 01 à 2 périodes", () => {
     const base = { serviceType: "BOARDING", pets: [adultDog], startTime: "18:00", requestedAt };
     expect(calculateBookingPrice({ ...base, startDate: "2027-01-06", endDate: "2027-01-08", endTime: "18:00" }).total).toBe(90);
     expect(calculateBookingPrice({ ...base, startDate: "2027-01-06", endDate: "2027-01-07", endTime: "18:01" }).total).toBe(90);
-    expect(calculateBookingPrice({ ...base, pets: [adultCat], startDate: "2027-01-06", endDate: "2027-01-08", endTime: "18:00" }).total).toBe(46);
+    expect(calculateBookingPrice({ ...base, pets: [adultCat], startDate: "2027-01-06", endDate: "2027-01-08", endTime: "18:00" }).total).toBe(70);
     expect(getServicePetLimitError("BOARDING", 2)).not.toBeNull();
   });
 });
