@@ -103,9 +103,11 @@ Aucune variable d'environnement nouvelle ou modifiée. Le plan réutilise `VERCE
 
 Le flux `FULL` (production, `sk_live_`) n'appelle **jamais** cette garde : checkout, capture à l'acceptation, annulation 48 h / 50 % et remboursements restent identiques à `main`.
 
-Activer le plan en production demandera donc, en plus de `PAYMENT_PLAN_ENABLED_IN_PRODUCTION = true`, de lever cette garde en connaissance de cause (même accord du propriétaire).
+Conséquence : en l'état, la garde bloque aussi le plan **en production**, où la clé est `sk_live_`. Passer `PAYMENT_PLAN_ENABLED_IN_PRODUCTION` à `true` sans l'adapter casserait les réservations éligibles (503 au Checkout de l'acompte, capture refusée, cron en 502). La PR d'activation doit donc adapter la garde dans le même temps (même accord du propriétaire) : voir le §0 de [`GO_LIVE_PAYMENT_PLAN.md`](GO_LIVE_PAYMENT_PLAN.md).
 
 ## 3. Migration Prisma (à appliquer au déploiement)
+
+> La checklist de mise en ligne (ordre exact des opérations, commandes, vérifications, retours arrière et accords à obtenir pour les §3 à §6) est dans [`GO_LIVE_PAYMENT_PLAN.md`](GO_LIVE_PAYMENT_PLAN.md). Elle fait foi en cas d'écart avec ce document.
 
 Trois migrations **additives** (nouvelles colonnes nullables ou avec défaut, nouvelles tables, nouvelles valeurs d'enum ; aucune suppression, aucun renommage) :
 
@@ -141,17 +143,18 @@ Ne modifier ni l'endpoint ni le libellé avant l'activation.
 
 > **Avertissement plan Vercel** (vérifié dans la documentation Vercel le 27/11/2026 : [usage et tarifs des crons](https://vercel.com/docs/schedules/cron-jobs/usage-and-pricing) et changelog du 20/01/2026).
 >
-> - **Nombre de crons.** Depuis le 20/01/2026, tous les plans, Hobby compris, acceptent jusqu'à 100 crons par projet. L'ancienne limite Hobby de 2 crons par équipe n'existe plus. **C'est le 3e cron du projet** (`cleanup-bookings`, `booking-reminders`, `collect-balances`) : il ne devrait donc plus être refusé pour son nombre. **À VÉRIFIER** sur le compte au moment du déploiement, car le plan de l'équipe `chardemas-projects` n'est pas confirmé. Si Vercel refuse quand même le déploiement, retirer l'entrée de `vercel.json` (la route reste appelable manuellement ou par un ordonnanceur externe protégé par `CRON_SECRET`), ou regrouper l'appel dans un cron existant.
+> - **Nombre de crons.** Depuis le 20/01/2026, tous les plans, Hobby compris, acceptent jusqu'à 100 crons par projet. L'ancienne limite Hobby de 2 crons par équipe n'existe plus. **C'est le 3e cron du projet** (`cleanup-bookings`, `booking-reminders`, `collect-balances`) : il ne devrait donc plus être refusé pour son nombre. Le projet reste sur le plan Hobby : choix assumé du propriétaire. Si Vercel refuse quand même le déploiement, retirer l'entrée de `vercel.json` (la route reste appelable manuellement ou par un ordonnanceur externe protégé par `CRON_SECRET`), ou regrouper l'appel dans un cron existant.
 > - **Fréquence (Hobby).** Un cron ne peut s'exécuter qu'une fois par jour : une expression plus fréquente fait échouer le déploiement. `15 4 * * *` respecte cette limite.
 > - **Précision horaire (Hobby).** L'heure n'est garantie qu'à ±59 min (voir plus haut) : l'ordre avec `cleanup-bookings` n'est pas garanti.
-> - **Usage commercial.** Selon Vercel, le plan Hobby est réservé à un usage personnel non commercial. À garder en tête pour un site commercial.
+> - **Nouvelle tentative (Hobby).** Vercel ne relance pas un cron en échec : un solde raté est retenté au passage du lendemain (relances J-5 et J-3, annulation à J-2).
+> - **Usage commercial.** Selon Vercel, le plan Hobby est réservé à un usage personnel non commercial. Rester sur Hobby est un choix assumé du propriétaire, pas un prérequis à lever avant l'activation.
 
 Ajouter ce cron est une modification de configuration de production : il doit être validé par le propriétaire au moment du déploiement. Il est sans effet en production tant que le plan y est fermé ; sur les aperçus, les crons Vercel ne s'exécutent pas (production uniquement), la route s'y appelle à la main. Après le déploiement, vérifier dans Vercel que les trois crons apparaissent comme actifs.
 
 ## 6. CGV et version des documents légaux
 
 - La nouvelle version des CGV (terme « acompte », jamais « arrhes » ; mandat de prélèvement du solde ; barème ; droit de rétractation de 14 jours le cas échéant ; intérêts L214-2 sur l'acompte au-delà de 3 mois, déduits du solde) n'est affichée que si `isPaymentPlanEnabled()` est vrai (aperçus aujourd'hui, jamais en production avant l'activation).
-- **À faire relire par un juriste avant l'activation** (qualification acompte ou arrhes, clause de retenue, rétractation, intérêts). Ce dépôt ne contient aucun avis juridique.
+- **Pas de relecture par un juriste** : choix assumé du propriétaire (qualification acompte ou arrhes, clause de retenue, rétractation, intérêts). Ce dépôt ne contient aucun avis juridique ; les traductions EN/ES des CGV ont été écrites à la main.
 - `PAYMENT_PLAN_LEGAL_DOCUMENT_VERSION` et son libellé (`src/lib/legal.ts`, aujourd'hui `2026-11-27`) : **à dater du jour de l'activation**. Cette version est enregistrée avec le consentement de chaque client ; elle doit correspondre au texte réellement publié.
 - Taux d'intérêt légal (`LEGAL_INTEREST_RATES` dans `src/lib/payment-plan.ts`) : à vérifier sur Légifrance ou auprès de la Banque de France avant l'activation, puis à mettre à jour chaque semestre.
 - Réservations existantes : inchangées. Le plan ne s'applique qu'aux nouvelles réservations faites après la publication de la nouvelle version.

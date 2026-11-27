@@ -561,34 +561,41 @@ export const sendBookingConfirmationEmail = async (
   }
 };
 
-export const sendBookingInvoiceEmail = async (
-  email: string,
+type BookingInvoiceEmailDetails = {
+  petName: string;
+  startDate: string;
+  endDate: string;
+  // Période avec une seule mention du fuseau (formatServicePeriod). Absente
+  // chez les appelants plus anciens : repli sur « début – fin ».
+  period?: string;
+  totalPrice: number;
+  serviceLabel?: string;
+  bookingId?: string;
+};
+
+type BookingInvoiceEmailInvoice = {
+  number: string;
+  amountPaid: number;
+  hostedUrl: string;
+  pdfUrl?: string;
+};
+
+// Contenu de l'e-mail de facture, sans envoi (testable sans Resend).
+export function buildBookingInvoiceEmail(
   userName: string,
-  bookingDetails: {
-    petName: string;
-    startDate: string;
-    endDate: string;
-    totalPrice: number;
-    serviceLabel?: string;
-    bookingId?: string;
-  },
-  invoice: {
-    number: string;
-    amountPaid: number;
-    hostedUrl: string;
-    pdfUrl?: string;
-  },
-  options?: { idempotencyKey?: string }
-) => {
+  bookingDetails: BookingInvoiceEmailDetails,
+  invoice: BookingInvoiceEmailInvoice
+) {
   const bookingReference = bookingDetails.bookingId
     ? `#${bookingDetails.bookingId.slice(-8).toUpperCase()}`
     : "";
+  const period = bookingDetails.period || `${bookingDetails.startDate} – ${bookingDetails.endDate}`;
   const rows = [
     { label: "Facture", value: invoice.number },
     ...(bookingReference ? [{ label: "Réservation", value: bookingReference }] : []),
     ...(bookingDetails.serviceLabel ? [{ label: "Prestation", value: bookingDetails.serviceLabel }] : []),
     { label: "Animal", value: bookingDetails.petName },
-    { label: "Période", value: `${bookingDetails.startDate} – ${bookingDetails.endDate}` },
+    { label: "Période", value: period },
     { label: "Montant acquitté", value: `${formatCurrency(invoice.amountPaid)} €` },
   ];
   const rowsEn = [
@@ -596,13 +603,11 @@ export const sendBookingInvoiceEmail = async (
     ...(bookingReference ? [{ label: "Booking", value: bookingReference }] : []),
     ...(bookingDetails.serviceLabel ? [{ label: "Service", value: bookingDetails.serviceLabel }] : []),
     { label: "Pet", value: bookingDetails.petName },
-    { label: "Period", value: `${bookingDetails.startDate} – ${bookingDetails.endDate}` },
+    { label: "Period", value: period },
     { label: "Amount paid", value: `€${formatCurrency(invoice.amountPaid)}` },
   ];
 
-  await sendTransactionalEmail({
-    from: EMAIL_FROM,
-    to: email,
+  return {
     subject: `Votre facture ${invoice.number} / Your invoice - La Patte Dorée`,
     text: bilingualPlainTextEmail({
       fr: {
@@ -649,6 +654,20 @@ export const sendBookingInvoiceEmail = async (
         ${actionButton("View and download my invoice", invoice.hostedUrl, "#15803d")}
       `,
     }),
+  };
+}
+
+export const sendBookingInvoiceEmail = async (
+  email: string,
+  userName: string,
+  bookingDetails: BookingInvoiceEmailDetails,
+  invoice: BookingInvoiceEmailInvoice,
+  options?: { idempotencyKey?: string }
+) => {
+  await sendTransactionalEmail({
+    from: EMAIL_FROM,
+    to: email,
+    ...buildBookingInvoiceEmail(userName, bookingDetails, invoice),
     replyTo: SUPPORT_EMAIL,
   }, options?.idempotencyKey);
 };

@@ -64,6 +64,8 @@ export function getBookingEmailDetails(booking: BookingForEmail) {
     serviceLabel: getServiceLabel(booking.serviceType),
     startDate: `${formatDate(booking.startDate)}${booking.startTime ? ` à ${booking.startTime} (Paris)` : ""}`,
     endDate: `${formatDate(booking.endDate)}${booking.endTime ? ` à ${booking.endTime} (Paris)` : ""}`,
+    // Période complète pour la facture : une seule mention du fuseau.
+    period: formatServicePeriod(booking),
     serviceAddress: isDropOffService(booking.serviceType) ? LEGAL_INFORMATION.address : extractServiceDetails(booking.specialRequests)?.serviceAddress || "Adresse à convenir avec notre équipe",
     totalPrice: booking.totalPrice,
   };
