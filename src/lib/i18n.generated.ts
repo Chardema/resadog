@@ -9388,5 +9388,205 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "€ par jour.": {
     "en": "€ per day.",
     "es": "€ por día."
+  },
+  "L'annulation est gratuite au moins 48 h avant le début de la garde. Passé ce délai, 50 % du montant est retenu, sous réserve des droits légaux.": {
+    "en": "Cancellation is free at least 48 hours before the start of the stay. After that, 50% of the amount is retained, subject to statutory rights.",
+    "es": "La cancelación es gratuita al menos 48 h antes del inicio del cuidado. Pasado ese plazo, se retiene el 50 % del importe, sin perjuicio de los derechos legales."
+  },
+  "Pour cette réservation payée en deux fois, l'annulation est gratuite au moins 7 jours avant le début de la garde ; ensuite l'acompte est conservé et, à moins de 48 h, 50 % du montant total est retenu, sous réserve des droits légaux.": {
+    "en": "For this booking paid in two instalments, cancellation is free at least 7 days before the start of the stay; after that the deposit is kept and, less than 48 hours before, 50% of the total amount is retained, subject to statutory rights.",
+    "es": "Para esta reserva pagada en dos plazos, la cancelación es gratuita al menos 7 días antes del inicio del cuidado; después se conserva el anticipo y, a menos de 48 h, se retiene el 50 % del importe total, sin perjuicio de los derechos legales."
+  },
+  "Solde de réservation à régler": {
+    "en": "Booking balance to pay",
+    "es": "Saldo de reserva pendiente de pago"
+  },
+  "Le prélèvement automatique du solde de la garde de": {
+    "en": "The automatic balance payment for the stay of",
+    "es": "El cobro automático del saldo del cuidado de"
+  },
+  "n'a pas abouti. Réglez-le en ligne pour conserver la réservation.": {
+    "en": "did not go through. Pay it online to keep the booking.",
+    "es": "no se ha completado. Páguelo en línea para conservar la reserva."
+  },
+  "Solde de": {
+    "en": "Balance of",
+    "es": "Saldo de"
+  },
+  "€ prélevé automatiquement le": {
+    "en": "€ charged automatically on",
+    "es": "€ cobrado automáticamente el"
+  },
+  "Réservation payée en deux fois : au moins 7 jours avant le début, l’acompte est libéré ou remboursé intégralement et le solde n’est pas prélevé. Entre 7 jours et 48 h avant, l’acompte est conservé et le solde déjà prélevé est remboursé. À moins de 48 h, 50 % du montant total est retenu. Ces règles s’appliquent sous réserve de vos droits légaux, dont la rétractation de 14 jours. Si vous êtes Premium, vous pouvez demander en priorité un report au moins 24 h avant, sous réserve de disponibilité ; ce report n’est pas une annulation remboursable.": {
+    "en": "Booking paid in two instalments: at least 7 days before the start, the deposit is released or refunded in full and the balance is not charged. Between 7 days and 48 hours before, the deposit is kept and any balance already charged is refunded. Less than 48 hours before, 50% of the total amount is retained. These rules apply subject to your statutory rights, including the 14-day right of withdrawal. If you are Premium, you can request a priority rescheduling at least 24 hours before, subject to availability; rescheduling is not a refundable cancellation.",
+    "es": "Reserva pagada en dos plazos: al menos 7 días antes del inicio, el anticipo se libera o se reembolsa íntegramente y el saldo no se cobra. Entre 7 días y 48 h antes, se conserva el anticipo y se reembolsa el saldo ya cobrado. A menos de 48 h, se retiene el 50 % del importe total. Estas reglas se aplican sin perjuicio de sus derechos legales, incluido el desistimiento de 14 días. Si es Premium, puede solicitar con prioridad un aplazamiento al menos 24 h antes, sujeto a disponibilidad; este aplazamiento no es una cancelación reembolsable."
+  },
+  "Paiement en deux fois :": {
+    "en": "Payment in two instalments:",
+    "es": "Pago en dos plazos:"
+  },
+  "pour un hébergement, une garde, une garderie ou des visites d’au moins 100 € réservés au moins 14 jours à l’avance, un acompte de 30 % est débité à l’acceptation de la demande, puis le solde est prélevé automatiquement 7 jours avant le début, avec votre accord donné lors de la réservation.": {
+    "en": "for boarding, house sitting, day care or visits of at least €100 booked at least 14 days in advance, a 30% deposit is charged when the request is accepted, then the balance is charged automatically 7 days before the start, with the consent you give when booking.",
+    "es": "para un alojamiento, un cuidado a domicilio, una guardería o visitas de al menos 100 € reservados con al menos 14 días de antelación, se cobra un anticipo del 30 % al aceptar la solicitud y el saldo se cobra automáticamente 7 días antes del inicio, con el consentimiento dado al reservar."
+  },
+  "Réservation avec acompte :": {
+    "en": "Booking with a deposit:",
+    "es": "Reserva con anticipo:"
+  },
+  "annulation gratuite au moins 7 jours avant le début ; ensuite l’acompte est conservé ; à moins de 48 h, 50 % du montant total est retenu, sous réserve des droits légaux.": {
+    "en": "free cancellation at least 7 days before the start; after that the deposit is kept; less than 48 hours before, 50% of the total amount is retained, subject to statutory rights.",
+    "es": "cancelación gratuita al menos 7 días antes del inicio; después se conserva el anticipo; a menos de 48 h, se retiene el 50 % del importe total, sin perjuicio de los derechos legales."
+  },
+  "Carte enregistrée et autorisation de prélèvement :": {
+    "en": "Saved card and payment authorisation:",
+    "es": "Tarjeta registrada y autorización de cobro:"
+  },
+  "pour une réservation payée en deux fois (acompte puis solde), la carte utilisée pour l’acompte est enregistrée et conservée par Stripe, et non par": {
+    "en": "for a booking paid in two instalments (deposit then balance), the card used for the deposit is saved and stored by Stripe, not by",
+    "es": "para una reserva pagada en dos plazos (anticipo y después saldo), la tarjeta utilizada para el anticipo la registra y conserva Stripe, y no"
+  },
+  ", afin de prélever le solde à la date convenue.": {
+    "en": ", in order to charge the balance on the agreed date.",
+    "es": ", con el fin de cobrar el saldo en la fecha acordada."
+  },
+  "conserve uniquement la référence Stripe de la carte, sa marque, ses quatre derniers chiffres et la preuve de l’autorisation donnée (date et heure, montant, date prévue du prélèvement, version des CGV). Ces informations servent à exécuter le prélèvement autorisé, à proposer un paiement en ligne en cas d’échec et à prouver l’accord du client en cas de contestation. Elles sont conservées pendant la durée de la réservation, puis pendant les délais légaux de conservation des pièces comptables et de contestation des paiements.": {
+    "en": "only keeps the card's Stripe reference, its brand, its last four digits and proof of the authorisation given (date and time, amount, scheduled payment date, version of the terms of sale). This information is used to carry out the authorised payment, to offer online payment if it fails and to prove the customer's consent in the event of a dispute. It is kept for the duration of the booking, then for the legal retention periods for accounting records and payment disputes.",
+    "es": "solo conserva la referencia Stripe de la tarjeta, su marca, sus cuatro últimos dígitos y la prueba de la autorización dada (fecha y hora, importe, fecha prevista del cobro, versión de las condiciones de venta). Esta información sirve para ejecutar el cobro autorizado, ofrecer un pago en línea en caso de fallo y demostrar el consentimiento del cliente en caso de reclamación. Se conserva durante la reserva y, después, durante los plazos legales de conservación de documentos contables y de reclamación de pagos."
+  },
+  "pour les paiements, remboursements, abonnements et documents de facturation associés, ainsi que la conservation de la carte enregistrée pour le prélèvement du solde ;": {
+    "en": "for payments, refunds, subscriptions and related billing documents, as well as storing the saved card for the balance payment;",
+    "es": "para los pagos, reembolsos, suscripciones y documentos de facturación asociados, así como la conservación de la tarjeta registrada para el cobro del saldo;"
+  },
+  "Paiement en deux fois : acompte et solde": {
+    "en": "Payment in two instalments: deposit and balance",
+    "es": "Pago en dos plazos: anticipo y saldo"
+  },
+  "Pour une réservation d’hébergement, de garde au domicile, de garderie ou de visites dont le montant total atteint au moins 100 € et dont le début intervient au moins 14 jours après la demande, le paiement s’effectue en deux fois. Les autres réservations sont réglées en une fois, comme indiqué ci-dessus. Le mode de paiement applicable, le montant de l’acompte, le montant du solde et la date de son prélèvement sont affichés avant l’envoi de la demande.": {
+    "en": "For a boarding, house-sitting, day-care or visit booking whose total amount is at least €100 and which starts at least 14 days after the request, payment is made in two instalments. Other bookings are paid in a single payment, as stated above. The applicable payment method, the deposit amount, the balance amount and the date on which it is charged are displayed before the request is sent.",
+    "es": "Para una reserva de alojamiento, cuidado a domicilio, guardería o visitas cuyo importe total sea de al menos 100 € y cuyo inicio tenga lugar al menos 14 días después de la solicitud, el pago se realiza en dos plazos. Las demás reservas se pagan en un solo pago, como se indica arriba. La modalidad de pago aplicable, el importe del anticipo, el importe del saldo y la fecha de su cobro se muestran antes de enviar la solicitud."
+  },
+  "Acompte :": {
+    "en": "Deposit:",
+    "es": "Anticipo:"
+  },
+  "30 % du montant total, arrondi à l’euro supérieur. Il fait l’objet d’une autorisation bancaire lors de la demande et n’est débité qu’après acceptation de la réservation. Si la demande est refusée ou n’est pas acceptée à temps, l’autorisation est libérée sans frais. La somme versée constitue un acompte et non des arrhes : son sort en cas d’annulation est fixé à l’article 3.": {
+    "en": "30% of the total amount, rounded up to the next euro. It is subject to a bank authorisation when the request is made and is only charged once the booking is accepted. If the request is declined or not accepted in time, the authorisation is released free of charge. The sum paid is a deposit (acompte) and not a forfeitable deposit (arrhes): what happens to it in the event of cancellation is set out in article 3.",
+    "es": "30 % del importe total, redondeado al euro superior. Es objeto de una autorización bancaria en el momento de la solicitud y solo se cobra tras la aceptación de la reserva. Si la solicitud se rechaza o no se acepta a tiempo, la autorización se libera sin gastos. La suma pagada constituye un anticipo a cuenta (acompte) y no unas arras (arrhes): su destino en caso de cancelación se fija en el artículo 3."
+  },
+  "Solde :": {
+    "en": "Balance:",
+    "es": "Saldo:"
+  },
+  "montant total diminué de l’acompte et, le cas échéant, des intérêts légaux mentionnés à l’article 3. Il est prélevé automatiquement 7 jours avant le début de la prestation, sur la carte enregistrée lors de la demande. Un rappel est adressé par e-mail environ 14 jours avant le début.": {
+    "en": "the total amount less the deposit and, where applicable, the statutory interest mentioned in article 3. It is charged automatically 7 days before the start of the service, to the card saved when the request was made. A reminder is sent by email about 14 days before the start.",
+    "es": "importe total menos el anticipo y, en su caso, los intereses legales mencionados en el artículo 3. Se cobra automáticamente 7 días antes del inicio de la prestación, en la tarjeta registrada al hacer la solicitud. Se envía un recordatorio por correo electrónico unos 14 días antes del inicio."
+  },
+  "Autorisation de prélèvement du solde :": {
+    "en": "Balance payment authorisation:",
+    "es": "Autorización de cobro del saldo:"
+  },
+  "en cochant la case dédiée avant le paiement, le client autorise": {
+    "en": "by ticking the dedicated box before payment, the customer authorises",
+    "es": "al marcar la casilla correspondiente antes del pago, el cliente autoriza a"
+  },
+  "à prélever le solde, au montant et à la date affichés, sur la carte enregistrée, sans autre action de sa part. Cette autorisation porte sur ce seul prélèvement. Sa date et son heure, le montant, la date prévue et la version des CGV acceptée sont conservés comme preuve. Le client y met fin en annulant la réservation selon l’article 3 ; aucun autre débit n’est effectué sur cette carte sans son accord.": {
+    "en": "to charge the balance, for the amount and on the date displayed, to the saved card, with no further action on their part. This authorisation covers this single payment only. Its date and time, the amount, the scheduled date and the version of the terms of sale accepted are kept as proof. The customer ends it by cancelling the booking in accordance with article 3; no other charge is made to this card without their consent.",
+    "es": "a cobrar el saldo, por el importe y en la fecha indicados, en la tarjeta registrada, sin ninguna otra acción por su parte. Esta autorización se refiere únicamente a este cobro. Su fecha y hora, el importe, la fecha prevista y la versión de las condiciones de venta aceptada se conservan como prueba. El cliente le pone fin cancelando la reserva según el artículo 3; no se realiza ningún otro cargo en esta tarjeta sin su consentimiento."
+  },
+  "Échec du prélèvement :": {
+    "en": "Failed payment:",
+    "es": "Cobro fallido:"
+  },
+  "si la banque refuse le paiement ou demande une authentification, le client est prévenu par e-mail et peut régler le solde en ligne depuis son espace client. De nouvelles tentatives et des rappels peuvent avoir lieu. À défaut de paiement 2 jours avant le début, à 12 h (heure de Paris), la réservation est annulée et l’acompte reste acquis, sous réserve des droits légaux du client.": {
+    "en": "if the bank declines the payment or requests authentication, the customer is notified by email and can pay the balance online from their customer account. Further attempts and reminders may take place. If payment has not been made by 12 noon (Paris time) 2 days before the start, the booking is cancelled and the deposit is kept, subject to the customer's statutory rights.",
+    "es": "si el banco rechaza el pago o solicita una autenticación, se avisa al cliente por correo electrónico y puede pagar el saldo en línea desde su área de cliente. Pueden producirse nuevos intentos y recordatorios. A falta de pago 2 días antes del inicio, a las 12 h (hora de París), la reserva se cancela y el anticipo queda adquirido, sin perjuicio de los derechos legales del cliente."
+  },
+  "Facture :": {
+    "en": "Invoice:",
+    "es": "Factura:"
+  },
+  "une facture unique est émise après le paiement du solde ; elle mentionne l’acompte déduit.": {
+    "en": "a single invoice is issued after the balance has been paid; it shows the deposit deducted.",
+    "es": "se emite una única factura tras el pago del saldo; en ella figura el anticipo deducido."
+  },
+  "Réservations payées en deux fois (acompte et solde)": {
+    "en": "Bookings paid in two instalments (deposit and balance)",
+    "es": "Reservas pagadas en dos plazos (anticipo y saldo)"
+  },
+  "Les règles ci-dessus concernent les réservations réglées en une fois. Pour une réservation payée en deux fois, l’annulation par le client suit le barème suivant :": {
+    "en": "The rules above apply to bookings paid in a single payment. For a booking paid in two instalments, cancellation by the customer follows the scale below:",
+    "es": "Las reglas anteriores se refieren a las reservas pagadas en un solo pago. Para una reserva pagada en dos plazos, la cancelación por parte del cliente sigue la siguiente escala:"
+  },
+  "Au moins 7 jours avant le début :": {
+    "en": "At least 7 days before the start:",
+    "es": "Al menos 7 días antes del inicio:"
+  },
+  "annulation gratuite. L’autorisation de l’acompte est libérée ou l’acompte est remboursé intégralement ; le solde n’est pas prélevé.": {
+    "en": "free cancellation. The deposit authorisation is released or the deposit is refunded in full; the balance is not charged.",
+    "es": "cancelación gratuita. La autorización del anticipo se libera o el anticipo se reembolsa íntegramente; el saldo no se cobra."
+  },
+  "Entre 7 jours et 48 h avant le début :": {
+    "en": "Between 7 days and 48 hours before the start:",
+    "es": "Entre 7 días y 48 h antes del inicio:"
+  },
+  "l’acompte est conservé. Le solde, s’il a déjà été prélevé, est remboursé.": {
+    "en": "the deposit is kept. The balance, if already charged, is refunded.",
+    "es": "se conserva el anticipo. El saldo, si ya se ha cobrado, se reembolsa."
+  },
+  "Moins de 48 h avant le début :": {
+    "en": "Less than 48 hours before the start:",
+    "es": "Menos de 48 h antes del inicio:"
+  },
+  "50 % du montant total est retenu, acompte compris. Le surplus déjà encaissé est remboursé.": {
+    "en": "50% of the total amount is retained, including the deposit. Any surplus already collected is refunded.",
+    "es": "se retiene el 50 % del importe total, anticipo incluido. El excedente ya cobrado se reembolsa."
+  },
+  "Annulation par": {
+    "en": "Cancellation by",
+    "es": "Cancelación por parte de"
+  },
+  "l’acompte et le solde éventuellement prélevé sont remboursés intégralement. La somme versée étant un acompte et non des arrhes, elle n’est pas restituée au double.": {
+    "en": "the deposit and any balance already charged are refunded in full. As the sum paid is a deposit (acompte) and not a forfeitable deposit (arrhes), it is not refunded twice over.",
+    "es": "el anticipo y el saldo que se haya cobrado se reembolsan íntegramente. Al tratarse de un anticipo a cuenta (acompte) y no de arras (arrhes), no se devuelve el doble."
+  },
+  "Solde impayé à la date limite :": {
+    "en": "Balance unpaid by the deadline:",
+    "es": "Saldo impagado en la fecha límite:"
+  },
+  "la réservation est annulée dans les conditions de l’article 2 et l’acompte reste acquis.": {
+    "en": "the booking is cancelled under the conditions of article 2 and the deposit is kept.",
+    "es": "la reserva se cancela en las condiciones del artículo 2 y el anticipo queda adquirido."
+  },
+  "la règle de non-présentation ci-dessus s’applique, dans la limite des sommes encaissées (acompte et, le cas échéant, solde). Aucun prélèvement supplémentaire n’est automatique.": {
+    "en": "the no-show rule above applies, up to the amounts collected (deposit and, where applicable, balance). No additional charge is automatic.",
+    "es": "se aplica la regla de no presentación anterior, dentro del límite de las sumas cobradas (anticipo y, en su caso, saldo). Ningún cargo adicional es automático."
+  },
+  "Intérêts sur l’acompte :": {
+    "en": "Interest on the deposit:",
+    "es": "Intereses sobre el anticipo:"
+  },
+  "conformément à l’article L214-2 du Code de la consommation, lorsque la prestation est exécutée plus de trois mois après le versement de l’acompte, celui-ci porte intérêt au taux légal à compter de l’expiration de ce délai de trois mois et jusqu’à l’exécution de la prestation. Ces intérêts sont déduits du solde.": {
+    "en": "in accordance with article L214-2 of the French Consumer Code, when the service is performed more than three months after the deposit is paid, the deposit bears interest at the statutory rate from the end of that three-month period until the service is performed. This interest is deducted from the balance.",
+    "es": "de conformidad con el artículo L214-2 del Código de Consumo francés, cuando la prestación se ejecuta más de tres meses después del pago del anticipo, este devenga intereses al tipo legal desde el vencimiento de ese plazo de tres meses hasta la ejecución de la prestación. Estos intereses se deducen del saldo."
+  },
+  "Rétractation :": {
+    "en": "Withdrawal:",
+    "es": "Desistimiento:"
+  },
+  "ce barème s’applique sans préjudice du droit de rétractation décrit ci-dessous. Si le client se rétracte dans le délai légal de quatorze jours, l’acompte et toute somme versée lui sont remboursés intégralement, au plus tard quatorze jours après la rétractation, sous réserve du montant proportionnel au service déjà exécuté à sa demande.": {
+    "en": "this scale applies without prejudice to the right of withdrawal described below. If the customer withdraws within the statutory fourteen-day period, the deposit and any sum paid are refunded in full, no later than fourteen days after the withdrawal, less the amount proportionate to any service already performed at their request.",
+    "es": "esta escala se aplica sin perjuicio del derecho de desistimiento descrito a continuación. Si el cliente desiste dentro del plazo legal de catorce días, el anticipo y cualquier suma pagada se le reembolsan íntegramente, a más tardar catorce días después del desistimiento, salvo el importe proporcional al servicio ya prestado a petición suya."
+  },
+  "Un supplément accepté est réglé au moyen d’un lien de paiement sécurisé envoyé au client. La carte enregistrée pour le solde d’une réservation payée en deux fois n’est jamais débitée d’un supplément.": {
+    "en": "An accepted supplement is paid via a secure payment link sent to the customer. The card saved for the balance of a booking paid in two instalments is never charged for a supplement.",
+    "es": "Un suplemento aceptado se paga mediante un enlace de pago seguro enviado al cliente. La tarjeta registrada para el saldo de una reserva pagada en dos plazos nunca se carga con un suplemento."
+  },
+  "Pour une réservation payée en deux fois, la carte utilisée pour l’acompte est enregistrée par Stripe afin de prélever le solde à la date convenue.": {
+    "en": "For a booking paid in two instalments, the card used for the deposit is saved by Stripe in order to charge the balance on the agreed date.",
+    "es": "Para una reserva pagada en dos plazos, Stripe registra la tarjeta utilizada para el anticipo con el fin de cobrar el saldo en la fecha acordada."
+  },
+  "n’a pas accès au numéro complet de la carte.": {
+    "en": "does not have access to the full card number.",
+    "es": "no tiene acceso al número completo de la tarjeta."
   }
 } as const;

@@ -11,7 +11,9 @@ import {
   BALANCE_REMINDER_DAYS_BEFORE,
   PAYMENT_PLAN_ENABLED,
   getBalanceAmountDue,
+  getBalancePaymentStateFor,
   getBalanceSchedule,
+  type BalancePaymentState,
   type BalanceSchedule,
 } from "@/lib/payment-plan";
 import { stripe } from "@/lib/stripe/config";
@@ -461,15 +463,14 @@ export async function findClientBalanceInstallment(bookingId: string, userId: st
   });
 }
 
-export type BalancePaymentState = "PAYABLE" | "PAID" | "SCHEDULED" | "IN_PROGRESS" | "CLOSED";
+export type { BalancePaymentState };
 
 export function getBalancePaymentState(installment: Pick<BalanceInstallment, "status" | "booking">, now: Date): BalancePaymentState {
-  if (installment.status === "SUCCEEDED") return "PAID";
-  if (installment.booking.status !== "CONFIRMED") return "CLOSED";
-  if (installment.status === "SCHEDULED") return "SCHEDULED";
-  if (installment.status === "PROCESSING") return "IN_PROGRESS";
-  if (installment.status !== "FAILED") return "CLOSED";
-  return now.getTime() < getBalanceSchedule(installment.booking.startDate).finalDeadlineAt.getTime() ? "PAYABLE" : "CLOSED";
+  return getBalancePaymentStateFor({
+    installmentStatus: installment.status,
+    bookingStatus: installment.booking.status,
+    startDate: installment.booking.startDate,
+  }, now);
 }
 
 /**

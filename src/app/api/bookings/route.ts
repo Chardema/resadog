@@ -17,6 +17,7 @@ import {
   toDateKey,
 } from "@/lib/booking-availability";
 import { getPetProfileCompletion, isPetBirthDateVerified } from "@/lib/pets";
+import { getBalanceAmountDue, getBalancePaymentStateFor } from "@/lib/payment-plan";
 
 class BookingInputError extends Error {}
 
@@ -670,15 +671,48 @@ export async function GET() {
             name: true,
             breed: true,
           }
-        }
+        },
+        // Plan acompte + solde (spec 07) : vide pour les réservations FULL.
+        installments: {
+          where: { kind: "BALANCE" },
+          select: { status: true, amount: true, dueAt: true },
+        },
+        payment: {
+          select: { capturedAmount: true, paidAt: true },
+        },
       },
       orderBy: {
         startDate: "desc",
       },
     });
 
+    const now = new Date();
+    // Champs ajoutés seulement aux réservations DEPOSIT_BALANCE : la réponse
+    // des réservations FULL reste identique.
+    const getBalanceSummary = (b: (typeof bookings)[number]) => {
+      if (b.paymentPlan !== "DEPOSIT_BALANCE") return {};
+      // Échéance créée à l'acceptation : rien à afficher pour une demande en attente.
+      const installment = b.installments[0];
+      if (!installment) return { paymentPlan: b.paymentPlan, balance: null };
+      const { amountDue } = getBalanceAmountDue({
+        balanceAmount: installment.amount,
+        depositAmount: b.payment?.capturedAmount || b.depositAmount || 0,
+        depositPaidAt: b.payment?.paidAt ?? null,
+        startDate: b.startDate,
+      });
+      return {
+        paymentPlan: b.paymentPlan,
+        balance: {
+          amountDue,
+          dueAt: installment.dueAt.toISOString(),
+          state: getBalancePaymentStateFor({ installmentStatus: installment.status, bookingStatus: b.status, startDate: b.startDate }, now),
+        },
+      };
+    };
+
     return NextResponse.json({
       bookings: bookings.map((b) => ({
+        ...getBalanceSummary(b),
         id: b.id,
         startDate: b.startDate.toISOString(),
         endDate: b.endDate.toISOString(),

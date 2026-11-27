@@ -1,6 +1,7 @@
 import { buildMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { LEGAL_DOCUMENT_VERSION_LABEL, LEGAL_INFORMATION } from "@/lib/legal";
+import { PAYMENT_PLAN_ENABLED } from "@/lib/payment-plan";
 
 export const metadata = buildMetadata({
   title: "Politique de confidentialité",
@@ -36,6 +37,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Animaux :</strong> identité, espèce, race, date de naissance, poids, comportement, alimentation, traitements, informations vétérinaires, contact d’urgence, photos et justificatifs transmis.</li>
               <li><strong>Réservations :</strong> dates, horaires, adresse d’intervention, prestations demandées, instructions, messages, statut et historique.</li>
               <li><strong>Paiements et fidélité :</strong> montants, remises, statut des transactions, références Stripe, factures d’abonnement et mouvements de fidélité. Les numéros complets de carte ne sont pas stockés par {LEGAL_INFORMATION.commercialName}.</li>
+              {PAYMENT_PLAN_ENABLED && <li><strong>Carte enregistrée et autorisation de prélèvement :</strong> pour une réservation payée en deux fois (acompte puis solde), la carte utilisée pour l’acompte est enregistrée et conservée par Stripe, et non par {LEGAL_INFORMATION.commercialName}, afin de prélever le solde à la date convenue. {LEGAL_INFORMATION.commercialName} conserve uniquement la référence Stripe de la carte, sa marque, ses quatre derniers chiffres et la preuve de l’autorisation donnée (date et heure, montant, date prévue du prélèvement, version des CGV). Ces informations servent à exécuter le prélèvement autorisé, à proposer un paiement en ligne en cas d’échec et à prouver l’accord du client en cas de contestation. Elles sont conservées pendant la durée de la réservation, puis pendant les délais légaux de conservation des pièces comptables et de contestation des paiements.</li>}
               <li><strong>Support et avis :</strong> demandes adressées à l’équipe, signalements, avis et informations nécessaires à leur suivi.</li>
               <li><strong>Données techniques :</strong> journaux de sécurité, adresse IP lorsque nécessaire, choix de langue et préférence relative à la mesure d’audience.</li>
             </ul>
@@ -61,7 +63,9 @@ export default function PrivacyPolicyPage() {
               <li><strong>Vercel</strong> pour l’hébergement et l’exécution du site ;</li>
               <li><strong>Supabase</strong> pour le stockage des comptes, animaux, réservations et journaux applicatifs ;</li>
               <li><strong>UploadThing</strong> pour les photos d’animaux et justificatifs téléversés ;</li>
-              <li><strong>Stripe</strong> pour les paiements, remboursements, abonnements et documents de facturation associés ;</li>
+              {PAYMENT_PLAN_ENABLED
+                ? <li><strong>Stripe</strong> pour les paiements, remboursements, abonnements et documents de facturation associés, ainsi que la conservation de la carte enregistrée pour le prélèvement du solde ;</li>
+                : <li><strong>Stripe</strong> pour les paiements, remboursements, abonnements et documents de facturation associés ;</li>}
               <li><strong>Resend</strong> pour les courriels transactionnels ;</li>
               <li><strong>Google ou Apple</strong> si le client choisit l’un de ces fournisseurs pour se connecter ;</li>
               <li><strong>Google Maps Platform</strong> pour les avis publics, et Google Analytics/Ads uniquement selon le choix de consentement applicable ;</li>

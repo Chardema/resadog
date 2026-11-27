@@ -128,6 +128,22 @@ export function getBalanceSchedule(startDate: Date | string): BalanceSchedule {
   };
 }
 
+// État du solde vu par le client : PAYABLE seulement après un échec du
+// prélèvement, tant que la limite J-2 12:00 n'est pas atteinte.
+export type BalancePaymentState = "PAYABLE" | "PAID" | "SCHEDULED" | "IN_PROGRESS" | "CLOSED";
+
+export function getBalancePaymentStateFor(
+  input: { installmentStatus: string; bookingStatus: string; startDate: Date | string },
+  now: Date
+): BalancePaymentState {
+  if (input.installmentStatus === "SUCCEEDED") return "PAID";
+  if (input.bookingStatus !== "CONFIRMED") return "CLOSED";
+  if (input.installmentStatus === "SCHEDULED") return "SCHEDULED";
+  if (input.installmentStatus === "PROCESSING") return "IN_PROGRESS";
+  if (input.installmentStatus !== "FAILED") return "CLOSED";
+  return now.getTime() < getBalanceSchedule(input.startDate).finalDeadlineAt.getTime() ? "PAYABLE" : "CLOSED";
+}
+
 // ---------------------------------------------------------------------------
 // Annulation (plan DEPOSIT_BALANCE uniquement ; FULL garde le barème 48 h / 50 %)
 // ---------------------------------------------------------------------------

@@ -83,6 +83,11 @@ import {
   localDateToDateKey,
 } from "@/lib/booking-dates";
 
+// Rappel du barème dans la case CGV : celui du paiement en deux fois quand la
+// réservation relève du plan acompte + solde (spec 07).
+const FULL_CANCELLATION_SUMMARY = "L'annulation est gratuite au moins 48 h avant le début de la garde. Passé ce délai, 50 % du montant est retenu, sous réserve des droits légaux.";
+const DEPOSIT_CANCELLATION_SUMMARY = "Pour cette réservation payée en deux fois, l'annulation est gratuite au moins 7 jours avant le début de la garde ; ensuite l'acompte est conservé et, à moins de 48 h, 50 % du montant total est retenu, sous réserve des droits légaux.";
+
 type ServiceOption = {
   value: AppServiceType;
   name: string;
@@ -2911,7 +2916,7 @@ export default function BookingPage() {
                                 className="mt-1 w-5 h-5 accent-orange-600 rounded cursor-pointer"
                             />
                             <label data-no-translate htmlFor="legal-checkbox" className="text-sm text-gray-600 cursor-pointer">
-                                J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-700 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-700 hover:text-orange-800">Politique de confidentialité</Link>. L&apos;annulation est gratuite au moins 48 h avant le début de la garde. Passé ce délai, 50 % du montant est retenu, sous réserve des droits légaux. {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
+                                J&apos;accepte les <Link href="/legal/cgv" target="_blank" className="underline text-orange-700 hover:text-orange-800">Conditions générales de vente de {LEGAL_INFORMATION.commercialName}</Link> dans leur version du {LEGAL_DOCUMENT_VERSION_LABEL}, et je reconnais avoir pris connaissance de la <Link href="/legal/confidentialite" target="_blank" className="underline text-orange-700 hover:text-orange-800">Politique de confidentialité</Link>. {depositTerms ? DEPOSIT_CANCELLATION_SUMMARY : FULL_CANCELLATION_SUMMARY} {ATTENDANCE_SUMMARY} Premium permet de demander en priorité un report, au moins 24 h avant, sous réserve de disponibilité.
                             </label>
                         </div>
 

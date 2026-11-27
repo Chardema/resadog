@@ -31,6 +31,7 @@ import {
   YOUNG_ANIMAL_SURCHARGE,
 } from "@/lib/pricing";
 import { PREMIUM_SUBSCRIPTION } from "@/lib/subscription-pricing";
+import { PAYMENT_PLAN_ENABLED } from "@/lib/payment-plan";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
@@ -399,6 +400,12 @@ export default function PricingPage() {
             <h2 className="mt-4 text-2xl font-bold">Annulation</h2>
             <ul className="mt-5 space-y-3 text-sm leading-6 text-gray-600">
               <li><strong className="text-gray-950">Tarif standard :</strong> annulation gratuite au moins 48 h avant le début ; à moins de 48 h, 50 % du montant est retenu.</li>
+              {PAYMENT_PLAN_ENABLED && (
+                <>
+                  <li><strong className="text-gray-950">Paiement en deux fois :</strong> pour un hébergement, une garde, une garderie ou des visites d’au moins 100 € réservés au moins 14 jours à l’avance, un acompte de 30 % est débité à l’acceptation de la demande, puis le solde est prélevé automatiquement 7 jours avant le début, avec votre accord donné lors de la réservation.</li>
+                  <li><strong className="text-gray-950">Réservation avec acompte :</strong> annulation gratuite au moins 7 jours avant le début ; ensuite l’acompte est conservé ; à moins de 48 h, 50 % du montant total est retenu, sous réserve des droits légaux.</li>
+                </>
+              )}
               <li><strong className="text-gray-950">Client Premium :</strong> même règle d’annulation ; possibilité de demander en priorité un report au moins 24 h avant, sous réserve de disponibilité.</li>
               <li><strong className="text-gray-950">Non-présentation :</strong> une indemnité correspondant au préjudice justifié (créneau immobilisé, temps mobilisé et impossibilité de réattribuer la place), déduction faite des coûts économisés et des sommes obtenues par une réattribution, peut être retenue dans la limite du prix réservé. Aucun remboursement n’est effectué si cette indemnité justifiée couvre la totalité du montant encaissé. Sinon, la différence est remboursée. Aucun prélèvement supplémentaire n’est automatique.</li>
             </ul>

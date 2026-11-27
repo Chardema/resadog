@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { GOOGLE_REVIEW_URL } from "@/lib/google-reviews";
 import { getServiceDisplayPrice } from "@/lib/pricing";
 import { LEGAL_INFORMATION } from "@/lib/legal";
+import type { BalanceMandateTerms } from "@/lib/payment-plan";
 import {
   AUTHORIZATION_EXPIRED_SUBJECT,
   BALANCE_EMAIL_SUBJECTS,
@@ -12,6 +13,8 @@ import {
   getAuthorizationExpiredSection,
   getBalanceEmailSection,
   getDepositConfirmationSection,
+  getDepositRequestPaymentRow,
+  getDepositRequestSchedule,
   type BalanceEmailInput,
   type BalanceEmailKind,
   type DepositConfirmationSchedule,
@@ -660,10 +663,13 @@ export const sendBookingRequestEmail = async (
     totalPrice?: number;
     serviceLabel?: string;
     bookingId?: string;
+    // Plan acompte + solde (spec 07) : absent pour un paiement en une fois.
+    depositPlan?: BalanceMandateTerms | null;
   },
   options?: { idempotencyKey?: string }
 ) => {
   try {
+    const depositPlan = bookingDetails?.depositPlan ?? null;
     const rows = [
       ...(bookingDetails?.bookingId ? [{ label: "Réservation", value: `#${bookingDetails.bookingId.slice(-8).toUpperCase()}` }] : []),
       { label: "Animal", value: petName },
@@ -671,9 +677,11 @@ export const sendBookingRequestEmail = async (
       { label: "Statut", value: "En attente de validation" },
       ...(bookingDetails?.startDate ? [{ label: "Début", value: bookingDetails.startDate }] : []),
       ...(bookingDetails?.endDate ? [{ label: "Fin", value: bookingDetails.endDate }] : []),
-      ...(typeof bookingDetails?.totalPrice === "number"
-        ? [{ label: "Paiement", value: `${formatCurrency(bookingDetails.totalPrice)} € en attente de validation` }]
-        : []),
+      ...(depositPlan
+        ? [{ label: "Paiement", value: getDepositRequestPaymentRow(depositPlan, "fr") }]
+        : typeof bookingDetails?.totalPrice === "number"
+          ? [{ label: "Paiement", value: `${formatCurrency(bookingDetails.totalPrice)} € en attente de validation` }]
+          : []),
     ];
     const rowsEn = [
       ...(bookingDetails?.bookingId ? [{ label: "Booking", value: `#${bookingDetails.bookingId.slice(-8).toUpperCase()}` }] : []),
@@ -682,10 +690,14 @@ export const sendBookingRequestEmail = async (
       { label: "Status", value: "Awaiting confirmation" },
       ...(bookingDetails?.startDate ? [{ label: "Start", value: bookingDetails.startDate }] : []),
       ...(bookingDetails?.endDate ? [{ label: "End", value: bookingDetails.endDate }] : []),
-      ...(typeof bookingDetails?.totalPrice === "number"
-        ? [{ label: "Payment", value: `€${formatCurrency(bookingDetails.totalPrice)} awaiting confirmation` }]
-        : []),
+      ...(depositPlan
+        ? [{ label: "Payment", value: getDepositRequestPaymentRow(depositPlan, "en") }]
+        : typeof bookingDetails?.totalPrice === "number"
+          ? [{ label: "Payment", value: `€${formatCurrency(bookingDetails.totalPrice)} awaiting confirmation` }]
+          : []),
     ];
+    const depositScheduleFr = depositPlan ? getDepositRequestSchedule(depositPlan, "fr") : null;
+    const depositScheduleEn = depositPlan ? getDepositRequestSchedule(depositPlan, "en") : null;
 
     await sendTransactionalEmail({
       from: EMAIL_FROM,
@@ -699,6 +711,7 @@ export const sendBookingRequestEmail = async (
             `Nous avons bien reçu votre demande pour ${petName}.`,
             "Elle est en attente de validation par l'équipe La Patte Dorée.",
             "Votre carte n'est pas débitée tant que la réservation n'est pas validée.",
+            ...(depositScheduleFr ? [depositScheduleFr] : []),
             "Vous recevrez un second email dès que la réservation sera acceptée.",
           ],
           rows,
@@ -711,6 +724,7 @@ export const sendBookingRequestEmail = async (
             `We have received your request for ${petName}.`,
             "It is awaiting confirmation by the La Patte Dorée team.",
             "Your card is not charged until the booking is confirmed.",
+            ...(depositScheduleEn ? [depositScheduleEn] : []),
             "You will receive another email as soon as the booking is accepted.",
           ],
           rows: rowsEn,
@@ -732,6 +746,7 @@ export const sendBookingRequestEmail = async (
           <p style="margin:20px 0 0; color:#344054; font-size:15px; line-height:1.7;">
             Votre carte n'est pas débitée tant que la réservation n'est pas validée.
           </p>
+          ${depositScheduleFr ? `<p style="margin:12px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(depositScheduleFr)}</p>` : ""}
           <p style="margin:22px 0 0; color:#344054; font-size:15px; line-height:1.7;">
             Vous recevrez un second email dès que la réservation sera acceptée.
           </p>
@@ -745,6 +760,7 @@ export const sendBookingRequestEmail = async (
           <p style="margin:20px 0 0; color:#344054; font-size:15px; line-height:1.7;">
             Your card is not charged until the booking is confirmed.
           </p>
+          ${depositScheduleEn ? `<p style="margin:12px 0 0; color:#344054; font-size:15px; line-height:1.7;">${escapeHtml(depositScheduleEn)}</p>` : ""}
           <p style="margin:22px 0 0; color:#344054; font-size:15px; line-height:1.7;">
             You will receive another email as soon as the booking is accepted.
           </p>

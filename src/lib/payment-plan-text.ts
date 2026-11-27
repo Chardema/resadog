@@ -89,6 +89,25 @@ export const getDepositLineItemDetail = (terms: BalanceMandateTerms, locale: Pay
 
 export const getBalanceMandateRequiredError = (locale: PaymentPlanLocale) => MANDATE_REQUIRED_ERROR[locale];
 
+// E-mail « demande reçue » (lot 7) : ligne de paiement et rappel du calendrier.
+const REQUEST_PAYMENT_ROW: Record<PaymentPlanLocale, (v: Values) => string> = {
+  fr: (v) => `Acompte de ${v.deposit} autorisé, en attente de validation · solde de ${v.balance} le ${v.date}`,
+  en: (v) => `Deposit of ${v.deposit} authorised, awaiting confirmation · balance of ${v.balance} on ${v.date}`,
+  es: (v) => `Anticipo de ${v.deposit} autorizado, pendiente de validación · saldo de ${v.balance} el ${v.date}`,
+};
+
+const REQUEST_SCHEDULE: Record<PaymentPlanLocale, (v: Values) => string> = {
+  fr: (v) => `Paiement en deux fois : l'acompte de ${v.deposit} n'est débité qu'après acceptation de votre demande. Le solde de ${v.balance} sera prélevé automatiquement le ${v.date} sur la carte enregistrée, comme vous l'avez autorisé. Annulation gratuite jusqu'au ${v.date}.`,
+  en: (v) => `Payment in two instalments: the ${v.deposit} deposit is only charged once your request is accepted. The balance of ${v.balance} will be charged automatically on ${v.date} to the saved card, as you authorised. Free cancellation until ${v.date}.`,
+  es: (v) => `Pago en dos plazos: el anticipo de ${v.deposit} solo se cobra después de aceptar su solicitud. El saldo de ${v.balance} se cobrará automáticamente el ${v.date} en la tarjeta registrada, según lo autorizado. Cancelación gratuita hasta el ${v.date}.`,
+};
+
+export const getDepositRequestPaymentRow = (terms: BalanceMandateTerms, locale: PaymentPlanLocale) =>
+  REQUEST_PAYMENT_ROW[locale](values(terms, locale));
+
+export const getDepositRequestSchedule = (terms: BalanceMandateTerms, locale: PaymentPlanLocale) =>
+  REQUEST_SCHEDULE[locale](values(terms, locale));
+
 // ---------------------------------------------------------------------------
 // E-mail de confirmation avec calendrier (lot 3) et demande expirée (lot 4)
 // ---------------------------------------------------------------------------

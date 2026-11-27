@@ -784,6 +784,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     });
   }
 
+  // Conditions du paiement en deux fois rappelées dans l'e-mail « demande reçue ».
+  const depositPlanTerms = readCheckoutDepositRecord(session.metadata)?.terms ?? null;
+
   // Boucler pour envoyer les emails pour CHAQUE réservation
   for (const id of bookingIds) {
       const booking = await prisma.booking.findUnique({
@@ -799,7 +802,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
             booking.client.email,
             booking.client.name || "Client",
             bookingDetails.petName,
-            bookingDetails,
+            depositPlanTerms ? { ...bookingDetails, depositPlan: depositPlanTerms } : bookingDetails,
             { idempotencyKey: `booking-request-${booking.id}` }
           );
         } catch (emailError) {

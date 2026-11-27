@@ -1,6 +1,7 @@
 import { calculateBookingPrice, CAT_VISIT_PRICING_DESCRIPTION } from "@/lib/pricing";
 import { addCalendarDays, dateKeyToLocalDate, localDateToDateKey } from "@/lib/booking-dates";
 import { LEGAL_INFORMATION } from "@/lib/legal";
+import { PAYMENT_PLAN_ENABLED } from "@/lib/payment-plan";
 
 export const CAT_VISIT_DURATIONS = [30, 60, 90, 120] as const;
 
@@ -81,7 +82,9 @@ export function getQuoteValidUntil(issuedOn: string, firstVisit: string, validit
   return firstVisit && firstVisit < limit ? firstVisit : limit;
 }
 
-export const CAT_VISIT_PAYMENT_TERMS = "Règlement par carte bancaire via le site. Autorisation bancaire à la demande, débit après confirmation de la disponibilité.";
+export const CAT_VISIT_PAYMENT_TERMS = PAYMENT_PLAN_ENABLED
+  ? "Règlement par carte bancaire via le site. Autorisation bancaire à la demande, débit après confirmation de la disponibilité. Pour un total d'au moins 100 € et un premier passage au moins 14 jours après la demande : acompte de 30 % débité à l'acceptation, solde prélevé automatiquement 7 jours avant le premier passage sur la carte enregistrée, avec l'accord du client."
+  : "Règlement par carte bancaire via le site. Autorisation bancaire à la demande, débit après confirmation de la disponibilité.";
 export const CAT_VISIT_ACCEPTANCE_TERMS = "Horaires et disponibilités à confirmer avant acceptation. Si la réservation est demandée moins de 24 h avant le premier passage, un supplément unique de 10 € sera ajouté au devis avant acceptation. Tout frais complémentaire nécessite un accord préalable. Conditions générales : www.lapatte-doree.fr/legal/cgv.";
 
 export function buildCatVisitQuoteText(quote: CatVisitQuote, details: CatVisitQuoteDetails) {
