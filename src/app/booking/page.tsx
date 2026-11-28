@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import AuthLink from "@/components/auth/AuthLink";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
@@ -56,6 +57,7 @@ import {
 } from "@/lib/services";
 import { ATTENDANCE_SUMMARY } from "@/lib/booking-attendance";
 import { SIMULATOR_PET_CARDS } from "@/components/booking/simulatorPetCards";
+import { syncPetConfigs } from "@/lib/booking-pet-configs";
 import { getLegalDocumentVersion, getLegalDocumentVersionLabel, LEGAL_INFORMATION } from "@/lib/legal";
 import { isPaymentPlanEnabled, type BalanceMandateTerms } from "@/lib/payment-plan";
 import { resolveCheckoutDepositPlan } from "@/lib/checkout-payment-plan";
@@ -918,9 +920,15 @@ export default function BookingPage() {
   );
   const isSimulationMode =
     status !== "authenticated" || eligiblePets.length === 0 || isSimulationManual;
-  const simulatedPets = buildSimulatedPets(simCounts);
+  // Mémoïsés : des tableaux recréés à chaque rendu relançaient les effets qui
+  // en dépendent (boucle « Maximum update depth exceeded » en simulation).
+  const simulatedPets = useMemo(() => buildSimulatedPets(simCounts), [simCounts]);
   const activePets = isSimulationMode ? simulatedPets : pets;
-  const activePetIds = isSimulationMode ? simulatedPets.map((pet) => pet.id) : formData.petIds;
+  const activePetIds = useMemo(
+    () => (isSimulationMode ? simulatedPets.map((pet) => pet.id) : formData.petIds),
+    [isSimulationMode, simulatedPets, formData.petIds]
+  );
+  const activePetIdsKey = activePetIds.join("|");
   const totalSimPets =
     simCounts.adultDog + simCounts.puppy + simCounts.adultCat + simCounts.kitten;
 
@@ -1059,21 +1067,18 @@ export default function BookingPage() {
 
   // Initialize pet configs when pets change
   useEffect(() => {
-    setPetConfigs((currentConfigs) => {
-      const initialConfig: Record<string, DateConfig> = {};
-      activePetIds.forEach((id) => {
-        initialConfig[id] = currentConfigs[id] || {
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          startTime: formData.startTime,
-          endTime: formData.endTime,
-          visitSlots: [...visitSlots],
-        };
-      });
-      return initialConfig;
-    });
+    const petIds = activePetIdsKey ? activePetIdsKey.split("|") : [];
+    setPetConfigs((currentConfigs) =>
+      syncPetConfigs<DateConfig>(currentConfigs, petIds, () => ({
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        visitSlots: [...visitSlots],
+      }))
+    );
   }, [
-    activePetIds,
+    activePetIdsKey,
     formData.endDate,
     formData.endTime,
     formData.startDate,
@@ -1193,7 +1198,7 @@ export default function BookingPage() {
       handleSelectServiceType("BOARDING");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePetIds.join(","), formData.serviceType, isSimulationMode]);
+  }, [activePetIdsKey, formData.serviceType, isSimulationMode]);
 
   // Check Availability
   useEffect(() => {
@@ -2817,18 +2822,18 @@ export default function BookingPage() {
                             Votre simulation (dates, horaires, service et tarif estimé) est sauvegardée automatiquement : vous la retrouverez immédiatement après votre connexion.
                           </p>
                           <div className="mt-5 flex flex-col sm:flex-row gap-3">
-                            <Link
+                            <AuthLink
                               href="/auth/signup?callbackUrl=/booking"
                               className="flex-1 inline-flex items-center justify-center rounded-xl bg-gray-950 px-6 py-4 text-center text-base font-bold text-white shadow-md hover:bg-orange-800 transition-colors"
                             >
                               Créer mon compte &amp; continuer →
-                            </Link>
-                            <Link
+                            </AuthLink>
+                            <AuthLink
                               href="/auth/signin?callbackUrl=/booking"
                               className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-6 py-4 text-center text-base font-bold text-gray-900 hover:bg-gray-50 transition-colors"
                             >
                               J&apos;ai déjà un compte
-                            </Link>
+                            </AuthLink>
                           </div>
                         </div>
                         <div className="flex">
@@ -3031,12 +3036,12 @@ export default function BookingPage() {
                   {isLoading ? "Chargement..." : "Payer & confirmer"}
                 </Button>
               ) : status !== "authenticated" ? (
-                <Link
+                <AuthLink
                   href="/auth/signup?callbackUrl=/booking"
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-gray-950 px-4 text-sm font-bold text-white hover:bg-orange-800"
                 >
                   Continuer &amp; réserver →
-                </Link>
+                </AuthLink>
               ) : eligiblePets.length > 0 ? (
                 <Button
                   type="button"

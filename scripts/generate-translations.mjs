@@ -6,6 +6,10 @@ const projectRoot = process.cwd();
 const sourceRoots = ["src/app", "src/components"];
 const extraFiles = [
   "src/lib/about-page.ts",
+  // Messages de validation/erreur renvoyés par les API d'authentification.
+  "src/lib/auth/api-error.ts",
+  "src/lib/auth/password.ts",
+  "src/lib/auth/register-schema.ts",
   "src/lib/pets.ts",
   "src/lib/pricing.ts",
   "src/lib/seo.ts",

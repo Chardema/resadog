@@ -1,12 +1,13 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
+import { NETWORK_ERROR, SIGNUP_GENERIC_ERROR, parseApiResponse } from "@/lib/auth/api-error";
 
 function SignUpContent() {
   const router = useRouter();
@@ -19,25 +20,41 @@ function SignUpContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (!error || !errorRef.current) return;
+    errorRef.current.focus({ preventScroll: true });
+    errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [error]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
     setIsLoading(true);
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Inscription impossible.");
+      let response: Response;
+      try {
+        response = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+      } catch {
+        setError(NETWORK_ERROR);
+        return;
+      }
+      const result = await parseApiResponse(response, SIGNUP_GENERIC_ERROR);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       const verifyUrl = `/auth/verify-email/sent?email=${encodeURIComponent(formData.email)}${
         callbackUrl !== "/dashboard" ? `&callbackUrl=${encodeURIComponent(callbackUrl)}` : ""
       }`;
       router.push(verifyUrl);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Erreur de connexion.");
+    } catch {
+      setError(SIGNUP_GENERIC_ERROR);
     } finally {
       setIsLoading(false);
     }
@@ -54,11 +71,13 @@ function SignUpContent() {
           </p>
         </div>
 
-        {error && (
-          <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
-            {error}
-          </p>
-        )}
+        <div role="alert" aria-live="assertive">
+          {error && (
+            <p ref={errorRef} tabIndex={-1} className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700 outline-none">
+              {error}
+            </p>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">

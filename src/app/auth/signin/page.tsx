@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
+import { NETWORK_ERROR, SIGNIN_GENERIC_ERROR, parseApiResponse } from "@/lib/auth/api-error";
 
 function SignInContent() {
   const router = useRouter();
@@ -66,17 +67,24 @@ function SignInContent() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: formData.email, password: formData.password }),
+        }).catch(() => {
+          throw new Error(NETWORK_ERROR);
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Connexion impossible.");
-        if (data.requiresTwoFactor) {
+        const result = await parseApiResponse<{ requiresTwoFactor?: boolean }>(response, SIGNIN_GENERIC_ERROR);
+        if (!result.ok) throw new Error(result.error);
+        if (result.data.requiresTwoFactor) {
           setNeedsTwoFactor(true);
           return;
         }
       }
       await completeSignIn();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Connexion impossible.");
+      // TypeError/SyntaxError = message technique du navigateur, jamais affiché tel quel.
+      setError(
+        requestError instanceof Error && !(requestError instanceof TypeError) && !(requestError instanceof SyntaxError)
+          ? requestError.message
+          : SIGNIN_GENERIC_ERROR
+      );
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +108,7 @@ function SignInContent() {
         </div>
 
         {(successMessage || verificationError || error) && (
-          <p className={`mb-5 rounded-xl border p-3 text-sm font-semibold ${
+          <p role={successMessage ? "status" : "alert"} aria-live={successMessage ? "polite" : "assertive"} className={`mb-5 rounded-xl border p-3 text-sm font-semibold ${
             successMessage
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-red-200 bg-red-50 text-red-700"
