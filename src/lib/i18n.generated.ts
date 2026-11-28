@@ -9592,5 +9592,49 @@ export const generatedCatalogue: Record<string, { en: string; es: string }> = {
   "n’a pas accès au numéro complet de la carte.": {
     "en": "does not have access to the full card number.",
     "es": "no tiene acceso al número completo de la tarjeta."
+  },
+  "Le mot de passe doit contenir au moins 12 caractères": {
+    "en": "The password must contain at least 12 characters",
+    "es": "La contraseña debe contener al menos 12 caracteres"
+  },
+  "Le mot de passe est trop long": {
+    "en": "The password is too long",
+    "es": "La contraseña es demasiado larga"
+  },
+  "Ajoutez une lettre minuscule": {
+    "en": "Add a lowercase letter",
+    "es": "Añade una letra minúscula"
+  },
+  "Ajoutez une lettre majuscule": {
+    "en": "Add an uppercase letter",
+    "es": "Añade una letra mayúscula"
+  },
+  "Ajoutez un chiffre": {
+    "en": "Add a number",
+    "es": "Añade un número"
+  },
+  "Choisissez un mot de passe moins courant": {
+    "en": "Choose a less common password",
+    "es": "Elige una contraseña menos común"
+  },
+  "Inscription impossible pour le moment. Réessayez dans quelques instants ou écrivez-nous.": {
+    "en": "Sign-up is not possible right now. Please try again in a few moments or write to us.",
+    "es": "No es posible registrarse en este momento. Inténtalo de nuevo en unos instantes o escríbenos."
+  },
+  "Connexion impossible pour le moment. Réessayez dans quelques instants ou écrivez-nous.": {
+    "en": "Sign-in is not possible right now. Please try again in a few moments or write to us.",
+    "es": "No es posible iniciar sesión en este momento. Inténtalo de nuevo en unos instantes o escríbenos."
+  },
+  "Connexion au serveur impossible. Vérifiez votre connexion Internet puis réessayez.": {
+    "en": "Unable to reach the server. Check your Internet connection and try again.",
+    "es": "No se puede conectar con el servidor. Comprueba tu conexión a Internet y vuelve a intentarlo."
+  },
+  "Identifiants incorrects.": {
+    "en": "Incorrect credentials.",
+    "es": "Credenciales incorrectas."
+  },
+  "Identifiants invalides.": {
+    "en": "Invalid credentials.",
+    "es": "Credenciales no válidas."
   }
 } as const;

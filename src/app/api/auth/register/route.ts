@@ -4,14 +4,8 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { distributedRateLimit } from "@/lib/rate-limit";
 import { issueEmailVerification } from "@/lib/auth/email-verification";
-import { getClientIp, normalizeEmail, passwordSchema } from "@/lib/auth/password";
-
-const registerSchema = z.object({
-  name: z.string().trim().min(2, "Le nom doit contenir au moins 2 caractères").max(80),
-  email: z.string().email("Email invalide"),
-  password: passwordSchema,
-  phone: z.string().trim().max(30).optional(),
-});
+import { getClientIp, normalizeEmail } from "@/lib/auth/password";
+import { registerSchema } from "@/lib/auth/register-schema";
 
 export async function POST(request: Request) {
   try {
